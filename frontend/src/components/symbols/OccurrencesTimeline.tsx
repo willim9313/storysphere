@@ -1,10 +1,11 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, ChevronRight, ExternalLink, Telescope } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { Tooltip } from '@/components/ui/Tooltip';
 import type { SymbolTimelineEntry } from '@/api/symbols';
 
 import { chapterSegment, type ChapterAxis, type ChapterSegment } from './chapterAxis';
@@ -118,21 +119,18 @@ function OccurrenceRow({
           </span>
         ))}
         {jumpable ? (
-          <button
-            type="button"
-            className="sym-occ-jump"
-            title={t('symbol.interpretation.occurrenceJumpTitle')}
-            onClick={onJump}
-          >
-            <ExternalLink size={11} />
+          // Words, not a bare icon: the old 22px square was the only way off this
+          // list and nothing on it said where it went.
+          <button type="button" className="ss-btn ss-btn-sm ss-btn-ghost" onClick={onJump}>
+            {t('symbol.occ.jump')}
           </button>
         ) : (
           // Not a disabled button: there is nothing to enable. The reader lists
           // body chapters only, so this paragraph has no page to open, and a
           // greyed control invites clicking to find out why.
-          <span className="sym-occ-nojump" title={t('symbol.occ.noJumpTitle')}>
-            {t('symbol.occ.noJump')}
-          </span>
+          <Tooltip label={t('symbol.occ.noJumpTitle')}>
+            <span className="sym-occ-nojump">{t('symbol.occ.noJump')}</span>
+          </Tooltip>
         )}
       </div>
     </div>
@@ -260,8 +258,7 @@ export function OccurrencesTimeline({
   return (
     <section className="sym-card">
       <div className="sym-card-head">
-        <Telescope size={13} style={{ color: 'var(--accent)' }} />
-        <span className="sym-card-title">{t('symbol.occurrences')}</span>
+        <h3 className="sym-card-title">{t('symbol.occurrences')}</h3>
         <span className="sym-card-meta">
           {/* The front-matter clause is dropped at zero rather than reading
               「前置頁 0 筆另計」, which is a template showing through and not a

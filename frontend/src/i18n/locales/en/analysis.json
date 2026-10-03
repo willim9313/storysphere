@@ -1202,8 +1202,8 @@
         "discouragedButton": "Interpret anyway",
         "weakTitle": "Weak signals — the result may only paraphrase the quotes",
         "frontWarn": "{{count}} front-matter occurrences are excluded from the evidence; only body and afterword text is sent.",
-        "blockedTitle": "The provider refused this prompt — the signals are not the problem",
-        "blockedDesc": "The LLM provider blocked this symbol's prompt ({{detail}}) and returned nothing. That is a judgement made at the model, so re-sending the same evidence gets the same answer. Worth retrying once a different provider is configured.",
+        "blockedTitle": "The LLM provider refused text about this symbol",
+        "blockedDesc": "The LLM provider blocked this symbol's prompt ({{detail}}) and returned nothing.",
         "blockedEmptyDesc": "The LLM provider returned empty content and gave no reason. Re-sending the same evidence will most likely get the same result. Worth retrying once a different provider is configured.",
         "blockedButton": "Try again",
         "blockedHint": "Retrying re-sends the same evidence; expect the same refusal unless the provider has changed"
@@ -1214,7 +1214,7 @@
       "taskLabel": "TASK ID",
       "overallProgress": "Overall progress",
       "cancel": "Cancel",
-      "footerNote": "~12s expected · polling every 2s",
+      "footerNote": "Polling every 2s",
       "stageDone": "Done",
       "stagePending": "Waiting",
       "stages": {
@@ -1223,12 +1223,15 @@
         "link": "Link KG characters / events",
         "llm": "LLM interpretation · thematic proposition",
         "review": "Persist for review"
-      }
+      },
+      "stageRunning": "In progress",
+      "cancelFailed": "Could not cancel — the task is still running."
     },
     "error": {
       "generic": "Operation failed. Please try again.",
       "triggerFailed": "Failed to trigger interpretation. Please try again.",
-      "reviewFailed": "Failed to update review status."
+      "reviewFailed": "Failed to update review status.",
+      "blockedInline": "Behaviour signals, the heatmap and the triage panel are unaffected — they are computed for free and never go through the provider."
     },
     "dashboard": {
       "heatTitle": "Chapter density heatmap"
@@ -1267,7 +1270,9 @@
       },
       "checkHint": "Tick the symbols to interpret. Already-interpreted symbols and words occurring once are not included.",
       "checkNone": "Nothing here can be picked.",
-      "checkAria": "Pick {{term}}"
+      "checkAria": "Pick {{term}}",
+      "trustBelowFloor": "Evidence trust {{pct}}%, below the 80% trust floor",
+      "groupMeta": "{{total}} · {{analyzed}} interpreted"
     },
     "shape": {
       "through": "Runs through {{count}} chapters",
@@ -1356,7 +1361,8 @@
         "check": "Pick several…",
         "checkOff": "Cancel picking",
         "checked": "Interpret picked ({{count}})",
-        "confirmChecked": "This will interpret the {{count}} symbols you picked. Each one spends tokens and enters HITL review. Continue?"
+        "confirmChecked": "This will interpret the {{count}} symbols you picked. Each one spends tokens and enters HITL review. Continue?",
+        "confirmTitle": "Interpret symbols in bulk"
       }
     },
     "detail": {
@@ -1464,7 +1470,8 @@
       "frontShow": "Show {{count}} front-matter records",
       "frontHide": "Hide {{count}} front-matter records",
       "frontDesc": "Colophon and title page — noise. Never sent to interpretation, and not in the reader.",
-      "metaClean": "{{count}} records · {{chapters}} body chapters"
+      "metaClean": "{{count}} records · {{chapters}} body chapters",
+      "jump": "Jump to text"
     },
     "cluster": {
       "crumb": "Cluster",
@@ -1478,7 +1485,8 @@
       "withSeed": "{{count}} shared",
       "hot": "Shared landing point: Ch. {{chapters}} — {{count}} of {{total}} members appear there at once",
       "hotNone": "The members share no body chapter, so this group carries separately rather than together",
-      "boundary": "Scope: this is not a small knowledge graph. Rows are symbols, columns are chapters, shade is occurrence count — it answers what these symbols carry between them. Who is related to whom stays on the knowledge graph page."
+      "boundary": "Scope: this is not a small knowledge graph. Rows are symbols, columns are chapters, shade is occurrence count — it answers what these symbols carry between them. Who is related to whom stays on the knowledge graph page.",
+      "empty": "No two symbols share a paragraph 2 or more times."
     },
     "pin": {
       "set": "Pin for comparison",
@@ -1500,6 +1508,25 @@
     "guide": {
       "prefix": "Researcher guide:",
       "body": "This page lays the book's imagery out as a map. The <strong>sort axis</strong> decides what \"important\" means — narrative load is the composite measure, while <strong>raw frequency is only a control</strong>: appearing often is not the same as carrying weight. Filter by category and review state on the left."
+    },
+    "filterEmpty": {
+      "clear": "Clear search"
+    },
+    "empty": {
+      "steps": {
+        "1": {
+          "title": "Make sure paragraphs are built",
+          "desc": "Symbols are found inside paragraphs; with no paragraphs there are no symbols."
+        },
+        "2": {
+          "title": "Open the Build Overview and look at the Symbols node",
+          "desc": "The node is marked built, partial or not built, and lists which prerequisites are still missing."
+        },
+        "3": {
+          "title": "Prerequisites are met but it is still empty",
+          "desc": "Build it by hand from the Symbols node in the Build Overview. This calls the LLM and spends tokens."
+        }
+      }
     }
   },
   "narrative": {

@@ -1510,84 +1510,71 @@ TensionLine 聚合）、#14d-2（TEU 清單）、#14d-3（TEU 人工指派）、
 
 ### 3.9 象徵意象頁 `/books/:bookId/symbols`
 
-頁面分為兩欄：左側清單（240–260px）+ 右側意象詳情。i18n namespace 為 `analysis.json` 的 `symbol.*`（與其他分析頁對齊；舊 `settings.json/symbols.*` 已搬移）。
+頁面分為兩欄：左側清單（284px）+ 右側內容。i18n namespace 為 `analysis.json` 的 `symbol.*`。DS v3 第 3 批（3-4）改版，依據 `11 符號意象` 決議紀錄；**B 檢視**密度（頁邊 24／區塊間距 16／卡內距 16／列 8、內容 max-w 1280、下內距 32），熱圖格點為唯一例外（格子尺寸由 12 欄軸決定，列間距 `--space-2`）。
+
+> **以下是草稿・待設計定案**（i18n `symbol.*`，zh-TW 與 en 皆有；稿上已有的 8 句加稿上沒有的 2 句〔`generating.cancelFailed`、`overview.batch.confirmTitle`〕）：
+> `list.trustBelowFloor`、`list.groupMeta`、`error.blockedInline`、`cluster.empty`、`filterEmpty.clear`、
+> `empty.steps.{1,2,3}.{title,desc}`（三步改寫）、`occ.jump`（「跳到原文」）、`generating.cancelFailed`、
+> `overview.batch.confirmTitle`（ConfirmDialog 標題，稿上無）。
+> 已裁決：`generating.stageRunning`「進行中」；供應商阻擋標題「LLM供應商拒絕意象相關文本內容」並刪去內文兩句冗句；
+> `generating.footerNote` 拿掉「預計 ~12 秒」（保留「每 2 秒輪詢狀態」）。此三處是已裁決的例外，不是改既有字串的通則。
 
 #### 版面結構
 
 ```
-[Left Panel 260px] [Content Area flex]
+[Left 284px]  [main：GuidanceRibbon → (LlmUnconfiguredNotice) → (觸發失敗橫幅) → 內容；max-w 1280]
 ```
 
-#### Left Panel — 意象清單
+#### Left Panel — 意象清單（components-rows 動作列）
 
-- 類型 chip row（all / object / nature / spatial / body / color / other；只顯示有資料的類型）
-- 搜尋輸入框（match `term` 與 `aliases`）
-- 排序維度切換：頻率 / 首見 / 審核
-- 清單項：
-  - 類型色點
-  - 詞條（serif）+ polarity dot（若已有 interpretation）
-  - 異體（最多 2 個，` · ` 串接）
-  - DensityStrip — 章節密度縮影（每章一格，依密度上色）
-  - 右側：出現次數 + ReviewBadge（若已有 interpretation）+ BlockBadge（若 `interpretation_block` 非 null）
-    - **兩者可同時出現** —— 曾成功詮釋、後續重生成被拒。只顯示其中一個會藏掉一半狀態。
-    - BlockBadge 用 `--status-partial-*`（琥珀）而非 `--color-error-*`：沒有東西壞掉、
-      使用者也沒做錯事，狀態是「試過、無法完成」。紅色會讀成一個待修的故障。
+- 排序下拉：`--input-*` 框＋Lucide chevron；七個值（敘事負載〔預設〕／角色依附／貫穿度／事件依附／正文頻率（對照）／首見章序／審核狀態），存 `?sort=`。
+- 搜尋框（`--input-*`；match `term` 與 `aliases`；搜尋會涵蓋單次詞）、類別 chip（`?type=`；啟用態＝accent 邊與字，不依類別換色）。
+- **list-group-head**：「依敘事負載排序」＋「{rows} · 已析 {n}」（已析＝清單列中 `item.interpretation` 非空者；sans tabular-nums）。載入中／失敗時不畫。
+- 動作列：24px 類別 lead（類別 bg 色塊，Tooltip 寫類別名）、sans xs/500 意象名＋異體、行為短句、DensityStrip（8px，絕對色階；正文之外的格一律虛框）、右側分數（隨排序主軸）、12px 狀態點槽（polarity 點，無則留空）。無分隔線、列距 `--space-1`。選中／勾選＝`--bg-secondary` 底＋粗體名，**無左緣強調**。ReviewBadge／BlockBadge 可同時出現。
+- 分數 **可信度 < 80%** 用 `--status-partial-fg`，並掛 Tooltip「證據可信度 {pct}%，低於可信門檻 80%」；triage 的可信度 chip 同門檻同色。
+- 勾選模式：13×13 勾選框、radius 2px、勾號 `--accent-fg`；已有詮釋／被拒／單次詞不可勾。
+- 狀態：overview 載入中／失敗→清單區留白（主區說明原因，不寫「尚無意象資料」）；0 筆→「全部 0」＋「尚無意象資料」；篩到空→filtered 空態「無符合結果」＋「清除搜尋」（清搜尋、類別與行為分群篩選）。
+
+#### Landing（未選取）— 由上到下
+
+1. 標題「全書意象地圖」＋meta（N 個意象 · N 次出現 · 行為訊號 N/N 可算 · LLM 詮釋 N/N · 證據有雜訊 N 個）。成本圖例註記已拿掉。
+   「可算」＝overview 端 `items.length` 對上前端算出訊號的列數；overview 沒有「不可算」旗標（見 feedback 3-SY-3）。
+2. 批次鈕（皆走 `ConfirmDialog`，`spendsTokens`）：前 5 名（primary＋`.ss-btn-llm`）、全部 N 個（secondary＋`.ss-btn-llm`）、勾選多筆（ghost，無字符）；勾選態為「生成已勾選（N）」＋「取消勾選」。批次面板不加取消；完成顯示「已生成＋跳過＋失敗」與失敗清單（imagery_id＋reason）。
+3. **triage「該先讀哪幾個」（B2）**：accent 邊外框，第一名放大（`flex 2`、2xl 名、sm 句）、二三名並列。每卡五成分：排名、負載、行為短語、三顆 chip、CTA 文案（導航，無字符）。
+4. **章節密度熱圖**：絕對色階，圖例三項「1 次／2 次以上／非正文」靠右在卡底（≥2 同一階，`densityStep`／`densityLegend`）；虛框格＝正文之外的出現（空或有都虛框）；Ink 用 `--symbol-density-*` 灰階＋框線。格子為 DS Tooltip（取代原生 title）。
+5. **行為分群｜意象叢**：兩欄等寬等高，主欄窄於 720 疊成一欄。行為分群成員名單最寬 24ch 換行、成員 0 的形狀不列；意象叢子卡依錨點負載排序、全部往下排；0 個叢→保留卡片＋「沒有任何兩個意象在同一段共現 2 次以上。」；**邊界宣告永遠在卡底**。
+6. **單次出現詞**：字級五階（ch1–2 xs → ch9–10 xl，依正文章數等比），前置頁／後記 2xs muted；不進排序／批次，可點可搜。
 
 #### Content Area — 意象詳情
 
-選中意象後依序顯示五個區塊：
+1. 麵包屑「← 全書意象地圖 / {意象}」＋「釘選以便並看」（`?symbol=&pin=`）；標題列＋異體。
+2. **行為摘要六格，3＋3**：角色依附（含「唯一進入排序的共現訊號」註記與自我匹配過濾說明，後者只在 `self_match_count > 0` 時出現）／分布形狀／事件依附｜意象結盟／登場退場／證據可信度。寬度不足時降為 2 欄、1 欄。
+3. **詮釋區**（不做：已生成詮釋 InterpretationHero 的改版、四種審核狀態、「重新生成」，沿用現況）：
+   - **CTA 四階**（`InterpretationCta`）：同框同按鈕尺寸，只靠按鈕變體（recommended＝primary，其餘 secondary）與一句話區分；全部 `.ss-btn-llm`；框頭無字符；error 階（供應商阻擋）框用 `--color-error`＋警示圖示，附 `blockedHint` 與 `error.blockedInline`。`blocked` 判定優先於 load 門檻；按鈕保持可點。
+   - **生成中**（`InterpretationGenerating`）：五段 stage，三態「完成／進行中／等待」；前三格共用同一 sepState；整體進度取後端打點值；不給 ETA；「每 2 秒輪詢狀態」；**取消**呼叫 `POST /tasks/{id}/cancel`，成功後才關遮罩，失敗留遮罩並顯示 `generating.cancelFailed`。
+4. 章節分布卡、共現網絡卡（三欄：角色依附／場景與物件／結盟意象）、出現紀錄卡（可跳的那筆有「跳到原文」文字鈕；不可跳的標「不可跳」＋Tooltip）。
 
-1. **標題列**：詞條 h1（serif）+ TypePill + 出現次數；下方為異體 pill 列。
-2. **詮釋區（依狀態切換）**：
-   - **生成中**（`InterpretationGenerating`）：中央卡片含五階段 checklist（彙整 SEP 證據檔 / 採樣段落脈絡 N/N / 連結 KG 角色 / LLM 詮釋 / 寫入待審紀錄），上方為整體進度條 + taskId，下方為取消按鈕與輪詢註記。後端 `_run_symbol_analysis` 只 emit 3 個 progress event（10/40/90），前端把 10 之前的三個敘事步視為「assemble SEP」原子塊，達 10 後一起標 done；採樣 N/N 顯示的是 `entity.frequency`（與 `len(sep.occurrence_contexts)` 等價），非逐筆計數。詳見 [`InterpretationGenerating.tsx`](../frontend/src/components/symbols/InterpretationGenerating.tsx) 的 `deriveStages` 註解。
-   - **已生成**（`InterpretationHero`）：
-     - 上：`LLM 詮釋` tag（連往 `/methodology?framework=sep_methodology`，與其他分析頁的
-       術語連結做法一致）+ assembled_by + 日期 + ReviewBadge（右）
-     - 主題命題（serif italic）
-     - polarity 方塊（圖示 + 標籤）+ confidence meter
-     - 證據綜述（evidence_summary）
-     - 相關角色 / 相關事件 chips（從 `linked_characters` / `linked_events`）
-     - HITL 三按鈕（通過 / 修訂 / 駁回）+ 重新生成 ghost 按鈕；按修訂時切換 inline edit theme + polarity → 儲存 / 取消
-   - **尚未生成**（`InterpretationCta`）：sparkles 圖示 + 說明 + 主按鈕「生成 LLM 詮釋」。
-     文案依 `interpretationAdvice()` 的四種判定切換：`recommended` / `available` /
-     `discouraged` / `blocked`。
-   - **被供應商拒絕**（`InterpretationCta` 的 `blocked` 分支）：Info 圖示 + ghost 按鈕
-     「再試一次」，標題明講「供應商拒絕了這個提示，不是訊號不足」，內文引用 provider
-     自己的標籤（如 `PROHIBITED_CONTENT`）。
-     - **`blocked` 判定優先於 load 門檻。** 拒絕落在強訊號意象上的機率與弱訊號一樣，
-       若只依 load 判定，頁面會把最顯眼的推薦位給唯一產不出來的那個
-       （《名字的潮汐》的「手」正是如此）。
-     - **按鈕保持可點。** 拒絕是針對「當時那家 provider」記錄的，重試是這個意象在有
-       可用 fallback 之後恢復的唯一途徑；禁用等於讓那筆紀錄變成永久判決。
-3. **章節分布卡（`ChapterDistChart`）**：SVG 長條，密度漸層（low/mid/high）+ 峰值三角 marker（前 3 名章節，client-side 推導）+ hover tooltip + 密度圖例
-4. **共現網絡卡（`CoOccurrencePanel`）**：3 個 tab
-   - 共現意象：彩色 pill grid（依 imagery_type 著色 + 共現次數 chip），點擊切換選中
-   - 共現角色：來自 interpretation.linked_characters，藍 dot + 角色 id（後續可接 KG 跳轉）
-   - 共現事件：來自 interpretation.linked_events，紅 dot + 事件 id
-5. **出現紀錄卡（`OccurrencesTimeline`）**：按章節分組，每組 header「第 N 章 · M 次」+ 分隔線；每筆顯示 `#position` + 前後文（term / aliases highlight）+ 共現詞 tags（最多 3）
-
-#### 狀態
+#### 失敗與空態（錯誤四分，{頁名}＝符號意象）
 
 | 條件 | 顯示 |
 |------|------|
-| list loading | 右側 LoadingSpinner |
-| `entities.length === 0` | EmptyState — `emptyTitle` + `emptyHint` |
-| 未選中且有資料 | EmptyState — `selectPrompt` + `selectPromptDesc` |
-| 選中但 interpretation 不存在（404） | `InterpretationCta` |
-| 選中且 `interpretation_block` 非 null | `InterpretationCta` 的 `blocked` 分支 |
-| 選中且 polling | `InterpretationGenerating` |
-| 選中且有 interpretation | `InterpretationHero`（HITL 可操作） |
+| overview 載入中 | LoadingSpinner |
+| overview 失敗（有 JSON body） | `PageFailure` page 版（重試／回書籍總覽〔沿用 `analysis:character.error.backToBook`〕／技術細節） |
+| overview 失敗（無 body） | `PageFailure` backend 版 |
+| 0 個意象 | `EmptyState` ready：shapes 圖示、「尚無符號意象資料」、「重新上傳書籍後將自動執行意象萃取。」、三步（建構概覽的說法）、「開啟建構概覽」「重新檢查狀態」（invalidate `qk.symbols.overview`） |
+| 觸發 503（單筆或批次） | `LlmUnconfiguredNotice` 就地顯示，頁面其餘照常 |
+| 觸發失敗，無回應 | 精簡橫幅「伺服器沒有回應」＋重試（重送同一次觸發）＋關閉 |
+| 觸發失敗，有 JSON body | 橫幅「觸發詮釋失敗，請稍後再試。」＋關閉 |
+| 供應商阻擋（功能層） | 該意象的 CTA error 階；行為訊號／熱圖／triage 照常 |
 
 > `interpretation` 與 `interpretation_block` **彼此獨立**，可同時非 null。詳情區以
-> `interpretation` 優先（有詮釋就顯示 `InterpretationHero`）；側欄則兩個徽章都顯示。
-> 批次勾選（`useSymbolCheck.candidates`）排除已被拒絕者，與 #15j 後端預設跳過一致 ——
-> 提供一個註定被跳過的勾選框，是一個做不到的承諾。
+> `interpretation` 優先；側欄兩個徽章都顯示。批次勾選排除已被拒絕者，與 #15j 後端預設跳過一致。
 
 #### 設計 token
 
-- 意象類型：`--symbol-{object,nature,spatial,body,color,other}-{bg,fg,dot}`（既有）
-- 詮釋極性：`--polarity-{positive,negative,neutral,mixed}-{bg,fg,edge,dot}`（新增）
-- 章節密度：`--symbol-density-{low,mid,high,peak}`（新增）
+- 意象類型：`--symbol-{object,nature,spatial,body,color,other}-{bg,fg,dot}`
+- 詮釋極性：`--polarity-{positive,negative,neutral,mixed}-{bg,fg,edge,dot}`
+- 章節密度：`--symbol-density-{mid,high}`（熱圖與詳情長條只用這兩階；`low`／`peak` 保留於 tokens，不再被 `densityStep` 使用）
 
 #### API 參考
 

@@ -1202,8 +1202,8 @@
         "discouragedButton": "仍要生成",
         "weakTitle": "訊號偏弱，生成結果可能只是複述引文",
         "frontWarn": "{{count}} 筆前置頁出現不列入證據，只有正文與後記會送進 LLM。",
-        "blockedTitle": "供應商拒絕了這個提示,不是訊號不足",
-        "blockedDesc": "LLM 供應商以 {{detail}} 阻擋了這個意象的提示,未回傳任何內容。這是模型端對文本的判定,重送同一份證據會得到同樣的結果。換一家供應商後可再試。",
+        "blockedTitle": "LLM供應商拒絕意象相關文本內容",
+        "blockedDesc": "LLM 供應商以 {{detail}} 阻擋了這個意象的提示,未回傳任何內容。",
         "blockedEmptyDesc": "LLM 供應商回傳空內容,且未說明原因。重送同一份證據多半會得到同樣的結果。換一家供應商後可再試。",
         "blockedButton": "再試一次",
         "blockedHint": "重試會重新送出同一份證據;除非已換供應商,否則預期仍會被拒"
@@ -1214,7 +1214,7 @@
       "taskLabel": "TASK ID",
       "overallProgress": "整體進度",
       "cancel": "取消",
-      "footerNote": "預計 ~12 秒 · 每 2 秒輪詢狀態",
+      "footerNote": "每 2 秒輪詢狀態",
       "stageDone": "完成",
       "stagePending": "等待",
       "stages": {
@@ -1223,12 +1223,15 @@
         "link": "連結 KG 角色 / 事件",
         "llm": "LLM 詮釋 · 生成主題命題",
         "review": "寫入待審紀錄"
-      }
+      },
+      "stageRunning": "進行中",
+      "cancelFailed": "取消失敗，任務仍在進行。"
     },
     "error": {
       "generic": "操作失敗，請稍後再試。",
       "triggerFailed": "觸發詮釋失敗，請稍後再試。",
-      "reviewFailed": "更新審核狀態失敗。"
+      "reviewFailed": "更新審核狀態失敗。",
+      "blockedInline": "行為訊號、熱圖、triage 全部照常——它們是零成本實算，不經供應商。"
     },
     "dashboard": {
       "heatTitle": "章節密度熱圖"
@@ -1267,7 +1270,9 @@
       },
       "checkHint": "在左欄勾選要生成詮釋的意象。已有詮釋者與只出現 1 次的詞不列入批次。",
       "checkNone": "目前沒有可勾選的意象。",
-      "checkAria": "勾選「{{term}}」"
+      "checkAria": "勾選「{{term}}」",
+      "trustBelowFloor": "證據可信度 {{pct}}%，低於可信門檻 80%",
+      "groupMeta": "{{total}} · 已析 {{analyzed}}"
     },
     "shape": {
       "through": "跨 {{count}} 章貫穿",
@@ -1356,7 +1361,8 @@
         "check": "勾選多筆",
         "checkOff": "取消勾選",
         "checked": "生成已勾選（{{count}}）",
-        "confirmChecked": "將對勾選的 {{count}} 個意象生成 LLM 詮釋。每一筆都會消耗 token 並進入 HITL 審核。要繼續嗎？"
+        "confirmChecked": "將對勾選的 {{count}} 個意象生成 LLM 詮釋。每一筆都會消耗 token 並進入 HITL 審核。要繼續嗎？",
+        "confirmTitle": "批次生成意象詮釋"
       }
     },
     "detail": {
@@ -1464,7 +1470,8 @@
       "frontShow": "顯示前置頁 {{count}} 筆",
       "frontHide": "隱藏前置頁 {{count}} 筆",
       "frontDesc": "版權頁與書名頁 · 純雜訊，不進詮釋輸入、不可跳閱讀頁",
-      "metaClean": "{{count}} 筆 · 正文 {{chapters}} 章"
+      "metaClean": "{{count}} 筆 · 正文 {{chapters}} 章",
+      "jump": "跳到原文"
     },
     "cluster": {
       "crumb": "意象叢",
@@ -1478,7 +1485,8 @@
       "withSeed": "共現 {{count}} 次",
       "hot": "共同落點：第 {{chapters}} 章 —— {{count}}／{{total}} 個成員同時出現",
       "hotNone": "成員沒有共同的正文落點，這叢意象是各自分開承載的",
-      "boundary": "邊界說明：這裡不做小型知識圖譜。列是意象、欄是章節、色階是出現次數 —— 回答「這些意象一起承載了什麼」。「誰跟誰有關係」仍然是知識圖譜頁的事。"
+      "boundary": "邊界說明：這裡不做小型知識圖譜。列是意象、欄是章節、色階是出現次數 —— 回答「這些意象一起承載了什麼」。「誰跟誰有關係」仍然是知識圖譜頁的事。",
+      "empty": "沒有任何兩個意象在同一段共現 2 次以上。"
     },
     "pin": {
       "set": "釘選以便並看",
@@ -1500,6 +1508,25 @@
     "guide": {
       "prefix": "研究者導覽：",
       "body": "本頁把全書意象排成一張地圖。<strong>排序主軸</strong>決定「重要」怎麼算——敘事負載是綜合指標，<strong>正文頻率只是對照組</strong>，出現得多不等於分量重。左側可依類別與審核狀態篩選。"
+    },
+    "filterEmpty": {
+      "clear": "清除搜尋"
+    },
+    "empty": {
+      "steps": {
+        "1": {
+          "title": "先確認段落已建立",
+          "desc": "意象是從段落裡找出來的；段落還沒建立，就不會有意象。"
+        },
+        "2": {
+          "title": "到建構概覽看象徵節點",
+          "desc": "節點會標示為已建立、部分或未建立，並列出還缺哪幾項前置。"
+        },
+        "3": {
+          "title": "前置齊了仍是空的",
+          "desc": "可從建構概覽的象徵節點手動建立。會呼叫 LLM，消耗 token。"
+        }
+      }
     }
   },
   "narrative": {

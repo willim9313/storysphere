@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ExternalLink, Link2 } from 'lucide-react';
+import { ExternalLink } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import type { TFunction } from 'i18next';
 
+import { Tooltip } from '@/components/ui/Tooltip';
 import { entityStyle, typeStyle, type SymbolTypeStyle } from './tokens';
 import type { SymbolSignals } from './symbolSignals';
 
@@ -120,14 +120,16 @@ export function CoOccurrencePanel({ bookId, signals, onSelectCo }: Readonly<Prop
   return (
     <section className="sym-card">
       <div className="sym-card-head">
-        <Link2 size={13} style={{ color: 'var(--accent)' }} />
-        <span className="sym-card-title">{t('symbol.co.title')}</span>
+        <h3 className="sym-card-title">{t('symbol.co.title')}</h3>
         <span className="sym-card-meta">
           {t('symbol.co.meta', { entities: entityCount, events: signals.eventCount })}
         </span>
       </div>
       <div className="sym-card-body">
-        <p className="sym-co-note">{selfFilterNote(t, signals)}</p>
+        {/* Why a symbol's own-name KG entity is missing from these lists is said
+            under 角色依附 in the behaviour summary, where its absence changes a
+            figure; this line is what the three columns mean. */}
+        <p className="sym-co-note">{t('symbol.co.selfNone')}</p>
 
         <div className="sym-co-cols">
           {groups.map((group) => (
@@ -138,22 +140,31 @@ export function CoOccurrencePanel({ bookId, signals, onSelectCo }: Readonly<Prop
                 <p className="sym-co-empty">{t(`symbol.co.${group.key}.empty`)}</p>
               ) : (
                 <div className="sym-co-rows">
-                  {group.rows.map((row) => (
-                    <button
-                      key={row.key}
-                      type="button"
-                      className={'sym-co-row' + (row.lead ? ' is-lead' : '')}
-                      style={{ background: row.style.bg, color: row.style.fg }}
-                      onClick={row.onOpen}
-                      title={row.lead ? t('symbol.co.leadHint') : undefined}
-                    >
-                      <span className="sym-co-dot" style={{ background: row.style.dot }} />
-                      <span className="sym-co-name">{row.name}</span>
-                      <span className="sym-co-meta">{row.meta}</span>
-                      <span className="sym-co-count">{row.count}</span>
-                      <ExternalLink size={10} aria-hidden="true" className="sym-co-go" />
-                    </button>
-                  ))}
+                  {group.rows.map((row) => {
+                    const button = (
+                      <button
+                        type="button"
+                        className={'sym-co-row' + (row.lead ? ' is-lead' : '')}
+                        style={{ background: row.style.bg, color: row.style.fg }}
+                        onClick={row.onOpen}
+                      >
+                        <span className="sym-co-dot" style={{ background: row.style.dot }} />
+                        <span className="sym-co-name">{row.name}</span>
+                        <span className="sym-co-meta">{row.meta}</span>
+                        <span className="sym-co-count">{row.count}</span>
+                        <ExternalLink size={10} aria-hidden="true" className="sym-co-go" />
+                      </button>
+                    );
+                    return row.lead ? (
+                      <Tooltip key={row.key} label={t('symbol.co.leadHint')}>
+                        {button}
+                      </Tooltip>
+                    ) : (
+                      <span key={row.key} className="sym-co-rowwrap">
+                        {button}
+                      </span>
+                    );
+                  })}
                 </div>
               )}
             </div>
@@ -164,18 +175,3 @@ export function CoOccurrencePanel({ bookId, signals, onSelectCo }: Readonly<Prop
   );
 }
 
-/**
- * Why the strongest co-occurrence is missing from the list.
- *
- * A symbol always co-occurs with the KG entity of its own name, and that hit
- * outranks every real one — 海's top co-occurrence was the location 海, 12 times.
- * The backend removes it and reports the count so this can say so; dropping it
- * silently leaves a reader comparing the list against a graph that disagrees.
- */
-function selfFilterNote(t: TFunction<'analysis'>, signals: SymbolSignals): string {
-  const self = signals.item.self_match_count;
-  if (self != null && self > 0) {
-    return t('symbol.co.selfFiltered', { term: signals.term, count: self });
-  }
-  return t('symbol.co.selfNone');
-}

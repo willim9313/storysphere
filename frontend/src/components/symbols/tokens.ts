@@ -108,27 +108,17 @@ export const REVIEW_STYLE: Record<SymbolReviewStatus, ReviewStyle> = {
 };
 
 /**
- * Shade by occurrence count rather than by proportion.
+ * Shade by occurrence count rather than by proportion, in two steps.
  *
- * Per-chapter counts in real books run 1–3, so the steps can mean literally
- * "once", "twice", "three or more" and a legend can say so. A percentage over a
- * range that small tells the reader less and invites more doubt. The scale is
- * shared across every row, so colour is comparable down a column.
+ * Per-chapter counts in real books run 1–3, so the steps mean literally "once"
+ * and "twice or more", and the legend says so (「1 次」「2 次以上」). Every count
+ * of two or more takes the same shade: a third colour for 3+ would draw a
+ * distinction the legend does not name. A percentage over a range that small
+ * tells the reader less and invites more doubt. The scale is shared across every
+ * row, so colour is comparable down a column. `densityLegend` (symbolViewModel)
+ * is the legend that goes with it.
  */
 export function densityStep(count: number): string {
   if (count <= 1) return 'var(--symbol-density-mid)';
-  if (count === 2) return 'var(--symbol-density-high)';
-  return 'var(--symbol-density-peak)';
-}
-
-/**
- * Steps a legend can honestly show, given the highest count actually drawn.
- *
- * Pass the maximum across every rendered cell, not the body-chapter maximum:
- * front matter can hold more occurrences of a symbol than any single chapter does
- * — 「海」 appears 3 times in the colophon and at most twice in a chapter — and a
- * swatch on screen with no entry in the legend is worse than no legend.
- */
-export function densityLegendSteps(renderedMax: number): number[] {
-  return [1, 2, 3].filter((step) => step <= Math.max(1, renderedMax));
+  return 'var(--symbol-density-high)';
 }
