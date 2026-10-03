@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { CharacterAnalysisDetail } from '@/api/types';
+import { Tooltip } from '@/components/ui/Tooltip';
+import { assignArcRows, parseChapterRange } from '../characterModel';
 
 interface Props {
   data: CharacterAnalysisDetail;
@@ -9,55 +11,57 @@ interface Props {
   chapterCount: number;
 }
 
-// Phase color band: rotates through these three tokens by segment index —
-// purely a color palette (not a narrative-mode assignment), per
-// docs/handoff/20260716-character-page/design-return/DESIGN_README.md.
+// Phase colour band: rotates through these three tokens by segment index —
+// purely a colour palette (not a narrative-mode assignment). The legend says so
+// ("色帶為輪替色盤，不代表敘事模式"); re-colouring it with the categorical
+// palette was decided and deferred.
 const PHASE_COLORS = [
   '--narrative-present-border',
   '--narrative-flashback-border',
   '--narrative-flashforward-border',
 ];
 
-function parseRange(range: string): [number, number] | null {
-  const parts = range.split('-').map((s) => Number(s.trim()));
-  if (parts.length !== 2 || parts.some((n) => !Number.isFinite(n))) return null;
-  return [parts[0], parts[1]];
-}
-
 function pickChapter(rec: Record<string, unknown>): number | undefined {
   const v = rec['chapter'];
   return typeof v === 'number' ? v : undefined;
 }
 
-export function ArcPane({ data, chapterCount }: Props) {
+export function ArcPane({ data, chapterCount }: Readonly<Props>) {
   const { t } = useTranslation('analysis');
-  const arc = data.arc ?? [];
-  const keyEvents = data.cep?.keyEvents ?? [];
+  const arc = useMemo(() => data.arc ?? [], [data.arc]);
+  const keyEvents = useMemo(() => data.cep?.keyEvents ?? [], [data.cep?.keyEvents]);
   const [activeArc, setActiveArc] = useState<number | null>(null);
 
   const CH = Math.max(chapterCount, 1);
-  const pct = (ch: number) => {
-    const clamped = Math.min(Math.max(ch, 1), CH);
-    return CH > 1 ? ((clamped - 1) / (CH - 1)) * 100 : 0;
-  };
+  // Axis cells: chapter n occupies [(n-1)/CH, n/CH]. A band spanning a–b covers
+  // cells a…b, a marker sits at its cell's centre.
+  const cellLeft = (ch: number) => `${((Math.min(Math.max(ch, 1), CH) - 1) / CH) * 100}%`;
+  const cellCentre = (ch: number) => `${((Math.min(Math.max(ch, 1), CH) - 0.5) / CH) * 100}%`;
 
-  const markers = keyEvents
-    .map((e) => {
+  const ranges = useMemo(() => arc.map((p) => parseChapterRange(p.chapterRange)), [arc]);
+  // 相鄰階段共享邊界章時才錯行；沒有重疊的階段留在同一行。
+  const rows = useMemo(() => assignArcRows(ranges), [ranges]);
+  const rowCount = rows.length > 0 ? Math.max(...rows) + 1 : 0;
+
+  // Several key events can sit in one chapter: one dot, names joined in its tooltip.
+  const markers = useMemo(() => {
+    const byChapter = new Map<number, string[]>();
+    for (const e of keyEvents) {
       const rec = e as Record<string, unknown>;
       const chapter = pickChapter(rec);
+      if (chapter == null) continue;
       const name = typeof rec['event'] === 'string' ? (rec['event'] as string) : '';
-      return chapter != null ? { chapter, name } : null;
-    })
-    .filter((m): m is { chapter: number; name: string } => m !== null);
+      byChapter.set(chapter, [...(byChapter.get(chapter) ?? []), name].filter(Boolean));
+    }
+    return [...byChapter.entries()].map(([chapter, names]) => ({ chapter, label: names.join('、') }));
+  }, [keyEvents]);
 
   return (
     <section className="ca-section">
       <header className="ca-section-head">
         <div>
           <h3 className="ca-section-title">{t('character.sections.arc')}</h3>
-          <div className="ca-section-sub" style={{ marginTop: 2 }}>
-            {t('character.arcPane.stagesCount', { count: arc.length })}
-          </div>
+          <div className="ca-section-sub">{t('character.arcPane.stagesCount', { count: arc.length })}</div>
         </div>
       </header>
       <div className="ca-section-body">
@@ -66,57 +70,66 @@ export function ArcPane({ data, chapterCount }: Props) {
         ) : (
           <>
             <div className="ca-arc-axis">
-              <div className="ca-arc-axis-line" />
               {Array.from({ length: CH }, (_, i) => (
-                <div key={i} className="ca-arc-tick" style={{ left: `${pct(i + 1)}%` }}>
-                  <div className="ca-arc-tick-mark" />
-                  <div className="ca-arc-tick-label">{`Ch.${i + 1}`}</div>
+                <div key={i} className="ca-arc-cell">
+                  {i + 1}
                 </div>
               ))}
+            </div>
+
+            <div className="ca-arc-bands" style={{ height: `calc(${rowCount} * var(--ca-arc-band-h) + ${Math.max(rowCount - 1, 0)} * var(--space-2))` }}>
               {arc.map((p, i) => {
-                const range = parseRange(p.chapterRange);
+                const range = ranges[i];
                 if (!range) return null;
                 const [from, to] = range;
                 return (
-                  <button
-                    key={i}
-                    type="button"
-                    className={'ca-arc-band' + (activeArc === i ? ' active' : '')}
+                  <div
+                    key={`${p.chapterRange}-${p.phase}`}
+                    className="ca-arc-band-pos"
                     style={{
-                      left: `${pct(from)}%`,
-                      width: `${Math.max(pct(to) - pct(from), 2)}%`,
-                      top: 8 + i * 20,
-                      background: `var(${PHASE_COLORS[i % PHASE_COLORS.length]})`,
+                      left: cellLeft(from),
+                      width: `${((Math.min(to, CH) - Math.max(from, 1) + 1) / CH) * 100}%`,
+                      top: `calc(${rows[i]} * (var(--ca-arc-band-h) + var(--space-2)))`,
                     }}
-                    title={p.phase}
-                    onClick={() => setActiveArc(i)}
                   >
-                    <span className="ca-arc-band-label">{p.phase}</span>
-                  </button>
+                    <Tooltip label={`Ch.${p.chapterRange} · ${p.phase}`}>
+                      <button
+                        type="button"
+                        className={'ca-arc-band' + (activeArc === i ? ' active' : '')}
+                        style={{ background: `var(${PHASE_COLORS[i % PHASE_COLORS.length]})` }}
+                        onClick={() => setActiveArc(i)}
+                      >
+                        <span className="ca-arc-band-label">{p.phase}</span>
+                      </button>
+                    </Tooltip>
+                  </div>
                 );
               })}
-              {markers.map((m, i) => (
-                <div
-                  key={`k${i}`}
-                  className="ca-arc-marker"
-                  title={m.name}
-                  style={{ left: `${pct(m.chapter)}%` }}
-                />
+            </div>
+
+            <div className="ca-arc-dots">
+              {markers.map((m) => (
+                <div key={m.chapter} className="ca-arc-dotpos" style={{ left: cellCentre(m.chapter) }}>
+                  <Tooltip label={m.label ? `Ch.${m.chapter} · ${m.label}` : `Ch.${m.chapter}`}>
+                    <span className="ca-arc-marker" tabIndex={0} />
+                  </Tooltip>
+                </div>
               ))}
             </div>
 
             <div className="ca-arc-legend">
+              <span>{t('character.arcPane.overlapStackingNote')}</span>
+              <span>{t('character.arcPane.paletteNote')}</span>
               <span className="ca-arc-legend-item">
                 <span className="ca-arc-legend-dot" />
                 {t('character.arcPane.keyEventMarkerLegend')}
               </span>
-              <span>{t('character.arcPane.overlapStackingNote')}</span>
             </div>
 
             <div className="ca-arc-cards">
               {arc.map((p, i) => (
                 <button
-                  key={i}
+                  key={`${p.chapterRange}-${p.phase}`}
                   type="button"
                   className={'ca-arc-card' + (activeArc === i ? ' active' : '')}
                   style={{ borderLeftColor: `var(${PHASE_COLORS[i % PHASE_COLORS.length]})` }}

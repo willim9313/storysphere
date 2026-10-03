@@ -1,13 +1,27 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { FactionAnalysisResponse } from '@/api/factions';
-import { getFactionColor } from './factionColors';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import {
+  DIMMED_OPACITY,
+  buildFactionLegend,
+  factionToken,
+  isDimmed,
+  quadrantStatus,
+  type FactionSelection,
+  type RankedFaction,
+} from '../characterModel';
+import { FactionLegend } from './FactionLegend';
 import { median, type OverviewCharacter } from './types';
 
 interface QuadrantViewProps {
   /** Must already be merged with faction/metric data (see `applyFactionsAndMetrics`). */
   characters: OverviewCharacter[];
   factions: FactionAnalysisResponse | undefined;
+  /** Factions ranked by size (see `rankFactions`); drives colours and the legend. */
+  rankedFactions: RankedFaction[];
+  /** #6e is still in flight — must not flash the "metrics unavailable" state. */
+  metricsLoading: boolean;
   onSelect: (entityId: string) => void;
 }
 
@@ -22,9 +36,17 @@ const MAX_DEGREE_FOR_RADIUS = 24;
 // the right edge of the plot (e.g. the highest-mentionCount character).
 const RIGHT_EDGE_LABEL_THRESHOLD = 0.85;
 
-export function QuadrantView({ characters, factions, onSelect }: QuadrantViewProps) {
+export function QuadrantView({
+  characters,
+  factions,
+  rankedFactions,
+  metricsLoading,
+  onSelect,
+}: Readonly<QuadrantViewProps>) {
   const { t } = useTranslation('analysis');
   const [hoveredId, setHoveredId] = useState<string | null>(null);
+  // 點圖例單獨亮出（新行為）：其餘泡泡降到 0.3，再點同一項取消。
+  const [selection, setSelection] = useState<FactionSelection>(null);
 
   const plotted = useMemo(() => {
     const withMetrics = characters.filter((c) => c.pagerank !== undefined);
@@ -69,15 +91,43 @@ export function QuadrantView({ characters, factions, onSelect }: QuadrantViewPro
     };
   }, [plotted]);
 
+  const legend = useMemo(() => buildFactionLegend(rankedFactions), [rankedFactions]);
+
   const plotW = VB_W - pad.left - pad.right;
   const plotH = VB_H - pad.top - pad.bottom;
   const cx = (xFrac: number) => pad.left + xFrac * plotW;
   const cy = (yFrac: number) => pad.top + (1 - yFrac) * plotH;
 
-  if (plotted.length === 0) {
+  const unaffiliatedCount = factions?.unaffiliatedNames?.length ?? factions?.unaffiliatedEntityIds?.length ?? 0;
+  const status = quadrantStatus(metricsLoading, plotted.length);
+
+  const legendEl = (
+    <FactionLegend
+      legend={legend}
+      hasFactions={rankedFactions.length > 0}
+      unaffiliatedCount={unaffiliatedCount}
+      selection={selection}
+      onSelectionChange={setSelection}
+    />
+  );
+
+  if (status !== 'ready') {
     return (
-      <div className="ca-ov-error">
-        <p>{t('character.overview.quadrant.metricsError')}</p>
+      <div className="ca-ov-quadrant">
+        <div className="ca-ov-quadrant-row">
+          <div className="ca-ov-quadrant-main">
+            {status === 'loading' ? (
+              <div className="ca-ov-plot ca-ov-plot-state">
+                <LoadingSpinner />
+              </div>
+            ) : (
+              <div className="ca-ov-error">
+                <p>{t('character.overview.quadrant.metricsError')}</p>
+              </div>
+            )}
+          </div>
+          {legendEl}
+        </div>
       </div>
     );
   }
@@ -89,130 +139,121 @@ export function QuadrantView({ characters, factions, onSelect }: QuadrantViewPro
     ? [...plotted.filter((p) => p.c.entityId !== hoveredId), ...plotted.filter((p) => p.c.entityId === hoveredId)]
     : plotted;
 
-  const unaffiliatedCount = factions?.unaffiliatedNames?.length ?? factions?.unaffiliatedEntityIds?.length ?? 0;
-
   return (
     <div className="ca-ov-quadrant">
       <div className="ca-ov-quadrant-row">
-      <div className="ca-ov-plot">
-        <svg viewBox={`0 0 ${VB_W} ${VB_H}`} width="100%" height={470} role="img" aria-label={t('character.overview.quadrant.ariaLabel')}>
-          {/* median cross-hairs */}
-          <line
-            x1={cx(medX)} x2={cx(medX)}
-            y1={pad.top} y2={VB_H - pad.bottom}
-            className="ca-ov-median-line"
-          />
-          <line
-            x1={pad.left} x2={VB_W - pad.right}
-            y1={cy(medY)} y2={cy(medY)}
-            className="ca-ov-median-line"
-          />
+        <div className="ca-ov-quadrant-main">
+          <div className="ca-ov-plot">
+            <svg viewBox={`0 0 ${VB_W} ${VB_H}`} width="100%" height={470} role="img" aria-label={t('character.overview.quadrant.ariaLabel')}>
+              {/* median cross-hairs */}
+              <line
+                x1={cx(medX)} x2={cx(medX)}
+                y1={pad.top} y2={VB_H - pad.bottom}
+                className="ca-ov-median-line"
+              />
+              <line
+                x1={pad.left} x2={VB_W - pad.right}
+                y1={cy(medY)} y2={cy(medY)}
+                className="ca-ov-median-line"
+              />
 
-          {/* axis labels */}
-          <text
-            x={16} y={pad.top + plotH / 2}
-            transform={`rotate(-90 16 ${pad.top + plotH / 2})`}
-            className="ca-ov-axis-label"
-            textAnchor="middle"
-          >
-            {t('character.overview.quadrant.yAxis')}
-          </text>
-          <text
-            x={VB_W - pad.right} y={VB_H - 12}
-            textAnchor="end"
-            className="ca-ov-axis-label"
-          >
-            {t('character.overview.quadrant.xAxis')}
-          </text>
-          <text x={VB_W - pad.right - 6} y={pad.top + 18} textAnchor="end" className="ca-ov-corner-label">
-            {t('character.overview.quadrant.cornerLead')}
-          </text>
-          <text x={pad.left + 6} y={VB_H - pad.bottom - 10} textAnchor="start" className="ca-ov-corner-label">
-            {t('character.overview.quadrant.cornerTail')}
-          </text>
-
-          {/* bubbles */}
-          {ordered.map(({ c, x, y, r, alwaysLabel }) => {
-            const [fill, stroke] = getFactionColor(c.factionIndex);
-            const hovered = hoveredId === c.entityId;
-            const showLabel = alwaysLabel || hovered;
-            const bx = cx(x);
-            const by = cy(y);
-            const nearRightEdge = x > RIGHT_EDGE_LABEL_THRESHOLD;
-            const detail = hovered && (
-              <tspan className="ca-ov-bubble-detail">
-                {' '}
-                {t('character.overview.quadrant.bubbleDetail', {
-                  mentions: c.mentionCount,
-                  degree: c.degree ?? 0,
-                })}
-              </tspan>
-            );
-            return (
-              <g
-                key={c.entityId}
-                onMouseEnter={() => setHoveredId(c.entityId)}
-                onMouseLeave={() => setHoveredId((id) => (id === c.entityId ? null : id))}
-                onClick={() => onSelect(c.entityId)}
-                style={{ cursor: 'pointer' }}
+              {/* axis labels */}
+              <text
+                x={16} y={pad.top + plotH / 2}
+                transform={`rotate(-90 16 ${pad.top + plotH / 2})`}
+                className="ca-ov-axis-label"
+                textAnchor="middle"
               >
-                <title>{c.name}</title>
-                {c.analyzed && (
-                  <circle cx={bx} cy={by} r={r + 2} fill="none" stroke="var(--accent)" strokeWidth={2} />
-                )}
-                <circle
-                  cx={bx} cy={by} r={r}
-                  fill={c.factionIndex == null ? 'transparent' : fill}
-                  stroke={stroke}
-                  strokeWidth={c.factionIndex == null ? 1 : 1.5}
-                  opacity={c.factionIndex == null ? 0.62 : 0.95}
-                  pointerEvents="all"
-                />
-                {showLabel && (nearRightEdge ? (
-                  <text x={bx - r - 8} y={by + 4} textAnchor="end" className="ca-ov-bubble-label">
-                    {c.name}
-                    {detail}
-                  </text>
-                ) : (
-                  <text x={bx} y={by + r + 13} textAnchor="middle" className="ca-ov-bubble-label">
-                    {c.name}
-                    {detail}
-                  </text>
-                ))}
-              </g>
-            );
-          })}
-        </svg>
-      </div>
+                {t('character.overview.quadrant.yAxis')}
+              </text>
+              <text
+                x={VB_W - pad.right} y={VB_H - 12}
+                textAnchor="end"
+                className="ca-ov-axis-label"
+              >
+                {t('character.overview.quadrant.xAxis')}
+              </text>
+              <text x={VB_W - pad.right - 6} y={pad.top + 18} textAnchor="end" className="ca-ov-corner-label">
+                {t('character.overview.quadrant.cornerLead')}
+              </text>
+              <text x={pad.left + 6} y={VB_H - pad.bottom - 10} textAnchor="start" className="ca-ov-corner-label">
+                {t('character.overview.quadrant.cornerTail')}
+              </text>
 
-      <div className="ca-ov-legend">
-        <div className="ca-ov-legend-head">{t('character.overview.quadrant.legendHead')}</div>
-        {(factions?.factions ?? []).map((f, i) => {
-          const [fill, stroke] = getFactionColor(i);
-          const names = f.topMemberNames ?? [];
-          const label =
-            names.length > 0
-              ? t('character.overview.quadrant.legendRow', {
-                  names: names.slice(0, 2).join('、'),
-                  count: f.memberIds?.length ?? 0,
-                })
-              : f.label;
-          return (
-            <div key={f.id} className="ca-ov-legend-row">
-              <span className="ca-ov-legend-dot" style={{ background: fill, borderColor: stroke }} />
-              <span className="ca-ov-legend-label">{label}</span>
-            </div>
-          );
-        })}
-        <div className="ca-ov-legend-row ca-ov-legend-unaffiliated">
-          <span className="ca-ov-legend-dot muted" />
-          <span className="ca-ov-legend-label">
-            {t('character.overview.quadrant.unaffiliated', { count: unaffiliatedCount })}
-          </span>
+              {/* bubbles. The native SVG <title> is gone on purpose: the DS
+                  Tooltip is an HTML portal anchored on a DOM element and cannot
+                  wrap an SVG <g>, and hovering a bubble already writes its name
+                  and counts onto the plot (below), so the title only duplicated
+                  it. The accessible name moved to aria-label. */}
+              {ordered.map(({ c, x, y, r, alwaysLabel }) => {
+                const token = factionToken(c.factionIndex, rankedFactions);
+                const dimmed = isDimmed(selection, c.factionIndex, rankedFactions);
+                const hovered = hoveredId === c.entityId;
+                const showLabel = alwaysLabel || hovered;
+                const bx = cx(x);
+                const by = cy(y);
+                const nearRightEdge = x > RIGHT_EDGE_LABEL_THRESHOLD;
+                const color = token ? `var(--ca-${token}-bg)` : undefined;
+                const detail = hovered && (
+                  <tspan className="ca-ov-bubble-detail">
+                    {' '}
+                    {t('character.overview.quadrant.bubbleDetail', {
+                      mentions: c.mentionCount,
+                      degree: c.degree ?? 0,
+                    })}
+                  </tspan>
+                );
+                return (
+                  <g
+                    key={c.entityId}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={c.name}
+                    className="ca-ov-bubble"
+                    style={{ opacity: dimmed ? DIMMED_OPACITY : 1 }}
+                    onMouseEnter={() => setHoveredId(c.entityId)}
+                    onMouseLeave={() => setHoveredId((id) => (id === c.entityId ? null : id))}
+                    onClick={() => onSelect(c.entityId)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        onSelect(c.entityId);
+                      }
+                    }}
+                  >
+                    {c.analyzed && (
+                      <circle cx={bx} cy={by} r={r + 3.5} fill="none" stroke="var(--accent)" strokeWidth={1} strokeOpacity={0.85} />
+                    )}
+                    <circle
+                      cx={bx} cy={by} r={r}
+                      fill={color ?? 'transparent'}
+                      fillOpacity={color ? 0.7 : 0}
+                      stroke={color ?? 'var(--fg-muted)'}
+                      strokeWidth={color ? 1.5 : 1}
+                      opacity={color ? 1 : 0.62}
+                      pointerEvents="all"
+                    />
+                    {showLabel && (nearRightEdge ? (
+                      <text x={bx - r - 8} y={by + 4} textAnchor="end" className="ca-ov-bubble-label">
+                        {c.name}
+                        {detail}
+                      </text>
+                    ) : (
+                      <text x={bx} y={by + r + 13} textAnchor="middle" className="ca-ov-bubble-label">
+                        {c.name}
+                        {detail}
+                      </text>
+                    ))}
+                  </g>
+                );
+              })}
+            </svg>
+          </div>
+          <span className="ca-ov-caption">{t('character.overview.quadrantCaption')}</span>
+          <p className="ca-ov-footnote">{t('character.overview.quadrant.footnote', { count: unaffiliatedCount })}</p>
         </div>
+        {legendEl}
       </div>
-      </div>
-      <p className="ca-ov-footnote">{t('character.overview.quadrant.footnote', { count: unaffiliatedCount })}</p>
     </div>
   );
 }

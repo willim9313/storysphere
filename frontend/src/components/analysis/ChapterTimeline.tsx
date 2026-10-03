@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 export interface TimelineMarker {
   id: string;
@@ -68,26 +69,21 @@ export function ChapterTimeline({ chapter, totalChapters, markers, onChange }: P
         <div className="ca-epi-axis-track" />
         <div className="ca-epi-axis-progress" style={{ width: pctFor(chapter) }} />
 
-        {pills.known.map((p) => (
-          <div
-            key={`known-${p.chapter}`}
-            className="ca-epi-pill known"
-            style={{ left: pctFor(p.chapter) }}
-            title={p.title}
-          >
-            {p.count}
-          </div>
-        ))}
-        {pills.unknown.map((p) => (
-          <div
-            key={`unknown-${p.chapter}`}
-            className="ca-epi-pill unknown"
-            style={{ left: pctFor(p.chapter) }}
-            title={p.title}
-          >
-            {p.count}
-          </div>
-        ))}
+        {(['known', 'unknown'] as const).flatMap((category) =>
+          pills[category].map((p) => (
+            <div
+              key={`${category}-${p.chapter}`}
+              className={`ca-epi-pillpos ${category}`}
+              style={{ left: pctFor(p.chapter) }}
+            >
+              <Tooltip label={p.title}>
+                <span className={`ca-epi-pill ${category}`} tabIndex={0}>
+                  {p.count}
+                </span>
+              </Tooltip>
+            </div>
+          )),
+        )}
 
         <div className="ca-epi-cursor" style={{ left: pctFor(chapter) }}>
           <span className="ca-epi-cursor-label">

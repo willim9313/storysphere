@@ -67,7 +67,8 @@
       "archetypeFailed": "Generation failed",
       "retryFailed": "Retry failed parts",
       "evidenceHeading": "Supporting Evidence",
-      "traitsCount": "{{count}} traits"
+      "traitsCount": "{{count}} traits",
+      "confidenceThreshold": "Thresholds: ≥80 high · ≥50 medium · otherwise low"
     },
     "behavior": {
       "actionsCount": "{{count}} items",
@@ -85,13 +86,15 @@
     "arcPane": {
       "stagesCount": "{{count}} stages",
       "keyEventMarkerLegend": "Key event marker",
-      "overlapStackingNote": "Adjacent phases sharing a boundary chapter are shown stacked in offset rows"
+      "overlapStackingNote": "Adjacent phases sharing a boundary chapter are shown stacked in offset rows",
+      "paletteNote": "Bands are a rotating palette; they do not stand for narrative modes"
     },
     "list": {
       "searchPlaceholder": "Search {{count}} characters",
       "frameworkLabel": "Analysis framework",
       "mentionCount": "{{count}} mentions",
-      "createBtn": "Create"
+      "createBtn": "Create",
+      "frameworkNote": "The framework (Jung / Schmidt) only affects the archetype section."
     },
     "archFilter": {
       "label": "Filter analyzed characters by archetype",
@@ -124,7 +127,13 @@
         "legendHead": "Faction · colour coding",
         "legendRow": "{{names}} and {{count}} more",
         "unaffiliated": "No faction · {{count}}",
-        "footnote": "Cross-hairs mark both axes' medians · only the top 8 are always labelled, others show on hover · the {{count}} unaffiliated characters render as low-saturation outlined rings · click a bubble to load that character"
+        "footnote": "Cross-hairs mark both axes' medians · only the top 8 are always labelled, others show on hover · the {{count}} unaffiliated characters render as low-saturation outlined rings · click a bubble to load that character",
+        "legendNote": "Colours are assigned by faction size rank, up to 5; from the 6th faction on they are merged into \"Other\". Click a legend entry to light up just that faction.",
+        "legendAnalyzedRing": "Outer ring = analyzed",
+        "legendEmpty": "No factions were extracted for this book",
+        "legendOther": "Other: {{n}} factions · {{m}} people",
+        "legendExpand": "Expand",
+        "legendCollapse": "Collapse"
       },
       "ranking": {
         "heroTag": "Most-mentioned core character",
@@ -204,7 +213,8 @@
       "loading": "Computing…",
       "dataIncomplete": "{{name}} has no complete visibility data yet — comparison unavailable.",
       "onlyLabel": "Only {{name}} knows",
-      "bothLabel": "Both know"
+      "bothLabel": "Both know",
+      "matchNote": "Matched by event id, not by title."
     },
     "sourceJump": {
       "cta": "Click to jump to this passage in the reader",
@@ -229,6 +239,9 @@
     "stale": {
       "badge": "Evidence moved",
       "tooltip": "Built on the vector evidence and keywords from before a feature-extraction rerun. Still readable, but no longer reflects the current data — regenerate if you need it current."
+    },
+    "error": {
+      "backToBook": "Back to book overview"
     }
   },
   "event": {

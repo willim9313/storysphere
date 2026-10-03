@@ -25,6 +25,8 @@ interface Props {
   readonly onOpenCompare: () => void;
   readonly onRegenerate?: () => void;
   readonly isRegenerating?: boolean;
+  readonly onRetryFailed?: () => void;
+  readonly isRetrying?: boolean;
   readonly bookId: string;
   readonly chapterCount: number;
   readonly characterRoster: NameIdEntry[];
@@ -40,6 +42,8 @@ export function CharacterAnalysisDetail({
   onOpenCompare,
   onRegenerate,
   isRegenerating = false,
+  onRetryFailed,
+  isRetrying = false,
   bookId,
   chapterCount,
   characterRoster,
@@ -73,6 +77,8 @@ export function CharacterAnalysisDetail({
           onOpenCompare={onOpenCompare}
           onRegenerate={onRegenerate}
           isRegenerating={isRegenerating}
+          onRetryFailed={onRetryFailed}
+          isRetrying={isRetrying}
         />
       )}
       {subTab === 'behavior' && (

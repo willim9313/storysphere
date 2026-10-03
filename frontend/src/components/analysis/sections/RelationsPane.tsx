@@ -5,6 +5,7 @@ import type { CharacterAnalysisDetail } from '@/api/types';
 import type { NameIdEntry } from '../CharacterAnalysisDetail';
 import { useSourceJump } from '@/hooks/useSourceJump';
 import { SourceJumpText } from '../SourceJumpText';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 interface Props {
   data: CharacterAnalysisDetail;
@@ -61,6 +62,10 @@ function midLabelFor(type: string): string {
   return MID_LABEL[label] ?? label.charAt(0) ?? '';
 }
 
+const EGO_BADGE_W = 30;
+const EGO_BADGE_H = 14;
+const nodeRadius = (target: string) => (target.length > 2 ? 22 : 18);
+
 function groupByTarget(relations: Relation[]): Map<string, Relation[]> {
   const groups = new Map<string, Relation[]>();
   for (const r of relations) {
@@ -75,6 +80,8 @@ const EGO_CX = 320;
 const EGO_CY = 146;
 const EGO_RX = 274;
 const EGO_RY = 116;
+const EGO_W = EGO_CX * 2;
+const EGO_H = EGO_CY * 2 + 14;
 
 export function RelationsPane({ data, bookId, characterRoster, onSelectCharacter }: Props) {
   const { t } = useTranslation('analysis');
@@ -118,7 +125,7 @@ export function RelationsPane({ data, bookId, characterRoster, onSelectCharacter
           <header className="ca-section-head">
             <div>
               <h3 className="ca-section-title">{t('character.sections.relations')}</h3>
-              <div className="ca-section-sub" style={{ marginTop: 2 }}>
+              <div className="ca-section-sub">
                 {t('character.relations.relationsCount', { count: 0 })}
               </div>
             </div>
@@ -138,7 +145,7 @@ export function RelationsPane({ data, bookId, characterRoster, onSelectCharacter
         <header className="ca-section-head">
           <div>
             <h3 className="ca-section-title">{t('character.sections.quotes')}</h3>
-            <div className="ca-section-sub" style={{ marginTop: 2 }}>
+            <div className="ca-section-sub">
               {t('character.relations.quotesCount', { count: quotes.length })}
             </div>
           </div>
@@ -173,7 +180,7 @@ export function RelationsPane({ data, bookId, characterRoster, onSelectCharacter
         <header className="ca-section-head">
           <div>
             <h3 className="ca-section-title">{t('character.sections.relations')}</h3>
-            <div className="ca-section-sub" style={{ marginTop: 2 }}>
+            <div className="ca-section-sub">
               {t('character.relations.relationsSummary', {
                 targets: groups.size,
                 count: relations.length,
@@ -187,7 +194,8 @@ export function RelationsPane({ data, bookId, characterRoster, onSelectCharacter
             <div className="ca-ego-caption">
               {t('character.relations.egoCaption', { name: data.entityName })}
             </div>
-            <svg viewBox={`0 0 ${EGO_CX * 2} ${EGO_CY * 2 + 14}`} width="100%" className="ca-ego-svg">
+            <div className="ca-ego-stage">
+            <svg viewBox={`0 0 ${EGO_W} ${EGO_H}`} width="100%" className="ca-ego-svg">
               {nodes.map((n, i) => {
                 const m = n.rels.length;
                 const dx = n.x - EGO_CX;
@@ -237,23 +245,10 @@ export function RelationsPane({ data, bookId, characterRoster, onSelectCharacter
               })}
               {nodes.map((n, i) => {
                 const long = n.target.length > 2;
-                const r = long ? 22 : 18;
+                const r = nodeRadius(n.target);
+                const multi = n.rels.length > 1;
                 return (
-                  <g
-                    key={`n${i}`}
-                    onClick={
-                      n.clickable
-                        ? () => {
-                            const id = rosterByName.get(n.target);
-                            if (id) onSelectCharacter(id);
-                          }
-                        : undefined
-                    }
-                    className={n.clickable ? 'ca-ego-node clickable' : 'ca-ego-node'}
-                  >
-                    <title>
-                      {n.target} · {n.rels.map((x) => labelFor(x.type)).join(' / ')}
-                    </title>
+                  <g key={`n${i}`} className={n.clickable ? 'ca-ego-node clickable' : 'ca-ego-node'}>
                     <circle
                       cx={n.x}
                       cy={n.y}
@@ -273,6 +268,14 @@ export function RelationsPane({ data, bookId, characterRoster, onSelectCharacter
                     >
                       {n.target}
                     </text>
+                    {multi && (
+                      <g className="ca-ego-badge">
+                        <rect x={n.x + r * 0.35} y={n.y - r - 6} width={EGO_BADGE_W} height={EGO_BADGE_H} rx={EGO_BADGE_H / 2} />
+                        <text x={n.x + r * 0.35 + EGO_BADGE_W / 2} y={n.y - r - 6 + EGO_BADGE_H - 3.5} textAnchor="middle">
+                          {t('character.relations.segmentCount', { count: n.rels.length })}
+                        </text>
+                      </g>
+                    )}
                   </g>
                 );
               })}
@@ -281,6 +284,41 @@ export function RelationsPane({ data, bookId, characterRoster, onSelectCharacter
                 {data.entityName}
               </text>
             </svg>
+            {/* The native SVG <title> is replaced by the DS Tooltip. A Tooltip is
+                an HTML portal anchored on a DOM element and cannot wrap an SVG
+                <g>, so each node gets a transparent HTML hit target laid over
+                it (positioned in % of the viewBox, so it scales with the svg).
+                Clickable nodes are real buttons — keyboard reachable too. */}
+            {nodes.map((n) => {
+              const r = nodeRadius(n.target);
+              const label = `${n.target} · ${n.rels.map((x) => labelFor(x.type)).join(' / ')}`;
+              const id = rosterByName.get(n.target);
+              return (
+                <div
+                  key={`h-${n.target}`}
+                  className="ca-ego-hitpos"
+                  style={{
+                    left: `${(n.x / EGO_W) * 100}%`,
+                    top: `${(n.y / EGO_H) * 100}%`,
+                    width: `${((r * 2) / EGO_W) * 100}%`,
+                  }}
+                >
+                  <Tooltip label={label}>
+                    {n.clickable && id ? (
+                      <button
+                        type="button"
+                        className="ca-ego-hit clickable"
+                        aria-label={label}
+                        onClick={() => onSelectCharacter(id)}
+                      />
+                    ) : (
+                      <span className="ca-ego-hit" />
+                    )}
+                  </Tooltip>
+                </div>
+              );
+            })}
+            </div>
             <div className="ca-ego-legend">
               {typesPresent.map((ty) => {
                 const token = tokenFor(ty);

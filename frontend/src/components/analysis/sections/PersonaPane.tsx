@@ -1,8 +1,10 @@
 import { useTranslation } from 'react-i18next';
-import { ChevronRight, RefreshCw } from 'lucide-react';
+import { ChevronRight } from 'lucide-react';
 import type { CharacterAnalysisDetail } from '@/api/types';
 import { useSourceJump } from '@/hooks/useSourceJump';
 import { SourceJumpText } from '../SourceJumpText';
+import { ConfidenceMeter } from '../ConfidenceMeter';
+import { archetypeState } from '../characterModel';
 
 type Framework = 'jung' | 'schmidt';
 
@@ -11,14 +13,12 @@ interface Props {
   bookId: string;
   framework: Framework;
   onOpenCompare: () => void;
+  /** 「未生成」走重生成（成功才覆蓋，失敗時舊結果仍在）。 */
   onRegenerate?: () => void;
   isRegenerating?: boolean;
-}
-
-function confidenceLabel(pct: number, t: (k: string) => string): string {
-  if (pct >= 80) return t('character.confidenceHigh');
-  if (pct >= 50) return t('character.confidenceMid');
-  return t('character.confidenceLow');
+  /** 「生成失敗」走重試失敗部分（沿用既有 CEP 快取、只重跑失敗段）。 */
+  onRetryFailed?: () => void;
+  isRetrying?: boolean;
 }
 
 /** Splits a "term：description" trait string (canvas uses the fullwidth
@@ -37,23 +37,21 @@ export function PersonaPane({
   onOpenCompare,
   onRegenerate,
   isRegenerating,
-}: Props) {
+  onRetryFailed,
+  isRetrying,
+}: Readonly<Props>) {
   const { t } = useTranslation('analysis');
   const { jump, pendingKey } = useSourceJump(bookId);
   const archetype = data.archetypes.find((a) => a.framework === framework);
   const pct = archetype ? Math.round(archetype.confidence * 100) : 0;
-  // Distinguish "generation failed (retryable)" from "not yet generated".
-  const failed = (data.failedParts ?? []).includes(`archetype:${framework}`);
+  // 「未生成」（還沒做）與「生成失敗」（做了但壞了）是兩件事，由 failedParts 決定。
+  const state = archetypeState(data, framework);
   const placeholderName = t(
-    failed ? 'character.persona.archetypeFailed' : 'character.persona.archetypeNotGenerated',
+    state === 'failed' ? 'character.persona.archetypeFailed' : 'character.persona.archetypeNotGenerated',
   );
-  const archetypeTitle = archetype
-    ? framework === 'jung'
-      ? t('character.persona.archetypeLabelJung', { name: archetype.primary })
-      : t('character.persona.archetypeLabelSchmidt', { name: archetype.primary })
-    : framework === 'jung'
-      ? t('character.persona.archetypeLabelJung', { name: placeholderName })
-      : t('character.persona.archetypeLabelSchmidt', { name: placeholderName });
+  const labelKey =
+    framework === 'jung' ? 'character.persona.archetypeLabelJung' : 'character.persona.archetypeLabelSchmidt';
+  const archetypeTitle = t(labelKey, { name: archetype ? archetype.primary : placeholderName });
 
   const traits = data.cep?.traits ?? [];
 
@@ -64,9 +62,7 @@ export function PersonaPane({
         <header className="ca-section-head">
           <div>
             <h3 className="ca-section-title">{t('character.sections.profile')}</h3>
-            <div className="ca-section-sub" style={{ marginTop: 2 }}>
-              {t('character.persona.profileSub')}
-            </div>
+            <div className="ca-section-sub">{t('character.persona.profileSub')}</div>
           </div>
         </header>
         <div className="ca-section-body">
@@ -78,70 +74,81 @@ export function PersonaPane({
       <section className="ca-section">
         <header className="ca-section-head">
           <h3 className="ca-section-title">{archetypeTitle}</h3>
+          {archetype && (
+            <button type="button" className="ca-persona-switch-link" onClick={onOpenCompare}>
+              {t('character.compare.switchTo')} <ChevronRight size={11} />
+            </button>
+          )}
         </header>
         <div className="ca-section-body">
           {archetype ? (
             <>
-              <div className="ca-persona-arc-row">
+              <div className="ca-persona-arc-rows">
                 <div className="ca-persona-arc-field">
-                  <span className="ca-persona-arc-field-label">
-                    {t('character.primaryArchetype')}
-                  </span>
+                  <span className="ca-persona-arc-field-label">{t('character.primaryArchetype')}</span>
                   <span className="ca-persona-arc-primary">{archetype.primary}</span>
                 </div>
                 {archetype.secondary && (
                   <div className="ca-persona-arc-field">
-                    <span className="ca-persona-arc-field-label">
-                      {t('character.secondaryArchetype')}
-                    </span>
+                    <span className="ca-persona-arc-field-label">{t('character.secondaryArchetype')}</span>
                     <span className="ca-persona-arc-secondary">{archetype.secondary}</span>
                   </div>
                 )}
-                <div className="ca-persona-arc-field ca-persona-arc-conf">
+                <div className="ca-persona-arc-field">
                   <span className="ca-persona-arc-field-label">{t('character.confidence')}</span>
-                  <div className="ca-conf-track">
-                    <div className="ca-conf-fill" style={{ width: `${pct}%` }} />
-                  </div>
-                  <span className="ca-conf-pct">
-                    {confidenceLabel(pct, t)} · {pct}%
-                  </span>
+                  <ConfidenceMeter pct={pct} />
                 </div>
-                <button type="button" className="ca-persona-switch-link" onClick={onOpenCompare}>
-                  {t('character.compare.switchTo')} <ChevronRight size={11} />
-                </button>
+                <span className="ca-persona-threshold">{t('character.persona.confidenceThreshold')}</span>
               </div>
-              <div className="ca-evidence-heading">{t('character.persona.evidenceHeading')}</div>
-              <div className="ca-evidence-list">
-                {archetype.evidence.length === 0 ? (
-                  <p>{t('character.noData')}</p>
-                ) : (
-                  archetype.evidence.map((e, i) => {
-                    const key = `evidence-${i}`;
-                    return (
-                      <div key={key} className="ca-evidence-item">
-                        <span className="ca-evidence-num">{i + 1}</span>
-                        <SourceJumpText
-                          text={e}
-                          pending={pendingKey === key}
-                          onJump={() => void jump(key, e)}
-                        />
-                      </div>
-                    );
-                  })
-                )}
+              <div className="ca-evidence-block">
+                <div className="ca-evidence-heading">{t('character.persona.evidenceHeading')}</div>
+                <div className="ca-evidence-list">
+                  {archetype.evidence.length === 0 ? (
+                    <p>{t('character.noData')}</p>
+                  ) : (
+                    archetype.evidence.map((e, i) => {
+                      const key = `evidence-${i}`;
+                      return (
+                        <div key={key} className="ca-evidence-item">
+                          <span className="ca-evidence-num">{`[${i + 1}]`}</span>
+                          <SourceJumpText
+                            text={e}
+                            pending={pendingKey === key}
+                            onJump={() => void jump(key, e)}
+                          />
+                        </div>
+                      );
+                    })
+                  )}
+                </div>
               </div>
             </>
+          ) : state === 'failed' ? (
+            <div className="ca-archetype-state failed">
+              <span className="ss-badge ss-badge-error">{t('character.persona.archetypeFailed')}</span>
+              {onRetryFailed && (
+                <button
+                  type="button"
+                  className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+                  onClick={onRetryFailed}
+                  disabled={isRetrying}
+                >
+                  {t('character.persona.retryFailed')}
+                </button>
+              )}
+            </div>
           ) : (
-            <div className="ca-inline-banner">
-              <span>{t('character.archetypeMissing')}</span>
+            <div className="ca-archetype-state">
+              <span className="ss-badge">{t('character.persona.archetypeNotGenerated')}</span>
+              <p className="ca-archetype-missing">{t('character.archetypeMissing')}</p>
               {onRegenerate && (
                 <button
                   type="button"
-                  className="ca-btn"
+                  className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
                   onClick={onRegenerate}
                   disabled={isRegenerating}
                 >
-                  <RefreshCw size={11} /> {t('regenerate')}
+                  {t('regenerate')}
                 </button>
               )}
             </div>
@@ -154,9 +161,7 @@ export function PersonaPane({
         <header className="ca-section-head">
           <div>
             <h3 className="ca-section-title">{t('character.sections.traits')}</h3>
-            <div className="ca-section-sub" style={{ marginTop: 2 }}>
-              {t('character.persona.traitsCount', { count: traits.length })}
-            </div>
+            <div className="ca-section-sub">{t('character.persona.traitsCount', { count: traits.length })}</div>
           </div>
         </header>
         <div className="ca-section-body">
@@ -164,10 +169,10 @@ export function PersonaPane({
             <p>{t('character.noData')}</p>
           ) : (
             <div className="ca-trait-grid">
-              {traits.map((tr, i) => {
+              {traits.map((tr) => {
                 const [term, desc] = splitTrait(tr);
                 return (
-                  <div key={i} className="ca-trait-card">
+                  <div key={tr} className="ca-trait-card">
                     <div className="ca-trait-term">{term}</div>
                     {desc && <div className="ca-trait-desc">{desc}</div>}
                   </div>
