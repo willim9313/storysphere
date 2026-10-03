@@ -1,5 +1,5 @@
 import { useState, useMemo } from 'react';
-import { X, AlertTriangle, Loader } from 'lucide-react';
+import { AlertTriangle, Loader } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useEpistemicState } from '@/hooks/useEpistemicState';
 import { ClassifyVisibilityButton } from '@/components/epistemic/ClassifyVisibilityButton';
@@ -19,29 +19,17 @@ interface EpistemicSidePanelProps {
   onJumpToChunk: (chapterNumber: number, chunkId: string) => void;
 }
 
-const eventItemBaseStyle: React.CSSProperties = {
-  textAlign: 'left',
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'space-between',
-  gap: 8,
-  width: '100%',
-  border: 'none',
-  borderRadius: 'var(--radius-sm)',
-  padding: '8px 10px',
-  cursor: 'pointer',
-  fontFamily: 'inherit',
-  transition: 'background-color var(--transition-fast) ease',
-};
+type EventKind = 'known' | 'unknown';
 
-function EventGroupHeader({ dotColor, label, count }: { dotColor: string; label: string; count: number }) {
+// Ink collapses every status colour to the same near-black, so each group
+// carries a glyph as well: ✓ known · ? unknown · ✕ misbelief.
+const GLYPH: Record<EventKind | 'misbelief', string> = { known: '✓', unknown: '?', misbelief: '✕' };
+
+function EventGroupHeader({ label, count }: { label: string; count: number }) {
   return (
-    <div className="flex items-center gap-1.5 mb-2">
-      <span
-        style={{ width: 8, height: 8, borderRadius: '50%', backgroundColor: dotColor, flexShrink: 0 }}
-      />
-      <span className="text-xs font-semibold" style={{ color: 'var(--fg-secondary)' }}>{label}</span>
-      <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>({count})</span>
+    <div className="rd-ep-group-head">
+      <span>{label}</span>
+      <span className="rd-ep-count">{count}</span>
     </div>
   );
 }
@@ -49,55 +37,35 @@ function EventGroupHeader({ dotColor, label, count }: { dotColor: string; label:
 function EventItemButton({
   title,
   chapterNumber,
-  color,
-  bgColor,
+  kind,
   locating,
   locatingLabel,
   onJump,
 }: {
   title: string;
   chapterNumber: number | null;
-  color: string;
-  bgColor: string;
+  kind: EventKind;
   /** True while this item's passage lookup (#23a) is in flight. */
   locating: boolean;
   locatingLabel: string;
   onJump: () => void;
 }) {
-  const [hovered, setHovered] = useState(false);
   const clickable = chapterNumber !== null && !Number.isNaN(chapterNumber);
   return (
     <button
       type="button"
       onClick={() => clickable && onJump()}
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
       disabled={!clickable}
-      style={{
-        ...eventItemBaseStyle,
-        backgroundColor: hovered ? 'var(--bg-tertiary)' : bgColor,
-        cursor: clickable ? 'pointer' : 'default',
-      }}
+      className={`rd-ep-item is-${kind}`}
     >
-      <span
-        className="text-xs"
-        style={{ fontFamily: 'var(--font-serif)', color, lineHeight: 1.4 }}
-      >
-        {title}
+      <span className="rd-ep-item-title">
+        <span className="rd-ep-glyph" aria-hidden="true">{GLYPH[kind]}</span>
+        <span>{title}</span>
       </span>
       {locating ? (
-        <Loader
-          size={12}
-          className="animate-spin flex-shrink-0"
-          style={{ color: 'var(--fg-muted)' }}
-          aria-label={locatingLabel}
-        />
+        <Loader size={12} className="animate-spin flex-shrink-0" aria-label={locatingLabel} />
       ) : (
-        clickable && (
-          <span className="text-xs flex-shrink-0" style={{ color: 'var(--fg-muted)' }}>
-            Ch.{chapterNumber}
-          </span>
-        )
+        clickable && <span className="rd-ep-item-chapter">Ch.{chapterNumber}</span>
       )}
     </button>
   );
@@ -113,7 +81,6 @@ export function EpistemicSidePanel({
 }: EpistemicSidePanelProps) {
   const { t } = useTranslation('reader');
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(null);
-  const [misbeliefHovered, setMisbeliefHovered] = useState<string | null>(null);
   const [locatingId, setLocatingId] = useState<string | null>(null);
   const queryClient = useQueryClient();
 
@@ -168,38 +135,44 @@ export function EpistemicSidePanel({
     }
   };
 
-  return (
-    <div
-      className="h-full flex flex-col"
-      style={{
-        backgroundColor: 'var(--bg-primary)',
-        borderLeft: '1px solid var(--border)',
-      }}
-    >
-      {/* Header */}
-      <div
-        className="flex items-center justify-between px-3 py-2 flex-shrink-0"
-        style={{ borderBottom: '1px solid var(--border)' }}
-      >
-        <span className="text-sm font-medium" style={{ color: 'var(--fg-primary)' }}>
-          {t('epistemicPanel.title')}
-        </span>
-        <button onClick={onClose} className="p-1 rounded hover:opacity-70">
-          <X size={14} />
-        </button>
-      </div>
+  const renderGroup = (kind: EventKind, label: string, events: Record<string, unknown>[]) => (
+    <section>
+      <EventGroupHeader label={label} count={events.length} />
+      {events.length === 0 ? (
+        <p className="rd-ep-muted">{t('epistemicPanel.none')}</p>
+      ) : (
+        <div className="rd-ep-list">
+          {events.map((ev, i) => (
+            <EventItemButton
+              key={String(ev.id ?? i)}
+              title={String(ev.title ?? '')}
+              chapterNumber={toChapterNumber(ev)}
+              kind={kind}
+              locating={locatingId === String(ev.id ?? ev.title ?? '')}
+              locatingLabel={t('epistemicPanel.locating')}
+              onJump={() => handleEventJump(ev)}
+            />
+          ))}
+        </div>
+      )}
+    </section>
+  );
 
-      {/* Character selector */}
-      <div className="px-3 py-2 flex-shrink-0" style={{ borderBottom: '1px solid var(--border)' }}>
+  return (
+    <div className="rd-ep">
+      {/* Header */}
+      <div className="rd-ep-head">
+        <div className="rd-ep-title-row">
+          <span className="rd-ep-title">{t('epistemicPanel.title')}</span>
+          <button type="button" onClick={onClose} className="ss-btn ss-btn-sm ss-btn-ghost">
+            {t('epistemicClose')}
+          </button>
+        </div>
         <select
-          className="w-full text-xs rounded px-2 py-1"
-          style={{
-            border: '1px solid var(--border)',
-            backgroundColor: 'var(--bg-secondary)',
-            color: 'var(--fg-primary)',
-          }}
+          className="rd-ep-select"
           value={selectedCharacterId ?? ''}
           onChange={(e) => setSelectedCharacterId(e.target.value || null)}
+          aria-label={t('epistemicPanel.title')}
         >
           <option value="">{t('epistemicPanel.selectCharacter')}</option>
           {characterOptions.map(({ id, name }) => (
@@ -216,15 +189,14 @@ export function EpistemicSidePanel({
             broken, and the repair a reader would reach for (re-running an
             analysis, at token cost) is not the one that works: reading further
             is. Non-dismissible, per UI_SPEC §4.2. */}
-        <p className="text-xs mt-1" style={{ color: 'var(--fg-muted)', lineHeight: 1.5 }}>
-          {t('epistemicPanel.rosterNote')}
-        </p>
-        {isFetching && (
-          <p className="text-xs mt-1" style={{ color: 'var(--fg-muted)' }}>{t('epistemicPanel.computing')}</p>
+        <p className="rd-ep-note">{t('epistemicPanel.rosterNote')}</p>
+        {currentChapterOrder !== null && (
+          <p className="rd-ep-cutoff">{t('epistemicPanel.cutoff', { n: currentChapterOrder })}</p>
         )}
+        {isFetching && <p className="rd-ep-muted">{t('epistemicPanel.computing')}</p>}
         {state && !state.dataComplete && (
-          <div className="mt-1 flex flex-col gap-1">
-            <p className="text-xs flex items-center gap-1" style={{ color: 'var(--color-warning)' }}>
+          <>
+            <p className="rd-ep-warn">
               <AlertTriangle size={11} /> {t('epistemicPanel.noVisibilityData')}
             </p>
             <ClassifyVisibilityButton
@@ -235,124 +207,46 @@ export function EpistemicSidePanel({
                 })
               }
             />
-          </div>
+          </>
         )}
       </div>
 
       {/* Content */}
-      <div className="flex-1 overflow-y-auto px-3 py-2 flex flex-col gap-4">
-        {!selectedCharacterId && (
-          <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>{t('epistemicPanel.selectPrompt')}</p>
-        )}
+      <div className="rd-ep-body">
+        {!selectedCharacterId && <p className="rd-ep-muted">{t('epistemicPanel.selectPrompt')}</p>}
 
         {state && selectedCharacterId && (
           <>
-            {/* Block note (B-065, layer 2): the known/unknown split is a rule,
-                not a judgement, and the rule is short enough to state. Copied
-                from EpistemicStateService.get_character_knowledge:
-                  known   = character_id in e.participants or e.visibility == "public"
-                  unknown = character_id not in e.participants and e.visibility != "public"
-                over `kg.get_snapshot(document_id, "chapter", up_to_chapter)`. */}
-            <p className="text-xs" style={{ color: 'var(--fg-muted)', lineHeight: 1.5 }}>
-              {t('epistemicPanel.rule')}
-            </p>
-
-            {/* Known events */}
-            <section>
-              <EventGroupHeader
-                dotColor="var(--color-success)"
-                label={t('epistemicPanel.known')}
-                count={state.knownEvents.length}
-              />
-              {state.knownEvents.length === 0 ? (
-                <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>{t('epistemicPanel.none')}</p>
-              ) : (
-                <div className="flex flex-col gap-1">
-                  {(state.knownEvents as Record<string, unknown>[]).map((ev, i) => (
-                    <EventItemButton
-                      key={String(ev.id ?? i)}
-                      title={String(ev.title ?? '')}
-                      chapterNumber={toChapterNumber(ev)}
-                      color="var(--color-success)"
-                      bgColor="var(--color-success-bg)"
-                      locating={locatingId === String(ev.id ?? ev.title ?? '')}
-                      locatingLabel={t('epistemicPanel.locating')}
-                      onJump={() => handleEventJump(ev)}
-                    />
-                  ))}
-                </div>
-              )}
-            </section>
-
-            {/* Unknown events */}
-            <section>
-              <EventGroupHeader
-                dotColor="var(--color-warning)"
-                label={t('epistemicPanel.unknown')}
-                count={state.unknownEvents.length}
-              />
-              {state.unknownEvents.length === 0 ? (
-                <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>{t('epistemicPanel.none')}</p>
-              ) : (
-                <div className="flex flex-col gap-1">
-                  {(state.unknownEvents as Record<string, unknown>[]).map((ev, i) => (
-                    <EventItemButton
-                      key={String(ev.id ?? i)}
-                      title={String(ev.title ?? '')}
-                      chapterNumber={toChapterNumber(ev)}
-                      color="var(--color-warning)"
-                      bgColor="var(--color-warning-bg)"
-                      locating={locatingId === String(ev.id ?? ev.title ?? '')}
-                      locatingLabel={t('epistemicPanel.locating')}
-                      onJump={() => handleEventJump(ev)}
-                    />
-                  ))}
-                </div>
-              )}
-            </section>
+            {renderGroup('known', t('epistemicPanel.known'), state.knownEvents as Record<string, unknown>[])}
+            {renderGroup('unknown', t('epistemicPanel.unknown'), state.unknownEvents as Record<string, unknown>[])}
 
             {/* Misbeliefs */}
             {state.misbeliefs.length > 0 && (
               <section>
-                <EventGroupHeader
-                  dotColor="var(--color-error)"
-                  label={t('epistemicPanel.misbeliefs')}
-                  count={state.misbeliefs.length}
-                />
-                <ul className="flex flex-col gap-2">
+                <EventGroupHeader label={t('epistemicPanel.misbeliefs')} count={state.misbeliefs.length} />
+                <ul className="rd-ep-list">
                   {state.misbeliefs.map((m) => {
                     const sourceEvent = (state.unknownEvents as Record<string, unknown>[]).find(
                       (ev) => String(ev.id ?? '') === m.sourceEventId,
                     );
                     const chapterNumber = sourceEvent ? toChapterNumber(sourceEvent) : null;
                     const clickable = chapterNumber !== null && sourceEvent !== undefined;
-                    const hovered = misbeliefHovered === m.sourceEventId;
                     return (
                       <li key={m.sourceEventId}>
                         <button
                           type="button"
                           onClick={() => clickable && handleEventJump(sourceEvent)}
-                          onMouseEnter={() => setMisbeliefHovered(m.sourceEventId)}
-                          onMouseLeave={() => setMisbeliefHovered(null)}
                           disabled={!clickable}
-                          className="text-left w-full"
-                          style={{
-                            border: '1px solid var(--color-error)',
-                            borderRadius: 'var(--radius-sm)',
-                            padding: '6px 8px',
-                            backgroundColor: hovered ? 'var(--bg-tertiary)' : 'var(--color-error-bg)',
-                            cursor: clickable ? 'pointer' : 'default',
-                            fontFamily: 'inherit',
-                            transition: 'background-color var(--transition-fast) ease',
-                          }}
+                          className="rd-ep-item rd-ep-misbelief"
                         >
-                          <p className="text-xs" style={{ color: 'var(--color-error)' }}>
-                            <span className="font-medium">{t('epistemicPanel.misbelief')}</span>{m.characterBelief}
+                          <p className="is-belief">
+                            <span className="rd-ep-glyph" aria-hidden="true">{GLYPH.misbelief} </span>
+                            <b>{t('epistemicPanel.misbelief')}</b>{m.characterBelief}
                           </p>
-                          <p className="text-xs mt-0.5" style={{ color: 'var(--fg-muted)' }}>
-                            <span className="font-medium">{t('epistemicPanel.actualTruth')}</span>{m.actualTruth}
+                          <p className="is-truth">
+                            <b>{t('epistemicPanel.actualTruth')}</b>{m.actualTruth}
                           </p>
-                          <p className="text-xs mt-0.5 opacity-50">
+                          <p className="is-confidence">
                             {t('epistemicPanel.confidence', { percent: Math.round(m.confidence * 100) })}
                           </p>
                         </button>
@@ -362,6 +256,15 @@ export function EpistemicSidePanel({
                 </ul>
               </section>
             )}
+
+            {/* Block note (B-065, layer 2): the known/unknown split is a rule,
+                not a judgement, and the rule is short enough to state. Copied
+                from EpistemicStateService.get_character_knowledge:
+                  known   = character_id in e.participants or e.visibility == "public"
+                  unknown = character_id not in e.participants and e.visibility != "public"
+                over `kg.get_snapshot(document_id, "chapter", up_to_chapter)`.
+                Sits under the three groups (08 E 區); non-dismissible. */}
+            <p className="rd-ep-note">{t('epistemicPanel.rule')}</p>
           </>
         )}
       </div>

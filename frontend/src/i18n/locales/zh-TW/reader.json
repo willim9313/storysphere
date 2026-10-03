@@ -40,7 +40,8 @@
     "misbelief": "誤信：",
     "actualTruth": "實情：",
     "confidence": "信心度 {{percent}}%",
-    "locating": "定位段落中…"
+    "locating": "定位段落中…",
+    "cutoff": "截止 第 {{n}} 章"
   },
   "annotation": {
     "title": "標註",
@@ -65,7 +66,10 @@
     },
     "warmth": "紙張色溫",
     "warmthSwatch": "紙張色 {{n}}",
-    "fadeIn": "逐段淡入"
+    "fadeIn": "逐段淡入",
+    "modeDefault": "此態預設",
+    "current": "目前",
+    "resetToDefault": "回到此態預設"
   },
   "col1Expand": "展開書籍資訊",
   "col1Collapse": "收合書籍資訊",
@@ -94,5 +98,37 @@
   "guide": {
     "prefix": "研究者導覽：",
     "body": "這頁是<strong>檢視器</strong>，用來核對處理結果對不對——章節怎麼切、實體抓到哪些、關鍵字是什麼——<strong>不是連續閱讀的介面</strong>。左欄是全書統計與關鍵字，中欄選章節，右欄顯示該章在第 N 章的認知狀態。"
-  }
+  },
+  "viewLabel": "檢視",
+  "bookKeywordsHint": "前 12 · 依權重",
+  "entityDistributionHint": "6 型全列",
+  "notFound": "找不到書籍",
+  "failure": {
+    "backToOverview": "回書籍總覽"
+  },
+  "rerun": {
+    "title": "功能未完成",
+    "rerun": "重新執行",
+    "running": "執行中",
+    "failed": "執行失敗",
+    "hint": "會呼叫 LLM，消耗 token；覆蓋該步驟的產物。",
+    "steps": {
+      "summarization": "章節摘要",
+      "featureExtraction": "特徵萃取",
+      "knowledgeGraph": "知識圖譜",
+      "symbolDiscovery": "符號探索"
+    }
+  },
+  "classify": {
+    "label": "補標 visibility",
+    "temp": "（臨時）",
+    "tooltip": "以 LLM 補標事件 visibility（臨時功能，未來可能調整）",
+    "hint": "會呼叫 LLM，消耗 token；寫入資料。",
+    "running": "分類中…",
+    "done": "已分類 {{classified}}/{{total}} 個事件",
+    "triggerFailed": "觸發失敗，請稍後再試",
+    "failed": "失敗"
+  },
+  "failurePageName": "這本書",
+  "col2Rail": "章節"
 }

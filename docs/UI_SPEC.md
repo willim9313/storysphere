@@ -378,54 +378,150 @@ DS v3 第 1 批 1-3b。權威稿：02 章節審閱決議紀錄 frame A–H。全
 
 ### 3.3 閱讀頁 `/books/:bookId`
 
-> 2026-07-13 依 Claude Design canvas 全面翻新（計畫 `docs/plans/20260713-reader-page-revamp.md`，R1–R9）。定位為**檢視器（inspector）**：chunk 卡片結構是定案，不做連續文流。
+> 2026-07-13 依 Claude Design canvas 全面翻新（計畫 `docs/plans/20260713-reader-page-revamp.md`，R1–R9）。**2026-10-02 DS v3 第 3 批（08 決議紀錄）再改版**：
+> A 工作檯密度、檢視／專注兩態、排版偏好依態分存、錯誤四分、兩顆 LLM 控制項掛字符與 503 就地狀態。批次計畫 `docs/plans/20261002-ds-v3-batch3-analysis.md`。
+> 定位仍是**檢視器（inspector）**：chunk 卡片結構是定案，不做連續文流。
 
-#### 版面結構
+#### 版面結構與密度
 
 ```
-[Left Sidebar] [欄1: 書籍資訊 250px 可收合→46px 細軌] [欄2: 章節列表 224px 可收合]
-[連接線 SVG 34px] [欄3: Chunk 內容 flex, min 460px] [認知狀態側欄 288px 開關式]
+[Left Sidebar 48px + 書名列 28px（BookLayout）]
+[欄1: 書籍資訊 250px 可收合→46px 細軌] [24px 間隔] [欄2: 章節列表 224px 可收合→36px 細軌]
+[貝茲 34px] [欄3: Chunk 內容 flex] [欄4 認知狀態 288px 開關式]
 ```
 
-窄螢幕（≤768px）降級：進頁自動折疊欄 1、欄 2（縮成直排文字細軌），正文最大化，連接線隱藏；使用者可手動展開。
+**密度 A 工作檯**：區塊內距 `--space-5`（12）、區塊間距 `--space-4`（8）、卡內距 `--space-4`（8）、列距 `--space-2`（4），滿版（無 max-width），
+下內距 `--space-8`（32，取代舊的 80；被浮動鈕擋住的問題交給回頂部 FAB 自己的安全距）。樣式在 `styles/reader.css`（`rd-*` 前綴）。
+**欄寬與收合寬（250↔46／24／224↔36／34／288↔0）是稿與 README 明文凍結的密度控制器，一律不動**，也不合併成單一側欄開關；
+貝茲欄只在 col2 收合、未選章節、專注、≤768px 四種情況歸 0。收合狀態**目前不持久化**（README §6 寫會，現況沒有，維持現況，見 feedback 3-RD-3）。
+
+窄螢幕（≤768px）：進頁自動折疊欄 1、欄 2，貝茲隱藏；使用者可手動展開。
 
 #### 欄 1 — 書籍資訊（`BookOverview`）
 
-header 列（label + 收合 chevron）、封面佔位（76px）、書名（serif lg/700）、作者、status badge、書籍摘要（serif）、關鍵數字 5 格（2 欄 grid：章節/Chunks/實體/關係/事件，事件跨欄）、全書關鍵字、實體分佈 pill（聚合統計，不可點）。收合後成 46px 細軌：chevron + accent FileText icon + 直排「書籍資訊」，點細軌任意處展開。
+封面佔位（76px、`--bg-secondary` 方塊＋accent `FileText`）→ 書名（serif）＋作者行＋收合 chevron（Tooltip）→ `StatusBadge` → 摘要（serif）→
+統計格（2 欄；章節／Chunks／實體／關係，**事件第 5 格整列寬**——實體分佈不含事件，事件數量由這格承擔，見 feedback 3-RD-2）→
+`PipelineRerunPanel`（有 failed 步驟才出現）→「全書關鍵字 前 12 · 依權重」→「實體分佈 6 型全列」。
+
+- 作者行**版位一律保留**：沒有作者時也佔一行高度（`.rd-book-author` min-height），作者是下一期功能。
+- 實體分佈固定 6 型順序（角色／地點／組織／物品／概念／其他），**事件不列入，數量 0 的類型照列**（`readerModel.entityDistributionRows`）。
+- 收合後 46px 細軌：chevron＋accent `FileText`＋直排「書籍資訊」，點細軌任意處展開。
+
+**功能未完成（`PipelineRerunPanel`）**：done 顯綠勾無鈕、pending 整列不渲染、**只有 failed 才有「重新執行」**（不做成永遠可見的四步表，避免誤觸花 token 的鈕）。
+鈕掛 `.ss-btn-llm`，面板底部保留文字提示「會呼叫 LLM，消耗 token；覆蓋該步驟的產物。」。觸發失敗若是應用層 503（`isLlmUnconfigured`）→ 該列下方就地顯示
+`LlmUnconfiguredNotice`（前往 LLM 設定），其餘照常；其他錯誤顯示在該列。四步名稱與「功能未完成」「重新執行」「執行中」已移進 i18n `reader.rerun.*`（逐字）。
 
 #### 欄 2 — 章節列表（`ChapterCard`）
 
-sticky header：「章節 · N」label + **全部展開／全部收合**鈕；搜尋框（標題/實體/關鍵字），搜尋時**不過濾**列表——不符者 `opacity:0.4` 仍可點，並顯示「N 章符合」。
+header：「章節 · N」label＋**「全部展開／全部收合」secondary 小鈕（`.ss-btn-sm`，無圖示）**＋收合 chevron（Tooltip）；搜尋框（`--input-bg`／`--input-radius`／`--input-border-width`）。
+搜尋**不過濾**——不符者 `opacity:0.4` 仍可點，下方「N 章符合」，無命中「沒有章節含「…」」（兩條逐字）。
 
-章節卡為**多開手風琴**，兩個獨立操作：**點卡頭左側 = 導航**（欄 3 讀該章，順帶展開）；**點右側 chevron = 只展開/收合**（不導航）。選中章節 = accent 雙線邊框（border + inset shadow）。展開內容：摘要 → 關鍵字 badge → 實體 pill（可點開實體卡）。
+章節卡為**多開手風琴**，兩個分離的點擊區：**左側＝導覽**（欄 3 讀該章，順帶展開）、**右側 chevron＝只展開／收合**，中間以 1px 內分隔線（chevron 的 border-left）標出；
+chevron 有自己的 hover 底（`--bg-tertiary`，展開時也是）。選中＝accent 外框＋`--bg-secondary` 底（**不用 inset**）。展開內容：摘要 → 關鍵字 → 「實體 · N」膠囊（可點開實體卡）。
+36px 細軌的直排「章節」已移進 i18n `reader.col2Rail`（原為硬編）。
 
-#### 連接線 — `BezierConnectors`
+#### 貝茲欄 — `BezierConnectors`
 
-欄 2/欄 3 之間的實體 34px SVG 欄（`viewBox 0 0 34 100`）。**動態**：每個 chunk 一條曲線從選中章節卡垂直中心扇出至該 chunk 畫面位置；捲動/resize/切章即時重算（rAF 節流、直寫 SVG DOM 不觸發 re-render）。終點在視窗 28–72% 的線 `stroke-width 1.5 / opacity .75`，其餘 `0.8 / 0.3`。欄 2 收合、無選中章節、專注模式、窄螢幕時隱藏。
+不變：欄 2／欄 3 之間的實體 34px SVG 欄，每個 chunk 一條三次貝茲，rAF 節流、直寫 SVG DOM 不觸發 re-render。
 
 #### 欄 3 — Chunk 內容
 
-sticky header：章節標題 + 「第 N/M 章」badge + chunk 數（左）；標註密度開關（全部／角色／關）→「認知狀態」toggle →「Aa」排版鈕 →「專注」toggle（右）；底部 2px **捲動進度細條**（accent 填充）。
+**工具列由左到右固定順序**（G 區與 README §1.3；決策表的順序與此不一致，見 feedback 3-RD-1）：
 
-chunk 卡：`#N` 編號 + 實體 chips（可點開實體卡）+ 實體標註正文（serif，行內細底線、hover 浮色塊，見 §1.4，可點開實體卡）+ keywords。`※※※` 分隔 chunk 置中呈現。標註密度以容器 `data-annotation-mode` 控制：「角色」= 非角色標註/chips 隱藏且不可點；「關」= 全部標註不可點、chips 列隱藏。
+1. **「檢視／專注」兩段切換**（`.ss-seg`，取代舊的 Maximize 鈕）——常駐顯示現在在哪一態
+2. **標註密度三段「全部／角色／關」**（`.ss-seg`）
+3. **「認知狀態」**（`.ss-btn-ghost`，無圖示；開啟時字樣變「收起」）＋首次提示
+4. **Aa**（排版彈窗）
 
-章末有「← 上一章 / 下一章 →」（首末章單邊）；捲動 >500px 浮現右下**回頂部**圓鈕（避開 ChatBubble）。
+底部 2px 捲動進度細條。標題列：章名（serif lg）＋「第 N / M 章」badge＋「N chunks」。
+
+**chunk 卡**：頂列 `#order`（mono，從 #0 起）靠左、實體膠囊靠右；正文（serif，字級／行距由下方兩態偏好決定）；關鍵字。
+標註密度以容器 `data-annotation-mode` 控制（`global.css`）：「角色」＝非角色 mark／chip 取消底線與 hover 色塊並**拿掉 pointer-events**；「關」＝chips 整列隱藏、正文純散文；`#order` 三段都留。
+
+**章末導航只放右側「下一章 {章名} →」**（`.ss-btn-sm.ss-btn-secondary`）；最後一章沒有，也沒有「上一章」。捲動 >500px 浮現回頂部 FAB（Tooltip 包在固定定位的外層 wrapper）。
+
+##### 檢視／專注兩態（G 區）
+
+兩態 **DOM 相同**（chunk 仍是定位單元；實體卡跳段、認知狀態定位、跨書搜尋 §NN 都指向 `#order`），專注態只調弱視覺層次：
+
+| | 檢視 | 專注 |
+|---|---|---|
+| 預設字級／行距 | **17px／1.6**（fs=1, lh=0） | **19px／1.85**（fs=2, lh=1） |
+| 欄 | 四欄各依使用者收合 | 欄 1、欄 2 強制進軌、貝茲欄隱藏（不寫收合偏好，退出原樣還原，專注期間收合鈕 no-op） |
+| 正文欄 | 滿版 | `max-width: 760px` 置中 |
+| chunk 卡 | 完整卡框與底色 | 卡框與底色收成一條區隔細線；`#order` 掛到正文左側邊界外（左側留 `--space-8` 的溝，窄視窗也不被裁） |
+
+刻度 15／17／19px、1.6／1.85／2.15 不動，只定兩態的預設落點。模式只存在於當次 session，不持久化。專注態是 A 級的變體（間距仍 12／8／8／4），不換級。
+
+##### Aa 排版彈窗與 `reader:prefs`
+
+彈窗 **220px**：（該態標頭＋「此態預設 17 / 1.6」＋「目前 …」＋ **「回到此態預設」鈕——只在使用者的值 ≠ 該態預設時出現**）→ 字級 小／標準／大 → 行距 緊／標準／寬 →
+紙張色溫（4 色票，**只在 Warm 渲染**；Ink 整段不渲染且忽略既存偏好，欄 3 背景固定 `--bg-primary`）→ 逐段淡入。
+
+`reader:prefs` 結構（純邏輯在 `components/reader/readerModel.ts`，有 vitest）：
+
+```json
+{ "warmth": 1, "fade": false, "view": { "fs": 2 }, "focus": {} }
+```
+
+`view`／`focus` 只存**使用者改過、且 ≠ 該態預設**的欄位；沒有的就是該態預設。態切換只換預設，使用者動過就以他的值為準。warmth、fade 不分態。
+**舊結構 `{fs, lh, warmth, fade}` 讀入時轉成檢視態的值**（既有使用者的偏好不消失；專注態從自己的預設開始），之後的寫入一律是新結構。
 
 #### 實體卡 — `EntityCard`（popover）
 
-點行內標註或 chip 開啟：320px popover 貼點擊來源（空間不足上翻、無遮罩、Esc/點外關閉）。內容：實體名 + 型別 pill + 全書出現數；動作列「角色分析」（僅 character）＋「在圖譜中查看」（`?entity=` 聚焦）；角色顯示 `profileSummary` + archetype badge（#7a 404 = 顯示「未生成」）；**出現段落列表**（#9b）每項可點跳段——同章直接捲動 + flash 高亮，跨章先切章再定位。
+點行內標註或 chip 開啟：**320px、`max-height: 60vh`**、貼點擊來源（空間不足上翻、無遮罩、Esc／點外關閉）。內容區自己捲動，**不截斷、不加漸層遮罩**。
+標頭：實體名＋型別 pill＋關閉；「全書出現 N 段」；動作列「角色分析」（`.ss-btn-secondary`，僅 character）＋「在圖譜中查看」（`.ss-btn-ghost`）。
+主體：角色先顯示 `profileSummary` 與原型標籤（兩段，404＝「角色深度分析未生成」，不是錯誤），**其下的「出現段落 · N」逐段清單才是主體**——每列「第 N 章 · 章名」＋ mono `#order`＋2 行截斷原文，點擊跳段（同章直接捲動＋flash，跨章先切章、等 chunks 載入後再捲動並閃 2 秒）。
+載入中／失敗／空三種狀態逐字（「載入出現段落…」「段落載入失敗」「尚無出現段落」）。
 
 #### 認知狀態側欄 — `EpistemicSidePanel`（288px，預設關）
 
-由欄 3 工具列「認知狀態」開關。角色下拉 → 三組事件：已知（綠）/未知（黃）/誤信（紅），色點 + label + count 標頭；**事件項可點跳到對應段落**——點擊時以事件標題+描述做 #23a 語意搜尋（限定該章命中，搜尋中顯示 spinner），跳段 + flash 高亮；查無同章段落或搜尋失敗時退回章節級跳轉（同章 fallback = 捲回頂部）。誤信經 sourceEventId 反查來源事件，查無則不可點。
+標頭「認知狀態」＋「收起」→ 角色下拉（`--input-*`）→ **名單來源註記（欄位出處註記，逐字、不可關閉）**→ **「截止 第 N 章」**（有選章節時）→ 三組事件。
+三組：已知／未知／誤信，標頭是 label＋count；每列帶字符 **✓／?／✕**，因為 Ink 下四個 status 色都是 `#151515`，不能只靠色相。
+事件項可點跳段（#23a 語意搜尋，限定該章，搜尋中顯示 spinner，失敗退回章節級跳轉）；誤信經 `sourceEventId` 反查來源事件，查無則不可點；「誤信：」「實情：」「信心度 N%」逐字。
+**判定規則註記（區塊註記，逐字、不可關閉）貼在三組之下**（舊版在三組之上）。未選角色：「請選擇角色以查看認知狀態」；計算中「計算中…」；某組為空「（無）」。
 
-#### 專注模式 + Aa 排版
+**缺 visibility 資料**：⚠「尚無 visibility 資料」＋ `ClassifyVisibilityButton`：按鈕文字「補標 visibility（臨時）」（「（臨時）」留在按鈕上，要在點擊前就讀到）、掛 `.ss-btn-llm`、
+Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）」（逐字）、其下文字提示「會呼叫 LLM，消耗 token；寫入資料。」。觸發回應用層 503 → 就地 `LlmUnconfiguredNotice`。
+此元件同時被角色分析頁（`EpistemicStateSection`）與圖譜 lens（`LensCard`）使用，三處一起套用新外觀與 503 處理；樣式隨元件走（`styles/classify-visibility.css`）。
 
-「專注」toggle：欄 1+欄 2 強制收軌 + 連接線隱藏 + 正文 `max-width:760px` 置中；不動用戶原收合偏好，退出自動還原；不持久化。「Aa」面板：字級 3 檔（15/17/19px）、行距 3 檔（1.6/1.85/2.15）、紙張色溫 4 檔（`--paper-warmth-0..3`，僅 Warm 主題；Ink 欄 3 固定 `--bg-primary`）、逐段淡入 toggle；持久化於 localStorage `reader:prefs`。
+**首次提示**：選了章節但沒開過認知狀態時，從「認知狀態」鈕下方冒出 200px 卡「選擇角色，查看他在這個章節前知道的事」，點一下或 5 秒後消失並寫 `storysphere:reader-epistemic-hint-shown`，永不再出現；沒有「不再顯示」勾選框。
+
+#### Landing 與錯誤
+
+- **未選章節（landing）**：頁面層導覽條 `GuidanceRibbon surface="reader"`（逐字，只出現在 landing，可關）＋「選擇章節以查看內容」。三種註記可關閉性不同：導覽條可關；名單來源註記、判定規則註記不可關。
+- **錯誤四分**（`PageFailure`，書籍外框的側欄與書名列常駐，只替換內容區；{頁名}＝這本書）：
+  - 單頁失敗（回應有應用層 body）：「無法載入這本書」＋重試＋**「回書籍總覽」**（連到書庫 `/`）＋可展開「技術細節」
+  - 後端失敗（無 body 或裸 502/503/504）：「伺服器沒有回應」＋重試，不寫自動重試倒數
+  - **404 或查無此書**：標題換成「找不到書籍」（取代原本硬編的 `Book not found`；已裁決），其餘同單頁失敗
+  - 功能層 503：不整頁處理，見上面兩顆 LLM 控制項的就地狀態
+  
+  `BookLayout` 對 `/books/:bookId` 精確路由**不再攔截 `useBook` 錯誤**，讓閱讀頁自己畫上面這個狀態；其他書籍頁維持原本的 `ErrorMessage`（書名列的書名見 feedback 3-RD-5）。
+
+#### 字串來源
+
+既有字串一字不改。**這 9 句是草稿・待設計定案**（i18n `reader.*`；JSON 不能寫註解，故記在此；zh-TW 與 en 都已補）：
+
+| key | zh-TW | 來源 |
+|---|---|---|
+| `viewLabel` | 檢視 | README §5 草稿 |
+| `typography.modeDefault` | 此態預設 | README §5 草稿 |
+| `typography.resetToDefault` | 回到此態預設 | README §5 草稿 |
+| `typography.current` | 目前 | 08 G 區稿上有、README 未列 |
+| `bookKeywordsHint` | 前 12 · 依權重 | 08 A 區稿上有、README 未列 |
+| `entityDistributionHint` | 6 型全列 | 08 A 區稿上有、README 未列 |
+| `epistemicPanel.cutoff` | 截止 第 {{n}} 章 | 08 E 區稿上有、README 未列 |
+| `rerun.hint` | 會呼叫 LLM，消耗 token；覆蓋該步驟的產物。 | 08 D 區稿上有，原程式沒有 |
+| `classify.hint` | 會呼叫 LLM，消耗 token；寫入資料。 | 08 E 區稿上有，原程式沒有 |
+
+已裁決的新字串：`notFound`「找不到書籍」、`failure.backToOverview`「回書籍總覽」、`failurePageName`「這本書」（填進共用的「無法載入{頁名}」）。
+「技術細節」與 503 就地狀態沿用 `common.failure.*`。逐字移進 i18n 的既有字串：`rerun.*`（功能未完成、四步名、重新執行、執行中、執行失敗）、`classify.*`（補標 visibility、（臨時）、tooltip、分類中…、已分類 N/M 個事件、觸發失敗，請稍後再試、失敗）、`col2Rail`（章節）。
+
+原生 `title` 已全換 Tooltip（收合鈕、章節 chevron、色票、回頂部、補標鈕）。**唯一保留**：`SegmentRenderer` 行內實體 `<mark title>`——Tooltip 的 anchor 是 `inline-flex` 包裝，包進行內文字會破壞斷行；該 title 內容與可見文字相同，未動。
 
 #### API 參考
 
-見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#3（書籍詳情）、#4（章節列表）、#5（Chunk 內容）、#7a（實體深度分析）、#9b（實體出現段落）、#12e（認知狀態）
+見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#3（書籍詳情）、#4（章節列表）、#5（Chunk 內容）、#7a（實體深度分析）、#9b（實體出現段落）、#12e（認知狀態）、#8d `POST /books/:id/rerun/:step` 與 #12d `POST /books/:id/classify-visibility` 的 503（LLM provider 未設定）。
 
 ---
 
