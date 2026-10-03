@@ -1,11 +1,18 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
 import { analyzeAllSymbols } from '@/api/symbols';
+import { isLlmUnconfigured } from '@/api/failureKind';
 import { useBatchTask, type BatchTask } from '@/hooks/useBatchTask';
 import { qk } from '@/api/queryKeys';
 
-export type SymbolBatch = BatchTask<string[]>;
+export type SymbolBatch = BatchTask<string[]> & {
+  /**
+   * The trigger was refused with the app's own 503: no LLM provider is configured.
+   * A feature state, not a failure — the page says so in place and stays usable.
+   */
+  llmBlocked: boolean;
+};
 
 /**
  * Batch symbol interpretation. Runs every symbol occurring more than once when
@@ -17,15 +24,39 @@ export type SymbolBatch = BatchTask<string[]>;
  */
 export function useSymbolBatch(bookId: string | undefined, failureMessage: string): SymbolBatch {
   const queryClient = useQueryClient();
+  const [llmBlocked, setLlmBlocked] = useState(false);
 
   const refreshOverview = useCallback(() => {
     if (bookId) queryClient.invalidateQueries({ queryKey: qk.symbols.overview(bookId) });
   }, [bookId, queryClient]);
 
-  return useBatchTask<string[]>({
-    trigger: (imageryIds) => analyzeAllSymbols({ bookId: bookId!, imageryIds }),
+  const batch = useBatchTask<string[]>({
+    trigger: async (imageryIds) => {
+      setLlmBlocked(false);
+      try {
+        return await analyzeAllSymbols({ bookId: bookId!, imageryIds });
+      } catch (err) {
+        // useBatchTask only keeps a message, so the 503 distinction is made here.
+        if (isLlmUnconfigured(err)) setLlmBlocked(true);
+        throw err;
+      }
+    },
     onProgress: refreshOverview,
     onDone: refreshOverview,
     failureMessage,
   });
+
+  const { dismiss } = batch;
+  const dismissAll = useCallback(() => {
+    setLlmBlocked(false);
+    dismiss();
+  }, [dismiss]);
+
+  return {
+    ...batch,
+    // On a 503 the in-place notice replaces the generic batch banner.
+    error: llmBlocked ? null : batch.error,
+    dismiss: dismissAll,
+    llmBlocked,
+  };
 }

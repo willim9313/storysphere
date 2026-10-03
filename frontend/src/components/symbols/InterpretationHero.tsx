@@ -1,7 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Sparkles, RefreshCw, ExternalLink, AlertCircle, User, Flag } from 'lucide-react';
+import { RefreshCw, ExternalLink, AlertCircle, User, Flag } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Tooltip } from '@/components/ui/Tooltip';
 import type { ImageryEntity, Polarity, SymbolInterpretation } from '@/api/symbols';
 import { POLARITY_STYLE, POLARITY_VALUES } from './tokens';
 import { ReviewBadge } from './Badges';
@@ -57,7 +58,7 @@ export function InterpretationHero({
         {/* The tag doubles as the way out to the SEP methodology's full
             description, so the term needs no explaining here. */}
         <Link className="sym-hero-tag" to="/methodology?framework=sep_methodology">
-          <Sparkles size={11} /> {t('symbol.interpretation.tag')}
+          <span className="ss-llm-glyph" aria-hidden="true" /> {t('symbol.interpretation.tag')}
         </Link>
         {interpretation.assembled_by && (
           <>
@@ -200,7 +201,6 @@ export function InterpretationHero({
               className="sym-btn-ghost"
               onClick={onRegenerate}
               disabled={pending}
-              title={t('symbol.interpretation.regenerate')}
             >
               <RefreshCw size={12} /> {t('symbol.interpretation.regenerate')}
             </button>
@@ -250,11 +250,13 @@ function LinkedRow({
       ) : (
         <div className="sym-linked-items">
           {items.map(({ id, name, hint }) => (
-            <button key={id} type="button" className="sym-linked-chip" title={id} onClick={() => onNavigate(id)}>
-              <span className="sym-linked-text">{name}</span>
-              {hint && <span className="sym-linked-hint">{hint}</span>}
-              <ExternalLink size={10} style={{ color: 'var(--fg-muted)' }} />
-            </button>
+            <Tooltip key={id} label={id}>
+              <button type="button" className="sym-linked-chip" onClick={() => onNavigate(id)}>
+                <span className="sym-linked-text">{name}</span>
+                {hint && <span className="sym-linked-hint">{hint}</span>}
+                <ExternalLink size={10} style={{ color: 'var(--fg-muted)' }} />
+              </button>
+            </Tooltip>
           ))}
         </div>
       )}

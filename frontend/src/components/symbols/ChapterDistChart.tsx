@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 
+import { Tooltip } from '@/components/ui/Tooltip';
 import { densityStep, typeStyle } from './tokens';
 import {
   OUTSIDE_CELL_FLEX,
@@ -62,29 +63,32 @@ export function ChapterDistChart({ signals, axis, scale, pinned }: Readonly<Prop
           return (
             <div
               key={slot.chapter}
-              className="sym-dist-col"
+              className="sym-dist-colwrap"
               style={{ flex: isBody ? 1 : OUTSIDE_CELL_FLEX }}
-              title={slotTitle(t, slot, count)}
             >
-              <span className="sym-dist-peak">{isPeak ? '▲' : ''}</span>
-              <span
-                className="sym-dist-bar"
-                style={{
-                  height:
-                    count > 0
-                      ? `${Math.max(MIN_BAR_H, (count / scale) * MAX_BAR_H)}px`
-                      : '2px',
-                  background: count > 0 ? densityStep(count) : 'var(--bg-tertiary)',
-                  // A dashed edge marks a bar that sits outside the story: kept
-                  // visible, but excluded from shape and first appearance.
-                  border: count > 0 && !isBody ? '1px dashed var(--fg-muted)' : undefined,
-                  // Held back rather than shortened. 海's colophon holds more
-                  // occurrences than any chapter does, so at full contrast the
-                  // tallest, darkest bar on the chart is the noise — the eye
-                  // reaches it before the note explaining it should be ignored.
-                  opacity: isBody ? undefined : 0.45,
-                }}
-              />
+              <Tooltip label={slotTitle(t, slot, count)}>
+                <div className="sym-dist-col">
+                  <span className="sym-dist-peak">{isPeak ? '▲' : ''}</span>
+                  <span
+                    className="sym-dist-bar"
+                    style={{
+                      height:
+                        count > 0
+                          ? `${Math.max(MIN_BAR_H, (count / scale) * MAX_BAR_H)}px`
+                          : '2px',
+                      background: count > 0 ? densityStep(count) : 'var(--bg-tertiary)',
+                      // A dashed edge marks a bar that sits outside the story: kept
+                      // visible, but excluded from shape and first appearance.
+                      border: count > 0 && !isBody ? '1px dashed var(--fg-muted)' : undefined,
+                      // Held back rather than shortened. 海's colophon holds more
+                      // occurrences than any chapter does, so at full contrast the
+                      // tallest, darkest bar on the chart is the noise — the eye
+                      // reaches it before the note explaining it should be ignored.
+                      opacity: isBody ? undefined : 0.45,
+                    }}
+                  />
+                </div>
+              </Tooltip>
             </div>
           );
         })}
@@ -99,25 +103,28 @@ export function ChapterDistChart({ signals, axis, scale, pinned }: Readonly<Prop
               return (
                 <div
                   key={slot.chapter}
-                  className="sym-dist-col"
+                  className="sym-dist-colwrap"
                   style={{ flex: isBody ? 1 : OUTSIDE_CELL_FLEX }}
-                  title={slotTitle(t, slot, count)}
                 >
-                  <span
-                    className="sym-dist-bar"
-                    style={{
-                      height:
-                        count > 0
-                          ? `${Math.max(MIN_BAR_H, (count / scale) * PIN_BAR_H)}px`
-                          : '2px',
-                      // The pinned row is drawn in its own type colour rather than
-                      // the shared density scale: two rows of the same browns would
-                      // read as one chart with a gap in it.
-                      background:
-                        count > 0 ? typeStyle(pinned.imageryType).dot : 'var(--bg-tertiary)',
-                      opacity: isBody ? undefined : 0.45,
-                    }}
-                  />
+                  <Tooltip label={slotTitle(t, slot, count)}>
+                    <div className="sym-dist-col">
+                      <span
+                        className="sym-dist-bar"
+                        style={{
+                          height:
+                            count > 0
+                              ? `${Math.max(MIN_BAR_H, (count / scale) * PIN_BAR_H)}px`
+                              : '2px',
+                          // The pinned row is drawn in its own type colour rather than
+                          // the shared density scale: two rows of the same browns would
+                          // read as one chart with a gap in it.
+                          background:
+                            count > 0 ? typeStyle(pinned.imageryType).dot : 'var(--bg-tertiary)',
+                          opacity: isBody ? undefined : 0.45,
+                        }}
+                      />
+                    </div>
+                  </Tooltip>
                 </div>
               );
             })}
