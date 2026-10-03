@@ -1,16 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useLocation, useSearchParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Search,
-  AlertTriangle,
-  RefreshCw,
-  Sparkles,
-  ExternalLink,
-  ArrowLeft,
-  Columns2,
-  BookOpen,
-} from 'lucide-react';
+import { Search, AlertTriangle, AlertCircle } from 'lucide-react';
 import { Trans, useTranslation } from 'react-i18next';
 import { useChatDispatch } from '@/contexts/ChatContext';
 import { useToast } from '@/contexts/ToastContext';
@@ -24,10 +15,16 @@ import {
 } from '@/api/analysis';
 import { BatchEepPanel } from '@/components/analysis/BatchEepPanel';
 import { EventAnalysisDetail } from '@/components/analysis/EventAnalysisDetail';
+import { NarrativeChip } from '@/components/analysis/EventListItems';
+import { parseNarrativeMode } from '@/components/analysis/overview/eventTypes';
 import { EventOverviewLanding } from '@/components/analysis/overview/EventOverviewLanding';
 import { EventGroupedList } from '@/components/analysis/EventGroupedList';
 import { EventCompareDrawer } from '@/components/analysis/EventCompareDrawer';
+import { failureKind, isLlmUnconfigured, techDetailOf } from '@/api/failureKind';
 import { GuidanceRibbon } from '@/components/ui/GuidanceRibbon';
+import { LlmUnconfiguredNotice } from '@/components/ui/LlmUnconfiguredNotice';
+import { PageFailure } from '@/components/ui/PageFailure';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useAsyncTask } from '@/hooks/useAsyncTask';
 import { useBatchTask } from '@/hooks/useBatchTask';
@@ -84,11 +81,15 @@ export default function EventAnalysisPage() {
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [triggerError, setTriggerError] = useState<string | null>(null);
+  // A 503 carrying the app's own body = no LLM provider configured (shown in place).
+  const [llmBlocked, setLlmBlocked] = useState(false);
+  const [batchLlmBlocked, setBatchLlmBlocked] = useState(false);
   const [justDoneIds, setJustDoneIds] = useState<Set<string>>(new Set());
   const justDoneTimers = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
   const { t } = useTranslation('analysis');
   const { push } = useToast();
   const { t: tc } = useTranslation('common');
+  const { t: tn } = useTranslation('nav');
 
   const [confirmBatchEep, setConfirmBatchEep] = useState(false);
   const [compareOpen, setCompareOpen] = useState(false);
@@ -107,7 +108,7 @@ export default function EventAnalysisPage() {
     return () => setPageContext({ page: 'other' });
   }, [book, bookId, setPageContext]);
 
-  const { data: evtData, isLoading } = useEventAnalysis(bookId);
+  const { data: evtData, isLoading, error: listError, refetch: refetchList } = useEventAnalysis(bookId);
 
   // Only analyzed events have a #7d payload. Selecting anything else — an
   // unanalyzed event, or one whose generation is still running — would only
@@ -176,26 +177,38 @@ export default function EventAnalysisPage() {
     };
   }, []);
 
+  // Every token-spending trigger (建立, 覆蓋重新生成, 重試失敗部分) fails the same
+  // way: 503 + the app's own body means no LLM provider. Say that in place;
+  // anything else is the generic trigger failure.
+  const onTriggerStart = () => {
+    setTriggerError(null);
+    setLlmBlocked(false);
+  };
+  const onTriggerFailed = (err: unknown) => {
+    if (isLlmUnconfigured(err)) {
+      setLlmBlocked(true);
+      setTriggerError(null);
+    } else {
+      setTriggerError(t('triggerFailed'));
+    }
+  };
+
   const triggerMutation = useMutation({
     mutationFn: (id: string) => triggerEventAnalysis(bookId!, id),
-    onSuccess: (data) => {
-      setTriggerError(null);
-      gen.adopt(data.taskId);
-    },
-    onError: () => {
+    onMutate: onTriggerStart,
+    onSuccess: (data) => gen.adopt(data.taskId),
+    onError: (err) => {
       setGeneratingId(null);
-      setTriggerError(t('triggerFailed'));
+      onTriggerFailed(err);
     },
   });
 
   // Retry only the failed parts of a partial result (reuses cached EEP).
   const retryFailedMutation = useMutation({
     mutationFn: (id: string) => triggerEventAnalysis(bookId!, id, 'retryFailed'),
-    onSuccess: (data) => {
-      setTriggerError(null);
-      gen.adopt(data.taskId);
-    },
-    onError: () => setTriggerError(t('triggerFailed')),
+    onMutate: onTriggerStart,
+    onSuccess: (data) => gen.adopt(data.taskId),
+    onError: onTriggerFailed,
   });
 
   const handleGenerate = (id: string) => {
@@ -210,7 +223,16 @@ export default function EventAnalysisPage() {
   );
 
   const batch = useBatchTask<string[]>({
-    trigger: (eventIds) => triggerBatchEventAnalysis(bookId!, eventIds),
+    trigger: async (eventIds) => {
+      setBatchLlmBlocked(false);
+      try {
+        return await triggerBatchEventAnalysis(bookId!, eventIds);
+      } catch (err) {
+        // useBatchTask only keeps a message, so the 503 distinction is made here.
+        if (isLlmUnconfigured(err)) setBatchLlmBlocked(true);
+        throw err;
+      }
+    },
     onProgress: refreshEvents,
     onDone: (summary) => {
       refreshEvents();
@@ -234,6 +256,7 @@ export default function EventAnalysisPage() {
   });
 
   const selectedUnanalyzed = evtData?.unanalyzed.find((u) => u.id === selectedEntityId);
+  const unanalyzedMode = parseNarrativeMode(selectedUnanalyzed?.narrativeMode);
 
   // Search / importance / narrative filtering and grouping now live in
   // EventGroupedList; the page only owns the query string.
@@ -259,9 +282,18 @@ export default function EventAnalysisPage() {
     );
   }
 
+  const pageName = tn('tabs.eventAnalysis');
+  const backToBook = (
+    <Link to={`/books/${bookId}`} className="ss-btn ss-btn-md ss-btn-secondary">
+      {t('character.error.backToBook')}
+    </Link>
+  );
+
   const importance = eventDetail?.eep.eventImportance;
   const isKernel = importance === 'KERNEL';
   const chapter = eventDetail?.chapter ?? null;
+  const detailMode = parseNarrativeMode(eventDetail?.narrativeMode);
+  const inDetail = !!(selectedEntityId && !detailLoading && eventDetail);
 
   return (
     <div className="ea-page" data-density="comfy">
@@ -274,10 +306,10 @@ export default function EventAnalysisPage() {
               totalCount={totalCount}
               batchTask={batch.task}
               isBatchRunning={batch.running}
-              batchError={batch.error}
+              batchError={batchLlmBlocked ? null : batch.error}
               batchSummary={batch.summary}
               onTrigger={() => setConfirmBatchEep(true)}
-              onDismissSummary={batch.dismiss}
+              llmBlocked={batchLlmBlocked}
               isPending={batch.pending}
               subset={{
                 kernelRemaining,
@@ -340,55 +372,13 @@ export default function EventAnalysisPage() {
         {/* Content Area */}
         <div className="ea-content">
           <div className="ea-content-scroll">
-            {selectedEntityId && (
-              <div className="ea-detail-toolbar">
-                <button
-                  type="button"
-                  className="ea-btn"
-                  onClick={() => setSelectedEntityId(null)}
-                >
-                  <ArrowLeft size={12} /> {t('event.overview.backToOverview')}
+            <div className="ea-content-inner">
+            {llmBlocked && <LlmUnconfiguredNotice />}
+            {selectedEntityId && !inDetail && (
+              <div className="ea-detail-back-row">
+                <button type="button" className="ea-detail-back" onClick={() => setSelectedEntityId(null)}>
+                  ← {t('event.overview.backToOverview')}
                 </button>
-                <div className="ea-detail-toolbar-actions">
-                  {eventDetail?.status === 'partial' && (
-                    <button
-                      type="button"
-                      className="ea-btn ea-btn-warning"
-                      disabled={retryFailedMutation.isPending}
-                      onClick={() => retryFailedMutation.mutate(selectedEntityId)}
-                    >
-                      <RefreshCw size={12} /> {t('event.retryFailed')}
-                    </button>
-                  )}
-                  {eventDetail && (
-                    <>
-                      <button
-                        type="button"
-                        className="ea-btn"
-                        disabled={!canCompare}
-                        title={canCompare ? undefined : t('event.compare.needTwo')}
-                        onClick={() => setCompareOpen(true)}
-                      >
-                        <Columns2 size={12} /> {t('event.compare.entry')}
-                      </button>
-                      {bookId && (
-                        <Link
-                          to={`/books/${bookId}/graph?entity=${selectedEntityId}`}
-                          className="ea-btn"
-                        >
-                          <ExternalLink size={12} /> {t('viewInGraph')}
-                        </Link>
-                      )}
-                      <button
-                        type="button"
-                        className="ea-btn"
-                        onClick={() => setConfirmRegenerate(true)}
-                      >
-                        <RefreshCw size={12} /> {t('regenerate')}
-                      </button>
-                    </>
-                  )}
-                </div>
               </div>
             )}
             {selectedEntityId && detailLoading ? (
@@ -396,72 +386,138 @@ export default function EventAnalysisPage() {
                 <div className="ea-spinner" />
               </div>
             ) : selectedEntityId && eventDetail ? (
-              <>
-                <div className="ea-detail-header">
-                  <div className="ea-detail-titlerow">
-                    <h1 className="ea-title">{eventDetail.title}</h1>
-                    {importance && (
-                      <span className={'ea-detail-imp ' + (isKernel ? 'kernel' : 'satellite')}>
-                        {isKernel
-                          ? t('event.importance.kernel')
-                          : t('event.importance.satellite')}
-                      </span>
-                    )}
-                  </div>
-                  <div className="ea-detail-meta">
-                    {chapter !== null && (
-                      <span>{t('event.list.chapterShort', { n: chapter })}</span>
-                    )}
-                    {eventDetail.narrativeMode && (
-                      <span>{t(`event.narrative.${eventDetail.narrativeMode}`)}</span>
-                    )}
-                    {importance && (
-                      <span>
-                        {isKernel
-                          ? t('event.importance.kernelTagline')
-                          : t('event.importance.satelliteTagline')}
-                      </span>
-                    )}
-                    {eventDetail.status === 'partial' && (
-                      <span className="ea-detail-partial">{t('event.partialBadge')}</span>
-                    )}
-                    {eventDetail.isStale && (
-                      <span className="ea-detail-stale" title={t('event.stale.tooltip')}>
-                        {t('event.stale.badge')}
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <GuidanceRibbon surface="event-detail">
-                  <strong>{t('event.guide.prefix')}</strong>{' '}
-                  <Trans
-                    i18nKey="event.guide.detail"
-                    ns="analysis"
-                    components={{ strong: <strong /> }}
-                  />
-                </GuidanceRibbon>
-                <EventAnalysisDetail
-                  data={eventDetail}
-                  causalVariant="stepped"
-                  bookId={bookId}
-                  onSelectEvent={(id) => setSelectedEntityId(id)}
-                />
-              </>
+              <EventAnalysisDetail
+                data={eventDetail}
+                causalVariant="stepped"
+                bookId={bookId}
+                onSelectEvent={(id) => setSelectedEntityId(id)}
+                header={
+                  <>
+                    <div className="ea-detail-titlerow">
+                      <div className="ea-detail-titlegroup">
+                        <button
+                          type="button"
+                          className="ea-detail-back"
+                          onClick={() => setSelectedEntityId(null)}
+                        >
+                          ← {t('event.overview.backToOverview')}
+                        </button>
+                        <h1 className="ea-title">{eventDetail.title}</h1>
+                        {importance && (
+                          <span
+                            className={'ss-badge ea-detail-imp ' + (isKernel ? 'kernel' : 'satellite')}
+                          >
+                            {isKernel
+                              ? t('event.importance.kernel')
+                              : t('event.importance.satellite')}
+                          </span>
+                        )}
+                      </div>
+                      <div className="ea-detail-actions">
+                        {eventDetail.status === 'partial' && (
+                          <button
+                            type="button"
+                            className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+                            disabled={retryFailedMutation.isPending}
+                            onClick={() => retryFailedMutation.mutate(selectedEntityId)}
+                          >
+                            {t('event.retryFailed')}
+                          </button>
+                        )}
+                        <Tooltip label={t('event.compare.needTwo')} disabled={canCompare}>
+                          <button
+                            type="button"
+                            className="ss-btn ss-btn-sm ss-btn-secondary"
+                            disabled={!canCompare}
+                            onClick={() => setCompareOpen(true)}
+                          >
+                            {t('event.compare.entry')}
+                          </button>
+                        </Tooltip>
+                        {bookId && (
+                          <Link
+                            to={`/books/${bookId}/graph?entity=${selectedEntityId}`}
+                            className="ss-btn ss-btn-sm ss-btn-ghost"
+                          >
+                            {t('viewInGraph')}
+                          </Link>
+                        )}
+                        <button
+                          type="button"
+                          className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+                          onClick={() => setConfirmRegenerate(true)}
+                        >
+                          {t('regenerate')}
+                        </button>
+                      </div>
+                    </div>
+                    <div className="ea-detail-meta">
+                      {chapter !== null && (
+                        <span className="ea-detail-meta-ch">
+                          {t('event.list.chapterShort', { n: chapter })}
+                        </span>
+                      )}
+                      {detailMode && <NarrativeChip mode={detailMode} />}
+                      {importance && (
+                        <span className="ea-detail-meta-imp">
+                          {isKernel
+                            ? t('event.importance.kernelTagline')
+                            : t('event.importance.satelliteTagline')}
+                        </span>
+                      )}
+                      {eventDetail.status === 'partial' && (
+                        <span className="ss-badge ss-badge-warning">{t('event.partialBadge')}</span>
+                      )}
+                      {eventDetail.isStale && (
+                        <Tooltip label={t('event.stale.tooltip')}>
+                          <span className="ss-badge ss-badge-warning" tabIndex={0}>
+                            {t('event.stale.badge')}
+                          </span>
+                        </Tooltip>
+                      )}
+                    </div>
+                    <GuidanceRibbon surface="event-detail">
+                      <strong>{t('event.guide.prefix')}</strong>{' '}
+                      <Trans
+                        i18nKey="event.guide.detail"
+                        ns="analysis"
+                        components={{ strong: <strong /> }}
+                      />
+                    </GuidanceRibbon>
+                  </>
+                }
+              />
             ) : selectedEntityId && detailError && isSelectedAnalyzed ? (
               // The list says this event has a #7d payload but fetching it
               // failed. Without this branch the cascade falls through to the
               // overview landing, which reads as "the detail vanished" — the
-              // shape a 500 from #7d took before it was found.
-              <div className="ea-empty">
-                <div className="ea-empty-icon error">
-                  <AlertTriangle size={24} />
+              // shape a 500 from #7d took before it was found. A bare gateway
+              // status (no app body) is a backend outage instead.
+              failureKind(detailError) === 'backend' ? (
+                <PageFailure
+                  variant="backend"
+                  pageName={pageName}
+                  onRetry={() => void refetchDetail()}
+                  techDetail={techDetailOf(detailError)}
+                />
+              ) : (
+                <div className="ss-state ss-state-stage" role="alert">
+                  <span className="ss-state-icon ss-state-icon-error">
+                    <AlertCircle size={24} />
+                  </span>
+                  <h4 className="ss-state-title">{t('event.detailError.title')}</h4>
+                  <p className="ss-state-text">{t('event.detailError.body')}</p>
+                  <div className="ss-state-actions">
+                    <button
+                      type="button"
+                      className="ss-btn ss-btn-sm ss-btn-primary"
+                      onClick={() => void refetchDetail()}
+                    >
+                      {tc('retry')}
+                    </button>
+                  </div>
                 </div>
-                <h2 className="ea-empty-title">{t('event.detailError.title')}</h2>
-                <p className="ea-empty-sub">{t('event.detailError.body')}</p>
-                <button type="button" className="ea-btn" onClick={() => refetchDetail()}>
-                  <RefreshCw size={12} /> {tc('retry')}
-                </button>
-              </div>
+              )
             ) : gen.task?.status === 'error' ? (
               <div className="ea-empty">
                 <div className="ea-empty-icon error">
@@ -473,14 +529,14 @@ export default function EventAnalysisPage() {
                 </p>
                 <button
                   type="button"
-                  className="ea-btn"
+                  className="ss-btn ss-btn-md ss-btn-secondary"
                   onClick={() => {
                     gen.reset();
                     triggerMutation.reset();
                     setTriggerError(null);
                   }}
                 >
-                  <RefreshCw size={12} /> {tc('retry')}
+                  {tc('retry')}
                 </button>
               </div>
             ) : gen.taskId && gen.task && gen.task.status !== 'done' ? (
@@ -500,29 +556,24 @@ export default function EventAnalysisPage() {
             ) : selectedUnanalyzed ? (
               <div className="ea-unanalyzed">
                 <div className="ea-unanalyzed-meta">
-                  <span className="ea-imp unknown" title={t('event.overview.undetermined')}>
-                    ·
-                  </span>
+                  <Tooltip label={t('event.overview.undetermined')}>
+                    <span className="ea-imp is-sm unknown">·</span>
+                  </Tooltip>
                   {selectedUnanalyzed.chapter != null && (
                     <span>
                       {t('event.list.chapterShort', { n: selectedUnanalyzed.chapter })}
                     </span>
                   )}
-                  {selectedUnanalyzed.narrativeMode && (
-                    <>
-                      <span className="sep" />
-                      <span>{t(`event.narrative.${selectedUnanalyzed.narrativeMode}`)}</span>
-                    </>
-                  )}
+                  {unanalyzedMode && <NarrativeChip mode={unanalyzedMode} />}
+                  <span>
+                    {t('notAnalyzed')} · {t('event.overview.undetermined')}
+                  </span>
                 </div>
                 <h1 className="ea-unanalyzed-title">{selectedUnanalyzed.name}</h1>
                 <p className="ea-unanalyzed-sub">{t('event.empty.unanalyzedSubtitle')}</p>
 
                 <div className="ea-source">
-                  <div className="ea-source-head">
-                    <BookOpen size={13} />
-                    <span>{t('event.source.title')}</span>
-                  </div>
+                  <div className="ea-source-head">{t('event.source.title')}</div>
                   {sourceLoading && (
                     <p className="ea-source-empty">{t('analyzing')}</p>
                   )}
@@ -546,14 +597,20 @@ export default function EventAnalysisPage() {
                   <p className="ea-source-caveat">{t('event.source.caveat')}</p>
                 </div>
 
-                <button
-                  type="button"
-                  className="ea-btn ea-btn-primary"
-                  onClick={() => handleGenerate(selectedUnanalyzed.id)}
-                  disabled={triggerMutation.isPending}
-                >
-                  <Sparkles size={12} /> {t('event.empty.createBtn')}
-                </button>
+                <div className="ea-unanalyzed-cta">
+                  <button
+                    type="button"
+                    className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm"
+                    onClick={() => handleGenerate(selectedUnanalyzed.id)}
+                    disabled={triggerMutation.isPending}
+                  >
+                    {t('event.empty.createBtn')}
+                  </button>
+                  <span className="ea-token-hint">
+                    <span className="ss-llm-glyph" aria-hidden="true" />
+                    {t('tension.state.tokenHintShort')}
+                  </span>
+                </div>
               </div>
             ) : triggerError ? (
               <div className="ea-empty">
@@ -563,7 +620,11 @@ export default function EventAnalysisPage() {
                 <p className="ea-empty-sub" style={{ color: 'var(--color-error)' }}>
                   {triggerError}
                 </p>
-                <button type="button" className="ea-btn" onClick={() => setTriggerError(null)}>
+                <button
+                  type="button"
+                  className="ss-btn ss-btn-md ss-btn-secondary"
+                  onClick={() => setTriggerError(null)}
+                >
                   {tc('confirm')}
                 </button>
               </div>
@@ -579,14 +640,16 @@ export default function EventAnalysisPage() {
               />
             ) : (
               // Only reached if the #6b list query itself failed (isLoading
-              // already gates the loading state above).
-              <div className="ea-empty">
-                <div className="ea-empty-icon error">
-                  <AlertTriangle size={22} />
-                </div>
-                <p className="ea-empty-sub">{t('event.empty.subtitle')}</p>
-              </div>
+              // already gated the loading state above).
+              <PageFailure
+                variant={failureKind(listError)}
+                pageName={pageName}
+                onRetry={() => void refetchList()}
+                secondaryAction={backToBook}
+                techDetail={techDetailOf(listError)}
+              />
             )}
+            </div>
           </div>
 
         </div>

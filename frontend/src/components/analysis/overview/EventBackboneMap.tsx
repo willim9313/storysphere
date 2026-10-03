@@ -1,11 +1,15 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { Tooltip } from '@/components/ui/Tooltip';
 import type { NarrativeMode, OverviewEvent } from './eventTypes';
+import { BAND_PAD, bandHeight, truncateNodeLabel } from './eventBackboneModel';
 
 interface EventBackboneMapProps {
   events: OverviewEvent[];
   onSelectEvent: (id: string) => void;
 }
+
+const MODE_ORDER: NarrativeMode[] = ['present', 'flashback', 'flashforward', 'parallel', 'unknown'];
 
 type BandKey = 'KERNEL' | 'UNDETERMINED' | 'SATELLITE';
 
@@ -33,9 +37,6 @@ const BANDS: BandSpec[] = [
   { key: 'SATELLITE', node: 22, rowH: 28, labelled: false, labelKey: 'event.overview.map.bandSatellite' },
 ];
 
-const BAND_PAD = 14;
-const LABEL_MAX = 6;
-
 function bandOf(e: OverviewEvent): BandKey {
   if (e.importance === 'KERNEL') return 'KERNEL';
   if (e.importance === 'SATELLITE') return 'SATELLITE';
@@ -53,7 +54,7 @@ interface PositionedNode {
 export function EventBackboneMap({ events, onSelectEvent }: Readonly<EventBackboneMapProps>) {
   const { t } = useTranslation('analysis');
 
-  const { nodes, bandRows, chapters, height, undatedCount, midline } = useMemo(() => {
+  const { nodes, bandRows, chapters, height, undatedCount } = useMemo(() => {
     const placed = events.filter((e) => e.chapter !== null);
     const chapterList = [...new Set(placed.map((e) => e.chapter as number))].sort((a, b) => a - b);
     const chapterIndex = new Map(chapterList.map((c, i) => [c, i]));
@@ -69,7 +70,7 @@ export function EventBackboneMap({ events, onSelectEvent }: Readonly<EventBackbo
         (max, ch) => Math.max(max, inBand.filter((e) => e.chapter === ch).length),
         0,
       );
-      const h = Math.max(1, densest) * spec.rowH + BAND_PAD * 2;
+      const h = bandHeight(densest, spec.rowH);
       rows.push({ spec, top: cursor, height: h });
       cursor += h;
     }
@@ -83,7 +84,7 @@ export function EventBackboneMap({ events, onSelectEvent }: Readonly<EventBackbo
           const idx = chapterIndex.get(ch) ?? 0;
           out.push({
             event,
-            x: chapterList.length === 1 ? 50 : 7 + (idx / (chapterList.length - 1)) * 86,
+            x: ((idx + 0.5) / chapterList.length) * 100,
             y: row.top + BAND_PAD + i * row.spec.rowH + row.spec.node / 2,
             size: row.spec.node,
             labelled: row.spec.labelled,
@@ -92,94 +93,94 @@ export function EventBackboneMap({ events, onSelectEvent }: Readonly<EventBackbo
       }
     }
 
-    const undeterminedRow = rows.find((r) => r.spec.key === 'UNDETERMINED');
     return {
       nodes: out,
       bandRows: rows,
-      midline: undeterminedRow
-        ? undeterminedRow.top + undeterminedRow.height / 2
-        : cursor / 2,
       chapters: chapterList,
       height: cursor,
       undatedCount: events.length - placed.length,
     };
   }, [events]);
 
-  const usedModes = useMemo(() => {
-    const modes = new Set<NarrativeMode>(
-      events.filter((e) => e.analyzed).map((e) => e.narrativeMode),
-    );
-    return [...modes].sort();
-  }, [events]);
-
   return (
-    <>
-      <div className="ea-ov-caption">{t('event.overview.map.caption')}</div>
-
-      <div className="ea-ov-map" style={{ height: `${height}px` }}>
-        {bandRows.map((row) => (
-          <div
-            key={row.spec.key}
-            className="ea-ov-map-band"
-            style={{ top: `${row.top}px`, height: `${row.height}px` }}
-          >
-            {row.spec.labelKey && (
-              <span className="ea-ov-map-band-label">{t(row.spec.labelKey)}</span>
-            )}
+    <div className="ea-ov-block">
+      <div className="ea-ov-mapcard">
+        <div className="ea-ov-map" style={{ height: `${height}px` }}>
+          {bandRows.map((row) => (
+            <div
+              key={row.spec.key}
+              className={'ea-ov-map-band' + (row.spec.key === 'UNDETERMINED' ? ' is-undetermined' : '')}
+              style={{ top: `${row.top}px`, height: `${row.height}px` }}
+            >
+              {row.spec.labelKey && (
+                <span className="ea-ov-map-band-label">{t(row.spec.labelKey)}</span>
+              )}
+            </div>
+          ))}
+          <div className="ea-ov-map-plot">
+            {chapters.slice(1).map((c, i) => (
+              <div
+                key={c}
+                className="ea-ov-map-colline"
+                style={{ left: `${((i + 1) / chapters.length) * 100}%` }}
+              />
+            ))}
+            {nodes.map((n) => (
+              <div
+                key={n.event.id}
+                className="ea-ov-map-node-pos"
+                style={{ left: `${n.x}%`, top: `${n.y}px` }}
+              >
+                <Tooltip
+                  label={`${n.event.title} · ${t('event.list.chapterShort', { n: n.event.chapter })}`}
+                >
+                  <button
+                    type="button"
+                    className="ea-ov-map-node"
+                    onClick={() => onSelectEvent(n.event.id)}
+                  >
+                    <span
+                      className={'ea-ov-map-dot' + (n.event.analyzed ? '' : ' is-unanalyzed')}
+                      style={{
+                        width: `${n.size}px`,
+                        height: `${n.size}px`,
+                        ...(n.event.analyzed
+                          ? {
+                              background: `var(--narrative-${n.event.narrativeMode}-bg)`,
+                              borderColor: `var(--narrative-${n.event.narrativeMode}-border)`,
+                            }
+                          : {
+                              borderColor: `var(--narrative-${n.event.narrativeMode}-border)`,
+                            }),
+                      }}
+                    />
+                    {n.labelled && (
+                      <span className="ea-ov-map-node-label">{truncateNodeLabel(n.event.title)}</span>
+                    )}
+                  </button>
+                </Tooltip>
+              </div>
+            ))}
           </div>
-        ))}
-        <div className="ea-ov-map-midline" style={{ top: `${midline}px` }} />
+        </div>
 
-        {nodes.map((n) => (
-          <button
-            key={n.event.id}
-            type="button"
-            className="ea-ov-map-node"
-            style={{ left: `${n.x}%`, top: `${n.y}px` }}
-            onClick={() => onSelectEvent(n.event.id)}
-            title={`${n.event.title} · ${t('event.list.chapterShort', { n: n.event.chapter })}`}
-          >
+        <div className="ea-ov-map-axis">
+          {chapters.map((c, i) => (
             <span
-              className={'ea-ov-map-dot' + (n.event.analyzed ? '' : ' unanalyzed')}
-              style={{
-                width: `${n.size}px`,
-                height: `${n.size}px`,
-                ...(n.event.analyzed
-                  ? {
-                      background: `var(--narrative-${n.event.narrativeMode}-bg)`,
-                      borderColor: `var(--narrative-${n.event.narrativeMode}-border)`,
-                    }
-                  : {}),
-              }}
-            />
-            {n.labelled && (
-              <span className="ea-ov-map-node-label">
-                {n.event.title.length > LABEL_MAX
-                  ? n.event.title.slice(0, LABEL_MAX) + '…'
-                  : n.event.title}
-              </span>
-            )}
-          </button>
-        ))}
+              key={c}
+              className="ea-ov-map-axis-tick"
+              style={{ left: `${((i + 0.5) / chapters.length) * 100}%` }}
+            >
+              {c}
+            </span>
+          ))}
+        </div>
       </div>
 
-      <div className="ea-ov-map-axis">
-        {chapters.map((c, i) => (
-          <span
-            key={c}
-            className="ea-ov-map-axis-tick"
-            style={{
-              left: `${chapters.length === 1 ? 50 : 7 + (i / (chapters.length - 1)) * 86}%`,
-            }}
-          >
-            {t('event.list.chapterShort', { n: c })}
-          </span>
-        ))}
-      </div>
+      <p className="ea-ov-caption">{t('event.overview.map.caption')}</p>
 
       <div className="ea-ov-map-legend">
-        <span className="ea-ov-map-legend-head">{t('event.overview.map.legendNarrative')}</span>
-        {usedModes.map((m) => (
+        {MODE_ORDER.map((m) => (
           <span key={m} className="ea-ov-map-legend-item">
             <span
               className="ea-ov-map-legend-swatch"
@@ -191,7 +192,6 @@ export function EventBackboneMap({ events, onSelectEvent }: Readonly<EventBackbo
             {t(`event.narrative.${m}`)}
           </span>
         ))}
-        <span className="ea-ov-map-legend-sep" />
         <span className="ea-ov-map-legend-note">{t('event.overview.map.legendKernel')}</span>
         <span className="ea-ov-map-legend-note">{t('event.overview.map.legendUnanalyzed')}</span>
         <span className="ea-ov-map-legend-note">{t('event.overview.map.legendAxis')}</span>
@@ -202,6 +202,6 @@ export function EventBackboneMap({ events, onSelectEvent }: Readonly<EventBackbo
           {t('event.overview.map.undated', { count: undatedCount })}
         </div>
       )}
-    </>
+    </div>
   );
 }

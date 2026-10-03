@@ -1,7 +1,9 @@
-import { Sparkles, Check, Play, CheckSquare } from 'lucide-react';
+import { Check, Play, CheckSquare } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { BatchFailureList } from '@/components/analysis/BatchFailureList';
+import { LlmUnconfiguredNotice } from '@/components/ui/LlmUnconfiguredNotice';
+import { Tooltip } from '@/components/ui/Tooltip';
 import type { TaskStatus, BatchEepResult } from '@/api/types';
 
 interface BatchEepPanelProps {
@@ -12,7 +14,8 @@ interface BatchEepPanelProps {
   batchError: string | null;
   batchSummary: BatchEepResult | null;
   onTrigger: () => void;
-  onDismissSummary?: () => void;
+  /** The batch trigger came back 503 "no LLM provider": say so in place of the generic error. */
+  llmBlocked?: boolean;
   isPending: boolean;
   /** i18n key prefix; defaults to `'batch'` (event analysis page).
    * Character page passes `'character.batch'` so keys live under
@@ -44,7 +47,7 @@ export function BatchEepPanel({
   batchError,
   batchSummary,
   onTrigger,
-  onDismissSummary,
+  llmBlocked = false,
   isPending,
   i18nPrefix = 'batch',
   subset,
@@ -85,14 +88,14 @@ export function BatchEepPanel({
       <div className="ea-batch-pct">
         {isBatchRunning ? (
           <>
-            <span className="stage" title={stage}>
-              {stage || t(k('running'))}
-            </span>
+            <Tooltip label={stage || t(k('running'))} disabled={!stage}>
+              <span className="stage">{stage || t(k('running'))}</span>
+            </Tooltip>
             <span className="live">
               <Play size={9} /> live
             </span>
           </>
-        ) : batchError ? (
+        ) : batchError && !llmBlocked ? (
           <span style={{ color: 'var(--color-error)' }}>
             {batchError || t(k('errorFallback'))}
           </span>
@@ -132,52 +135,66 @@ export function BatchEepPanel({
       )}
 
       {isBatchRunning ? (
-        <button className="ea-batch-btn running" disabled type="button">
+        <button className="ss-btn ss-btn-md ss-btn-secondary ea-batch-main" disabled type="button">
           <span className="ea-mini-spinner" />
           {t(k('runningWithCount'), { current: analyzedCount, total: totalCount })}
         </button>
       ) : allDone ? (
-        <button className="ea-batch-btn" disabled type="button">
+        <button className="ss-btn ss-btn-md ss-btn-secondary ea-batch-main" disabled type="button">
           <Check size={12} /> {t(k('allDone'))}
         </button>
       ) : (
         <button
-          className="ea-batch-btn"
+          className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm ea-batch-main"
           type="button"
           onClick={onTrigger}
           disabled={isPending}
         >
-          <Sparkles size={12} /> {t(k('triggerAll'))}
+          {t(k('triggerAll'))}
         </button>
       )}
 
+      {llmBlocked && !isBatchRunning && <LlmUnconfiguredNotice />}
+
+      {/* Subset controls: same card, straight under the main button, not behind a
+          fold — they are how a 60-event book gets affordable. The three buttons
+          run immediately (no confirm dialog, by design); gating is the guard. */}
       {subset && !isBatchRunning && !allDone && (
         <div className="ea-batch-subset">
           <div className="ea-batch-subset-row">
-            <button
-              type="button"
-              className="ea-batch-sub-btn"
-              disabled={subset.kernelRemaining === 0 || isPending}
-              title={
-                subset.kernelRemaining === 0 ? t(k('kernelOnlyDisabled')) : undefined
-              }
-              onClick={subset.onBatchKernel}
+            <Tooltip
+              label={t(k('kernelOnlyDisabled'))}
+              disabled={subset.kernelRemaining !== 0}
             >
-              {t(k('kernelOnly'), { count: subset.kernelRemaining })}
-            </button>
-            <button
-              type="button"
-              className="ea-batch-sub-btn"
-              disabled={subset.currentChapter === null || isPending}
-              title={subset.currentChapter === null ? t(k('chapterOnlyDisabled')) : undefined}
-              onClick={subset.onBatchChapter}
+              <button
+                type="button"
+                className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+                disabled={subset.kernelRemaining === 0 || isPending}
+                onClick={subset.onBatchKernel}
+              >
+                {t(k('kernelOnly'), { count: subset.kernelRemaining })}
+              </button>
+            </Tooltip>
+            <Tooltip
+              label={t(k('chapterOnlyDisabled'))}
+              disabled={subset.currentChapter !== null}
             >
-              {t(k('chapterOnly'))}
-            </button>
+              <button
+                type="button"
+                className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+                disabled={subset.currentChapter === null || isPending}
+                onClick={subset.onBatchChapter}
+              >
+                {t(k('chapterOnly'))}
+              </button>
+            </Tooltip>
           </div>
           <button
             type="button"
-            className={'ea-batch-sub-btn full' + (subset.checkMode ? ' active' : '')}
+            className={
+              'ss-btn ss-btn-sm ss-btn-ghost' + (subset.checkMode ? ' is-active' : '')
+            }
+            aria-pressed={subset.checkMode}
             onClick={subset.onToggleCheckMode}
           >
             <CheckSquare size={11} />{' '}
@@ -186,7 +203,7 @@ export function BatchEepPanel({
           {subset.checkMode && (
             <button
               type="button"
-              className="ea-batch-sub-btn primary"
+              className="ss-btn ss-btn-sm ss-btn-primary ss-btn-llm"
               disabled={subset.checkedCount === 0 || isPending}
               onClick={subset.onBatchChecked}
             >
@@ -199,14 +216,6 @@ export function BatchEepPanel({
       {!showSummary && !isBatchRunning && !allDone && (
         <p className="ea-batch-hint">
           {subset ? `${subset.etaLabel} · ${t(k('autoSkip'))}` : t(k('autoSkip'))}
-        </p>
-      )}
-      {showSummary && onDismissSummary && (
-        <p className="ea-batch-hint row">
-          <span>{t(k('toastTitle'))}</span>
-          <button type="button" className="dismiss" onClick={onDismissSummary}>
-            {t(k('toastClose'))}
-          </button>
         </p>
       )}
     </div>

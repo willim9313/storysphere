@@ -80,3 +80,9 @@ export function buildOverviewEvents(
       (a.chapter ?? Infinity) - (b.chapter ?? Infinity),
   );
 }
+
+/** Strict parse for chips: anything not a known mode gives null (no chip), unlike
+ *  toNarrativeMode which folds it into unknown. */
+export function parseNarrativeMode(raw: string | null | undefined): NarrativeMode | null {
+  return NARRATIVE_MODES.includes(raw as NarrativeMode) ? (raw as NarrativeMode) : null;
+}

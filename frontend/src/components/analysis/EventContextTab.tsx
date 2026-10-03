@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useEventAnalysis } from '@/hooks/useEventAnalysis';
 import { useTimeline } from '@/hooks/useTimeline';
@@ -38,8 +37,6 @@ export function EventContextTab({ bookId, eventId, onSelectEvent }: Readonly<Eve
           <span className="ea-section-sub">{t('event.context.sub')}</span>
         </div>
       </div>
-      <p className="ea-context-caveat">{t('event.context.caveat')}</p>
-
       {!hasAny ? (
         <p className="ea-context-empty">{t('event.context.empty')}</p>
       ) : (
@@ -50,9 +47,6 @@ export function EventContextTab({ bookId, eventId, onSelectEvent }: Readonly<Eve
             neighbours={prior}
             onSelectEvent={onSelectEvent}
           />
-          <div className="ea-context-arrow">
-            <ArrowRight size={18} />
-          </div>
           <NeighbourColumn
             label={t('event.context.subsequent')}
             emptyLabel={t('event.context.noSubsequent')}
@@ -61,6 +55,7 @@ export function EventContextTab({ bookId, eventId, onSelectEvent }: Readonly<Eve
           />
         </div>
       )}
+      <p className="ea-context-caveat">{t('event.context.caveat')}</p>
     </div>
   );
 }
@@ -83,7 +78,7 @@ function NeighbourColumn({
 
   return (
     <div className="ea-context-col">
-      <div className="ea-context-col-label">
+      <div className="ea-context-col-label ea-label">
         {label}
         {neighbours.length > 0 && <span className="ea-context-count">{neighbours.length}</span>}
       </div>
@@ -99,7 +94,7 @@ function NeighbourColumn({
               onClick={() => onSelectEvent?.(n.event.id)}
             >
               <div className="ea-context-card-head">
-                <span className={'ea-imp ' + importanceClass(n.event.importance)}>
+                <span className={'ea-imp is-sm ' + importanceClass(n.event.importance)}>
                   {n.event.importance === 'KERNEL' ? 'K' : n.event.importance === 'SATELLITE' ? 'S' : '·'}
                 </span>
                 <span className="ea-context-card-ch">

@@ -160,24 +160,21 @@ export function EventGroupedList({
             </button>
           ))}
         </div>
-        <div className="ea-group-row">
-          <span className="ea-group-label">{t('event.list.groupLabel')}</span>
-          <div className="ea-seg">
-            <button
-              type="button"
-              className={'ea-seg-btn' + (groupBy === 'chapter' ? ' active' : '')}
-              onClick={() => setGroupBy('chapter')}
-            >
-              {t('event.list.groupByChapter')}
-            </button>
-            <button
-              type="button"
-              className={'ea-seg-btn' + (groupBy === 'importance' ? ' active' : '')}
-              onClick={() => setGroupBy('importance')}
-            >
-              {t('event.list.groupByImportance')}
-            </button>
-          </div>
+        <div className="ss-seg ea-seg-full">
+          <button
+            type="button"
+            className={'ss-seg-item' + (groupBy === 'chapter' ? ' active' : '')}
+            onClick={() => setGroupBy('chapter')}
+          >
+            {t('event.list.groupByChapter')}
+          </button>
+          <button
+            type="button"
+            className={'ss-seg-item' + (groupBy === 'importance' ? ' active' : '')}
+            onClick={() => setGroupBy('importance')}
+          >
+            {t('event.list.groupByImportance')}
+          </button>
         </div>
       </div>
 
@@ -206,8 +203,6 @@ export function EventGroupedList({
                       isSelected={selectedEntityId === row.id}
                       onSelect={() => onSelect(row.id)}
                       justDone={justDoneIds.has(row.id)}
-                      showImportance
-                      showNarrative
                     />
                   ) : (
                     <div key={row.id} className="ea-row-wrap">
@@ -226,8 +221,6 @@ export function EventGroupedList({
                         onSelect={() => onSelect(row.id)}
                         onGenerate={() => onGenerate(row.id)}
                         isGenerating={generatingId === row.id}
-                        showImportance
-                        showNarrative
                       />
                     </div>
                   ),
@@ -239,11 +232,11 @@ export function EventGroupedList({
 
         {groups.length === 0 && (
           <div className="ea-list-empty">
-            <p>{t('event.list.noMatch')}</p>
+            <span>{t('event.list.noMatch')}</span>
             {hasFilters && (
               <button
                 type="button"
-                className="ea-btn"
+                className="ss-btn ss-btn-sm ss-btn-ghost"
                 onClick={() => {
                   setImpFilter(new Set());
                   setModeFilter(new Set());
