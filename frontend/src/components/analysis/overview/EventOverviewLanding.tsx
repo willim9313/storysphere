@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { BarChart3, GitBranch, Waypoints } from 'lucide-react';
 import { Trans, useTranslation } from 'react-i18next';
 import type { AnalysisListResponse } from '@/api/types';
 import { useTimeline } from '@/hooks/useTimeline';
@@ -10,6 +9,12 @@ import { EventRankingView } from './EventRankingView';
 import { buildOverviewEvents } from './eventTypes';
 
 type LandingView = 'map' | 'ranking' | 'flow';
+
+const VIEWS: { key: LandingView; labelKey: string }[] = [
+  { key: 'map', labelKey: 'event.overview.viewMap' },
+  { key: 'ranking', labelKey: 'event.overview.viewRanking' },
+  { key: 'flow', labelKey: 'event.overview.viewFlow' },
+];
 
 interface EventOverviewLandingProps {
   bookId: string;
@@ -43,6 +48,11 @@ export function EventOverviewLanding({
 
   return (
     <div className="ea-ov-landing">
+      <GuidanceRibbon surface="event-overview">
+        <strong>{t('event.guide.prefix')}</strong>{' '}
+        <Trans i18nKey="event.guide.overview" ns="analysis" components={{ strong: <strong /> }} />
+      </GuidanceRibbon>
+
       {analyzedCount === 0 && (
         <div className="ea-ov-empty-banner">
           <div className="ea-ov-empty-text">
@@ -50,7 +60,7 @@ export function EventOverviewLanding({
           </div>
           <button
             type="button"
-            className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm"
+            className="ss-btn ss-btn-sm ss-btn-primary ss-btn-llm"
             onClick={onBatchAll}
             disabled={isBatchRunning}
           >
@@ -60,52 +70,26 @@ export function EventOverviewLanding({
       )}
 
       <div className="ea-ov-head">
-        <h1 className="ea-ov-title">{t('event.overview.title')}</h1>
-        <div className="ea-ov-meta">
-          <span>
-            <strong>{totalCount}</strong> {t('event.overview.metaTotal')}
-          </span>
-          <span className="ea-ov-meta-item analyzed">
-            <span className="ea-ov-meta-dot" /> {t('event.overview.metaAnalyzed')} {analyzedCount}
-          </span>
-          <span className="ea-ov-meta-item">
-            <span className="ea-ov-meta-dot empty" /> {t('event.overview.metaUnanalyzed')}{' '}
-            {unanalyzedCount}
-          </span>
-          <span className="ea-ov-meta-item kernel">
+        <div className="ea-ov-head-main">
+          <h1 className="ea-ov-title">{t('event.overview.title')}</h1>
+          <span className="ea-ov-meta">
+            {totalCount} {t('event.overview.metaTotal')} · {t('event.overview.metaAnalyzed')}{' '}
+            {analyzedCount} · {t('event.overview.metaUnanalyzed')} {unanalyzedCount} ·{' '}
             {t('event.overview.metaKernel')} {kernelCount}
           </span>
         </div>
-      </div>
-
-      <GuidanceRibbon surface="event-overview">
-        <strong>{t('event.guide.prefix')}</strong>{' '}
-        <Trans i18nKey="event.guide.overview" ns="analysis" components={{ strong: <strong /> }} />
-      </GuidanceRibbon>
-
-      <div className="ea-ov-toolbar">
-        <div className="ea-ov-toggle">
-          <button
-            type="button"
-            className={'ea-ov-toggle-btn' + (view === 'map' ? ' active' : '')}
-            onClick={() => setView('map')}
-          >
-            <Waypoints size={13} /> {t('event.overview.viewMap')}
-          </button>
-          <button
-            type="button"
-            className={'ea-ov-toggle-btn' + (view === 'ranking' ? ' active' : '')}
-            onClick={() => setView('ranking')}
-          >
-            <BarChart3 size={13} /> {t('event.overview.viewRanking')}
-          </button>
-          <button
-            type="button"
-            className={'ea-ov-toggle-btn' + (view === 'flow' ? ' active' : '')}
-            onClick={() => setView('flow')}
-          >
-            <GitBranch size={13} /> {t('event.overview.viewFlow')}
-          </button>
+        {/* View switch is a zero-cost mode switch: no LLM glyph, no accent fill. */}
+        <div className="ss-seg">
+          {VIEWS.map((v) => (
+            <button
+              key={v.key}
+              type="button"
+              className={'ss-seg-item' + (view === v.key ? ' active' : '')}
+              onClick={() => setView(v.key)}
+            >
+              {t(v.labelKey)}
+            </button>
+          ))}
         </div>
       </div>
 

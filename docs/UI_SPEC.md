@@ -715,6 +715,31 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 - **新字串**：無。
 - **維持現況（記 feedback）**：landing 沒有對比入口（3-EV-2）、victim 顯示「承受者」（3-EV-3）。
 
+**內容區第二輪（照決議紀錄 10 A／B／E／F／G／H／I canvas 原始碼）**
+
+- **Landing 順序**：研究者導覽條（`event-overview`）→（整本零分析時）`color-info-bg` 橫幅 → 標題列（serif 2xl「事件圖景」＋ 一行 muted meta
+  「N 件事件 · 已分析 N · 未分析 N · 核心 N」，不上色）＋右側三視圖 `.ss-seg`（無圖示、無橘色填色）→ 視圖。
+- **骨幹圖**：`bg-secondary` 卡＋border、padding `--space-6`；帶標籤左上；章節欄線、中央「未定」帶上下虛線；章號軸在卡內底部（只寫數字）；
+  卡下依序 caption、一行圖例（**五種模式固定全列**＋「大圈 = 核心事件」「虛線圈 = 尚未分析」「橫軸 = 章節順序」）、無章節註腳。節點等分欄置中（左留 52px 放帶標籤）。
+- **重要度排行／事件脈絡**：各一張 `bg-primary` 卡；排行＝#1 英雄卡（已分析：accent 框＋`bg-secondary`、「查看分析」；未分析：一般框、`ss-btn-llm`「建立事件分析」）＋
+  `#N` 列（16px 徽章、章號、70×5 長條、「N 人」、未分析列 `ss-btn-secondary ss-btn-llm`「生成分析」）＋「展開其餘 N 件事件」文字連結＋caption 在卡內。
+  脈絡＝縱向步驟卡，每步帶「共享 …」（取自相鄰關係的共享參與者），步間細箭頭；空態為虛線框；caption 逐字在卡內。
+- **左欄**：篩選 chips 選中＝`--bg-tertiary`＋加粗（不再橘色填色）；「章節序／重要度」改全寬 `.ss-seg`、置於 chips 之下，不再有「分組」小標；篩選空＝一行文字＋ghost「清除篩選」。
+- **詳情標頭（E）**：同一列放「← 返回總覽」＋標題（serif 2xl）＋核心／衛星徽章，右側「（重試失敗部分）對比／在圖譜中查看／覆蓋重新生成」；
+  下一行 meta：Ch.N · 敘事 chip（**順敘不出**）· 重要性一句 · 「部分分析」「證據已更新」（`ss-badge-warning`，stale 帶 Tooltip）；再導覽條（`event-detail`）；再底線分頁（選中＝底線＋加粗，非橘字）。
+  未分析／載入中／錯誤時只有一行「← 返回總覽」。
+- **概覽**：主題意義＋事件摘要同一張 `bg-secondary` 平卡（標籤 2xs muted、不大寫；主題句 serif sm 非斜體）；前後狀態三格（之前｜箭頭｜之後，之後 accent 框）；
+  「結構角色」「重要性」兩行、降級註記緊貼值之後；參與者圖例一行（只列此事件用到的角色，少於 2 種不顯示）＋兩欄卡。六桶角色色用 `[data-role]` 區域變數
+  （initiator→char、actor→loc、reactor→con、beneficiary→obj、victim→error、witness→muted），Ink 下靠文字標籤區分。
+- **因果與影響／上下文位置／證據（F）**：平卡；因果鏈 `01 02…`、影響兩欄、因素／後果兩欄；上下文為 prior／subsequent 兩欄（無中間箭頭）、卡內 16px 徽章與「共享 …」、
+  「還有 N 個」文字連結、caveat 在底部灰卡；證據為 2px 左線引言＋12 條 TF 長條（5px）。
+- **原文段落 · 生成前先判斷（G）**：整個內容區的主體卡（meta：· 徽章、Ch.N、非順敘 chip、「尚未分析 · 重要度未定」；serif xl 標題；說明；相似度 accent mono 數字的灰底段落；但書；「建立分析」＋token 提示）。
+- **對比抽屜（H）**：760px；標題列＋圖示關閉鈕；兩個下拉並排；72px · 1fr · 1fr 對齊三列（之前／之後／對參與者）。
+- **詳情載入失敗（I）**：維持 `ss-state`，圖示改圓形 alert、重試 `btn-sm`。
+- **敘事 chip**（左欄與詳情共用 `.ea-narr`）：模式色底＋模式色框＋主文字色（Ink 靠文字）。
+- **新字串**：無（「尚未分析 · 重要度未定」由既有 `notAnalyzed`＋`event.overview.undetermined` 組成；`groupLabel`、`legendNarrative` 已不渲染，key 保留）。
+  稿上有而 i18n 沒有的對比「參與者」列未做，見 3-EV-8；導覽條樣式見 3-EV-9；左欄徽章尺寸見 3-EV-10。
+
 #### 路由與選取狀態
 
 | Query param | 語意 |

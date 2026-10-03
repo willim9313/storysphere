@@ -9,7 +9,7 @@ import { Tooltip } from '@/components/ui/Tooltip';
  *   剛完成的列不整列高亮，只由狀態點轉 success 表達。
  */
 
-type NarrativeMode = 'present' | 'flashback' | 'flashforward' | 'parallel' | 'unknown';
+export type NarrativeMode = 'present' | 'flashback' | 'flashforward' | 'parallel' | 'unknown';
 
 const NARRATIVE_KEYS: Record<NarrativeMode, string> = {
   present: 'event.narrative.present',
@@ -28,7 +28,7 @@ function normalizeNarrative(value: string | null | undefined): NarrativeMode | n
   return null;
 }
 
-function NarrativeChip({ mode }: Readonly<{ mode: NarrativeMode }>) {
+export function NarrativeChip({ mode }: Readonly<{ mode: NarrativeMode }>) {
   const { t } = useTranslation('analysis');
   // present mode = dominant case, don't display chip
   if (mode === 'present') return null;

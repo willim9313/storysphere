@@ -3,7 +3,7 @@ import { ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { TimelineData } from '@/api/types';
 import { buildAdjacency, buildContextChains } from './eventAdjacency';
-import { importanceClass, type OverviewEvent } from './eventTypes';
+import type { OverviewEvent } from './eventTypes';
 
 interface EventFlowViewProps {
   events: OverviewEvent[];
@@ -11,24 +11,24 @@ interface EventFlowViewProps {
   onSelectEvent: (id: string) => void;
 }
 
-function abbr(e: OverviewEvent): string {
-  if (e.importance === 'KERNEL') return 'K';
-  if (e.importance === 'SATELLITE') return 'S';
-  return '·';
-}
-
 export function EventFlowView({ events, timeline, onSelectEvent }: Readonly<EventFlowViewProps>) {
   const { t } = useTranslation('analysis');
 
-  const chains = useMemo(() => {
-    const adjacency = buildAdjacency(events, timeline);
-    return buildContextChains(events, adjacency);
+  const { chains, adjacency } = useMemo(() => {
+    const adj = buildAdjacency(events, timeline);
+    return { chains: buildContextChains(events, adj), adjacency: adj };
   }, [events, timeline]);
 
-  return (
-    <>
-      <div className="ea-ov-caption">{t('event.overview.flow.caption')}</div>
+  // Who the step shares with its neighbour in the chain — without it nobody can
+  // check why two events were strung together.
+  const sharedNames = (chain: OverviewEvent[], j: number): string => {
+    const [from, to] = j === 0 ? [chain[0], chain[1]] : [chain[j - 1], chain[j]];
+    const hit = adjacency.subsequent(from.id).find((n) => n.event.id === to.id);
+    return hit ? hit.shared.slice(0, 3).join('、') : '';
+  };
 
+  return (
+    <div className="ea-ov-card">
       {chains.length === 0 ? (
         <div className="ea-flow-empty">
           <div className="ea-flow-empty-title">{t('event.overview.flow.emptyTitle')}</div>
@@ -41,34 +41,31 @@ export function EventFlowView({ events, timeline, onSelectEvent }: Readonly<Even
               <div className="ea-flow-chain-label">
                 {t('event.overview.flow.chainLabel', { idx: i + 1, count: chain.length })}
               </div>
-              <div className="ea-flow-nodes">
-                {chain.map((e, j) => (
-                  <div key={e.id} className="ea-flow-node-wrap">
-                    <button
-                      type="button"
-                      className="ea-flow-node"
-                      onClick={() => onSelectEvent(e.id)}
-                    >
-                      <div className="ea-flow-node-head">
-                        <span className={'ea-imp ' + importanceClass(e.importance)}>{abbr(e)}</span>
-                        <span className="ea-flow-node-ch">
-                          {t('event.list.chapterShort', { n: e.chapter })}
-                        </span>
-                      </div>
-                      <div className="ea-flow-node-title">{e.title}</div>
-                    </button>
-                    {j < chain.length - 1 && (
-                      <span className="ea-flow-arrow">
-                        <ArrowRight size={16} />
+              {chain.map((e, j) => (
+                <div key={e.id} className="ea-flow-step">
+                  <button type="button" className="ea-flow-node" onClick={() => onSelectEvent(e.id)}>
+                    <span className="ea-flow-node-ch">
+                      {t('event.list.chapterShort', { n: e.chapter })}
+                    </span>
+                    <span className="ea-flow-node-title">{e.title}</span>
+                    {sharedNames(chain, j) && (
+                      <span className="ea-flow-node-shared">
+                        {t('event.context.shared', { names: sharedNames(chain, j) })}
                       </span>
                     )}
-                  </div>
-                ))}
-              </div>
+                  </button>
+                  {j < chain.length - 1 && (
+                    <span className="ea-flow-arrow" aria-hidden="true">
+                      <ArrowRight size={13} />
+                    </span>
+                  )}
+                </div>
+              ))}
             </div>
           ))}
         </div>
       )}
-    </>
+      <p className="ea-ov-caption">{t('event.overview.flow.caption')}</p>
+    </div>
   );
 }
