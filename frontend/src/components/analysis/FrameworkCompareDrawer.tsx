@@ -2,6 +2,7 @@ import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { ArchetypeDetail, CharacterAnalysisDetail } from '@/api/types';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { ConfidenceMeter } from './ConfidenceMeter';
 
 interface Props {
   open: boolean;
@@ -25,7 +26,7 @@ export function FrameworkCompareDrawer({ open, data, onClose }: Props) {
       <aside className="ca-compare-drawer" role="dialog" aria-modal="true">
         <header className="ca-compare-head">
           <h3>{t('character.compare.title', { name: data.entityName })}</h3>
-          <button className="ca-btn ca-btn-ghost" onClick={onClose}>
+          <button type="button" className="ss-btn ss-btn-sm ss-btn-ghost" onClick={onClose}>
             <X size={14} /> {t('character.compare.close')}
           </button>
         </header>
@@ -70,17 +71,14 @@ function CompareColumn({
           {t('character.compare.secondaryLabel', { name: archetype.secondary })}
         </div>
       )}
-      <div className="ca-compare-conf-row">
-        <div className="ca-conf-track">
-          <div className="ca-conf-fill" style={{ width: `${pct}%` }} />
-        </div>
-        <span className="ca-compare-conf-pct">{t('character.compare.confidencePct', { pct })}</span>
-      </div>
+      {/* 信心度三件套在抽屜兩側都齊備：Ink 下長條會塌成單色，文字與數字是必要的冗餘。 */}
+      <ConfidenceMeter pct={pct} />
       <p className="ca-compare-evidence-label">{t('character.compare.evidenceLabel')}</p>
       <div className="ca-compare-evidence-list">
         {archetype.evidence.map((e, i) => (
-          <div key={i} className="ca-compare-evidence-item">
-            {e}
+          <div key={e} className="ca-compare-evidence-item">
+            <span className="ca-evidence-num">{`[${i + 1}]`}</span>
+            <span>{e}</span>
           </div>
         ))}
       </div>

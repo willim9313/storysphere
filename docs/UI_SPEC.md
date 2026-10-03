@@ -431,6 +431,26 @@ chunk 卡：`#N` 編號 + 實體 chips（可點開實體卡）+ 實體標註正�
 
 ### 3.4 角色分析頁 `/books/:bookId/characters`
 
+> **DS v3 第 3 批（3-2）改版現況**（以下為準，後文舊描述與其衝突處以此為準）：
+> - **密度 B 檢視**：內容區 padding 24／區塊間距 16／卡片內距 12／列間距 8、max-w 1280、下內距 32；左欄 268 固定。樣式 `character-analysis.css` 只用 `--space-1…8`。
+> - **左欄**：框架 chip（pill）＋說明句固定最上、搜尋、原型篩選、「對照 Jung vs Schmidt」；清單為動作列（姓名／長條＋數值＋「建立」，第二行 28px；長條 px＝6+94√(m/max)）；
+>   群組標頭在搜尋或篩選縮減時顯示「顯示 / 總數」。選中態＝底色＋加粗。partial 狀態點為空心環（Ink 靠形狀）。
+> - **象限派系配色**（`components/analysis/characterModel.ts`）：依派系人數排名配 cat-1…5（深淺交替），第 6 名起併入「其他」，無派系只描邊。同數時 #6d 沒有首次出現章節，退回後端回傳順序。
+>   色值在頁內 CSS `--ca-cat-*`（不進 tokens）。圖例可點：單獨亮出該派系（其餘泡泡 opacity 0.3），再點取消；「其他」可展開並逐派亮出。0 個派系時只留「此書未抽出派系」。
+>   metrics 載入中不再閃出第四種錯誤（`quadrantStatus`）。
+> - **語音風格**：四格＋語氣堆疊長條＋句長直方圖＋質性四段。語氣只有陳述／疑問／感嘆三段，對應平穩／探詢／激動家族色、依家族順序排列、≥8% 才寫標籤；
+>   不放「語氣分布註」與暫時警語（ENG-001 已上線）。
+> - **人格**：信心度三件套（長條＋高／中／低·N%＋門檻說明）；「未生成」（灰徽章＋覆蓋重新生成）與「生成失敗」（error 徽章＋重試失敗部分）分開。
+> - **關係／弧線**：ego 節點多段關係加「N 段」角標；節點 tooltip 用 DS Tooltip（透明 HTML 命中區蓋在 SVG 上，因為 Tooltip 不能包 SVG `<g>`）；
+>   象限泡泡的 SVG `<title>` 移除（hover 已在圖上寫名稱與數字），改 aria-label。弧線色帶依 `assignArcRows` 只在相鄰階段共享章時錯行。
+> - **認知**：對照抽屜每列帶 mono 事件 id，並註明比對依據是事件 id。
+> - **錯誤四分**：清單／詳情／語音／認知載入失敗走 `PageFailure`（{頁名}＝角色分析）；所有花 token 的觸發（建立、覆蓋重新生成、重試失敗部分、分析語音風格、兩個批次、補標 visibility）
+>   撞到 503＋body 先顯示就地 `LlmUnconfiguredNotice`。生成失敗面板保留 task id，「重試」會真的重新送出。
+> - **LLM 字符**：七個花 token 的鈕與三個確認框皆掛 `.ss-btn-llm`／`spendsTokens`。
+> - **草稿・待設計定案（i18n `analysis:character.*`，共 9 句）**：`overview.quadrant.legendEmpty／legendOther／legendExpand／legendCollapse／legendAnalyzedRing`、
+>   `arcPane.paletteNote`、`persona.confidenceThreshold`、`epistemicCompare.matchNote`、`list.frameworkNote`、`error.backToBook`（回書籍總覽，建議之後收進 common）。
+>   派系圖例註 `overview.quadrant.legendNote` 為已裁決字串。
+
 **證據已更新徽章（`isStale`，B-111）**：`feature-extraction` 重跑會換掉 EEP 的向量證據
 與 CEP 的關鍵字，但**不**重生 event / entity id，所以快取保留而非刪除。保留卻不標示
 等於讓一份過期分析看起來是最新的，因此四個端點（#6a / #6b / #7a / #7d）都回報

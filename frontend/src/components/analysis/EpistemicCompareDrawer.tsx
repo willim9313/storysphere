@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { useEpistemicState } from '@/hooks/useEpistemicState';
 import { useSourceJump } from '@/hooks/useSourceJump';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { Tooltip } from '@/components/ui/Tooltip';
 import type { EpistemicStateResponse } from '@/api/graph';
 import { ChapterTimeline } from './ChapterTimeline';
 import { getChapter, getId, getTitle } from './epistemicEventUtils';
@@ -28,13 +29,21 @@ interface Props {
 
 const DEBOUNCE_MS = 200;
 
+interface KnownEvent {
+  title: string;
+  chapter: number;
+  /** The event's own id, when the payload carries one (shown mono on each row). */
+  eventId: string | null;
+}
+
 function buildKnownMap(state: EpistemicStateResponse | undefined, cursor: number) {
-  const map = new Map<string, { title: string; chapter: number }>();
+  const map = new Map<string, KnownEvent>();
   if (!state) return map;
   (state.knownEvents as Record<string, unknown>[]).forEach((ev, i) => {
     const ch = getChapter(ev);
     if (ch == null || ch > cursor) return;
-    map.set(getId(ev, i), { title: getTitle(ev), chapter: ch });
+    const own = ev.id ?? ev.eventId;
+    map.set(getId(ev, i), { title: getTitle(ev), chapter: ch, eventId: own == null ? null : String(own) });
   });
   return map;
 }
@@ -150,6 +159,7 @@ export function EpistemicCompareDrawer({
             pendingKey={pendingKey}
           />
         </div>
+        <p className="ca-epicompare-note">{t('character.epistemicCompare.matchNote')}</p>
       </>
     );
   }
@@ -160,7 +170,7 @@ export function EpistemicCompareDrawer({
       <aside className="ca-compare-drawer ca-compare-drawer-wide" role="dialog" aria-modal="true">
         <header className="ca-compare-head">
           <h3>{t('character.epistemicCompare.title')}</h3>
-          <button className="ca-btn ca-btn-ghost" onClick={onClose}>
+          <button type="button" className="ss-btn ss-btn-sm ss-btn-ghost" onClick={onClose}>
             <X size={14} /> {t('character.compare.close')}
           </button>
         </header>
@@ -197,7 +207,7 @@ function CompareColumn({
 }: Readonly<{
   title: string;
   colorVar: string;
-  items: [string, { title: string; chapter: number }][];
+  items: [string, KnownEvent][];
   jump: (key: string, text: string, opts?: { chapter?: number }) => Promise<boolean>;
   pendingKey: string | null;
 }>) {
@@ -215,24 +225,27 @@ function CompareColumn({
             const key = `cmp-${id}`;
             const pending = pendingKey === key;
             return (
-              <button
-                key={id}
-                type="button"
-                className="ca-epicompare-item clickable"
-                disabled={pending}
-                title={t('character.sourceJump.cta')}
-                onClick={() => void jump(key, ev.title, { chapter: ev.chapter })}
-              >
-                <span className="ca-epicompare-item-ch">Ch.{ev.chapter}</span>
-                <span className="ca-epicompare-item-title">{ev.title}</span>
-                {pending && (
-                  <Loader
-                    size={10}
-                    className="ca-srcjump-spinner animate-spin"
-                    aria-label={t('character.sourceJump.locating')}
-                  />
-                )}
-              </button>
+              <Tooltip key={id} label={t('character.sourceJump.cta')}>
+                <button
+                  type="button"
+                  className="ca-epicompare-item clickable"
+                  disabled={pending}
+                  onClick={() => void jump(key, ev.title, { chapter: ev.chapter })}
+                >
+                  <span className="ca-epicompare-item-main">
+                    <span className="ca-epicompare-item-ch">Ch.{ev.chapter}</span>
+                    <span className="ca-epicompare-item-title">{ev.title}</span>
+                    {pending && (
+                      <Loader
+                        size={10}
+                        className="ca-srcjump-spinner animate-spin"
+                        aria-label={t('character.sourceJump.locating')}
+                      />
+                    )}
+                  </span>
+                  {ev.eventId && <span className="ca-epicompare-item-id">{ev.eventId}</span>}
+                </button>
+              </Tooltip>
             );
           })}
         </div>

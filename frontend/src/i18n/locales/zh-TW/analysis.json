@@ -67,7 +67,8 @@
       "archetypeFailed": "生成失敗",
       "retryFailed": "重試失敗部分",
       "evidenceHeading": "支持證據",
-      "traitsCount": "{{count}} 項"
+      "traitsCount": "{{count}} 項",
+      "confidenceThreshold": "門檻 ≥80 高 · ≥50 中 · 其餘低"
     },
     "behavior": {
       "actionsCount": "{{count}} 項",
@@ -85,13 +86,15 @@
     "arcPane": {
       "stagesCount": "{{count}} 個階段",
       "keyEventMarkerLegend": "關鍵事件 marker",
-      "overlapStackingNote": "相鄰階段共享邊界章時，以錯行堆疊呈現"
+      "overlapStackingNote": "相鄰階段共享邊界章時，以錯行堆疊呈現",
+      "paletteNote": "色帶為輪替色盤，不代表敘事模式"
     },
     "list": {
       "searchPlaceholder": "搜尋 {{count}} 位角色",
       "frameworkLabel": "分析框架",
       "mentionCount": "提及 {{count}} 次",
-      "createBtn": "建立"
+      "createBtn": "建立",
+      "frameworkNote": "框架（Jung / Schmidt）只影響原型那一節。"
     },
     "archFilter": {
       "label": "依原型篩選已分析角色",
@@ -124,7 +127,13 @@
         "legendHead": "派系 · 顏色編碼",
         "legendRow": "{{names}} 等 {{count}} 人",
         "unaffiliated": "無派系歸屬 · {{count}} 位",
-        "footnote": "切線取兩軸中位數 · 僅前 8 名常駐標籤，其餘 hover 顯示 · {{count}} 位無派系者以低飽和描邊圈呈現 · 點泡泡載入該角色分析"
+        "footnote": "切線取兩軸中位數 · 僅前 8 名常駐標籤，其餘 hover 顯示 · {{count}} 位無派系者以低飽和描邊圈呈現 · 點泡泡載入該角色分析",
+        "legendNote": "顏色依派系人數排名配給，最多 5 色；第 6 個派系起併入「其他」，點圖例可單獨亮出該派系。",
+        "legendAnalyzedRing": "外環＝已分析",
+        "legendEmpty": "此書未抽出派系",
+        "legendOther": "其他 {{n}} 派 · {{m}} 人",
+        "legendExpand": "展開",
+        "legendCollapse": "收合"
       },
       "ranking": {
         "heroTag": "提及量最高的核心角色",
@@ -204,7 +213,8 @@
       "loading": "計算中…",
       "dataIncomplete": "{{name}} 尚無完整 visibility 資料，暫無法比較。",
       "onlyLabel": "只有 {{name}} 知道",
-      "bothLabel": "都知道"
+      "bothLabel": "都知道",
+      "matchNote": "比對依據是事件 id，不是標題。"
     },
     "sourceJump": {
       "cta": "點擊跳至閱讀頁對應段落",
@@ -229,6 +239,9 @@
     "stale": {
       "badge": "證據已更新",
       "tooltip": "此分析建立在 feature-extraction 重跑前的向量證據與關鍵字上。內容仍可讀，但已不反映目前的資料；需要時可覆蓋重新生成。"
+    },
+    "error": {
+      "backToBook": "回書籍總覽"
     }
   },
   "event": {
