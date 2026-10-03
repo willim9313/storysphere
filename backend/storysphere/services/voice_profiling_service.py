@@ -204,24 +204,6 @@ class VoiceProfilingService:
         await cache.set(key, profile.model_dump(mode="json"))
         return profile
 
-    async def invalidate(
-        self, document_id: str, character_id: str, language: str | None = None
-    ) -> None:
-        """Remove cached voice profile(s) so the next GET recomputes them.
-
-        If ``language`` is omitted, invalidates the language-agnostic legacy key
-        plus the currently-known language variants (``en``, ``zh``, ``zh-cn``,
-        ``zh-tw``); cache misses are no-ops so over-invalidating is safe.
-        """
-        cache = self._get_cache()
-        base = f"voice_profile:{document_id}:{character_id}"
-        if language is not None:
-            await cache.invalidate(f"{base}:{language}")
-            return
-        await cache.invalidate(base)  # pre-language legacy key
-        for lang in ("en", "zh", "zh-cn", "zh-tw"):
-            await cache.invalidate(f"{base}:{lang}")
-
     @llm_retry(min_wait=2, max_wait=10, reraise=False)
     async def _llm_qualitative(
         self,
