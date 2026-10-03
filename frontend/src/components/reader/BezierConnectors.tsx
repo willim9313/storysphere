@@ -132,6 +132,9 @@ export function BezierConnectors({
             fill="none"
             stroke="var(--accent)"
             strokeLinecap="round"
+            // The viewBox is stretched to the column height (preserveAspectRatio
+            // none); without this the stroke stretches with it into a blob.
+            vectorEffect="non-scaling-stroke"
           />
         ))}
       </svg>

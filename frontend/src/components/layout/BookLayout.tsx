@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Outlet, useParams } from 'react-router-dom';
+import { Outlet, useLocation, useParams } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { markBookOpened } from '@/api/books';
 import { qk } from '@/api/queryKeys';
@@ -14,6 +14,7 @@ export function BookLayout() {
   const { bookId } = useParams<{ bookId: string }>();
   const { data: book, isLoading, error } = useBook(bookId);
   const queryClient = useQueryClient();
+  const { pathname } = useLocation();
 
   // 進入任一書籍路由時蓋一次「最近開啟」；失敗不打擾使用者。
   useEffect(() => {
@@ -23,8 +24,17 @@ export function BookLayout() {
       .catch(() => {});
   }, [bookId, queryClient]);
 
-  if (isLoading) return <LoadingSpinner />;
-  if (error) return <ErrorMessage message={error.message} />;
+  // The reader (`/books/:bookId`) renders its own PageFailure inside the
+  // content area so the sidebar and title bar stay; every other book page
+  // still gets the layout-level ErrorMessage.
+  const isReaderRoute = pathname.replace(/\/$/, '') === `/books/${bookId}`;
+
+  // The reader owns its loading state too: if the layout swapped it for a
+  // spinner, the reader's own useBook would refetch the errored query on every
+  // remount — react-query resets an errored, data-less query to pending — and
+  // loop forever (mount → refetch → spinner → error → mount …).
+  if (isLoading && !isReaderRoute) return <LoadingSpinner />;
+  if (error && !isReaderRoute) return <ErrorMessage message={error.message} />;
 
   return (
     <ChatContextProvider>

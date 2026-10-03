@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
-import { useParams, useLocation } from 'react-router-dom';
+import { Link, useParams, useLocation } from 'react-router-dom';
 import { Trans, useTranslation } from 'react-i18next';
-import { Brain, Search, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, BookOpen, ArrowUp, Maximize } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, BookOpen, ArrowUp } from 'lucide-react';
 import { useChatDispatch } from '@/contexts/ChatContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { RAIL, useRailOccupant } from '@/contexts/FloatRailContext';
@@ -15,41 +15,38 @@ import { ChunkCard } from '@/components/reader/ChunkCard';
 import { BezierConnectors } from '@/components/reader/BezierConnectors';
 import { EpistemicSidePanel } from '@/components/reader/EpistemicSidePanel';
 import { EntityCard } from '@/components/reader/EntityCard';
-import { TypographyPanel, DEFAULT_READER_PREFS, type ReaderPrefs } from '@/components/reader/TypographyPanel';
+import { TypographyPanel } from '@/components/reader/TypographyPanel';
+import {
+  DEFAULT_READER_PREFS,
+  FS_PX,
+  LH_VALUES,
+  normalizePrefs,
+  paperBackground,
+  resetTypography,
+  resolveTypography,
+  withTypography,
+  type ReaderMode,
+  type ReaderPrefs,
+  type Typography,
+} from '@/components/reader/readerModel';
 import { EntityMarkClickProvider, type EntityMarkClickPayload } from '@/components/reader/SegmentRenderer';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { ErrorMessage } from '@/components/ui/ErrorMessage';
 import { GuidanceRibbon } from '@/components/ui/GuidanceRibbon';
+import { PageFailure } from '@/components/ui/PageFailure';
+import { Tooltip } from '@/components/ui/Tooltip';
+import { ApiError } from '@/api/client';
+import { failureKind, techDetailOf } from '@/api/failureKind';
 import type { EntityType } from '@/api/types';
+import '@/styles/reader.css';
 
 const EPISTEMIC_HINT_KEY = 'storysphere:reader-epistemic-hint-shown';
 const READER_PREFS_KEY = 'reader:prefs';
-const READER_FS_PX = ['15px', '17px', '19px'];
-const READER_LH = ['1.6', '1.85', '2.15'];
 
 // Below this width the three columns can't coexist, so col1/col2 default to
 // collapsed and the bezier connectors are hidden (see RWD handling below).
 const NARROW_QUERY = '(max-width: 768px)';
 const getIsNarrow = () =>
   typeof window !== 'undefined' && window.matchMedia(NARROW_QUERY).matches;
-
-const collapseButtonStyle: React.CSSProperties = {
-  position: 'absolute',
-  top: 8,
-  right: 6,
-  zIndex: 2,
-  width: 20,
-  height: 20,
-  display: 'flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  background: 'none',
-  border: 'none',
-  cursor: 'pointer',
-  color: 'var(--fg-muted)',
-  borderRadius: 4,
-  padding: 0,
-};
 
 export default function ReaderPage() {
   const { bookId } = useParams<{ bookId: string }>();
@@ -69,16 +66,27 @@ export default function ReaderPage() {
   const [col1Collapsed, setCol1Collapsed] = useState(getIsNarrow);
   const [col2Collapsed, setCol2Collapsed] = useState(getIsNarrow);
   const [colRevision, setColRevision] = useState(0);
-  // Focus mode is session-only (not persisted, unlike readerPrefs below). It
-  // doesn't mutate col1Collapsed/col2Collapsed — the effective collapsed
-  // state used for rendering is `col1Collapsed || focus` (see below), so the
-  // underlying per-column preference is untouched and simply reappears once
-  // focus turns back off. handleCol1Toggle/handleCol2Toggle additionally
-  // no-op while focus is active, so a stray click during focus mode can't
-  // change what gets restored on exit.
+  // Focus mode is session-only (not persisted). It doesn't mutate
+  // col1Collapsed/col2Collapsed — the effective collapsed state used for
+  // rendering is `col1Collapsed || focus` (see below), so the underlying
+  // per-column preference is untouched and simply reappears once focus turns
+  // back off. handleCol1Toggle/handleCol2Toggle additionally no-op while focus
+  // is active, so a stray click during focus mode can't change what gets
+  // restored on exit. (The collapsed state itself is not persisted today; that
+  // is unchanged.)
   const [focus, setFocus] = useState(false);
-  const [readerPrefs, setReaderPrefs] = useLocalStorage<ReaderPrefs>(READER_PREFS_KEY, DEFAULT_READER_PREFS);
-  const updateReaderPrefs = (patch: Partial<ReaderPrefs>) => setReaderPrefs((prev) => ({ ...prev, ...patch }));
+  // `reader:prefs` may still hold the legacy {fs,lh,warmth,fade} shape;
+  // normalizePrefs reads both and every write goes back out in the per-mode
+  // shape. fs / lh are kept per mode (檢視 / 專注), warmth and fade are shared.
+  const [storedPrefs, setStoredPrefs] = useLocalStorage<Record<string, unknown>>(READER_PREFS_KEY, DEFAULT_READER_PREFS);
+  const readerPrefs = useMemo(() => normalizePrefs(storedPrefs), [storedPrefs]);
+  const mode: ReaderMode = focus ? 'focus' : 'view';
+  const typography = resolveTypography(readerPrefs, mode);
+  const updateTypography = (patch: Partial<Typography>) =>
+    setStoredPrefs((prev) => withTypography(normalizePrefs(prev), mode, patch));
+  const resetModeTypography = () => setStoredPrefs((prev) => resetTypography(normalizePrefs(prev), mode));
+  const updateSharedPrefs = (patch: Partial<Pick<ReaderPrefs, 'warmth' | 'fade'>>) =>
+    setStoredPrefs((prev) => ({ ...normalizePrefs(prev), ...patch }));
   const [epistemicHintShown, setEpistemicHintShown] = useState(() => {
     try { return localStorage.getItem(EPISTEMIC_HINT_KEY) === 'true'; } catch { return true; }
   });
@@ -111,7 +119,7 @@ export default function ReaderPage() {
 
   const { setPageContext } = useChatDispatch();
   const { theme } = useTheme();
-  const { data: book, isLoading: bookLoading, error: bookError } = useBook(bookId);
+  const { data: book, isLoading: bookLoading, error: bookError, refetch: refetchBook } = useBook(bookId);
   const { data: chapters, isLoading: chaptersLoading } = useChapters(bookId);
   const { data: chunks, isLoading: chunksLoading } = useChunks(bookId, viewingChapterId);
 
@@ -123,7 +131,7 @@ export default function ReaderPage() {
   const jumpHandledRef = useRef<string | null>(null);
 
   // Column 3 scroll container is reused across chapters, so switching
-  // chapters (via col2, deep-link, or the prev/next nav buttons) needs an
+  // chapters (via col2, deep-link, or the next-chapter button) needs an
   // explicit reset — otherwise the old scroll offset carries over. The
   // resulting scroll event (handleCol3Scroll) re-derives progress/showBackToTop.
   // Skipped while a deep-link or entity-card jump is pending. Deliberately
@@ -275,15 +283,34 @@ export default function ReaderPage() {
   }, [readerPrefs.fade, viewingChapterId, chunks]);
 
   if (bookLoading || chaptersLoading) return <LoadingSpinner />;
-  if (bookError) return <ErrorMessage message={bookError.message} />;
-  if (!book) return <ErrorMessage message="Book not found" />;
+  if (bookError || !book) {
+    // 404 (or no book at all) is its own fourth state — 「找不到書籍」; anything
+    // else is the settled page / backend failure split. The sidebar and the
+    // book title bar stay (BookLayout), so only the content area is replaced.
+    const notFound = !bookError || (bookError instanceof ApiError && bookError.status === 404);
+    return (
+      <div className="rd-failure">
+        <PageFailure
+          variant={bookError ? failureKind(bookError) : 'page'}
+          pageName={t('failurePageName')}
+          title={notFound ? t('notFound') : undefined}
+          onRetry={() => void refetchBook()}
+          techDetail={bookError ? techDetailOf(bookError) : undefined}
+          secondaryAction={
+            <Link to="/" className="ss-btn ss-btn-md ss-btn-secondary">
+              {t('failure.backToOverview')}
+            </Link>
+          }
+        />
+      </div>
+    );
+  }
   // Index of the viewing (= selected) chapter within chapterList — the same
   // list rendered in column 2, so this also serves as BezierConnectors'
   // selectedChapterIdx (it queries data-chapter-card by index in that list).
   const viewingChapter = chapterList.find((c) => c.id === viewingChapterId);
   const viewingChapterOrder = viewingChapter?.order ?? null;
   const viewingChapterIdx = chapterList.findIndex((c) => c.id === viewingChapterId);
-  const prevChapter = viewingChapterIdx > 0 ? chapterList[viewingChapterIdx - 1] : null;
   const nextChapter =
     viewingChapterIdx >= 0 && viewingChapterIdx < chapterList.length - 1
       ? chapterList[viewingChapterIdx + 1]
@@ -297,7 +324,7 @@ export default function ReaderPage() {
   const col2CollapsedEffective = col2Collapsed || focus;
   // Paper warmth only applies in Warm theme; Ink's column-3 background stays
   // pinned to --bg-primary regardless of the stored warmth preference.
-  const paperBg = theme === 'ink' ? 'var(--bg-primary)' : `var(--paper-warmth-${readerPrefs.warmth})`;
+  const paperBg = paperBackground(theme, readerPrefs.warmth);
 
   // Navigate: read this chapter in column 3. Also opens its column-2 card
   // (independent expand/collapse still works afterward via the chevron).
@@ -369,26 +396,21 @@ export default function ReaderPage() {
     setTimeout(() => setColRevision((r) => r + 1), 220);
   };
 
-  const handleFocusToggle = () => {
-    setFocus((v) => !v);
+  const handleModeChange = (next: ReaderMode) => {
+    if ((next === 'focus') === focus) return;
+    setFocus(next === 'focus');
     setTimeout(() => setColRevision((r) => r + 1), 220);
   };
 
   return (
-    <div className="flex h-full relative">
+    <div className="rd-page">
       {/* Column 1: Book Overview */}
       <div
         ref={col1Ref}
-        className="flex-shrink-0 relative"
-        style={{
-          width: col1CollapsedEffective ? 46 : 250,
-          transition: 'width 200ms ease',
-          overflow: 'hidden',
-          borderRight: '1px solid var(--border)',
-          backgroundColor: 'var(--bg-secondary)',
-        }}
+        className="rd-col1"
+        style={{ width: col1CollapsedEffective ? 46 : 250 }}
       >
-        <div style={{ height: '100%', overflowY: col1CollapsedEffective ? 'hidden' : 'auto' }}>
+        <div className="rd-col1-scroll" style={{ overflowY: col1CollapsedEffective ? 'hidden' : 'auto' }}>
           <BookOverview book={book} collapsed={col1CollapsedEffective} onToggleCollapse={handleCol1Toggle} />
         </div>
       </div>
@@ -399,65 +421,50 @@ export default function ReaderPage() {
       {/* Column 2: Chapter List */}
       <div
         ref={col2Ref}
-        className="flex-shrink-0 flex flex-col relative"
-        style={{
-          width: col2CollapsedEffective ? 36 : 224,
-          transition: 'width 200ms ease',
-          overflow: 'hidden',
-          borderRight: '1px solid var(--border)',
-        }}
+        className="rd-col2"
+        style={{ width: col2CollapsedEffective ? 36 : 224 }}
       >
-        <button
-          onClick={handleCol2Toggle}
-          style={collapseButtonStyle}
-          aria-label={col2CollapsedEffective ? t('col2Expand') : t('col2Collapse')}
-        >
-          {col2CollapsedEffective ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
-        </button>
+        <div className="rd-col2-collapse">
+          <Tooltip label={col2CollapsedEffective ? t('col2Expand') : t('col2Collapse')}>
+            <button
+              type="button"
+              onClick={handleCol2Toggle}
+              className="rd-icon-btn"
+              aria-label={col2CollapsedEffective ? t('col2Expand') : t('col2Collapse')}
+            >
+              {col2CollapsedEffective ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
+            </button>
+          </Tooltip>
+        </div>
 
         {!col2CollapsedEffective ? (
           <>
-            {/* Header — paddingRight leaves room for the absolute collapse button */}
-            <div className="flex-shrink-0 p-2 pb-1" style={{ paddingRight: 30 }}>
-              <div className="flex items-center justify-between mb-2">
-                <span className="text-xs" style={{ color: 'var(--fg-secondary)' }}>
+            {/* Header — right padding leaves room for the absolute collapse button */}
+            <div className="rd-col2-head">
+              <div className="rd-col2-head-row">
+                <span className="rd-label">
                   {t('chapterListHeader', { count: chapterList.length })}
                 </span>
                 <button
+                  type="button"
                   onClick={handleToggleAllChapters}
-                  className="flex items-center gap-1"
-                  style={{
-                    background: 'transparent',
-                    color: 'var(--fg-muted)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-sm)',
-                    cursor: 'pointer',
-                    fontFamily: 'var(--font-sans)',
-                    fontSize: 'var(--font-size-2xs)',
-                    padding: '3px 8px',
-                  }}
+                  className="ss-btn ss-btn-sm ss-btn-secondary"
                 >
-                  {allChaptersExpanded ? <ChevronUp size={12} /> : <ChevronDown size={12} />}
                   {allChaptersExpanded ? t('collapseAll') : t('expandAll')}
                 </button>
               </div>
-              <div
-                className="flex items-center gap-2 px-2 py-1 rounded-md"
-                style={{ backgroundColor: 'var(--bg-tertiary)' }}
-              >
-                <Search size={12} style={{ color: 'var(--fg-muted)' }} />
+              <div className="rd-search">
+                <Search size={12} />
                 <input
                   type="search"
                   placeholder={t('search')}
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   aria-label={t('search')}
-                  className="bg-transparent text-xs flex-1 outline-none"
-                  style={{ color: 'var(--fg-primary)' }}
                 />
               </div>
               {matchedChapterIds !== null && (
-                <p className="mt-1.5 text-xs" style={{ color: 'var(--fg-muted)' }}>
+                <p className="rd-search-note">
                   {matchedChapterIds.size > 0
                     ? t('searchMatchCount', { count: matchedChapterIds.size })
                     : t('searchEmpty', { query: searchQuery })}
@@ -466,7 +473,7 @@ export default function ReaderPage() {
             </div>
 
             {/* Chapter list — search dims non-matches instead of removing them */}
-            <div ref={col2ListRef} className="flex-1 overflow-y-auto p-2 pt-1 space-y-1">
+            <div ref={col2ListRef} className="rd-chapter-list">
               {chapterList.map((chapter) => (
                 <div key={chapter.id} data-chapter-card>
                   <ChapterCard
@@ -483,27 +490,9 @@ export default function ReaderPage() {
             </div>
           </>
         ) : (
-          <div
-            style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              paddingTop: 40,
-              gap: 6,
-            }}
-          >
-            <BookOpen size={14} style={{ color: 'var(--fg-muted)' }} />
-            <span
-              style={{
-                fontFamily: 'var(--font-sans)',
-                fontSize: 'var(--font-size-2xs)',
-                color: 'var(--fg-muted)',
-                writingMode: 'vertical-rl',
-                letterSpacing: '0.05em',
-              }}
-            >
-              章節
-            </span>
+          <div className="rd-rail-col2">
+            <BookOpen size={14} />
+            <span className="rd-rail-label">{t('col2Rail')}</span>
           </div>
         )}
       </div>
@@ -524,176 +513,93 @@ export default function ReaderPage() {
       )}
 
       {/* Column 3: Chunk Content */}
-      <div
-        ref={col3Ref}
-        className="flex-1 overflow-hidden"
-        style={{ backgroundColor: paperBg }}
-      >
+      <div ref={col3Ref} className="rd-col3" style={{ backgroundColor: paperBg }}>
         {viewingChapterId ? (
-          <div
-            ref={col3ScrollRef}
-            style={{ height: '100%', overflowY: 'auto' }}
-            onScroll={handleCol3Scroll}
-          >
-            {/* Sticky header */}
-            <div
-              className="sticky top-0 z-10"
-              style={{
-                backgroundColor: paperBg,
-                borderBottom: '1px solid var(--border)',
-              }}
-            >
-            <div
-              className="flex items-start justify-between"
-              style={{
-                padding: '12px 16px 8px',
-              }}
-            >
-              <div>
-                <div className="flex items-baseline flex-wrap" style={{ gap: 8 }}>
-                  <h3
-                    className="font-semibold"
-                    style={{
-                      fontFamily: 'var(--font-serif)',
-                      fontSize: 'var(--font-size-sm)',
-                      color: 'var(--fg-primary)',
-                      margin: 0,
-                      lineHeight: 1.3,
-                    }}
-                  >
-                    {viewingChapter?.title}
-                  </h3>
-                  {viewingChapterOrder != null && (
-                    <span
-                      style={{
-                        padding: '2px 8px',
-                        borderRadius: 'var(--radius-sm)',
-                        backgroundColor: 'var(--bg-tertiary)',
-                        color: 'var(--fg-secondary)',
-                        fontFamily: 'var(--font-sans)',
-                        fontSize: 'var(--font-size-2xs)',
-                        flexShrink: 0,
-                      }}
-                    >
-                      {t('nav.chapterBadge', { current: viewingChapterOrder, total: chapterList.length })}
-                    </span>
-                  )}
-                </div>
-                <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>
-                  {chunks?.length ?? 0} chunks
-                </span>
-              </div>
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <div
-                  className="flex items-center"
-                  role="group"
-                  aria-label={t('annotation.title')}
-                  style={{ border: '1px solid var(--border)', borderRadius: 6, overflow: 'hidden' }}
-                >
-                  {(['full', 'characters', 'off'] as const).map((m) => (
-                    <button
-                      key={m}
-                      onClick={() => setAnnotationMode(m)}
-                      style={{
-                        padding: '5px 9px',
-                        border: 'none',
-                        cursor: 'pointer',
-                        fontFamily: 'var(--font-sans)',
-                        fontSize: 'var(--font-size-2xs)',
-                        backgroundColor: annotationMode === m ? 'var(--accent)' : 'var(--bg-secondary)',
-                        color: annotationMode === m ? 'white' : 'var(--fg-muted)',
-                      }}
-                    >
-                      {t(`annotation.${m}`)}
-                    </button>
-                  ))}
-                </div>
-                <div className="relative">
-                <button
-                  onClick={() => {
-                    setEpistemicOpen((v) => !v);
-                    if (!epistemicHintShown) dismissEpistemicHint();
-                  }}
-                  className="flex items-center gap-1"
-                  style={{
-                    padding: '5px 10px',
-                    borderRadius: 6,
-                    backgroundColor: epistemicOpen ? 'var(--accent)' : 'var(--bg-secondary)',
-                    border: '1px solid var(--border)',
-                    color: epistemicOpen ? 'white' : 'var(--fg-muted)',
-                    cursor: 'pointer',
-                    fontFamily: 'var(--font-sans)',
-                    fontSize: 'var(--font-size-2xs)',
-                  }}
-                >
-                  <Brain size={13} color={epistemicOpen ? 'white' : 'var(--fg-muted)'} />
-                  <span>{epistemicOpen ? t('epistemicClose') : t('epistemicLabel')}</span>
-                </button>
-                {showEpistemicHint && (
-                  <div
-                    onClick={dismissEpistemicHint}
-                    className="absolute right-0 cursor-pointer"
-                    style={{
-                      top: 'calc(100% + 6px)',
-                      zIndex: 20,
-                      width: 200,
-                      backgroundColor: 'var(--bg-secondary)',
-                      border: '1px solid var(--border)',
-                      borderRadius: 6,
-                      padding: '8px 10px',
-                      boxShadow: 'var(--shadow-md)',
-                    }}
-                  >
-                    <p className="text-xs" style={{ color: 'var(--fg-secondary)', lineHeight: 1.5 }}>
-                      {t('epistemicHint')}
-                    </p>
+          <div ref={col3ScrollRef} className="rd-col3-scroll" onScroll={handleCol3Scroll}>
+            {/* Sticky header — toolbar order: 檢視／專注 → 標註密度 → 認知狀態 → Aa */}
+            <div className="rd-head" style={{ backgroundColor: paperBg }}>
+              <div className="rd-head-row">
+                <div className="rd-head-titles">
+                  <div className="rd-head-title-row">
+                    <h3 className="rd-head-title">{viewingChapter?.title}</h3>
+                    {viewingChapterOrder != null && (
+                      <span className="ss-badge" style={{ fontFamily: 'var(--font-mono)' }}>
+                        {t('nav.chapterBadge', { current: viewingChapterOrder, total: chapterList.length })}
+                      </span>
+                    )}
                   </div>
-                )}
+                  <span className="rd-head-sub">{chunks?.length ?? 0} chunks</span>
                 </div>
-                <TypographyPanel prefs={readerPrefs} onChange={updateReaderPrefs} />
-                <button
-                  onClick={handleFocusToggle}
-                  className="flex items-center gap-1"
-                  style={{
-                    padding: '5px 10px',
-                    borderRadius: 6,
-                    backgroundColor: focus ? 'var(--accent)' : 'var(--bg-secondary)',
-                    border: '1px solid var(--border)',
-                    color: focus ? 'white' : 'var(--fg-muted)',
-                    cursor: 'pointer',
-                    fontFamily: 'var(--font-sans)',
-                    fontSize: 'var(--font-size-2xs)',
-                  }}
-                >
-                  <Maximize size={13} color={focus ? 'white' : 'var(--fg-muted)'} />
-                  <span>{t('focusLabel')}</span>
-                </button>
+                <div className="rd-tools">
+                  <div className="ss-seg" role="group" aria-label={t('viewLabel')}>
+                    {(['view', 'focus'] as const).map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        className={`ss-seg-item${mode === m ? ' active' : ''}`}
+                        aria-pressed={mode === m}
+                        onClick={() => handleModeChange(m)}
+                      >
+                        {m === 'view' ? t('viewLabel') : t('focusLabel')}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="ss-seg" role="group" aria-label={t('annotation.title')}>
+                    {(['full', 'characters', 'off'] as const).map((m) => (
+                      <button
+                        key={m}
+                        type="button"
+                        className={`ss-seg-item${annotationMode === m ? ' active' : ''}`}
+                        aria-pressed={annotationMode === m}
+                        onClick={() => setAnnotationMode(m)}
+                      >
+                        {t(`annotation.${m}`)}
+                      </button>
+                    ))}
+                  </div>
+                  <div className="relative">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setEpistemicOpen((v) => !v);
+                        if (!epistemicHintShown) dismissEpistemicHint();
+                      }}
+                      aria-expanded={epistemicOpen}
+                      className={`ss-btn ss-btn-sm ss-btn-ghost${epistemicOpen ? ' rd-tool-on' : ''}`}
+                    >
+                      {epistemicOpen ? t('epistemicClose') : t('epistemicLabel')}
+                    </button>
+                    {showEpistemicHint && (
+                      <div onClick={dismissEpistemicHint} className="rd-hint">
+                        <p>{t('epistemicHint')}</p>
+                      </div>
+                    )}
+                  </div>
+                  <TypographyPanel
+                    prefs={readerPrefs}
+                    mode={mode}
+                    onTypography={updateTypography}
+                    onResetTypography={resetModeTypography}
+                    onPrefs={updateSharedPrefs}
+                  />
+                </div>
               </div>
-            </div>
-              <div style={{ height: 2, backgroundColor: 'var(--bg-tertiary)' }}>
-                <div
-                  style={{
-                    height: '100%',
-                    backgroundColor: 'var(--accent)',
-                    width: `${Math.round(scrollProgress * 100)}%`,
-                    transition: 'width .1s linear',
-                  }}
-                />
+              <div className="rd-progress">
+                <div style={{ width: `${Math.round(scrollProgress * 100)}%` }} />
               </div>
             </div>
 
             {/* Chunks */}
-            <div style={{ padding: '16px' }} data-annotation-mode={annotationMode}>
+            <div className="rd-chunks" data-annotation-mode={annotationMode}>
               {chunksLoading && <LoadingSpinner />}
               {!chunksLoading && (
                 <div
                   ref={chunkListRef}
+                  className="rd-chunks-inner"
+                  data-mode={mode}
                   style={{
-                    maxWidth: focus ? 760 : '100%',
-                    margin: '0 auto',
-                    transition: 'max-width 200ms ease',
-                    ['--reader-fs' as string]: READER_FS_PX[readerPrefs.fs],
-                    ['--reader-lh' as string]: READER_LH[readerPrefs.lh],
+                    ['--reader-fs' as string]: FS_PX[typography.fs],
+                    ['--reader-lh' as string]: LH_VALUES[typography.lh],
                   } as React.CSSProperties}
                 >
                   <EntityMarkClickProvider onEntityClick={handleEntityMarkClick}>
@@ -707,31 +613,16 @@ export default function ReaderPage() {
                       </div>
                     ))}
                   </EntityMarkClickProvider>
-                  {(prevChapter ?? nextChapter) && (
-                    <div
-                      className="flex items-center justify-between"
-                      style={{ gap: 12, marginTop: 'var(--space-xl)' }}
-                    >
-                      {prevChapter ? (
-                        <button
-                          className="btn btn-secondary"
-                          onClick={() => handleSelectChapter(prevChapter.id)}
-                        >
-                          {t('nav.prev', { title: prevChapter.title })}
-                        </button>
-                      ) : (
-                        <span />
-                      )}
-                      {nextChapter ? (
-                        <button
-                          className="btn btn-secondary"
-                          onClick={() => handleSelectChapter(nextChapter.id)}
-                        >
-                          {t('nav.next', { title: nextChapter.title })}
-                        </button>
-                      ) : (
-                        <span />
-                      )}
+                  {/* 章末只放右側「下一章」；最後一章沒有。 */}
+                  {nextChapter && (
+                    <div className="rd-next">
+                      <button
+                        type="button"
+                        className="ss-btn ss-btn-sm ss-btn-secondary"
+                        onClick={() => handleSelectChapter(nextChapter.id)}
+                      >
+                        {t('nav.next', { title: nextChapter.title })}
+                      </button>
                     </div>
                   )}
                 </div>
@@ -742,14 +633,12 @@ export default function ReaderPage() {
           /* The ribbon lives in the landing state, not above the reading pane:
              this is where a first visit starts, and once a chapter is open the
              reader wants the text, not a banner eating the top of it. */
-          <div className="h-full" style={{ overflowY: 'auto', padding: '20px 24px' }}>
+          <div className="rd-landing">
             <GuidanceRibbon surface="reader">
               <strong>{t('guide.prefix')}</strong>{' '}
               <Trans i18nKey="guide.body" ns="reader" components={{ strong: <strong /> }} />
             </GuidanceRibbon>
-            <p className="text-sm" style={{ color: 'var(--fg-muted)', textAlign: 'center' }}>
-              {t('selectChapter')}
-            </p>
+            <p className="rd-landing-prompt">{t('selectChapter')}</p>
           </div>
         )}
       </div>
@@ -790,30 +679,13 @@ export default function ReaderPage() {
       )}
 
       {showBackToTop && (
-        <button
-          onClick={handleBackToTop}
-          aria-label={t('nav.backToTop')}
-          title={t('nav.backToTop')}
-          style={{
-            position: 'fixed',
-            right: RAIL.right,
-            bottom: RAIL.slots[1],
-            zIndex: RAIL.z.fab,
-            width: 40,
-            height: 40,
-            borderRadius: '50%',
-            backgroundColor: 'var(--accent)',
-            color: 'var(--accent-fg)',
-            border: 'none',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: 'var(--shadow-md)',
-          }}
-        >
-          <ArrowUp size={18} strokeWidth={2.2} />
-        </button>
+        <div className="rd-fab-wrap" style={{ right: RAIL.right, bottom: RAIL.slots[1], zIndex: RAIL.z.fab }}>
+          <Tooltip label={t('nav.backToTop')}>
+            <button type="button" onClick={handleBackToTop} aria-label={t('nav.backToTop')} className="rd-fab">
+              <ArrowUp size={18} strokeWidth={2.2} />
+            </button>
+          </Tooltip>
+        </div>
       )}
 
       {entityCard && bookId && (

@@ -1,70 +1,42 @@
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
-
-/** Persisted reader typography preferences — see ReaderPage's `reader:prefs` localStorage key. */
-export interface ReaderPrefs {
-  /** Body font size: 0=15px / 1=17px / 2=19px. */
-  fs: 0 | 1 | 2;
-  /** Body line height: 0=1.6 / 1=1.85 / 2=2.15. */
-  lh: 0 | 1 | 2;
-  /** Paper warmth swatch index (Warm theme only; Ink ignores this). */
-  warmth: 0 | 1 | 2 | 3;
-  /** Per-chunk fade-in-on-scroll. */
-  fade: boolean;
-}
-
-// Constant co-located with the component that defines its shape (intentional,
-// mirrors ThemeContext.tsx); only affects HMR granularity for this file.
-// eslint-disable-next-line react-refresh/only-export-components
-export const DEFAULT_READER_PREFS: ReaderPrefs = { fs: 1, lh: 1, warmth: 1, fade: false };
+import { Tooltip } from '@/components/ui/Tooltip';
+import {
+  MODE_DEFAULTS,
+  formatTypography,
+  isOverridden,
+  resolveTypography,
+  type ReaderMode,
+  type ReaderPrefs,
+  type Step,
+  type Typography,
+  type Warmth,
+} from './readerModel';
 
 const FS_KEYS = ['small', 'standard', 'large'] as const;
 const LH_KEYS = ['tight', 'standard', 'wide'] as const;
 const WARMTH_COUNT = 4;
-
-const triggerStyle = (active: boolean): React.CSSProperties => ({
-  padding: '5px 10px',
-  borderRadius: 6,
-  backgroundColor: active ? 'var(--accent)' : 'var(--bg-secondary)',
-  border: '1px solid var(--border)',
-  color: active ? 'white' : 'var(--fg-muted)',
-  cursor: 'pointer',
-  fontFamily: 'var(--font-sans)',
-  fontSize: 'var(--font-size-2xs)',
-  fontWeight: 600,
-});
-
-const segButtonStyle = (active: boolean): React.CSSProperties => ({
-  flex: 1,
-  padding: '5px 0',
-  borderRadius: 6,
-  border: '1px solid var(--border)',
-  backgroundColor: active ? 'var(--accent)' : 'var(--bg-secondary)',
-  color: active ? 'white' : 'var(--fg-muted)',
-  cursor: 'pointer',
-  fontFamily: 'var(--font-sans)',
-  fontSize: 'var(--font-size-2xs)',
-});
-
-const sectionLabelStyle: React.CSSProperties = {
-  marginBottom: 6,
-  fontFamily: 'var(--font-sans)',
-  fontSize: 'var(--font-size-2xs)',
-  color: 'var(--fg-muted)',
-};
+const STEPS = [0, 1, 2] as const;
 
 /**
- * Reader toolbar "Aa" button + popover panel: font size / line height / paper
- * warmth (Warm theme only) / fade-in toggle. State is fully controlled — the
- * caller (ReaderPage) owns `prefs` and persists it to localStorage.
+ * Reader toolbar "Aa" button + 220px popover: font size / line height (kept
+ * per 檢視 / 專注 mode, with that mode's default and a way back to it), paper
+ * warmth (Warm only — Ink renders none of it) and the fade-in toggle. State is
+ * fully controlled; ReaderPage owns `reader:prefs`.
  */
 export function TypographyPanel({
   prefs,
-  onChange,
+  mode,
+  onTypography,
+  onResetTypography,
+  onPrefs,
 }: {
   readonly prefs: ReaderPrefs;
-  readonly onChange: (patch: Partial<ReaderPrefs>) => void;
+  readonly mode: ReaderMode;
+  readonly onTypography: (patch: Partial<Typography>) => void;
+  readonly onResetTypography: () => void;
+  readonly onPrefs: (patch: Partial<Pick<ReaderPrefs, 'warmth' | 'fade'>>) => void;
 }) {
   const { t } = useTranslation('reader');
   const { theme } = useTheme();
@@ -80,79 +52,107 @@ export function TypographyPanel({
     return () => document.removeEventListener('mousedown', handlePointerDown);
   }, [open]);
 
+  const current = resolveTypography(prefs, mode);
+  const overridden = isOverridden(prefs, mode);
+
   return (
     <div className="relative" ref={wrapperRef}>
-      <button onClick={() => setOpen((v) => !v)} style={triggerStyle(open)}>
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-expanded={open}
+        className={`ss-btn ss-btn-sm ss-btn-ghost${open ? ' rd-tool-on' : ''}`}
+        style={{ fontFamily: 'var(--font-serif)' }}
+      >
         {t('typography.trigger')}
       </button>
       {open && (
-        <div
-          style={{
-            position: 'absolute',
-            right: 0,
-            top: 'calc(100% + 6px)',
-            width: 220,
-            zIndex: 20,
-            backgroundColor: 'var(--bg-primary)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--card-radius)',
-            boxShadow: 'var(--shadow-lg)',
-            padding: 14,
-            animation: 'rd-pop .16s ease',
-          }}
-        >
-          <div style={sectionLabelStyle}>{t('typography.fontSize')}</div>
-          <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
-            {([0, 1, 2] as const).map((i) => (
-              <button key={i} onClick={() => onChange({ fs: i })} style={segButtonStyle(prefs.fs === i)}>
-                {t(`typography.fs.${FS_KEYS[i]}`)}
+        <div className="rd-typo">
+          <div className="rd-typo-group">
+            <span className="rd-typo-label">{mode === 'view' ? t('viewLabel') : t('focusLabel')}</span>
+            <div className="rd-typo-line is-muted">
+              <span>{t('typography.modeDefault')}</span>
+              <span className="rd-typo-mono">{formatTypography(MODE_DEFAULTS[mode])}</span>
+            </div>
+            <div className="rd-typo-line">
+              <span>{t('typography.current')}</span>
+              <span className="rd-typo-mono">{formatTypography(current)}</span>
+            </div>
+            {overridden && (
+              <button
+                type="button"
+                className="ss-btn ss-btn-sm ss-btn-ghost"
+                style={{ alignSelf: 'flex-start' }}
+                onClick={onResetTypography}
+              >
+                {t('typography.resetToDefault')}
               </button>
-            ))}
+            )}
           </div>
 
-          <div style={sectionLabelStyle}>{t('typography.lineHeight')}</div>
-          <div style={{ display: 'flex', gap: 4, marginBottom: 12 }}>
-            {([0, 1, 2] as const).map((i) => (
-              <button key={i} onClick={() => onChange({ lh: i })} style={segButtonStyle(prefs.lh === i)}>
-                {t(`typography.lh.${LH_KEYS[i]}`)}
-              </button>
-            ))}
+          <div className="rd-typo-group">
+            <span className="rd-typo-label">{t('typography.fontSize')}</span>
+            <div className="rd-typo-seg">
+              {STEPS.map((i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className={current.fs === i ? 'active' : undefined}
+                  aria-pressed={current.fs === i}
+                  onClick={() => onTypography({ fs: i as Step })}
+                >
+                  {t(`typography.fs.${FS_KEYS[i]}`)}
+                </button>
+              ))}
+            </div>
+            <span className="rd-typo-mono">15 / 17 / 19 px</span>
+          </div>
+
+          <div className="rd-typo-group">
+            <span className="rd-typo-label">{t('typography.lineHeight')}</span>
+            <div className="rd-typo-seg">
+              {STEPS.map((i) => (
+                <button
+                  key={i}
+                  type="button"
+                  className={current.lh === i ? 'active' : undefined}
+                  aria-pressed={current.lh === i}
+                  onClick={() => onTypography({ lh: i as Step })}
+                >
+                  {t(`typography.lh.${LH_KEYS[i]}`)}
+                </button>
+              ))}
+            </div>
+            <span className="rd-typo-mono">1.6 / 1.85 / 2.15</span>
           </div>
 
           {theme === 'warm' && (
-            <>
-              <div style={sectionLabelStyle}>{t('typography.warmth')}</div>
-              <div style={{ display: 'flex', gap: 6, marginBottom: 12 }}>
+            <div className="rd-typo-group">
+              <span className="rd-typo-label">{t('typography.warmth')}</span>
+              <div className="rd-typo-swatches">
                 {Array.from({ length: WARMTH_COUNT }, (_, i) => (
-                  <button
-                    key={i}
-                    title={t('typography.warmthSwatch', { n: i + 1 })}
-                    aria-label={t('typography.warmthSwatch', { n: i + 1 })}
-                    onClick={() => onChange({ warmth: i as 0 | 1 | 2 | 3 })}
-                    style={{
-                      width: 26,
-                      height: 26,
-                      borderRadius: '50%',
-                      background: `var(--paper-warmth-${i})`,
-                      border: prefs.warmth === i ? '2px solid var(--accent)' : '1px solid var(--border)',
-                      cursor: 'pointer',
-                      padding: 0,
-                    }}
-                  />
+                  <Tooltip key={i} label={t('typography.warmthSwatch', { n: i + 1 })}>
+                    <button
+                      type="button"
+                      aria-label={t('typography.warmthSwatch', { n: i + 1 })}
+                      aria-pressed={prefs.warmth === i}
+                      onClick={() => onPrefs({ warmth: i as Warmth })}
+                      className={prefs.warmth === i ? 'rd-typo-swatch active' : 'rd-typo-swatch'}
+                      style={{ background: `var(--paper-warmth-${i})` }}
+                    />
+                  </Tooltip>
                 ))}
               </div>
-            </>
+            </div>
           )}
 
-          <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer' }}>
-            <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)', color: 'var(--fg-secondary)' }}>
-              {t('typography.fadeIn')}
-            </span>
+          <label className="rd-typo-fade">
+            <span>{t('typography.fadeIn')}</span>
             <input
               type="checkbox"
               className={`ss-toggle${prefs.fade ? ' is-on' : ''}`}
               checked={prefs.fade}
-              onChange={() => onChange({ fade: !prefs.fade })}
+              onChange={() => onPrefs({ fade: !prefs.fade })}
               aria-label={t('typography.fadeIn')}
             />
           </label>
