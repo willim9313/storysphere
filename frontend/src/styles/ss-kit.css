@@ -757,3 +757,34 @@
   font-family: var(--font-sans); font-size: var(--font-size-2xs);
   color: var(--fg-muted); letter-spacing: 0.05em;
 }
+
+/* 第 5 批 5-1：照設計 kit 補齊（原樣搬入，未改既有 class）。 */
+/* ── Researcher guidance (.ss-guidance) — GuidanceRibbon ───────
+   Page-level orientation note. Starts with a bold 「研究者導覽：」, can be
+   dismissed (per surface, localStorage). Info glyph is drawn by ::before —
+   no icon markup. Structure:
+     <div class="ss-guidance"><p><strong>研究者導覽：</strong> …</p><close button></div>
+   Never a left-border accent. Workbench pages (graph) may sit it full-bleed:
+   add .ss-guidance-bleed.
+   ──────────────────────────────────────────────────────────── */
+:root { --ss-guidance-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3Cpath d='M12 16v-4M12 8h.01'/%3E%3C/svg%3E"); }
+.ss-guidance {
+  display: flex; align-items: flex-start; gap: var(--space-5);
+  padding: var(--space-5);
+  background: var(--color-info-bg);
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--radius-sm);
+  color: var(--fg-secondary);
+}
+.ss-guidance::before {
+  content: ""; width: 14px; height: 14px; flex-shrink: 0; margin-top: 2px;
+  background-color: var(--color-info);
+  -webkit-mask: var(--ss-guidance-glyph) no-repeat center / contain;
+  mask: var(--ss-guidance-glyph) no-repeat center / contain;
+}
+.ss-guidance > p {
+  flex: 1; margin: 0; font-family: var(--font-sans);
+  font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-secondary); text-wrap: pretty;
+}
+.ss-guidance > p > strong:first-child { color: var(--fg-primary); }
+.ss-guidance-bleed { border-width: 0 0 var(--line-weight) 0; border-radius: 0; padding: var(--space-3) var(--space-5); }
