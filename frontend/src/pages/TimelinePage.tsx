@@ -728,9 +728,20 @@ export default function TimelinePage() {
                 </span>
                 <p className="tl-compare-blocked-desc">
                   {t('timeline.noRanked.desc', { n: stats.total })}
-                  <span className="tl-compare-blocked-hint">
+                  {/* Zero cost: it only moves focus to the run button on the right. */}
+                  <button
+                    type="button"
+                    className="tl-compare-blocked-hint"
+                    onClick={() => {
+                      const run = document.querySelector<HTMLButtonElement>(
+                        '[data-action="story-order-run"]',
+                      );
+                      run?.scrollIntoView({ block: 'center', behavior: 'smooth' });
+                      run?.focus({ preventScroll: true });
+                    }}
+                  >
                     {t('timeline.compare.blockedHint')}
-                  </span>
+                  </button>
                 </p>
               </div>
             )}

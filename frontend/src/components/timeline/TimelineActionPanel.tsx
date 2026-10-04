@@ -164,6 +164,7 @@ function ActionRow({
           className={`ss-btn ss-btn-sm ${state.ready ? 'ss-btn-primary' : 'ss-btn-secondary'} ss-btn-llm`}
           onClick={onRun}
           disabled={!state.ready}
+          data-action={first ? 'story-order-run' : undefined}
         >
           {state.runLabel}
         </button>
