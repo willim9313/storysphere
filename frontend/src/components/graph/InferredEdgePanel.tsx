@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { X, Check, Loader, XOctagon, AlertTriangle } from 'lucide-react';
+import { X, Loader, AlertTriangle } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { fetchInferredRelations, confirmInferred, rejectInferred } from '@/api/graph';
@@ -18,6 +18,8 @@ interface InferredReviewPanelProps {
 // the idle/ready state + pending badge count); both share the
 // qk.inferred.all(bookId) prefix so either mutation's
 // invalidateQueries call refreshes both.
+//
+// Adopt / reject are zero-cost writes (pure graph theory, no LLM): no cost glyph.
 export function InferredEdgePanel({ bookId, focusInferredId, onClose }: InferredReviewPanelProps) {
   const { t } = useTranslation('graph');
   const queryClient = useQueryClient();
@@ -30,77 +32,43 @@ export function InferredEdgePanel({ bookId, focusInferredId, onClose }: Inferred
   const items = data?.items ?? [];
 
   return (
-    <div
-      className="absolute top-0 right-0 h-full z-20 flex flex-col"
-      style={{
-        width: 380,
-        backgroundColor: 'var(--bg-primary)',
-        borderLeft: '1px solid var(--border)',
-        boxShadow: 'var(--shadow-md)',
-      }}
-    >
-      <header
-        className="flex items-center justify-between p-3 flex-shrink-0"
-        style={{ borderBottom: '1px solid var(--border)' }}
-      >
-        <h3
-          className="font-semibold"
-          style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-lg)', color: 'var(--fg-primary)' }}
-        >
-          {t('v1.inferred.review.title', { n: items.length })}
-        </h3>
-        <button
-          onClick={onClose}
-          style={{ color: 'var(--fg-muted)' }}
-        >
-          <X size={16} />
+    <div className="kg-panel">
+      <div className="kg-panel-head">
+        <h3 className="kg-panel-title">{t('v1.inferred.review.title', { n: items.length })}</h3>
+        <button type="button" onClick={onClose} className="kg-icon-btn" aria-label="Close">
+          <X size={14} />
         </button>
-      </header>
+      </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+      <div className="kg-panel-body">
         {!isLoading && items.length > 0 && (
           <div
-            className="flex items-start"
+            className="kg-text"
             style={{
-              gap: 8,
-              fontSize: 'var(--font-size-2xs)',
-              color: 'var(--fg-secondary)',
-              lineHeight: 1.6,
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: 'var(--space-4)',
               backgroundColor: 'var(--color-warning-bg)',
               borderRadius: 'var(--radius-sm)',
-              padding: '9px 10px',
+              padding: 'var(--space-4)',
             }}
           >
-            <AlertTriangle size={13} style={{ color: 'var(--color-warning)', flexShrink: 0, marginTop: 1 }} />
+            <AlertTriangle
+              size={13}
+              style={{ color: 'var(--color-warning)', flexShrink: 0, marginTop: 'var(--space-1)' }}
+            />
             <span>{t('v1.inferred.review.banner', { n: items.length })}</span>
           </div>
         )}
-        {!isLoading && items.length > 0 && (
-          <p
-            style={{
-              fontSize: 'var(--font-size-2xs)',
-              color: 'var(--fg-muted)',
-              lineHeight: 1.6,
-              border: '1px dashed var(--border)',
-              borderRadius: 'var(--radius-sm)',
-              backgroundColor: 'var(--bg-secondary)',
-              padding: '9px 10px',
-              margin: 0,
-            }}
-          >
-            {t('v1.inferred.review.mechanism')}
-          </p>
-        )}
+        {!isLoading && items.length > 0 && <p className="kg-note">{t('v1.inferred.review.mechanism')}</p>}
         {isLoading && (
-          <div className="flex items-center gap-2 py-4 justify-center">
-            <Loader size={14} className="animate-spin" style={{ color: 'var(--fg-muted)' }} />
-            <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>
-              {t('analysisPanel.loading')}
-            </span>
+          <div className="kg-inline-load" style={{ justifyContent: 'center' }}>
+            <Loader size={14} className="animate-spin" />
+            <span>{t('analysisPanel.loading')}</span>
           </div>
         )}
         {!isLoading && items.length === 0 && (
-          <p className="text-xs py-4 text-center" style={{ color: 'var(--fg-muted)' }}>
+          <p className="kg-note" style={{ textAlign: 'center' }}>
             {t('v1.inferred.review.empty', '尚無待審查推斷關係')}
           </p>
         )}
@@ -161,116 +129,47 @@ function InferredRow({ ir, bookId, focus, onSuccess, onGraphInvalidate }: Inferr
   });
 
   const busy = adopt.isPending || reject.isPending;
-  const confidencePct = Math.round(ir.confidence * 100);
 
   return (
-    <div
-      ref={ref}
-      className="rounded-md p-3"
-      style={{
-        border: focus ? '1px solid var(--accent)' : '1px solid var(--border)',
-        backgroundColor: 'var(--bg-primary)',
-        transition: 'border-color var(--transition-fast, 150ms) ease',
-      }}
-    >
-      <div className="flex items-center gap-1.5 flex-wrap mb-2">
-        <Pill>{ir.sourceName}</Pill>
-        <span style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}>
-          {ir.suggestedRelationType}
-        </span>
-        <Pill>{ir.targetName}</Pill>
+    <div ref={ref} className={focus ? 'kg-ir is-focus' : 'kg-ir'}>
+      <div className="kg-ir-head">
+        <span className="kg-ir-name">{ir.sourceName}</span>
+        <span className="kg-note">→</span>
+        <span className="kg-ir-name">{ir.targetName}</span>
+        <span className="kg-ir-type">{ir.suggestedRelationType}</span>
       </div>
 
-      <div className="flex items-center gap-2 mb-2">
-        <div
-          className="flex-1 h-1.5 rounded-full overflow-hidden"
-          style={{ backgroundColor: 'var(--bg-tertiary)' }}
-        >
-          <div
-            className="h-full"
-            style={{
-              width: `${confidencePct}%`,
-              backgroundColor: 'var(--accent)',
-            }}
-          />
-        </div>
-        <span
-          className="tabular-nums font-semibold"
-          style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)' }}
-        >
-          {(ir.confidence ?? 0).toFixed(2)}
-        </span>
-      </div>
-
-      <details className="mb-2">
-        <summary
-          className="font-semibold uppercase cursor-pointer"
-          style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', letterSpacing: '0.06em' }}
-        >
-          {t('v1.inferred.review.evidence')}
-        </summary>
-        <p className="mt-1.5 leading-relaxed" style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)' }}>
+      <div className="kg-ir-evidence">
+        <span className="kg-ir-evidence-key">{t('v1.inferred.review.evidence')}</span>
+        <span>
           {ir.reasoning ||
             t('v1.inferred.review.evidenceFallback', {
               common: ir.commonNeighborCount,
               score: ir.adamicAdarScore.toFixed(2),
             })}
-        </p>
-      </details>
+        </span>
+      </div>
 
-      <div className="flex gap-2">
+      <div className="kg-actions">
         <button
+          type="button"
           onClick={() => adopt.mutate()}
           disabled={busy}
-          className="flex-1 flex items-center justify-center gap-1 text-xs py-1.5 rounded-md"
-          style={{
-            backgroundColor: 'var(--accent)',
-            color: 'var(--bg-primary)',
-            opacity: busy ? 0.6 : 1,
-          }}
+          className="ss-btn ss-btn-sm ss-btn-secondary"
         >
-          {adopt.isPending ? (
-            <Loader size={12} className="animate-spin" />
-          ) : (
-            <Check size={12} />
-          )}
+          {adopt.isPending && <Loader size={11} className="animate-spin" />}
           {t('v1.inferred.review.adopt')}
         </button>
         <button
+          type="button"
           onClick={() => reject.mutate()}
           disabled={busy}
-          className="flex-1 flex items-center justify-center gap-1 text-xs py-1.5 rounded-md"
-          style={{
-            backgroundColor: 'var(--bg-secondary)',
-            color: 'var(--fg-secondary)',
-            border: '1px solid var(--border)',
-            opacity: busy ? 0.6 : 1,
-          }}
+          className="ss-btn ss-btn-sm ss-btn-secondary"
         >
-          {reject.isPending ? (
-            <Loader size={12} className="animate-spin" />
-          ) : (
-            <XOctagon size={12} />
-          )}
+          {reject.isPending && <Loader size={11} className="animate-spin" />}
           {t('v1.inferred.review.reject')}
         </button>
       </div>
     </div>
-  );
-}
-
-function Pill({ children }: { children: React.ReactNode }) {
-  return (
-    <span
-      className="px-2 py-0.5 rounded-full font-medium"
-      style={{
-        fontSize: 'var(--font-size-2xs)',
-        backgroundColor: 'var(--bg-secondary)',
-        color: 'var(--fg-primary)',
-        border: '1px solid var(--border)',
-      }}
-    >
-      {children}
-    </span>
   );
 }

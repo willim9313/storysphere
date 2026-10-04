@@ -63,7 +63,11 @@
     "statFirstChapter": "First Chapter",
     "addToCompare": "Add to Compare",
     "comparePending": "Pick one more",
-    "chunkRef": "Ch.{{chapter}} · Chunk {{order}}"
+    "chunkRef": "Ch.{{chapter}} · Chunk {{order}}",
+    "current": "Showing · {{name}}",
+    "chainInferred": "Inferred relation review",
+    "chainEntity": "Entity details",
+    "chainEvent": "Event details"
   },
   "entity": {
     "triggerFailed": "Failed to trigger analysis. Please try again later.",
@@ -136,7 +140,23 @@
         "algorithm": "Algorithm",
         "resolution": "Resolution",
         "minSize": "Min cluster size",
-        "recompute": "Recompute"
+        "recompute": "Recompute",
+        "zeroCost": "No cost"
+      },
+      "communityRowCount": "{{n}} members · {{composition}}",
+      "cohesion": "Cohesion {{score}}",
+      "compositionAbbr": {
+        "character": "Ch",
+        "location": "Loc",
+        "concept": "Con",
+        "event": "Ev",
+        "organization": "Org",
+        "object": "Obj",
+        "other": "Oth"
+      },
+      "rel": {
+        "cooperation": "Cooperation {{score}}",
+        "rivalry": "Rivalry {{score}}"
       }
     },
     "search": {
@@ -265,6 +285,21 @@
       "insufficientChange": "There isn't enough change in their shared neighbors to animate yet.",
       "noPath": "No path connects these two entities."
     }
+  },
+  "mode": {
+    "subtitle": {
+      "node": "How a single entity connects",
+      "type": "What the 7 types look like grouped",
+      "community": "Which factions the algorithm finds on its own"
+    }
+  },
+  "legend": {
+    "currentLens": "Current lens · {{mode}}",
+    "typeToggleHint": "Type toggles are in the toolbar above"
+  },
+  "inference": {
+    "noTokenCostInline": "No token cost",
+    "forceRerunTitle": "Force rerun inference"
   },
   "guide": {
     "prefix": "Researcher guide:",

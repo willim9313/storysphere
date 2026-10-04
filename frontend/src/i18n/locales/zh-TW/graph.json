@@ -63,7 +63,11 @@
     "statFirstChapter": "首次登場章",
     "addToCompare": "加入比較",
     "comparePending": "再選一個實體",
-    "chunkRef": "章節 {{chapter}} · 片段 {{order}}"
+    "chunkRef": "章節 {{chapter}} · 片段 {{order}}",
+    "current": "目前顯示 · {{name}}",
+    "chainInferred": "推斷關係審查",
+    "chainEntity": "實體詳情",
+    "chainEvent": "事件詳情"
   },
   "entity": {
     "triggerFailed": "觸發分析失敗，請稍後再試。",
@@ -136,7 +140,23 @@
         "algorithm": "偵測算法",
         "resolution": "解析度",
         "minSize": "最小群集大小",
-        "recompute": "重新運算"
+        "recompute": "重新運算",
+        "zeroCost": "零成本"
+      },
+      "communityRowCount": "{{n}} 個 · {{composition}}",
+      "cohesion": "凝聚 {{score}}",
+      "compositionAbbr": {
+        "character": "角",
+        "location": "地",
+        "concept": "概",
+        "event": "事",
+        "organization": "組",
+        "object": "物",
+        "other": "他"
+      },
+      "rel": {
+        "cooperation": "合作 {{score}}",
+        "rivalry": "敵對 {{score}}"
       }
     },
     "search": {
@@ -265,6 +285,21 @@
       "insufficientChange": "兩者的共同關係實體變化不足，暫無可呈現的演變動畫。",
       "noPath": "找不到連接兩者的路徑。"
     }
+  },
+  "mode": {
+    "subtitle": {
+      "node": "單一實體怎麼連",
+      "type": "按 7 類分群後長怎樣",
+      "community": "演算法自動聚出哪些派系"
+    }
+  },
+  "legend": {
+    "currentLens": "目前鏡頭 · {{mode}}",
+    "typeToggleHint": "型別開關在上方工具列"
+  },
+  "inference": {
+    "noTokenCostInline": "無 token 成本",
+    "forceRerunTitle": "強制重跑推論"
   },
   "guide": {
     "prefix": "研究者導覽：",

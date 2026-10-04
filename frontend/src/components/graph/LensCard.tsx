@@ -6,6 +6,7 @@ import { detectTimeline, fetchTimelineConfig } from '@/api/graph';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { useEpistemicState } from '@/hooks/useEpistemicState';
 import { ClassifyVisibilityButton } from '@/components/epistemic/ClassifyVisibilityButton';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { TimelineConfigModal } from './TimelineConfigModal';
 import { resolveEpistemicChapter, stepTimelinePlayback } from '@/lib/graphLens';
 import type { ClusterMode } from './GraphToolbar';
@@ -247,17 +248,7 @@ export function LensCard({
 
   // ── Render ────────────────────────────────────────────────────────
   return (
-    <div
-      className="absolute bottom-4 left-4 z-10 overflow-hidden"
-      style={{
-        width: 320,
-        backgroundColor: 'var(--bg-primary)',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--radius-lg)',
-        boxShadow: 'var(--shadow-sm)',
-        fontSize: 'var(--font-size-sm)',
-      }}
-    >
+    <div className="kg-lens">
       {/* Tab bar */}
       <div className="flex" style={{ borderBottom: '1px solid var(--border)' }}>
         <LensTabButton
@@ -294,13 +285,12 @@ export function LensCard({
                       <button
                         key={m}
                         disabled={disabled}
-                        title={disabled ? t('v1.lens.storyModeLocked') : undefined}
                         onClick={() => {
                           if (disabled) return;
                           setTlMode(m);
                           setTlPosition(0);
                         }}
-                        className="text-[11px] py-1 px-2 rounded transition-colors"
+                        className="kg-t2xs py-1 px-2 rounded transition-colors"
                         style={{
                           backgroundColor: isActive ? 'var(--accent)' : 'var(--bg-secondary)',
                           color: isActive ? 'var(--bg-primary)' : 'var(--fg-secondary)',
@@ -317,15 +307,21 @@ export function LensCard({
               ) : (
                 <span />
               )}
-              <button
-                title={t('timeline.controls.reconfigure')}
-                disabled={detectMutation.isPending}
-                onClick={() => detectMutation.mutate()}
-                style={{ color: 'var(--fg-muted)' }}
-              >
-                <Settings size={12} className={detectMutation.isPending ? 'animate-spin' : ''} />
-              </button>
+              <Tooltip label={t('timeline.controls.reconfigure')}>
+                <button
+                  type="button"
+                  aria-label={t('timeline.controls.reconfigure')}
+                  disabled={detectMutation.isPending}
+                  onClick={() => detectMutation.mutate()}
+                  style={{ color: 'var(--fg-muted)' }}
+                >
+                  <Settings size={12} className={detectMutation.isPending ? 'animate-spin' : ''} />
+                </button>
+              </Tooltip>
             </div>
+            {chapterAvailable && !storyViable && (
+              <p className="kg-lens-locked">{t('v1.lens.storyModeLocked')}</p>
+            )}
 
             <div
               className="font-bold mb-1.5"
@@ -345,7 +341,7 @@ export function LensCard({
               style={{ accentColor: 'var(--accent)' }}
               aria-label={t('v1.lens.tabTimeline')}
             />
-            <div className="flex justify-between text-[10px] mt-0.5" style={{ color: 'var(--fg-muted)' }}>
+            <div className="flex justify-between kg-t2xs mt-0.5" style={{ color: 'var(--fg-muted)' }}>
               <span>{t('v1.lens.allChapters')}</span>
               <span>{t('v1.lens.chapter', { n: currentMax, total: currentMax })}</span>
             </div>
@@ -368,7 +364,7 @@ export function LensCard({
             </button>
 
             <p
-              className="text-[11px] mt-2 pt-2"
+              className="kg-t2xs mt-2 pt-2"
               style={{ color: 'var(--fg-muted)', lineHeight: 1.55, borderTop: '1px solid var(--border)' }}
             >
               {t('v1.lens.timelineGlobalNote')}
@@ -376,26 +372,17 @@ export function LensCard({
           </>
         )}
         {lensTab === 'timeline' && !anyTimelineAvailable && (
-          <p className="text-[11px]" style={{ color: 'var(--fg-muted)' }}>
+          <p className="kg-t2xs" style={{ color: 'var(--fg-muted)' }}>
             {t('v1.lens.noTimeline')}
           </p>
         )}
 
         {/* ── Epistemic tab ────────────────────────────────────────── */}
         {lensTab === 'epistemic' && isAggregateMode && (
-          <div className="flex flex-col items-center text-center gap-2 py-1">
-            <Eye size={20} style={{ color: 'var(--fg-muted)' }} />
-            <div className="text-[13px] font-semibold" style={{ color: 'var(--fg-primary)' }}>
-              {t('v1.lens.epistemicDisabledTitle')}
-            </div>
-            <p className="text-[11.5px]" style={{ color: 'var(--fg-secondary)', lineHeight: 1.65 }}>
-              {t('v1.lens.epistemicDisabledDesc')}
-            </p>
-            <button
-              onClick={onBackToIndividual}
-              className="mt-0.5 px-3 py-1.5 rounded text-[11px]"
-              style={{ backgroundColor: 'var(--bg-secondary)', border: '1px solid var(--border)', color: 'var(--fg-primary)' }}
-            >
+          <div className="kg-lens-aggregate">
+            <span className="kg-label">{t('v1.lens.epistemicDisabledTitle')}</span>
+            <p className="kg-text">{t('v1.lens.epistemicDisabledDesc')}</p>
+            <button type="button" onClick={onBackToIndividual} className="ss-btn ss-btn-sm ss-btn-secondary">
               {t('v1.lens.backToIndividual')}
             </button>
           </div>
@@ -460,7 +447,7 @@ export function LensCard({
                   }}
                 >
                   {characterNodes.length === 0 ? (
-                    <div className="px-2 py-2 text-[11px]" style={{ color: 'var(--fg-muted)' }}>
+                    <div className="px-2 py-2 kg-t2xs" style={{ color: 'var(--fg-muted)' }}>
                       {t('v1.lens.noCharacters')}
                     </div>
                   ) : (
@@ -512,7 +499,7 @@ export function LensCard({
                 <span className="text-xs" style={{ color: 'var(--fg-primary)' }}>
                   {t('v1.lens.epistemicToggleLabel')}
                 </span>
-                <span className="text-[10px]" style={{ color: 'var(--fg-muted)' }}>
+                <span className="kg-t2xs" style={{ color: 'var(--fg-muted)' }}>
                   {t('v1.lens.epistemicToggleDesc')}
                 </span>
               </span>
@@ -526,18 +513,18 @@ export function LensCard({
                 >
                   <div className="text-lg font-semibold tabular-nums" style={{ color: 'var(--fg-primary)' }}>
                     {epKnownCount}
-                    <span className="text-[13px] font-normal" style={{ color: 'var(--fg-muted)' }}>
+                    <span className="kg-txs font-normal" style={{ color: 'var(--fg-muted)' }}>
                       {' / '}
                       {nodes.length}
                     </span>
                   </div>
-                  <div className="text-[11px]" style={{ color: 'var(--fg-muted)' }}>
+                  <div className="kg-t2xs" style={{ color: 'var(--fg-muted)' }}>
                     {t('v1.lens.epistemicKnownStat', { name: selectedCharacter?.name ?? '' })}
                   </div>
                 </div>
 
                 <div
-                  className="flex gap-1.5 items-start mt-2 p-1.5 rounded text-[11px]"
+                  className="flex gap-1.5 items-start mt-2 p-1.5 rounded kg-t2xs"
                   style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--fg-secondary)', lineHeight: 1.55 }}
                 >
                   <Clock size={11} style={{ marginTop: 2, color: 'var(--fg-muted)', flexShrink: 0 }} />
@@ -554,7 +541,7 @@ export function LensCard({
                     <span className="text-xs" style={{ color: 'var(--fg-primary)' }}>
                       {t('v1.lens.misbeliefToggle')}
                     </span>
-                    <span className="text-[10px]" style={{ color: 'var(--fg-muted)' }}>
+                    <span className="kg-t2xs" style={{ color: 'var(--fg-muted)' }}>
                       {t('v1.lens.misbeliefToggleDesc')}
                     </span>
                   </span>
@@ -570,7 +557,7 @@ export function LensCard({
             {bookmarkNodes.length === 0 ? (
               <div className="flex items-center gap-2">
                 <Bookmark size={12} style={{ color: 'var(--fg-muted)' }} />
-                <span className="text-[11px]" style={{ color: 'var(--fg-muted)' }}>
+                <span className="kg-t2xs" style={{ color: 'var(--fg-muted)' }}>
                   {t('v1.lens.noBookmarks')}
                 </span>
               </div>
@@ -599,13 +586,13 @@ export function LensCard({
             )}
             {isAggregateMode && (
               <p
-                className="text-[11px] p-1.5 rounded"
+                className="kg-t2xs p-1.5 rounded"
                 style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--fg-secondary)', lineHeight: 1.55 }}
               >
                 {t('v1.lens.bookmarkAggregateNote')}
               </p>
             )}
-            <div className="text-[11px] mt-0.5" style={{ color: 'var(--fg-muted)' }}>
+            <div className="kg-t2xs mt-0.5" style={{ color: 'var(--fg-muted)' }}>
               {t('v1.lens.bookmarkStorageNote')}
             </div>
           </div>
