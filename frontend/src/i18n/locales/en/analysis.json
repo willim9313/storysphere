@@ -962,7 +962,8 @@
       "complete": "complete",
       "partial": "partial",
       "empty": "not built",
-      "totalNodes": "{{n}} nodes total"
+      "totalNodes": "{{n}} nodes total",
+      "completionRule": "{{done}} of {{total}} nodes built · partial counts as half"
     },
     "inspector": {
       "layerList": "Layer list",
@@ -978,7 +979,11 @@
       "openPage": "Open the matching page",
       "rawCounts": "Raw counts",
       "meta": "Metadata",
-      "triggerSoon": "Build trigger coming soon"
+      "triggerSoon": "Build trigger coming soon",
+      "sharedTrigger": "Runs together with {{names}} — different views of one run",
+      "missingPrereq": "Missing {{n}} prerequisites",
+      "blockedByHazard": "Rerun is deliberately unavailable for this layer: reclassifying a book whose EEP cache is gone wipes the knowledge graph's existing kernel weights, and it cannot be undone.",
+      "nameJoin": ", "
     },
     "cta": {
       "running": "Building…",
@@ -1046,7 +1051,11 @@
         "intro": "About to run: {{action}}.",
         "token": "This calls the LLM and costs tokens; anything already built is skipped.",
         "dropsDerived": "This step regenerates entities and events, so the analyses derived from them are deleted and will need rebuilding.",
-        "start": "Start building"
+        "start": "Start building",
+        "dropsDownstream": "Rerunning this node will discard {{n}} downstream outputs already built",
+        "keepsDownstream": "Only fills in what is missing; no downstream output is affected",
+        "affectsDownstream": "After the rerun, the downstream outputs listed below will be affected.",
+        "overwrites": "This overwrites the existing analysis results."
       }
     },
     "layer": {
@@ -1054,7 +1063,8 @@
       "1": "Knowledge Graph",
       "2": "Analysis intermediates",
       "3": "Derived analyses",
-      "4": "Book synthesis"
+      "4": "Book synthesis",
+      "sourceHint": "Source data present at upload, not produced by an LLM"
     },
     "laneName": {
       "0": "Text",
@@ -1127,11 +1137,26 @@
       "pendingTitle": "Awaiting review ({{n}})",
       "confidence": "Confidence {{v}}%",
       "adopt": "Adopt",
-      "dismiss": "Dismiss"
+      "dismiss": "Dismiss",
+      "rejectPermanent": "Dismissals are permanent: a dismissed proposition will not reappear even after a rerun",
+      "pendingCount": "{{n}} pending",
+      "expand": "Expand review ↓",
+      "collapse": "Collapse review ↑"
     },
     "guide": {
       "prefix": "Researcher guide:",
       "body": "This page is the book's <strong>build inventory</strong>, in five layers from L0 (text) to L4, where <strong>each layer feeds the ones above it</strong>. Node colour shows built / partial / not built. Any layer can be re-run from here — <strong>but re-running discards whatever downstream depends on it</strong>, and the confirmation lists what that includes."
+    },
+    "selection": {
+      "upstreamCount": "{{n}} upstream dependencies",
+      "willDelete": "Will be deleted"
+    },
+    "dag": {
+      "kgGroup": "KG features · one rerun",
+      "backEdge": "Back edge · temporal relations wait on EEP (L2 → L1)"
+    },
+    "layerList": {
+      "counts": "{{n}} · {{done}} analyzed"
     }
   },
   "symbol": {

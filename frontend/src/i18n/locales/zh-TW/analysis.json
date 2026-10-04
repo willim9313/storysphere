@@ -962,7 +962,8 @@
       "complete": "已建立",
       "partial": "部分",
       "empty": "未建立",
-      "totalNodes": "共 {{n}} 節點"
+      "totalNodes": "共 {{n}} 節點",
+      "completionRule": "已建立 {{done}} / {{total}} 節點 · 部分計半套"
     },
     "inspector": {
       "layerList": "層次清單",
@@ -978,7 +979,11 @@
       "openPage": "前往對應頁面瀏覽",
       "rawCounts": "原始計數",
       "meta": "附加資訊",
-      "triggerSoon": "觸發建構功能規劃中"
+      "triggerSoon": "觸發建構功能規劃中",
+      "sharedTrigger": "與 {{names}} 是同一次執行的不同檢視",
+      "missingPrereq": "還缺 {{n}} 項前置",
+      "blockedByHazard": "這一層刻意不提供重跑：對已失去 EEP 快取的書重新分類，會洗掉知識圖譜既有的 kernel 權重，且無法還原。",
+      "nameJoin": "、"
     },
     "cta": {
       "running": "建構中…",
@@ -1046,7 +1051,11 @@
         "intro": "即將執行：{{action}}。",
         "token": "此操作會呼叫 LLM 並消耗 token，已完成的部分會自動跳過。",
         "dropsDerived": "此步驟會重新產生實體與事件，依賴它們的既有分析結果將被刪除，需要重新生成。",
-        "start": "開始建構"
+        "start": "開始建構",
+        "dropsDownstream": "重跑這個節點會丟掉 {{n}} 個已建立的下游產物",
+        "keepsDownstream": "只補沒有的部分，不影響任何下游產物",
+        "affectsDownstream": "重跑後，下列已建立的下游產物會受影響。",
+        "overwrites": "此操作會覆蓋既有的分析結果。"
       }
     },
     "layer": {
@@ -1054,7 +1063,8 @@
       "1": "知識圖譜",
       "2": "分析中間產物",
       "3": "衍生分析",
-      "4": "全書合成"
+      "4": "全書合成",
+      "sourceHint": "上傳時就有的來源資料，不由 LLM 產生"
     },
     "laneName": {
       "0": "文本",
@@ -1127,11 +1137,26 @@
       "pendingTitle": "待審查命題（{{n}}）",
       "confidence": "信心 {{v}}%",
       "adopt": "採用",
-      "dismiss": "否決"
+      "dismiss": "否決",
+      "rejectPermanent": "永久否決：被否決的命題即使重跑也不會再出現",
+      "pendingCount": "{{n}} 待審",
+      "expand": "展開審查 ↓",
+      "collapse": "收合審查 ↑"
     },
     "guide": {
       "prefix": "研究者導覽：",
       "body": "本頁是這本書的<strong>產出清單</strong>，分 L0 文本層到 L4 五層，<strong>下層是上層的輸入</strong>。節點顏色表示已建立／部分／未建立。從這裡可以重跑任一層——<strong>但重跑會丟掉依賴它的下游產物</strong>，執行前的確認框會列出會被影響的東西。"
+    },
+    "selection": {
+      "upstreamCount": "上游依賴鏈 {{n}} 個",
+      "willDelete": "會被刪除"
+    },
+    "dag": {
+      "kgGroup": "KG 特徵 · 同一次重跑",
+      "backEdge": "回頭邊 · 時序關係要等 EEP（L2 → L1）"
+    },
+    "layerList": {
+      "counts": "{{n}} · 已析 {{done}}"
     }
   },
   "symbol": {

@@ -1,26 +1,17 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Trans, useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import {
-  AlertTriangle,
-  ChevronLeft,
-  ExternalLink,
-  Filter,
-  Layers,
-  Check,
-  Loader2,
-  PlayCircle,
-  RotateCw,
-  X,
-} from 'lucide-react';
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { ErrorMessage } from '@/components/ui/ErrorMessage';
+import { AlertTriangle, ArrowLeft, Info, Loader2, ArrowUpRight } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { GuidanceRibbon } from '@/components/ui/GuidanceRibbon';
+import { LlmUnconfiguredNotice } from '@/components/ui/LlmUnconfiguredNotice';
+import { PageFailure } from '@/components/ui/PageFailure';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
-import { rerunStep, type RerunStep } from '@/api/ingest';
+import { rerunStep } from '@/api/ingest';
+import { failureKind, isLlmUnconfigured, techDetailOf } from '@/api/failureKind';
 import { triggerBatchEntityAnalysis, triggerBatchEventAnalysis } from '@/api/analysis';
 import {
   confirmInferredConcept,
@@ -37,84 +28,37 @@ import {
   type BuildOverviewNode,
   type ChapterDistribution,
 } from '@/api/buildOverview';
+import {
+  BACK_EDGE_Y,
+  COLUMN_CX,
+  KG_CHILD_IDS,
+  KG_GROUP_BOX,
+  LAYERS,
+  NODE_H,
+  NODE_W,
+  SVG_H,
+  SVG_W,
+  actionModeFor,
+  aggregate,
+  blockersOf,
+  ctaStateFor,
+  dropsDerived,
+  droppedNodes,
+  edgeRole,
+  layerProgress,
+  layoutEdges,
+  metaValueText,
+  neighborIds,
+  nodeBox,
+  scorePct,
+  sharedTriggerPeers,
+  triggerKeyOf,
+  upstreamChain,
+  type TriggerKey,
+} from '@/components/buildOverview/buildOverviewModel';
 import '@/styles/build-overview.css';
 
-// ── DAG layout constants (matching design hand-off) ────────────────────────────
-
-const DAG_W = 980;
-const DAG_H = 660;
-const NODE_W = 130;
-const NODE_H = 38;
-const DIAMOND_W = 110;
-const DIAMOND_H = 46;
-
-const NODE_POS: Record<string, { x: number; y: number }> = {
-  // Layer 0 — diamonds
-  book_meta:  { x: 95, y: 244 },
-  chapters:   { x: 95, y: 320 },
-  paragraphs: { x: 95, y: 396 },
-  // Layer 1 regular
-  summaries: { x: 280, y: 80 },
-  keywords:  { x: 280, y: 140 },
-  symbols:   { x: 280, y: 200 },
-  // Layer 1 KG group children
-  kg_entity:            { x: 280, y: 268 },
-  kg_concept:           { x: 280, y: 316 },
-  kg_concept_inferred:  { x: 280, y: 364 },
-  kg_relation:          { x: 280, y: 412 },
-  kg_event:             { x: 280, y: 460 },
-  kg_temporal_relation: { x: 280, y: 508 },
-  // Layer 2
-  cep: { x: 470, y: 200 },
-  eep: { x: 470, y: 270 },
-  teu: { x: 470, y: 340 },
-  sep: { x: 470, y: 410 },
-  // Layer 3
-  character_analysis_result: { x: 670, y:  80 },
-  causality_analysis:        { x: 670, y: 145 },
-  impact_analysis:           { x: 670, y: 210 },
-  tension_lines:             { x: 670, y: 275 },
-  symbol_analysis_result:    { x: 670, y: 340 },
-  narrative_structure:       { x: 670, y: 405 },
-  hero_journey_stage:        { x: 670, y: 470 },
-  temporal_analysis:         { x: 670, y: 535 },
-  voice_profile:             { x: 670, y: 600 },
-  // Layer 4
-  tension_theme:      { x: 880, y: 280 },
-  chronological_rank: { x: 880, y: 360 },
-};
-
-const KG_GROUP = { x: 215, y: 240, w: 130, h: 302 };
-const KG_CHILD_IDS = new Set([
-  'kg_entity', 'kg_concept', 'kg_concept_inferred', 'kg_relation', 'kg_event',
-  'kg_temporal_relation',
-]);
-
-const LAYERS = [0, 1, 2, 3, 4] as const;
-
-// Each layer's column center x (matches NODE_POS entries above).
-const LAYER_CENTER_X: Record<number, number> = {
-  0:  95,
-  1: 280,
-  2: 470,
-  3: 670,
-  4: 880,
-};
-
-// Lane bands: boundaries fall at midpoints between adjacent layer centers,
-// so bands tile the canvas with no gaps and the band center matches the
-// node column.
-const LANES = LAYERS.map((layer, i) => {
-  const center = LAYER_CENTER_X[layer];
-  const prev = i > 0 ? LAYER_CENTER_X[LAYERS[i - 1]] : null;
-  const next = i < LAYERS.length - 1 ? LAYER_CENTER_X[LAYERS[i + 1]] : null;
-  return {
-    layer,
-    center,
-    start: prev !== null ? (prev + center) / 2 : 0,
-    end:   next !== null ? (center + next) / 2 : DAG_W,
-  };
-});
+// ── Node → in-book page / trigger ─────────────────────────────────────────────
 
 // Map node → corresponding in-book page (empty when no useful destination).
 const NODE_TO_ROUTE: Record<string, string> = {
@@ -147,50 +91,23 @@ const NODE_TO_ROUTE: Record<string, string> = {
   tension_theme: 'tension',
 };
 
-// Map node → the pipeline that builds it. Nodes absent here have no batch
-// endpoint to call yet (teu, voice_profile, chronological_rank) or are too
-// destructive to put behind a one-click CTA (narrative_structure: classifying
-// a book whose EEP cache is gone rewrites the KG's kernel weights), and keep
-// the disabled placeholder.
+// What each trigger calls. Which nodes share a trigger, and which of those drop
+// derived analyses, lives in buildOverviewModel (NODE_TRIGGER_KEY /
+// DROPS_BY_TRIGGER) so the canvas and the confirm dialog read one table.
 //
-// `dropsDerived` marks the runs that regenerate the ids downstream analyses
-// were keyed by — those cached analyses are deleted, so the confirm dialog has
-// to say more than "this costs tokens".
-interface TriggerDef {
-  run: (bookId: string) => Promise<{ taskId: string }>;
-  dropsDerived: boolean;
-}
-
-function rerunTrigger(step: RerunStep, dropsDerived: boolean): TriggerDef {
-  return { run: (bookId: string) => rerunStep(bookId, step), dropsDerived };
-}
-
-const KG_RERUN = rerunTrigger('knowledge-graph', true);
-const ENTITY_BATCH: TriggerDef = { run: triggerBatchEntityAnalysis, dropsDerived: false };
-const EVENT_BATCH: TriggerDef = { run: triggerBatchEventAnalysis, dropsDerived: false };
-
-const NODE_TO_TRIGGER: Record<string, TriggerDef> = {
-  // Summarization skips chapters that already have a summary, so this fills
-  // the gap rather than rebuilding — and it deletes no derived analysis.
-  summaries: rerunTrigger('summarization', false),
-  keywords: rerunTrigger('feature-extraction', true),
-  symbols: rerunTrigger('symbol-discovery', true),
-  kg_entity: KG_RERUN,
-  // A KG rerun refills only the NER concepts — which is now all this node
-  // claims, since B-092 split the inference half into `kg_concept_inferred`.
-  // While the two shared a node the button could never move the count off
-  // zero, so B-089 removed it; the split is what makes it honest again.
-  kg_concept: KG_RERUN,
-  kg_concept_inferred: { run: triggerConceptInference, dropsDerived: false },
-  kg_relation: KG_RERUN,
-  kg_event: KG_RERUN,
+// Summarization skips chapters that already have a summary, so it fills the gap
+// rather than rebuilding. A KG rerun refills only the NER concepts — the
+// inference half is its own node (`kg_concept_inferred`, B-092).
+const TRIGGER_RUN: Record<TriggerKey, (bookId: string) => Promise<{ taskId: string }>> = {
+  summarization: (id) => rerunStep(id, 'summarization'),
+  'feature-extraction': (id) => rerunStep(id, 'feature-extraction'),
+  'symbol-discovery': (id) => rerunStep(id, 'symbol-discovery'),
+  'knowledge-graph': (id) => rerunStep(id, 'knowledge-graph'),
+  'concept-inference': triggerConceptInference,
   // CEP is the evidence package the character analysis is built from; both
   // nodes report the same counts and come from the same batch run.
-  cep: ENTITY_BATCH,
-  character_analysis_result: ENTITY_BATCH,
-  eep: EVENT_BATCH,
-  causality_analysis: EVENT_BATCH,
-  impact_analysis: EVENT_BATCH,
+  'entity-batch': triggerBatchEntityAnalysis,
+  'event-batch': triggerBatchEventAnalysis,
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -201,7 +118,12 @@ function nodeLabel(t: TFunction, n: BuildOverviewNode): string {
   return t(`unraveling.node.${n.nodeId}`, { defaultValue: apiLabel });
 }
 
-function nodeSubLabel(t: TFunction, n: BuildOverviewNode): string {
+function nodeSubLabel(t: TFunction, n: BuildOverviewNode, pendingConcepts?: number): string {
+  if (n.nodeId === 'kg_concept_inferred' && pendingConcepts) {
+    // The manifest has no pending count; the review queue does. The node's
+    // status stays whatever the manifest says.
+    return t('unraveling.concepts.pendingCount', { n: pendingConcepts });
+  }
   if (n.status === 'empty') return t('unraveling.notBuilt');
   const c = n.counts;
   switch (n.nodeId) {
@@ -245,176 +167,173 @@ function nodeSubLabel(t: TFunction, n: BuildOverviewNode): string {
   }
 }
 
-interface LayerProgress {
-  layer: number;
-  total: number;
-  complete: number;
-  partial: number;
-  empty: number;
-  score: number;
+// ── Status marks (shape, not hue: Ink's four status colours are all #151515) ──
+
+/** Solid = complete, half = partial, hollow = not built. */
+function StatusMark({
+  status,
+  size = 8,
+  onFill = false,
+}: Readonly<{ status: NodeStatus; size?: number; onFill?: boolean }>) {
+  return (
+    <span
+      className={`bo-mark is-${status}${onFill ? ' is-on-fill' : ''}`}
+      style={{ width: size, height: size }}
+      aria-hidden="true"
+    />
+  );
 }
 
-function aggregate(nodes: BuildOverviewNode[]): LayerProgress {
-  const total = nodes.length;
-  const complete = nodes.filter(n => n.status === 'complete').length;
-  const partial = nodes.filter(n => n.status === 'partial').length;
-  const empty = nodes.filter(n => n.status === 'empty').length;
-  const score = total === 0 ? 0 : (complete + partial * 0.5) / total;
-  return { layer: -1, total, complete, partial, empty, score };
+function StatusBadge({ status, label }: Readonly<{ status: NodeStatus; label: string }>) {
+  return (
+    <span className={`bo-statbadge ${status}`}>
+      <StatusMark status={status} onFill />
+      {label}
+    </span>
+  );
 }
 
-function layerProgress(nodes: BuildOverviewNode[], layer: number): LayerProgress {
-  const sub = nodes.filter(n => n.layer === layer);
-  return { ...aggregate(sub), layer };
+/** SVG twin of StatusMark, drawn on the node's own fill (so it uses the status
+ *  fg colour, which Ink flips to white on its solid complete fill). */
+function SvgStatusMark({
+  status,
+  cx,
+  cy,
+}: Readonly<{ status: NodeStatus; cx: number; cy: number }>) {
+  const r = 3.5;
+  const fg = `var(--status-${status}-fg)`;
+  if (status === 'complete') {
+    return <circle cx={cx} cy={cy} r={r} fill={fg} stroke={fg} strokeWidth={1} />;
+  }
+  if (status === 'partial') {
+    return (
+      <g>
+        <circle cx={cx} cy={cy} r={r} fill="none" stroke={fg} strokeWidth={1} />
+        <path d={`M${cx} ${cy - r} A${r} ${r} 0 0 0 ${cx} ${cy + r}Z`} fill={fg} />
+      </g>
+    );
+  }
+  return <circle cx={cx} cy={cy} r={r} fill="none" stroke={fg} strokeWidth={1} />;
 }
 
-function getBlockers(
-  nodeId: string,
-  manifest: BuildOverviewManifest,
-): BuildOverviewNode[] {
-  const nodeById = new Map(manifest.nodes.map(n => [n.nodeId, n]));
-  const incoming = manifest.edges.filter(e => e.target === nodeId);
-  return incoming
-    .map(e => nodeById.get(e.source))
-    .filter((n): n is BuildOverviewNode => !!n && n.status !== 'complete');
+// ── Selection (B 區) ──────────────────────────────────────────────────────────
+
+interface Selection {
+  nodeId: string;
+  /** Transitive upstream — "I need these". */
+  chain: Set<string>;
+  /** Direct neighbours, both directions. */
+  neighbors: Set<string>;
+  /** What a rerun of the selected node deletes (built nodes only). */
+  dropped: BuildOverviewNode[];
+}
+
+function selectionOf(manifest: BuildOverviewManifest, nodeId: string | null): Selection | null {
+  if (!nodeId) return null;
+  return {
+    nodeId,
+    chain: new Set(upstreamChain(manifest.edges, nodeId)),
+    neighbors: new Set(neighborIds(manifest.edges, nodeId)),
+    dropped: droppedNodes(nodeId, manifest.nodes),
+  };
 }
 
 // ── DAG: nodes ────────────────────────────────────────────────────────────────
 
-function nodeRect(nodeId: string, layer: number) {
-  const p = NODE_POS[nodeId];
-  if (!p) return null;
-  const isDiamond = layer === 0;
-  const w = isDiamond ? DIAMOND_W : NODE_W;
-  const h = isDiamond ? DIAMOND_H : NODE_H;
-  return { x: p.x - w / 2, y: p.y - h / 2, w, h, cx: p.x, cy: p.y, isDiamond };
-}
-
 interface DagNodeProps {
   node: BuildOverviewNode;
-  selected: boolean;
-  faded: boolean;
-  onClick: () => void;
+  sub: string;
+  label: string;
+  selection: Selection | null;
+  onSelect: (id: string) => void;
   t: TFunction;
 }
 
-function DagNode({ node, selected, faded, onClick, t }: Readonly<DagNodeProps>) {
-  const rect = nodeRect(node.nodeId, node.layer);
-  if (!rect) return null;
+function DagNode({ node, sub, label, selection, onSelect, t }: Readonly<DagNodeProps>) {
+  const box = nodeBox(node.nodeId);
+  if (!box) return null;
+  const { x, y } = box;
+  const id = node.nodeId;
 
-  const bg = `var(--status-${node.status}-bg)`;
-  const text = `var(--status-${node.status}-fg)`;
-  const border = `var(--status-${node.status}-border)`;
-  const accent = 'var(--accent)';
-  const stroke = selected ? accent : border;
-  const strokeW = selected ? 2.4 : 1.4;
-  const opacity = faded ? 0.28 : 1;
-  const ry = node.layer === 1 ? 2 : 8;
+  const isSelected = selection?.nodeId === id;
+  const isDrop = !!selection && selection.dropped.some((d) => d.nodeId === id);
+  const isUp = !!selection && !isSelected && selection.chain.has(id);
+  const lit =
+    !selection || isSelected || isDrop || isUp || selection.neighbors.has(id);
 
-  const sub = nodeSubLabel(t, node);
+  const fg = `var(--status-${node.status}-fg)`;
+  const isSource = node.layer === 0;
+  const textX = x + (isSource ? 24 : 10);
+  let stroke = `var(--status-${node.status}-border)`;
+  if (isDrop) stroke = 'var(--color-error)';
+  else if (isUp) stroke = 'var(--accent)';
 
-  const labelTexts = (
-    <>
-      <text
-        x={rect.cx} y={rect.cy - 2}
-        fill={text} fontSize={10.5} fontWeight={600}
-        textAnchor="middle"
-        style={{ fontFamily: 'var(--font-sans)' }}
-      >
-        {nodeLabel(t, node)}
+  return (
+    <g
+      className="bo-node"
+      opacity={lit ? 1 : 0.3}
+      role="button"
+      tabIndex={0}
+      aria-label={`${label} · ${t(`unraveling.status.${node.status}`)}`}
+      aria-pressed={isSelected}
+      onClick={() => onSelect(id)}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          onSelect(id);
+        }
+      }}
+    >
+      {isSelected && (
+        <rect
+          x={x - 4}
+          y={y - 4}
+          width={NODE_W + 8}
+          height={NODE_H + 8}
+          rx={8}
+          fill="none"
+          stroke="var(--accent)"
+          strokeWidth={2}
+        />
+      )}
+      <rect
+        className="bo-node-box"
+        x={x}
+        y={y}
+        width={NODE_W}
+        height={NODE_H}
+        rx={4}
+        fill={`var(--status-${node.status}-bg)`}
+        stroke={stroke}
+        strokeWidth={isDrop || isUp ? 1.5 : 1}
+        strokeDasharray={isDrop ? '4 3' : undefined}
+      />
+      <SvgStatusMark status={node.status} cx={x + NODE_W - 10} cy={y + 10} />
+      {isSource && (
+        <path d={`M${x + 12} ${y + 12} l5 6 -5 6 -5 -6z`} fill="none" stroke={fg} strokeWidth={1.2} />
+      )}
+      <text className="bo-node-label" x={textX} y={y + 15} fill={fg}>
+        {label}
       </text>
-      {sub && (
+      <text
+        className={`bo-node-count${isDrop ? ' is-struck' : ''}`}
+        x={textX}
+        y={y + 29}
+        fill={fg}
+      >
+        {sub}
+      </text>
+      {isDrop && (
         <text
-          x={rect.cx} y={rect.cy + 11}
-          fill={text} fontSize={9} opacity={0.85}
-          textAnchor="middle"
-          style={{ fontFamily: 'var(--font-sans)' }}
+          className="bo-node-drop"
+          x={x + NODE_W - 8}
+          y={y + 29}
+          textAnchor="end"
+          fill="var(--color-error)"
         >
-          {sub}
+          {t('unraveling.selection.willDelete')}
         </text>
       )}
-    </>
-  );
-
-  if (rect.isDiamond) {
-    const pts = [
-      [rect.cx, rect.y],
-      [rect.x + rect.w, rect.cy],
-      [rect.cx, rect.y + rect.h],
-      [rect.x, rect.cy],
-    ].map(p => p.join(',')).join(' ');
-    return (
-      <g style={{ opacity, cursor: 'pointer', transition: 'opacity 200ms ease' }} onClick={onClick}>
-        <polygon
-          points={pts}
-          fill={bg}
-          stroke={stroke}
-          strokeWidth={strokeW}
-          style={{ transition: 'stroke 200ms ease, stroke-width 200ms ease' }}
-        />
-        {labelTexts}
-      </g>
-    );
-  }
-
-  return (
-    <g style={{ opacity, cursor: 'pointer', transition: 'opacity 200ms ease' }} onClick={onClick}>
-      <rect
-        x={rect.x} y={rect.y}
-        width={rect.w} height={rect.h}
-        rx={ry} ry={ry}
-        fill={bg}
-        stroke={stroke}
-        strokeWidth={strokeW}
-        style={{ transition: 'stroke 200ms ease, stroke-width 200ms ease' }}
-      />
-      {labelTexts}
-    </g>
-  );
-}
-
-// ── DAG: edges ────────────────────────────────────────────────────────────────
-
-interface DagEdgeProps {
-  source: string;
-  target: string;
-  sourceLayer: number;
-  targetLayer: number;
-  highlighted: boolean;
-  faded: boolean;
-}
-
-function DagEdge({
-  source, target, sourceLayer, targetLayer, highlighted, faded,
-}: Readonly<DagEdgeProps>) {
-  const a = nodeRect(source, sourceLayer);
-  const b = nodeRect(target, targetLayer);
-  if (!a || !b) return null;
-
-  const x1 = a.x + a.w;
-  const y1 = a.cy;
-  const x2 = b.x;
-  const y2 = b.cy;
-  const dx = Math.max(40, (x2 - x1) * 0.4);
-  const cx1 = x1 + dx;
-  const cy1 = y1;
-  const cx2 = x2 - dx;
-  const cy2 = y2;
-  const path = `M ${x1} ${y1} C ${cx1} ${cy1} ${cx2} ${cy2} ${x2} ${y2}`;
-
-  const stroke = highlighted ? 'var(--accent)' : 'var(--border)';
-  const sw = highlighted ? 1.8 : 1.1;
-  const op = faded ? 0.18 : (highlighted ? 1 : 0.55);
-
-  return (
-    <g style={{ opacity: op, transition: 'opacity 200ms ease' }}>
-      <path
-        d={path}
-        fill="none"
-        stroke={stroke}
-        strokeWidth={sw}
-        markerEnd={highlighted ? 'url(#bo-arrow-hi)' : 'url(#bo-arrow)'}
-      />
     </g>
   );
 }
@@ -423,218 +342,233 @@ function DagEdge({
 
 interface DagCanvasProps {
   manifest: BuildOverviewManifest;
-  selectedId: string | null;
+  selection: Selection | null;
+  pendingConcepts?: number;
   onSelect: (id: string | null) => void;
 }
 
-function DagCanvas({ manifest, selectedId, onSelect }: Readonly<DagCanvasProps>) {
+function DagCanvas({ manifest, selection, pendingConcepts, onSelect }: Readonly<DagCanvasProps>) {
   const { t } = useTranslation('analysis');
-  const layerById = useMemo(
-    () => new Map(manifest.nodes.map(n => [n.nodeId, n.layer])),
-    [manifest.nodes],
-  );
+  const laid = useMemo(() => layoutEdges(manifest.edges), [manifest.edges]);
 
-  const { highlightedNodes, highlightedEdgeIdx } = useMemo(() => {
-    const nodes = new Set<string>();
-    const edges = new Set<number>();
-    if (selectedId) {
-      nodes.add(selectedId);
-      manifest.edges.forEach((e, i) => {
-        if (e.source === selectedId || e.target === selectedId) {
-          edges.add(i);
-          nodes.add(e.source);
-          nodes.add(e.target);
-        }
-      });
-    }
-    return { highlightedNodes: nodes, highlightedEdgeIdx: edges };
-  }, [selectedId, manifest.edges]);
-
-  const isFaded = (id: string) => !!selectedId && !highlightedNodes.has(id);
-
-  const kgGroupActive = !selectedId
-    || highlightedNodes.has('kg_features')
-    || [...KG_CHILD_IDS].some(c => highlightedNodes.has(c));
+  const kgLit =
+    !selection ||
+    KG_CHILD_IDS.has(selection.nodeId) ||
+    [...KG_CHILD_IDS].some((c) => selection.chain.has(c) || selection.neighbors.has(c));
+  const backBox = nodeBox('kg_temporal_relation');
+  const sourceNodes = manifest.nodes.filter((n) => n.layer === 0 && nodeBox(n.nodeId));
 
   return (
-    <svg
-      className="bo-dag-svg"
-      viewBox={`0 0 ${DAG_W} ${DAG_H}`}
-      preserveAspectRatio="xMidYMid meet"
-      onClick={(e) => {
-        // Background click clears selection
-        if (e.target === e.currentTarget) onSelect(null);
-      }}
-    >
-      <defs>
-        <marker id="bo-arrow" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
-          <path d="M0,0 L8,4 L0,8 z" fill="var(--border)" />
-        </marker>
-        <marker id="bo-arrow-hi" viewBox="0 0 8 8" refX="7" refY="4" markerWidth="6" markerHeight="6" orient="auto">
-          <path d="M0,0 L8,4 L0,8 z" fill="var(--accent)" />
-        </marker>
-      </defs>
-
-      {/* Alternating lane backgrounds — bands tile the canvas with no gaps */}
-      {LANES.map((l, i) => i % 2 === 1 ? (
-        <rect
-          key={l.layer}
-          x={l.start} y={0}
-          width={l.end - l.start} height={DAG_H}
-          fill="var(--bg-secondary)"
-          opacity={0.35}
-        />
-      ) : null)}
-
-      {/* Lane headers — centered on the node column */}
-      {LANES.map(l => (
-        <g key={l.layer}>
-          <text
-            x={l.center} y={20}
-            fill="var(--fg-muted)"
-            fontSize={10} fontWeight={700}
-            textAnchor="middle"
-            style={{ fontFamily: 'var(--font-sans)', letterSpacing: '0.12em' }}
-          >
-            LAYER {l.layer}
-          </text>
-          <text
-            x={l.center} y={36}
-            fill="var(--fg-secondary)"
-            fontSize={11.5} fontWeight={600}
-            textAnchor="middle"
-            style={{ fontFamily: 'var(--font-serif)' }}
-          >
-            {t(`unraveling.laneName.${l.layer}`)}
+    <div className="bo-svgbox">
+      <svg
+        className="bo-svg"
+        viewBox={`0 0 ${SVG_W} ${SVG_H}`}
+        width="100%"
+        onClick={(e) => {
+          // Background click clears selection
+          if (e.target === e.currentTarget) onSelect(null);
+        }}
+      >
+        {/* KG feature group — one rerun fills all of it */}
+        <g opacity={kgLit ? 1 : 0.5}>
+          <rect
+            x={KG_GROUP_BOX.x}
+            y={KG_GROUP_BOX.y}
+            width={KG_GROUP_BOX.w}
+            height={KG_GROUP_BOX.h}
+            rx={6}
+            fill="none"
+            stroke="var(--border)"
+            strokeWidth={1}
+            strokeDasharray="3 3"
+          />
+          <text className="bo-svg-note" x={KG_GROUP_BOX.x + 4} y={KG_GROUP_BOX.y - 2}>
+            {t('unraveling.dag.kgGroup')}
           </text>
         </g>
-      ))}
 
-      {/* KG compound group */}
-      <g style={{ opacity: kgGroupActive ? 1 : 0.4, transition: 'opacity 200ms ease' }}>
-        <rect
-          x={KG_GROUP.x} y={KG_GROUP.y}
-          width={KG_GROUP.w} height={KG_GROUP.h}
-          rx={8} ry={8}
-          fill="var(--bg-tertiary)" fillOpacity={0.55}
-          stroke="var(--accent)" strokeWidth={1.4}
-          strokeDasharray="4 3"
-        />
-        <text
-          x={KG_GROUP.x + KG_GROUP.w / 2} y={KG_GROUP.y - 6}
-          fill="var(--accent)"
-          fontSize={11} fontWeight={700}
-          textAnchor="middle"
-          style={{ fontFamily: 'var(--font-sans)', letterSpacing: '0.04em' }}
-        >
-          {t('unraveling.node.kg_features')}
-        </text>
-      </g>
+        {/* Edges. Failure scope is a per-trigger table, not a walk along edges,
+            so edges never turn red: only the upstream chain and the direct
+            links to the selected node are drawn differently. */}
+        {laid.map((e) => {
+          const role = selection ? edgeRole(manifest.edges[e.index], selection.nodeId, selection.chain) : 'rest';
+          let stroke = 'var(--border)';
+          if (role === 'up') stroke = 'var(--accent)';
+          else if (role === 'link') stroke = 'var(--fg-secondary)';
+          let opacity: number;
+          if (selection) opacity = role === 'rest' ? 0.14 : 1;
+          else if (e.kind === 'back') opacity = 0.7;
+          else opacity = e.spansColumns ? 0.3 : 0.55;
+          return (
+            <path
+              key={`${e.source}-${e.target}-${e.index}`}
+              d={e.d}
+              fill="none"
+              stroke={stroke}
+              strokeWidth={role === 'rest' ? 1 : 1.5}
+              strokeDasharray={e.kind === 'back' ? '5 3' : undefined}
+              strokeLinejoin="round"
+              opacity={opacity}
+            />
+          );
+        })}
 
-      {/* Edges */}
-      {manifest.edges.map((e, i) => {
-        const srcLayer = layerById.get(e.source);
-        const tgtLayer = layerById.get(e.target);
-        if (srcLayer === undefined || tgtLayer === undefined) return null;
-        return (
-          <DagEdge
-            key={`${e.source}-${e.target}-${i}`}
-            source={e.source}
-            target={e.target}
-            sourceLayer={srcLayer}
-            targetLayer={tgtLayer}
-            highlighted={highlightedEdgeIdx.has(i)}
-            faded={!!selectedId && !highlightedEdgeIdx.has(i)}
+        {/* The one edge that runs against the columns: eep → kg_temporal_relation */}
+        {backBox && laid.some((e) => e.kind === 'back') && (
+          <g opacity={selection ? 0.35 : 1}>
+            <path
+              d={`M${COLUMN_CX[1] - 4} ${backBox.y + NODE_H + 8} L${COLUMN_CX[1]} ${backBox.y + NODE_H} L${COLUMN_CX[1] + 4} ${backBox.y + NODE_H + 8}`}
+              fill="none"
+              stroke="var(--border)"
+              strokeWidth={1.2}
+            />
+            <text className="bo-svg-note" x={COLUMN_CX[1] + 32} y={BACK_EDGE_Y + 13}>
+              {t('unraveling.dag.backEdge')}
+            </text>
+          </g>
+        )}
+
+        {manifest.nodes.map((n) => (
+          <DagNode
+            key={n.nodeId}
+            node={n}
+            label={nodeLabel(t, n)}
+            sub={nodeSubLabel(t, n, pendingConcepts)}
+            selection={selection}
+            onSelect={onSelect}
+            t={t}
           />
+        ))}
+      </svg>
+
+      {/* The L0 diamond explains itself. An SVG shape cannot host the shared
+          Tooltip (it is a DOM span), so a transparent hit area sits over it. */}
+      {sourceNodes.map((n) => {
+        const box = nodeBox(n.nodeId)!;
+        return (
+          <span
+            key={n.nodeId}
+            className="bo-diahit"
+            style={{
+              left: `${((box.x + 4) / SVG_W) * 100}%`,
+              top: `${((box.y + 4) / SVG_H) * 100}%`,
+            }}
+          >
+            <Tooltip label={t('unraveling.layer.sourceHint')}>
+              <span className="bo-diahit-inner" onClick={() => onSelect(n.nodeId)} />
+            </Tooltip>
+          </span>
         );
       })}
-
-      {/* Nodes */}
-      {manifest.nodes.map(n => (
-        <DagNode
-          key={n.nodeId}
-          node={n}
-          selected={n.nodeId === selectedId}
-          faded={isFaded(n.nodeId)}
-          onClick={() => onSelect(n.nodeId)}
-          t={t}
-        />
-      ))}
-    </svg>
+    </div>
   );
 }
 
-// ── Status badge ──────────────────────────────────────────────────────────────
-
-function StatusBadge({ status, label }: Readonly<{ status: NodeStatus; label: string }>) {
-  return (
-    <span className={`bo-statbadge ${status}`}>
-      <span className="bo-statbadge-dot" />
-      {label}
-    </span>
-  );
-}
-
-// ── Summary strip ─────────────────────────────────────────────────────────────
+// ── Summary strip（完成度總覽收成一列） ───────────────────────────────────────
 
 function SummaryStrip({ manifest }: Readonly<{ manifest: BuildOverviewManifest }>) {
   const { t } = useTranslation('analysis');
   const ov = aggregate(manifest.nodes);
-  const pct = Math.round(ov.score * 100);
+  const segments: { status: NodeStatus; count: number; label: string }[] = [
+    { status: 'complete', count: ov.complete, label: t('unraveling.summary.complete') },
+    { status: 'partial', count: ov.partial, label: t('unraveling.summary.partial') },
+    { status: 'empty', count: ov.empty, label: t('unraveling.summary.empty') },
+  ];
 
   return (
     <div className="bo-summary">
       <div className="bo-summary-left">
-        <div className="bo-eyebrow">{t('unraveling.summary.eyebrow')}</div>
-        <div className="bo-headline">
-          <div className="bo-pct">
-            {pct}
-            <span className="bo-pct-unit">%</span>
-          </div>
-        </div>
-        <div className="bo-headline-sub">
-          <strong>{ov.complete}</strong> {t('unraveling.summary.complete')} ·{' '}
-          <strong>{ov.partial}</strong> {t('unraveling.summary.partial')} ·{' '}
-          <strong>{ov.empty}</strong> {t('unraveling.summary.empty')}
-          <span style={{ color: 'var(--fg-muted)' }}>
-            {' · '}
-            {t('unraveling.summary.totalNodes', { n: ov.total })}
+        <span className="bo-eyebrow">{t('unraveling.summary.eyebrow')}</span>
+        <div className="bo-summary-figure">
+          <span className="bo-pct">{scorePct(ov)}%</span>
+          <span className="bo-rule">
+            {t('unraveling.summary.completionRule', { done: ov.complete, total: ov.total })}
           </span>
         </div>
       </div>
-
-      <div className="bo-summary-mid">
-        <div className="bo-stackedbar">
-          <div className="seg-complete" style={{ width: `${(ov.complete / Math.max(1, ov.total)) * 100}%` }} />
-          <div className="seg-partial"  style={{ width: `${(ov.partial / Math.max(1, ov.total)) * 100}%` }} />
-          <div className="seg-empty"    style={{ width: `${(ov.empty / Math.max(1, ov.total)) * 100}%` }} />
+      <div className="bo-summary-right">
+        <div className="bo-bar">
+          {segments
+            .filter((s) => s.count > 0)
+            .map((s) => (
+              <div
+                key={s.status}
+                className="bo-bar-seg"
+                style={{
+                  flex: s.count,
+                  background: `var(--status-${s.status}-bg)`,
+                  borderColor: `var(--status-${s.status}-border)`,
+                }}
+              />
+            ))}
         </div>
-
-        <div className="bo-layerchips">
-          {LAYERS.map(layer => {
-            const lp = layerProgress(manifest.nodes, layer);
-            return (
-              <div key={layer} className="bo-layerchip">
-                <div className="bo-layerchip-head">
-                  <span>L{layer}</span>
-                  <span style={{ color: 'var(--fg-secondary)' }}>·</span>
-                  <span className="name">{t(`unraveling.layer.${layer}`)}</span>
-                </div>
-                <div className="bo-layerchip-progress">
-                  <div
-                    className="bo-layerchip-progress-fill"
-                    style={{ width: `${lp.score * 100}%` }}
-                  />
-                </div>
-                <div className="bo-layerchip-meta">
-                  <span>{lp.complete}/{lp.total}</span>
-                  {lp.partial > 0 && <span>· {lp.partial} {t('unraveling.summary.partial')}</span>}
-                </div>
-              </div>
-            );
-          })}
+        <div className="bo-legend">
+          {segments.map((s) => (
+            <span key={s.status} className="bo-legend-item">
+              <StatusMark status={s.status} />
+              <span className="bo-num">
+                {s.count} {s.label}
+              </span>
+            </span>
+          ))}
+          <span className="bo-legend-total">{t('unraveling.summary.totalNodes', { n: ov.total })}</span>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ── DAG column heads（五層卡片下沉成欄頭） ────────────────────────────────────
+
+function LayerHeads({ manifest }: Readonly<{ manifest: BuildOverviewManifest }>) {
+  const { t } = useTranslation('analysis');
+  return (
+    <div className="bo-heads">
+      {LAYERS.map((layer) => {
+        const lp = layerProgress(manifest.nodes, layer);
+        return (
+          <div key={layer} className="bo-head">
+            <span className="bo-head-name">
+              L{layer} · {t(`unraveling.layer.${layer}`)}
+            </span>
+            <span className="bo-head-count">
+              {lp.complete}/{lp.total}
+              {lp.partial > 0 && ` · ${lp.partial} ${t('unraveling.summary.partial')}`}
+            </span>
+            <div className="bo-head-bar">
+              <div className="bo-head-fill" style={{ width: `${lp.score * 100}%` }} />
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ── Selection legend + clear ──────────────────────────────────────────────────
+
+function SelectionBar({
+  selection,
+  onClear,
+}: Readonly<{ selection: Selection; onClear: () => void }>) {
+  const { t } = useTranslation('analysis');
+  return (
+    <div className="bo-selbar">
+      <div className="bo-selbar-legend">
+        <span className="bo-selbar-item">
+          <span className="bo-swatch is-up" aria-hidden="true" />
+          {t('unraveling.selection.upstreamCount', { n: selection.chain.size })}
+        </span>
+        {selection.dropped.length > 0 && (
+          <span className="bo-selbar-item is-drop">
+            <span className="bo-swatch is-drop" aria-hidden="true" />
+            {t('unraveling.cta.confirm.dropsDownstream', { n: selection.dropped.length })}
+          </span>
+        )}
+      </div>
+      <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary" onClick={onClear}>
+        {t('unraveling.toolbar.clearSelection')}
+      </button>
     </div>
   );
 }
@@ -643,37 +577,52 @@ function SummaryStrip({ manifest }: Readonly<{ manifest: BuildOverviewManifest }
 
 interface LayerListProps {
   manifest: BuildOverviewManifest;
-  selectedId: string | null;
+  pendingConcepts?: number;
   onSelect: (nodeId: string) => void;
 }
 
-function LayerList({ manifest, selectedId, onSelect }: Readonly<LayerListProps>) {
+function LayerList({ manifest, pendingConcepts, onSelect }: Readonly<LayerListProps>) {
   const { t } = useTranslation('analysis');
   return (
-    <div className="bo-layerlist">
-      {LAYERS.map(layer => {
-        const nodes = manifest.nodes.filter(n => n.layer === layer);
-        const lp = layerProgress(manifest.nodes, layer);
+    <div className="bo-list">
+      {LAYERS.map((layer) => {
+        const nodes = manifest.nodes
+          .filter((n) => n.layer === layer)
+          .sort((a, b) => (nodeBox(a.nodeId)?.row ?? 0) - (nodeBox(b.nodeId)?.row ?? 0));
+        // 「已析」只算完整的節點。
+        const analyzed = nodes.filter((n) => n.status === 'complete').length;
         return (
-          <div key={layer} className="bo-layergroup">
-            <div className="bo-layergroup-head">
-              <div className="bo-layergroup-num">L{layer}</div>
-              <div className="bo-layergroup-name">{t(`unraveling.layer.${layer}`)}</div>
-              <div className="bo-layergroup-progress">
-                {lp.complete}/{lp.total} · {Math.round(lp.score * 100)}%
-              </div>
+          <div key={layer} className="bo-lgroup">
+            <div className="bo-lgroup-head">
+              <span className="bo-lgroup-name">
+                L{layer} · {t(`unraveling.layer.${layer}`)}
+              </span>
+              <span className="bo-num">
+                {t('unraveling.layerList.counts', { n: nodes.length, done: analyzed })}
+              </span>
             </div>
-            <div>
-              {nodes.map(n => (
+            <div className="bo-rows">
+              {nodes.map((n) => (
                 <button
                   key={n.nodeId}
                   type="button"
-                  className={`bo-noderow ${selectedId === n.nodeId ? 'selected' : ''}`}
+                  className="bo-row"
                   onClick={() => onSelect(n.nodeId)}
                 >
-                  <div className={`bo-noderow-status ${n.status}`} />
-                  <div className="bo-noderow-name">{nodeLabel(t, n)}</div>
-                  <div className="bo-noderow-sub">{nodeSubLabel(t, n)}</div>
+                  <span className="bo-row-lead" aria-hidden="true">
+                    {layer === 0 && (
+                      <svg width="12" height="12" viewBox="0 0 12 12" fill="none" stroke="currentColor" strokeWidth="1.2">
+                        <path d="M6 1l4 5-4 5-4-5z" />
+                      </svg>
+                    )}
+                  </span>
+                  <span className="bo-row-name">{nodeLabel(t, n)}</span>
+                  <span className={`bo-row-sub${n.status === 'empty' ? ' is-empty' : ''}`}>
+                    {nodeSubLabel(t, n, pendingConcepts)}
+                  </span>
+                  <span className="bo-row-mark">
+                    <StatusMark status={n.status} />
+                  </span>
                 </button>
               ))}
             </div>
@@ -684,46 +633,46 @@ function LayerList({ manifest, selectedId, onSelect }: Readonly<LayerListProps>)
   );
 }
 
-// ── Inspector — chapter distribution sparkline ────────────────────────────────
+// ── Inspector — chapter distribution ──────────────────────────────────────────
 
 function ChapterDistMini({ values }: Readonly<{ values: number[] }>) {
   if (values.length === 0) return null;
   const max = Math.max(1, ...values);
   return (
-    <div>
-      <div className="bo-chapdist">
+    <div className="bo-distbox">
+      <div className="bo-dist">
         {values.map((v, i) => (
-          <div
-            key={i}
-            className={`bo-chapdist-bar ${v === 0 ? 'empty' : ''}`}
-            style={{
-              height: `${(v / max) * 100}%`,
-              minHeight: v === 0 ? '2px' : '4px',
-            }}
-            title={`Ch.${i + 1}: ${v}`}
-          />
+          <Tooltip key={i} label={`Ch.${i + 1}: ${v}`}>
+            <span
+              className={`bo-dist-bar${v === 0 ? ' is-zero' : ''}`}
+              style={{ height: `${(v / max) * 100}%` }}
+            />
+          </Tooltip>
         ))}
       </div>
-      <div className="bo-chapdist-labels">
-        {values.map((_, i) => (
-          <span key={i}>{(i + 1) % 3 === 1 || i === values.length - 1 ? i + 1 : ''}</span>
-        ))}
+      <div className="bo-dist-axis">
+        <span>Ch.1</span>
+        <span>Ch.{values.length}</span>
       </div>
     </div>
   );
 }
 
-// ── Inferred concept review (B-092) ───────────────────────────────────────────
+// ── Inferred concept review (B-092 · E 區) ────────────────────────────────────
 //
 // Propositions the LLM inferred wait in a side-store rather than going straight
 // into the graph: TEU assembly reads Concept nodes into its prompt as
 // established fact, so a wrong one would keep being handed forward as a
 // premise. This is where someone rules on them — the same place the run is
 // triggered, so the result is visible where the button was.
+//
+// Both buttons write data and cost nothing, so neither carries the LLM glyph.
+// Adopting is idempotent (plain secondary); dismissing is permanent (danger).
 
 function InferredConceptReview({ bookId }: Readonly<{ bookId: string }>) {
   const { t } = useTranslation('analysis');
   const queryClient = useQueryClient();
+  const [open, setOpen] = useState(true);
 
   const { data, isLoading } = useQuery({
     queryKey: qk.inferredConcepts.pending(bookId),
@@ -751,61 +700,76 @@ function InferredConceptReview({ bookId }: Readonly<{ bookId: string }>) {
   const busy = adopt.isPending || dismiss.isPending;
 
   return (
-    <div className="bo-detail-section">
-      <div className="bo-detail-section-h">
-        {t('unraveling.concepts.pendingTitle', { n: items.length })}
+    <div className="bo-section">
+      <div className="bo-queue-head">
+        <span className="bo-queue-title">{t('unraveling.concepts.pendingTitle', { n: items.length })}</span>
+        <button
+          type="button"
+          className="bo-queue-toggle"
+          aria-expanded={open}
+          onClick={() => setOpen((o) => !o)}
+        >
+          {open ? t('unraveling.concepts.collapse') : t('unraveling.concepts.expand')}
+        </button>
       </div>
-      <div className="bo-concept-review">
-        {items.map(c => (
-          <div key={c.id} className="bo-concept-card">
-            <div className="bo-concept-name">{c.name}</div>
-            {c.description && <div className="bo-concept-desc">{c.description}</div>}
-            {c.evidence.length > 0 && (
-              <ul className="bo-concept-evidence">
-                {c.evidence.map(e => <li key={e}>{e}</li>)}
-              </ul>
-            )}
-            <div className="bo-concept-actions">
-              <span className="bo-concept-conf">
-                {t('unraveling.concepts.confidence', {
-                  v: Math.round(c.confidence * 100),
-                })}
-              </span>
-              <button
-                type="button"
-                className="bo-cta"
-                disabled={busy}
-                onClick={() => adopt.mutate(c.id)}
-              >
-                <Check size={12} />
-                {t('unraveling.concepts.adopt')}
-              </button>
-              <button
-                type="button"
-                className="bo-cta secondary"
-                disabled={busy}
-                onClick={() => dismiss.mutate(c.id)}
-              >
-                <X size={12} />
-                {t('unraveling.concepts.dismiss')}
-              </button>
-            </div>
+      {open && (
+        <>
+          <p className="bo-queue-note">{t('unraveling.concepts.rejectPermanent')}</p>
+          <div className="bo-queue">
+            {items.map((c) => (
+              <div key={c.id} className="bo-concept">
+                <div className="bo-concept-head">
+                  <span className="bo-concept-name">{c.name}</span>
+                  <span className="bo-concept-conf">
+                    {t('unraveling.concepts.confidence', { v: Math.round(c.confidence * 100) })}
+                  </span>
+                </div>
+                {c.description && <p className="bo-concept-desc">{c.description}</p>}
+                {c.evidence.length > 0 && (
+                  <div className="bo-evidence">
+                    {c.evidence.map((e) => (
+                      <div key={e} className="bo-evidence-row">
+                        <span className="bo-evidence-dot" aria-hidden="true">·</span>
+                        <span>{e}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+                <div className="bo-concept-actions">
+                  <button
+                    type="button"
+                    className="ss-btn ss-btn-sm ss-btn-secondary"
+                    disabled={busy}
+                    onClick={() => adopt.mutate(c.id)}
+                  >
+                    {t('unraveling.concepts.adopt')}
+                  </button>
+                  <button
+                    type="button"
+                    className="ss-btn ss-btn-sm ss-btn-danger"
+                    disabled={busy}
+                    onClick={() => dismiss.mutate(c.id)}
+                  >
+                    {t('unraveling.concepts.dismiss')}
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+        </>
+      )}
     </div>
   );
 }
 
-
-// ── Inspector — node detail ───────────────────────────────────────────────────
+// ── Inspector — node detail（六態） ───────────────────────────────────────────
 
 interface NodeDetailProps {
   node: BuildOverviewNode;
   bookId: string;
   manifest: BuildOverviewManifest;
   chapterDist?: number[];
-  onBack: () => void;
+  onSelectNode: (nodeId: string) => void;
 }
 
 interface ProgressNumbers {
@@ -876,21 +840,34 @@ function progressFor(node: BuildOverviewNode, t: TFunction): ProgressNumbers | n
   return null;
 }
 
+function Note({ children }: Readonly<{ children: ReactNode }>) {
+  return (
+    <div className="bo-note">
+      <Info size={12} className="bo-note-icon" aria-hidden="true" />
+      <span>{children}</span>
+    </div>
+  );
+}
+
 function NodeDetail({
-  node, bookId, manifest, chapterDist, onBack,
+  node, bookId, manifest, chapterDist, onSelectNode,
 }: Readonly<NodeDetailProps>) {
   const { t } = useTranslation('analysis');
   const queryClient = useQueryClient();
   const statusLabel = t(`unraveling.status.${node.status}`);
   const progress = progressFor(node, t);
-  const blockers = getBlockers(node.nodeId, manifest);
-  const hasBlockers = blockers.length > 0 && node.status !== 'complete';
+  const blockers = blockersOf(node.nodeId, manifest.nodes, manifest.edges);
+  const mode = actionModeFor(node, blockers.length);
   const route = NODE_TO_ROUTE[node.nodeId];
 
-  const trigger = NODE_TO_TRIGGER[node.nodeId];
+  const triggerKey = triggerKeyOf(node.nodeId);
+  const danger = dropsDerived(node.nodeId);
+  const dropped = droppedNodes(node.nodeId, manifest.nodes);
+  const peers = sharedTriggerPeers(node.nodeId);
+
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [taskId, setTaskId] = useState<string | null>(null);
-  const [triggerError, setTriggerError] = useState<string | null>(null);
+  const [triggerFailure, setTriggerFailure] = useState<unknown>(null);
   const { data: task } = useTaskPolling(taskId);
 
   // Derived rather than stored: the task's own status already says whether the
@@ -899,8 +876,14 @@ function NodeDetail({
   // own once the status is terminal.
   const taskStatus = task?.status;
   const running = taskId !== null && taskStatus !== 'done' && taskStatus !== 'error';
-  const ctaError = triggerError
-    ?? (taskStatus === 'error' ? (task?.error ?? t('unraveling.cta.failed')) : null);
+  // The app's own 503 (no LLM provider) is a state of the feature, not a failed
+  // run: it gets its own in-place notice and the rest of the panel stays put.
+  const llmBlocked = isLlmUnconfigured(triggerFailure);
+  const failed = !llmBlocked && (triggerFailure !== null || taskStatus === 'error');
+  // The task's error is a free string with no status or reason, so the
+  // 「供應商回傳 {status}」 line cannot be built (4-UN-7); keep the raw text as
+  // technical detail rather than dropping what the old panel showed.
+  const failTech = triggerFailure !== null ? techDetailOf(triggerFailure) : task?.error ?? undefined;
 
   useEffect(() => {
     if (taskStatus !== 'done') return;
@@ -910,64 +893,142 @@ function NodeDetail({
   }, [taskStatus, queryClient, bookId]);
 
   const handleConfirm = async () => {
+    if (!triggerKey) return;
     setConfirmOpen(false);
-    setTriggerError(null);
+    setTriggerFailure(null);
+    setTaskId(null);
     try {
-      const { taskId: id } = await trigger.run(bookId);
+      const { taskId: id } = await TRIGGER_RUN[triggerKey](bookId);
       setTaskId(id);
     } catch (e) {
-      setTriggerError(e instanceof Error ? e.message : t('unraveling.cta.failed'));
+      setTriggerFailure(e);
     }
   };
 
   // Node-specific copy ("補齊剩餘章節摘要"), falling back to a generic phrasing
-  // for nodes whose CTA has no dedicated line yet.
-  const ctaState = node.status === 'partial' ? 'partial' : 'empty';
+  // for nodes whose CTA has no dedicated line yet. A complete node keeps the
+  // "continue" wording: it can still be rerun.
+  const ctaState = ctaStateFor(node.status);
   const ctaLabel = t(`unraveling.cta.node.${node.nodeId}.${ctaState}`, {
     defaultValue: t(`unraveling.cta.generic.${ctaState}`),
   });
 
-  const openPageButton = route ? (
-    <Link to={`/books/${bookId}/${route}`} className="bo-cta secondary">
-      <ExternalLink size={12} />
-      {t('unraveling.detail.openPage')}
-    </Link>
-  ) : (
-    <button type="button" className="bo-cta secondary bo-cta-disabled" disabled>
-      <ExternalLink size={12} />
-      {t('unraveling.detail.openPage')}
-      <span className="bo-cta-hint-inline">· {t('unraveling.openPageNotImplemented')}</span>
+  const triggerButton = (variant: 'primary' | 'secondary') => (
+    <button
+      type="button"
+      className={`ss-btn ss-btn-md ${danger ? 'ss-btn-danger' : `ss-btn-${variant}`} ss-btn-llm bo-wide`}
+      onClick={() => setConfirmOpen(true)}
+    >
+      {ctaLabel}
     </button>
   );
 
+  const goTo = route ? (
+    <Link to={`/books/${bookId}/${route}`} className="bo-goto">
+      <ArrowUpRight size={12} aria-hidden="true" />
+      {t('unraveling.detail.openPage')}
+    </Link>
+  ) : (
+    <span className="bo-goto is-planned">
+      <ArrowUpRight size={12} aria-hidden="true" />
+      {t('unraveling.detail.openPage')} · {t('unraveling.openPageNotImplemented')}
+    </span>
+  );
+
+  const metaEntries = Object.entries(node.meta);
+
+  let action: ReactNode = null;
+  if (running) {
+    // 建構中只留 spinner：任務 API 不即時回報進度，不顯示 stage／%。
+    action = (
+      <div className="bo-box is-running" role="status">
+        <Loader2 size={14} className="animate-spin bo-box-spin" aria-hidden="true" />
+        <span className="bo-box-title">{t('unraveling.cta.running')}</span>
+      </div>
+    );
+  } else if (mode === 'hazard') {
+    action = (
+      <div className="bo-box is-hazard">
+        <AlertTriangle size={13} className="bo-box-icon" aria-hidden="true" />
+        <span className="bo-box-text">{t('unraveling.detail.blockedByHazard')}</span>
+      </div>
+    );
+  } else if (mode === 'blocked') {
+    action = (
+      <div className="bo-box is-blocked">
+        <span className="bo-box-title">{t('unraveling.detail.blockedTitle')}</span>
+        <span className="bo-box-text">{t('unraveling.detail.blockedHint', { n: blockers.length })}</span>
+        <div className="bo-chips">
+          {blockers.map((b) => (
+            <button
+              key={b.nodeId}
+              type="button"
+              className="bo-chip"
+              style={{ borderColor: `var(--status-${b.status}-border)` }}
+              onClick={() => onSelectNode(b.nodeId)}
+            >
+              <StatusMark status={b.status} />
+              <span>{nodeLabel(t, b)}</span>
+              <span className="bo-chip-count">{nodeSubLabel(t, b)}</span>
+              <span className="bo-chip-go" aria-hidden="true">→</span>
+            </button>
+          ))}
+        </div>
+        <button type="button" className="ss-btn ss-btn-md ss-btn-secondary bo-wide" disabled>
+          {t('unraveling.detail.missingPrereq', { n: blockers.length })}
+        </button>
+      </div>
+    );
+  } else if (mode === 'soon') {
+    action = (
+      <button type="button" className="ss-btn ss-btn-md ss-btn-secondary bo-wide" disabled>
+        {t('unraveling.detail.triggerSoon')}
+      </button>
+    );
+  } else if (mode === 'trigger') {
+    action = (
+      <div className="bo-action">
+        {llmBlocked && <LlmUnconfiguredNotice />}
+        {failed ? (
+          <div className="bo-box is-fail" role="alert">
+            <span className="bo-box-title is-error">
+              <AlertTriangle size={13} aria-hidden="true" />
+              {t('unraveling.cta.failed')}
+            </span>
+            {failTech && <code className="bo-box-tech">{failTech}</code>}
+            {triggerButton('secondary')}
+          </div>
+        ) : (
+          triggerButton('primary')
+        )}
+        <span className="bo-cost">{t('tension.state.tokenHintShort')}</span>
+      </div>
+    );
+  }
+
   return (
     <div className="bo-detail">
-      <button type="button" className="bo-inspector-back" onClick={onBack}>
-        <ChevronLeft size={11} />
-        {t('unraveling.inspector.backToList')}
-      </button>
-
-      <div>
-        <div className="bo-detail-title-row">
-          <div className="bo-detail-title">{nodeLabel(t, node)}</div>
-          <div className="bo-detail-id">L{node.layer} · {node.nodeId}</div>
-        </div>
-        <div style={{ marginTop: 4 }}>
+      <div className="bo-detail-head">
+        <div className="bo-title-row">
+          <span className="bo-title">{nodeLabel(t, node)}</span>
           <StatusBadge status={node.status} label={statusLabel} />
         </div>
+        <span className="bo-detail-id">L{node.layer} · {node.nodeId}</span>
       </div>
 
+      {mode === 'source' && <Note>{t('unraveling.layer.sourceHint')}</Note>}
+
       {progress && (
-        <div className="bo-progress-card">
-          <div className="bo-detail-section-h">{progress.numLabel}</div>
+        <div className="bo-progress">
+          <span className="bo-section-h">{progress.numLabel}</span>
           <div className="bo-progress-row">
-            <div className="bo-progress-num">{progress.num}</div>
-            <div className="bo-progress-of">/ {progress.denom}</div>
-            <div className="bo-progress-of">{progress.denomLabel}</div>
+            <span className="bo-progress-num">{progress.num}</span>
+            <span className="bo-progress-of">/ {progress.denom}</span>
+            <span className="bo-progress-of">{progress.denomLabel}</span>
           </div>
           <div className="bo-progress-bar">
             <div
-              className="bo-progress-bar-fill"
+              className="bo-progress-fill"
               style={{ width: `${(progress.num / progress.denom) * 100}%` }}
             />
           </div>
@@ -975,123 +1036,146 @@ function NodeDetail({
       )}
 
       {chapterDist && chapterDist.length > 0 && (
-        <div className="bo-detail-section">
-          <div className="bo-detail-section-h">{t('unraveling.detail.chapterDist')}</div>
+        <div className="bo-section">
+          <span className="bo-section-h">{t('unraveling.detail.chapterDist')}</span>
           <ChapterDistMini values={chapterDist} />
         </div>
       )}
 
-      {node.status !== 'complete' && (
-        <div className="bo-detail-section">
-          {hasBlockers ? (
-            <>
-              <div className="bo-detail-section-h">{t('unraveling.detail.blockedTitle')}</div>
-              <div className="bo-blockers">
-                {blockers.map(b => (
-                  <div key={b.nodeId} className="bo-blocker-chip">
-                    <div
-                      className="bo-blocker-chip-dot"
-                      style={{ background: `var(--status-${b.status}-border)` }}
-                    />
-                    <span>{nodeLabel(t, b)}</span>
-                  </div>
-                ))}
-              </div>
-              <button type="button" className="bo-cta bo-cta-disabled" disabled>
-                <AlertTriangle size={12} />
-                {t('unraveling.detail.blockedHint', { n: blockers.length })}
-              </button>
-            </>
-          ) : (
-            <>
-              {trigger ? (
-                <button
-                  type="button"
-                  className={`bo-cta ${running ? 'bo-cta-disabled' : ''}`}
-                  disabled={running}
-                  onClick={() => setConfirmOpen(true)}
-                >
-                  {running ? <Loader2 size={12} className="animate-spin" /> : <PlayCircle size={12} />}
-                  {running ? t('unraveling.cta.running') : ctaLabel}
-                </button>
-              ) : (
-                <button type="button" className="bo-cta bo-cta-disabled" disabled>
-                  <PlayCircle size={12} />
-                  {t('unraveling.detail.triggerSoon')}
-                </button>
-              )}
-              {running && task?.stage && (
-                <div className="bo-cta-hint">
-                  {task.stage}
-                  {task.progress > 0 ? ` · ${task.progress}%` : ''}
-                </div>
-              )}
-              {ctaError && <div className="bo-cta-hint">{ctaError}</div>}
-            </>
-          )}
-          {openPageButton}
-        </div>
+      {peers.length > 0 && (
+        <Note>
+          {t('unraveling.detail.sharedTrigger', {
+            names: peers.map((id) => t(`unraveling.node.${id}`)).join(t('unraveling.detail.nameJoin')),
+          })}
+        </Note>
       )}
 
-      {node.status === 'complete' && (
-        <div className="bo-detail-section">
-          {openPageButton}
-        </div>
+      {mode === 'trigger' && !running && dropped.length > 0 && (
+        <Note>{t('unraveling.cta.confirm.dropsDownstream', { n: dropped.length })}</Note>
       )}
 
-      {node.nodeId === 'kg_concept_inferred' && (
-        <InferredConceptReview bookId={bookId} />
-      )}
+      {action}
 
-      {Object.keys(node.counts).length > 0 && (
-        <div className="bo-detail-section">
-          <div className="bo-detail-section-h">{t('unraveling.detail.rawCounts')}</div>
-          <div className="bo-counts">
+      {goTo}
+
+      {node.nodeId === 'kg_concept_inferred' && <InferredConceptReview bookId={bookId} />}
+
+      {mode !== 'source' && Object.keys(node.counts).length > 0 && (
+        <div className="bo-section">
+          <span className="bo-section-h">{t('unraveling.detail.rawCounts')}</span>
+          <div className="bo-kv">
             {Object.entries(node.counts).map(([k, v]) => (
-              <div key={k} className="bo-counts-row">
-                <span className="bo-counts-key">
-                  {t(`unraveling.counts.${k}`, { defaultValue: k })}
-                </span>
-                <span className="bo-counts-val">{v}</span>
+              <div key={k} className="bo-kv-row">
+                <span className="bo-kv-key">{t(`unraveling.counts.${k}`, { defaultValue: k })}</span>
+                <span className="bo-kv-val">{v}</span>
               </div>
             ))}
           </div>
         </div>
       )}
 
-      {/* ConfirmDialog renders its message in a single <p>, so the parts are
-          composed into running sentences rather than separate lines. */}
-      {trigger && (
+      {(metaEntries.length > 0 || mode === 'source') && (
+        <div className="bo-section">
+          <span className="bo-section-h">{t('unraveling.detail.meta')}</span>
+          <div className="bo-kv">
+            {metaEntries.length === 0 ? (
+              <div className="bo-kv-row">
+                <span className="bo-kv-val">—</span>
+              </div>
+            ) : (
+              metaEntries.map(([k, v]) => (
+                <div key={k} className="bo-kv-row">
+                  <span className="bo-kv-key">{t(`unraveling.counts.${k}`, { defaultValue: k })}</span>
+                  <span className="bo-kv-val">{metaValueText(v)}</span>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* The three dialogs differ in what they promise about downstream output:
+          fill-a-gap says nothing is touched; a rerun that drops derived data
+          lists what goes (the same table the canvas draws); a dangerous rerun
+          with nothing to list says it overwrites. */}
+      {triggerKey && (
         <ConfirmDialog
           open={confirmOpen}
-          title={t('unraveling.cta.confirm.title')}
-          message={[
-            t('unraveling.cta.confirm.intro', { action: ctaLabel }),
-            t('unraveling.cta.confirm.token'),
-            trigger.dropsDerived ? t('unraveling.cta.confirm.dropsDerived') : '',
-          ].filter(Boolean).join(' ')}
-          confirmLabel={t('unraveling.cta.confirm.start')}
+          title={ctaLabel}
+          message={
+            !danger
+              ? t('unraveling.cta.confirm.keepsDownstream')
+              : dropped.length > 0
+                ? t('unraveling.cta.confirm.affectsDownstream')
+                : t('unraveling.cta.confirm.overwrites')
+          }
+          confirmLabel={ctaLabel}
+          costHint={t('tension.state.tokenHintShort')}
+          sections={
+            danger
+              ? [
+                  {
+                    title: t('unraveling.cta.confirm.dropsDownstream', { n: dropped.length }),
+                    items: dropped.map((d) => `${nodeLabel(t, d)} · ${nodeSubLabel(t, d)}`),
+                  },
+                ]
+              : undefined
+          }
+          danger={danger}
           spendsTokens
           onConfirm={() => void handleConfirm()}
           onCancel={() => setConfirmOpen(false)}
         />
       )}
+    </div>
+  );
+}
 
-      {Object.keys(node.meta).length > 0 && (
-        <div className="bo-detail-section">
-          <div className="bo-detail-section-h">{t('unraveling.detail.meta')}</div>
-          <div className="bo-counts">
-            {Object.entries(node.meta).map(([k, v]) => (
-              <div key={k} className="bo-counts-row">
-                <span className="bo-counts-key">
-                  {t(`unraveling.counts.${k}`, { defaultValue: k })}
-                </span>
-                <span className="bo-counts-val">{String(v)}</span>
+// ── Loading skeleton（形狀已知：五欄固定、節點集寫死） ────────────────────────
+
+function Skel({ w, h }: Readonly<{ w: string; h: number }>) {
+  return <span className="bo-skel" style={{ width: w, height: h }} />;
+}
+
+function BuildOverviewSkeleton() {
+  return (
+    <div className="bo-inner" aria-busy="true" role="status">
+      <div className="bo-summary">
+        <Skel w="96px" h={28} />
+        <Skel w="220px" h={10} />
+      </div>
+      <div className="bo-main">
+        <div className="bo-dagpane">
+          <div className="bo-heads">
+            {LAYERS.map((l) => (
+              <div key={l} className="bo-head">
+                <Skel w="70%" h={9} />
+                <Skel w="45%" h={8} />
+                <Skel w="100%" h={4} />
+              </div>
+            ))}
+          </div>
+          <div className="bo-skel-cols">
+            {[3, 6, 3, 5, 2].map((count, ci) => (
+              <div key={ci} className="bo-skel-col">
+                {Array.from({ length: count }, (_, ri) => (
+                  <span key={ri} className="bo-skel bo-skel-node" />
+                ))}
               </div>
             ))}
           </div>
         </div>
-      )}
+        <div className="bo-side">
+          <div className="bo-skel-list">
+            {Array.from({ length: 8 }, (_, i) => (
+              <div key={i} className="bo-skel-row">
+                <Skel w="7px" h={7} />
+                <Skel w={`${45 + (i % 4) * 12}%`} h={8} />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
@@ -1101,9 +1185,11 @@ function NodeDetail({
 export default function BuildOverviewPage() {
   const { bookId } = useParams<{ bookId: string }>();
   const { t } = useTranslation('analysis');
+  const { t: tn } = useTranslation('nav');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const sideBodyRef = useRef<HTMLDivElement>(null);
 
-  const { data: manifest, isLoading, error } = useQuery({
+  const { data: manifest, isLoading, error, refetch } = useQuery({
     queryKey: ['buildOverview', bookId],
     queryFn: () => fetchBuildOverview(bookId!),
     enabled: !!bookId,
@@ -1117,82 +1203,120 @@ export default function BuildOverviewPage() {
     staleTime: 60_000,
   });
 
-  if (isLoading) return <LoadingSpinner />;
-  if (error) return <ErrorMessage message={t('unravelingLoadError')} />;
+  // The manifest carries no pending count for inferred concepts; the review
+  // queue does. Same query key as the queue itself, so it is fetched once.
+  const { data: pendingConcepts } = useQuery({
+    queryKey: qk.inferredConcepts.pending(bookId ?? ''),
+    queryFn: () => fetchInferredConcepts(bookId!, 'pending'),
+    enabled: !!bookId,
+  });
+  const pendingCount = pendingConcepts?.items.length;
+
+  const selection = useMemo(
+    () => (manifest ? selectionOf(manifest, selectedId) : null),
+    [manifest, selectedId],
+  );
+
+  // Picking another node (a blocker chip jumps to one) should show its top.
+  useEffect(() => {
+    sideBodyRef.current?.scrollTo?.({ top: 0 });
+  }, [selectedId]);
+
+  if (isLoading) {
+    return (
+      <div className="bo-page">
+        <BuildOverviewSkeleton />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bo-page">
+        <div className="bo-inner">
+          <PageFailure
+            variant={failureKind(error)}
+            pageName={tn('tabs.unraveling')}
+            onRetry={() => void refetch()}
+            secondaryAction={
+              <Link to={`/books/${bookId}`} className="ss-btn ss-btn-md ss-btn-secondary">
+                {t('character.error.backToBook')}
+              </Link>
+            }
+            techDetail={techDetailOf(error)}
+          />
+        </div>
+      </div>
+    );
+  }
+
   if (!manifest || !bookId) return null;
 
   const selectedNode = selectedId
-    ? manifest.nodes.find(n => n.nodeId === selectedId) ?? null
+    ? manifest.nodes.find((n) => n.nodeId === selectedId) ?? null
     : null;
 
   return (
     <div className="bo-page">
-      <GuidanceRibbon surface="build-overview">
-        <strong>{t('unraveling.guide.prefix')}</strong>{' '}
-        <Trans i18nKey="unraveling.guide.body" ns="analysis" components={{ strong: <strong /> }} />
-      </GuidanceRibbon>
+      <div className="bo-inner">
+        <GuidanceRibbon surface="build-overview">
+          <strong>{t('unraveling.guide.prefix')}</strong>{' '}
+          <Trans i18nKey="unraveling.guide.body" ns="analysis" components={{ strong: <strong /> }} />
+        </GuidanceRibbon>
 
-      <SummaryStrip manifest={manifest} />
+        <SummaryStrip manifest={manifest} />
 
-      <div className="bo-body">
-        <div className="bo-dag">
-          <DagCanvas
-            manifest={manifest}
-            selectedId={selectedId}
-            onSelect={setSelectedId}
-          />
-          {selectedId && (
-            <div className="bo-dag-toolbar">
-              <button
-                type="button"
-                onClick={() => setSelectedId(null)}
-                title={t('unraveling.toolbar.clearSelection')}
-              >
-                <RotateCw size={11} />
-                {t('unraveling.toolbar.showAll')}
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div className="bo-inspector">
-          <div className="bo-inspector-head">
-            {selectedNode ? (
-              <Layers size={14} style={{ color: 'var(--fg-secondary)', flexShrink: 0 }} />
-            ) : (
-              <Filter size={14} style={{ color: 'var(--fg-secondary)', flexShrink: 0 }} />
-            )}
-            <h3>
-              {selectedNode
-                ? t('unraveling.inspector.nodeDetail')
-                : t('unraveling.inspector.layerList')}
-            </h3>
-            <div className="bo-inspector-head-meta">
-              {selectedNode
-                ? t('unraveling.inspector.layerLabel', { n: selectedNode.layer })
-                : t('unraveling.inspector.nodeCount', { n: manifest.nodes.length })}
+        <div className="bo-main">
+          <div className="bo-dagpane">
+            <div className="bo-dagscroll">
+              <div className="bo-dagwrap">
+                <LayerHeads manifest={manifest} />
+                {selection && (
+                  <SelectionBar selection={selection} onClear={() => setSelectedId(null)} />
+                )}
+                <DagCanvas
+                  manifest={manifest}
+                  selection={selection}
+                  pendingConcepts={pendingCount}
+                  onSelect={setSelectedId}
+                />
+              </div>
             </div>
           </div>
-          <div className="bo-inspector-body">
-            {selectedNode ? (
-              <NodeDetail
-                // Keyed so switching nodes resets the CTA state — otherwise a
-                // run started on one node reads as running on the next.
-                key={selectedNode.nodeId}
-                node={selectedNode}
-                bookId={bookId}
-                manifest={manifest}
-                chapterDist={chapterDist?.distributions[selectedNode.nodeId]}
-                onBack={() => setSelectedId(null)}
-              />
-            ) : (
-              <LayerList
-                manifest={manifest}
-                selectedId={selectedId}
-                onSelect={setSelectedId}
-              />
-            )}
-          </div>
+
+          <aside className="bo-side">
+            <div className="bo-side-head">
+              <span className="bo-side-title">
+                {selectedNode ? t('unraveling.inspector.nodeDetail') : t('unraveling.inspector.layerList')}
+              </span>
+              {selectedNode ? (
+                <button type="button" className="bo-back" onClick={() => setSelectedId(null)}>
+                  <ArrowLeft size={12} aria-hidden="true" />
+                  {t('unraveling.inspector.backToList')}
+                </button>
+              ) : (
+                <span className="bo-side-meta">
+                  {t('unraveling.inspector.nodeCount', { n: manifest.nodes.length })}
+                </span>
+              )}
+            </div>
+            <div className="bo-side-body" ref={sideBodyRef}>
+              {selectedNode ? (
+                <NodeDetail
+                  // Keyed so switching nodes resets the CTA state — otherwise a
+                  // run started on one node reads as running on the next.
+                  key={selectedNode.nodeId}
+                  node={selectedNode}
+                  bookId={bookId}
+                  manifest={manifest}
+                  chapterDist={chapterDist?.distributions[selectedNode.nodeId]}
+                  onSelectNode={setSelectedId}
+                />
+              ) : (
+                <LayerList manifest={manifest} pendingConcepts={pendingCount} onSelect={setSelectedId} />
+              )}
+            </div>
+          </aside>
         </div>
       </div>
     </div>
