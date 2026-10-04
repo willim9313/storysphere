@@ -16,6 +16,11 @@ interface EventGroupedListProps {
   onGenerate: (id: string) => void;
   generatingId: string | null;
   justDoneIds: Set<string>;
+  /** Items the last batch run failed on (still unanalyzed). Marked on their rows,
+   *  and offered as one more chip so the list can be narrowed to them. */
+  failedIds: readonly string[];
+  failedOnly: boolean;
+  onFailedOnlyChange: (on: boolean) => void;
   checkMode: boolean;
   checked: Set<string>;
   onToggleChecked: (id: string) => void;
@@ -72,6 +77,9 @@ export function EventGroupedList({
   onGenerate,
   generatingId,
   justDoneIds,
+  failedIds,
+  failedOnly,
+  onFailedOnlyChange,
   checkMode,
   checked,
   onToggleChecked,
@@ -81,6 +89,8 @@ export function EventGroupedList({
   const [modeFilter, setModeFilter] = useState<Set<ModeKey>>(new Set());
   const [groupBy, setGroupBy] = useState<GroupBy>('chapter');
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
+  const failedSet = useMemo(() => new Set(failedIds), [failedIds]);
 
   const groups = useMemo(() => {
     const all: Row[] = [
@@ -93,6 +103,7 @@ export function EventGroupedList({
       if (q && !rowTitle(row).toLowerCase().includes(q)) return false;
       if (impFilter.size && !impFilter.has(rowImportance(row))) return false;
       if (modeFilter.size && !modeFilter.has(row.item.narrativeMode as ModeKey)) return false;
+      if (failedOnly && !(row.kind === 'unanalyzed' && failedSet.has(row.id))) return false;
       return true;
     });
 
@@ -129,9 +140,9 @@ export function EventGroupedList({
       rows: g.rows,
       analyzedCount: g.rows.filter((r) => r.kind === 'analyzed').length,
     }));
-  }, [evtData, searchQuery, impFilter, modeFilter, groupBy, t]);
+  }, [evtData, searchQuery, impFilter, modeFilter, failedOnly, failedSet, groupBy, t]);
 
-  const hasFilters = impFilter.size > 0 || modeFilter.size > 0;
+  const hasFilters = impFilter.size > 0 || modeFilter.size > 0 || failedOnly;
 
   const chipClass = (active: boolean) => 'ea-chip' + (active ? ' active' : '');
 
@@ -159,6 +170,16 @@ export function EventGroupedList({
               {t(`event.narrative.${key}`)}
             </button>
           ))}
+          {failedIds.length > 0 && (
+            <button
+              type="button"
+              className={chipClass(failedOnly)}
+              aria-pressed={failedOnly}
+              onClick={() => onFailedOnlyChange(!failedOnly)}
+            >
+              {t('batch.failedShort', { count: failedIds.length })}
+            </button>
+          )}
         </div>
         <div className="ss-seg ea-seg-full">
           <button
@@ -221,6 +242,7 @@ export function EventGroupedList({
                         onSelect={() => onSelect(row.id)}
                         onGenerate={() => onGenerate(row.id)}
                         isGenerating={generatingId === row.id}
+                        failed={failedSet.has(row.id)}
                       />
                     </div>
                   ),
@@ -240,6 +262,7 @@ export function EventGroupedList({
                 onClick={() => {
                   setImpFilter(new Set());
                   setModeFilter(new Set());
+                  onFailedOnlyChange(false);
                 }}
               >
                 {t('event.list.clearFilters')}

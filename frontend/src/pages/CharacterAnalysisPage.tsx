@@ -35,7 +35,8 @@ import { archetypeState } from '@/components/analysis/characterModel';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useAsyncTask } from '@/hooks/useAsyncTask';
-import { BatchFailureList } from '@/components/analysis/BatchFailureList';
+import { BatchEepPanel } from '@/components/analysis/BatchEepPanel';
+import { failedCountOf, liveFailedIds } from '@/components/analysis/batchPanelModel';
 import { useBatchTask } from '@/hooks/useBatchTask';
 import { qk } from '@/api/queryKeys';
 
@@ -95,6 +96,8 @@ export default function CharacterAnalysisPage() {
   // #11 tiered batch: 'top10' analyzes the top-10-by-mentionCount unanalyzed
   // characters (entityIds subset), 'all' analyzes everything unanalyzed.
   const [batchMode, setBatchMode] = useState<'top10' | 'all' | null>(null);
+  // 「只看失敗」：把左欄清單篩到上一批失敗的角色（本次瀏覽才有）。
+  const [failedOnly, setFailedOnly] = useState(false);
 
   useEffect(() => {
     if (book) setPageContext({ page: 'analysis', bookId, bookTitle: book.title, analysisTab: 'characters' });
@@ -235,9 +238,10 @@ export default function CharacterAnalysisPage() {
     onDone: (summary) => {
       refreshCast();
       if (!summary) return;
-      // Same split as the events page (DS v3 · 17 決議 T4): the toast only says
-      // how many failed and persists; the named list stays in the left-column
-      // panel below, which survives until dismissed.
+      // Same as the events page (DS v3 第 5 批 · 09·10 C 區): the toast is only a
+      // completion notice and auto-dismisses. Failures stay as a count plus
+      // 「只看失敗」 in the left-column panel, and as marked rows in the list.
+      // `warning` when something failed: a partial run is not a clean success.
       const hasFailures = (summary.failures?.length ?? 0) > 0;
       push({
         type: hasFailures ? 'warning' : 'success',
@@ -247,17 +251,28 @@ export default function CharacterAnalysisPage() {
           skipped: summary.skipped,
           failed: summary.failed,
         }),
-        persist: hasFailures,
       });
     },
     failureMessage: t('character.batch.triggerFailed'),
   });
-
-  const batchFailures = !batch.running ? (batch.summary?.failures ?? []) : [];
-  const dismissBatch = () => {
-    setBatchLlmBlocked(false);
-    batch.dismiss();
+  const startBatch = (ids?: string[]) => {
+    setFailedOnly(false);
+    batch.start(ids);
   };
+
+  // Failed characters of the last run that are still unanalyzed (面板失敗數、清單篩選與列上記號共用)。
+  const failedIds = useMemo(
+    () =>
+      liveFailedIds(
+        batch.summary,
+        (charData?.unanalyzed ?? []).map((u) => u.id),
+        'characters',
+      ),
+    [batch.summary, charData],
+  );
+  const failedCount = failedCountOf(batch.summary, failedIds);
+  const failedSet = useMemo(() => new Set(failedIds), [failedIds]);
+  const failedFilterOn = failedOnly && failedIds.length > 0;
 
   const selectedAnalyzed = charData?.analyzed.find((a) => a.entityId === selectedEntityId);
   const selectedUnanalyzed = charData?.unanalyzed.find((u) => u.id === selectedEntityId);
@@ -270,18 +285,19 @@ export default function CharacterAnalysisPage() {
   // scoped to "篩選已分析角色"), and resets whenever the framework switches.
   const filteredAnalyzed = useMemo(
     () =>
-      (charData?.analyzed ?? [])
+      (failedFilterOn ? [] : (charData?.analyzed ?? []))
         .filter((a) => matchesQuery(searchQuery, a.title, a.archetypes?.[framework]))
         .filter((a) => archFilter.length === 0 || archFilter.includes(a.archetypes?.[framework] ?? ''))
         .sort((a, b) => b.mentionCount - a.mentionCount),
-    [charData, searchQuery, framework, archFilter],
+    [charData, searchQuery, framework, archFilter, failedFilterOn],
   );
   const filteredUnanalyzed = useMemo(
     () =>
       (charData?.unanalyzed ?? [])
         .filter((u) => matchesQuery(searchQuery, u.name))
+        .filter((u) => !failedFilterOn || failedSet.has(u.id))
         .sort((a, b) => b.mentionCount - a.mentionCount),
-    [charData, searchQuery],
+    [charData, searchQuery, failedFilterOn, failedSet],
   );
 
   const totalCharacters = (charData?.analyzed.length ?? 0) + (charData?.unanalyzed.length ?? 0);
@@ -395,9 +411,8 @@ export default function CharacterAnalysisPage() {
   const retryFailed = () => {
     if (selectedEntityId) retryFailedMutation.mutate(selectedEntityId);
   };
-  const showLlmNotice = llmBlocked || batchLlmBlocked;
-  // On a batch 503 the notice replaces the generic batch banner.
-  const batchBanner = batchLlmBlocked ? null : batch.error;
+  // A batch 503 shows in the panel (BatchEepPanel) instead of up here.
+  const showLlmNotice = llmBlocked;
 
   let body: React.ReactNode;
   if (selectedEntityId && analysisLoading) {
@@ -581,15 +596,6 @@ export default function CharacterAnalysisPage() {
         onSelectEntity={handleSelectEntity}
         onGenerate={handleGenerate}
         generatingId={generatingId}
-        onOpenBatchModal={setBatchMode}
-        isBatchRunning={batch.running}
-        batchProgressLabel={
-          batch.running
-            ? t('character.overview.batchProgress', { progress: batch.task?.progress ?? 0 })
-            : undefined
-        }
-        batchError={batchBanner}
-        onDismissBatchError={dismissBatch}
       />
     );
   } else {
@@ -610,20 +616,32 @@ export default function CharacterAnalysisPage() {
       <div className="ca-body">
         {/* ── Left panel ── */}
         <aside className="ca-left">
-          {/* Persistent home for a batch run's failure list — a toast that can
-              vanish must not be the only place "which ones?" is answered. */}
-          {batchFailures.length > 0 && (
-            <div className="ea-batch">
-              <p className="ea-batch-hint row">
-                <span>{t('character.batch.toastTitle')}</span>
-                <button type="button" className="dismiss" onClick={dismissBatch}>
-                  {t('character.batch.toastClose')}
-                </button>
-              </p>
-              <BatchFailureList failures={batchFailures} />
-            </div>
-          )}
           <div className="ca-left-top">
+            {/* Book-level batch actions live in the one column both views share,
+                above the framework axis (09·10): reachable with a character selected. */}
+            {charData && bookId && (
+              <BatchEepPanel
+                bookId={bookId}
+                page="characters"
+                i18nPrefix="character.batch"
+                analyzedCount={charData.analyzed.length}
+                totalCount={totalCharacters}
+                batchTask={batch.task}
+                isBatchRunning={batch.running}
+                batchError={batchLlmBlocked ? null : batch.error}
+                batchSummary={batch.summary}
+                onTrigger={() => setBatchMode('all')}
+                llmBlocked={batchLlmBlocked}
+                isPending={batch.pending}
+                pendingLine={t('character.batch.statusLine', { count: charData.unanalyzed.length })}
+                failedCount={failedCount}
+                onShowFailures={failedIds.length > 0 ? () => setFailedOnly(true) : undefined}
+                topSubset={{
+                  count: top10UnanalyzedIds.length,
+                  onTrigger: () => setBatchMode('top10'),
+                }}
+              />
+            )}
             <div className="ca-left-fx">
               <span className="ca-left-label">{t('character.list.frameworkLabel')}</span>
               <div className="ca-fw-chips">
@@ -686,6 +704,19 @@ export default function CharacterAnalysisPage() {
             </button>
           )}
 
+          {failedIds.length > 0 && (
+            <div className="ca-fail-row">
+              <button
+                type="button"
+                className={'ca-fail-chip' + (failedFilterOn ? ' active' : '')}
+                aria-pressed={failedFilterOn}
+                onClick={() => setFailedOnly(!failedFilterOn)}
+              >
+                {t('character.batch.failedShort', { count: failedIds.length })}
+              </button>
+            </div>
+          )}
+
           <div className="ca-list">
             {filteredAnalyzed.length > 0 && (
               <div className="ca-list-group">
@@ -727,6 +758,7 @@ export default function CharacterAnalysisPage() {
                       onSelect={() => handleSelectEntity(item.id)}
                       onGenerate={() => handleGenerate(item.id)}
                       isGenerating={generatingId === item.id}
+                      failed={failedSet.has(item.id)}
                       maxMentionCount={maxMentionCount}
                     />
                   ))}
@@ -817,7 +849,7 @@ export default function CharacterAnalysisPage() {
         onConfirm={() => {
           const ids = batchMode === 'top10' ? top10UnanalyzedIds : undefined;
           setBatchMode(null);
-          batch.start(ids);
+          startBatch(ids);
         }}
         onCancel={() => setBatchMode(null)}
       />

@@ -1,5 +1,4 @@
 import { useMemo, useState } from 'react';
-import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { AnalysisListResponse } from '@/api/types';
 import { useFactions } from '@/hooks/useFactions';
@@ -17,11 +16,6 @@ interface CharacterOverviewLandingProps {
   onSelectEntity: (id: string) => void;
   onGenerate: (id: string) => void;
   generatingId: string | null;
-  onOpenBatchModal: (mode: 'top10' | 'all') => void;
-  isBatchRunning: boolean;
-  batchProgressLabel?: string;
-  batchError?: string | null;
-  onDismissBatchError?: () => void;
 }
 
 export function CharacterOverviewLanding({
@@ -30,11 +24,6 @@ export function CharacterOverviewLanding({
   onSelectEntity,
   onGenerate,
   generatingId,
-  onOpenBatchModal,
-  isBatchRunning,
-  batchProgressLabel,
-  batchError,
-  onDismissBatchError,
 }: Readonly<CharacterOverviewLandingProps>) {
   const { t } = useTranslation('analysis');
   const [view, setView] = useState<LandingView>('quadrant');
@@ -56,16 +45,6 @@ export function CharacterOverviewLanding({
 
   return (
     <div className="ca-ov-landing">
-      {batchError && (
-        <div className="ca-inline-banner">
-          <span>{batchError}</span>
-          {onDismissBatchError && (
-            <button type="button" className="ss-btn ss-btn-sm ss-btn-ghost" onClick={onDismissBatchError}>
-              <X size={12} />
-            </button>
-          )}
-        </div>
-      )}
       <div className="ca-ov-head">
         <div className="ca-ov-head-main">
           <h1 className="ca-ov-title">{t('character.overview.title')}</h1>
@@ -82,10 +61,8 @@ export function CharacterOverviewLanding({
           </div>
         </div>
         <div className="ca-ov-head-actions">
-          {isBatchRunning && batchProgressLabel && (
-            <span className="ca-ov-batch-progress">{batchProgressLabel}</span>
-          )}
-          {/* The two view buttons are mode switches (zero cost), so no LLM glyph. */}
+          {/* The batch buttons moved to the left-column panel (09·10); only the
+              view switch is left, and it is a zero-cost mode switch (no LLM glyph). */}
           <div className="ss-seg">
             <button
               type="button"
@@ -102,22 +79,6 @@ export function CharacterOverviewLanding({
               {t('character.overview.viewRanking')}
             </button>
           </div>
-          <button
-            type="button"
-            className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
-            onClick={() => onOpenBatchModal('top10')}
-            disabled={isBatchRunning || unanalyzedCount === 0}
-          >
-            {t('character.overview.batchTop10')}
-          </button>
-          <button
-            type="button"
-            className="ss-btn ss-btn-sm ss-btn-primary ss-btn-llm"
-            onClick={() => onOpenBatchModal('all')}
-            disabled={isBatchRunning || unanalyzedCount === 0}
-          >
-            {t('character.overview.batchAll')}
-          </button>
         </div>
       </div>
 

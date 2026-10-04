@@ -1,12 +1,16 @@
-import { Check, Play, CheckSquare } from 'lucide-react';
+import { CheckSquare, ChevronDown, ChevronRight, Play } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
-import { BatchFailureList } from '@/components/analysis/BatchFailureList';
 import { LlmUnconfiguredNotice } from '@/components/ui/LlmUnconfiguredNotice';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { useBatchPanelCollapse } from '@/hooks/useBatchPanelCollapse';
 import type { TaskStatus, BatchEepResult } from '@/api/types';
+import { batchPanelState, type BatchPanelPage } from './batchPanelModel';
 
 interface BatchEepPanelProps {
+  /** Collapse override is remembered per book × page (09·10 決議紀錄 B 區). */
+  bookId: string;
+  page: BatchPanelPage;
   analyzedCount: number;
   totalCount: number;
   batchTask: TaskStatus | undefined;
@@ -18,11 +22,18 @@ interface BatchEepPanelProps {
   llmBlocked?: boolean;
   isPending: boolean;
   /** i18n key prefix; defaults to `'batch'` (event analysis page).
-   * Character page passes `'character.batch'` so keys live under
-   * the `character.*` namespace alongside other character-specific strings. */
+   * The character page passes `'character.batch'` so its keys live under
+   * the `character.*` namespace. */
   i18nPrefix?: string;
-  /** Optional subset controls (event analysis page). Omit for a plain
-   *  "run everything" panel. */
+  /** The idle status line, composed by the page: events add the ETA, characters
+   *  have no estimate formula so they leave it out. */
+  pendingLine: string;
+  /** Items from the last run that are still failing (面板只放失敗「數」，不列清單). */
+  failedCount: number;
+  /** Narrows the list below to the failed items. Omitted when the run carried
+   *  no ids to filter by — the count still shows, the link does not. */
+  onShowFailures?: () => void;
+  /** Subset controls (event analysis page). */
   subset?: {
     /** Unanalyzed KERNEL events. Stays 0 until EEPs exist — the backend only
      *  assigns importance during analysis — so the button self-disables. */
@@ -35,11 +46,30 @@ interface BatchEepPanelProps {
     onToggleCheckMode: () => void;
     checkedCount: number;
     onBatchChecked: () => void;
-    etaLabel: string;
+  };
+  /** The one subset the character page has: the top-N by mentions. */
+  topSubset?: {
+    count: number;
+    onTrigger: () => void;
   };
 }
 
+/**
+ * Left-column batch panel, shared by the event and character pages
+ * (DS v3 第 5 批 · 09·10).
+ *
+ * Four states, derived from data only (see `batchPanelState`): 1 pending ·
+ * 2 running · 3 finished with failures or leftovers · 4 all analyzed, which
+ * shrinks to a status row with no fold and no progress bar. States 1–3 fold to
+ * one line; the whole header row is the toggle. The progress bar stays in the
+ * first three states folded or not, so the column top never jumps.
+ *
+ * Failures are a number and a link, never a list: the failed items are rows in
+ * the list below, which "只看失敗" narrows to them.
+ */
 export function BatchEepPanel({
+  bookId,
+  page,
   analyzedCount,
   totalCount,
   batchTask,
@@ -50,175 +80,266 @@ export function BatchEepPanel({
   llmBlocked = false,
   isPending,
   i18nPrefix = 'batch',
+  pendingLine,
+  failedCount,
+  onShowFailures,
   subset,
+  topSubset,
 }: BatchEepPanelProps) {
   const { t } = useTranslation('analysis');
   const k = (suffix: string) => `${i18nPrefix}.${suffix}`;
-  const allDone = analyzedCount >= totalCount && totalCount > 0;
+  const unanalyzedCount = Math.max(totalCount - analyzedCount, 0);
+
+  const state = batchPanelState({
+    totalCount,
+    unanalyzedCount,
+    running: isBatchRunning,
+    hasSummary: batchSummary !== null,
+    failedCount,
+  });
+  const { collapsed, toggle } = useBatchPanelCollapse(bookId, page, state);
 
   /* `analyzedCount` is the server's own count and the page refetches it as the
-     batch advances, so it is live during a run. It used to have the task's own
-     tally added on top — which read `result.progress`, a field that only
-     exists once the task is done, so the count sat frozen for the whole run.
-     The per-item counter lives in `stage` ("分析事件 12/57"), rendered below. */
+     batch advances, so it is live during a run. The per-item counter lives in
+     `stage` ("分析事件 12/57"), rendered below. */
   const pct = totalCount > 0 ? Math.round((analyzedCount / totalCount) * 100) : 0;
-  const showSummary = !isBatchRunning && batchSummary !== null;
   const stage = batchTask?.stage ?? '';
+  const runningLabel = t(k('runningWithCount'), { current: analyzedCount, total: totalCount });
 
-  return (
-    <div className={'ea-batch' + (isBatchRunning ? ' running' : '')}>
-      <div className="ea-batch-head">
-        <span className="ea-batch-label">{t(k('header'))}</span>
-        <span className="ea-batch-count">
-          {analyzedCount}/{totalCount}
-          <span className="total"> · {pct}%</span>
+  const cardClass =
+    'ea-batch' +
+    (state === 'running' ? ' running' : '') +
+    (collapsed ? ' is-collapsed' : '') +
+    (state === 'done' ? ' is-done' : '');
+
+  const showFailNumber = failedCount > 0 && state === 'attention';
+  const failNumberText = t(k('failedShort'), { count: failedCount });
+
+  /* Right end of the header row. Folded, it says what is most worth knowing:
+     running > failures > pending count. Open, it is the count and percentage. */
+  let value: React.ReactNode;
+  if (collapsed) {
+    if (state === 'running') {
+      value = (
+        <span className="ea-batch-value is-live">
+          <span className="ea-batch-spinner" aria-hidden="true" />
+          {runningLabel}
         </span>
-      </div>
+      );
+    } else if (showFailNumber) {
+      value = onShowFailures ? null : (
+        <span className="ea-batch-value is-failed">{failNumberText}</span>
+      );
+    } else {
+      value = (
+        <span className="ea-batch-value">{t(k('remaining'), { count: unanalyzedCount })}</span>
+      );
+    }
+  } else {
+    value = (
+      <span className="ea-batch-value is-count">
+        {analyzedCount}/{totalCount} · {pct}%
+      </span>
+    );
+  }
 
-      <div
-        className="ea-batch-track"
-        role="progressbar"
-        aria-valuenow={pct}
-        aria-valuemin={0}
-        aria-valuemax={100}
-      >
-        <div className="ea-batch-fill" style={{ width: pct + '%' }} />
-      </div>
-
-      <div className="ea-batch-pct">
-        {isBatchRunning ? (
-          <>
-            <Tooltip label={stage || t(k('running'))} disabled={!stage}>
-              <span className="stage">{stage || t(k('running'))}</span>
-            </Tooltip>
-            <span className="live">
-              <Play size={9} /> live
-            </span>
-          </>
-        ) : batchError && !llmBlocked ? (
-          <span style={{ color: 'var(--color-error)' }}>
-            {batchError || t(k('errorFallback'))}
-          </span>
-        ) : showSummary && batchSummary ? (
-          <span>{t(k('summaryProgress'), { count: batchSummary.progress })}</span>
-        ) : allDone ? (
-          <span>{t(k('allDone'))}</span>
-        ) : (
-          <span>{t(k('remaining'), { count: totalCount - analyzedCount })}</span>
-        )}
-      </div>
-
-      {showSummary && batchSummary && (
-        <div className="ea-batch-stats">
-          <div className="ea-batch-stat">
-            <span className="ea-batch-stat-n">
-              {batchSummary.progress - batchSummary.skipped - batchSummary.failed}
-            </span>
-            <span className="ea-batch-stat-l">{t(k('stat.generated'))}</span>
-          </div>
-          <div className="ea-batch-stat skipped">
-            <span className="ea-batch-stat-n">{batchSummary.skipped}</span>
-            <span className="ea-batch-stat-l">{t(k('stat.skipped'))}</span>
-          </div>
-          <div className="ea-batch-stat failed">
-            <span className="ea-batch-stat-n">{batchSummary.failed}</span>
-            <span className="ea-batch-stat-l">{t(k('stat.failed'))}</span>
+  if (state === 'done') {
+    return (
+      <div className="ea-batch-wrap">
+        <div className={cardClass}>
+          <div className="ea-batch-head">
+            <span className="ea-batch-label">{t(k('header'))}</span>
+            <span className="ea-batch-value">{t(k('allDone'))}</span>
           </div>
         </div>
-      )}
+        {llmBlocked && <LlmUnconfiguredNotice />}
+      </div>
+    );
+  }
 
-      {/* Next to the count it explains, not in the toast: the toast is
-          dismissible and auto-hides, so a list inside it would take the only
-          answer to "which ones?" off screen with it (B-113). */}
-      {showSummary && batchSummary && (
-        <BatchFailureList failures={batchSummary.failures ?? []} />
-      )}
+  const Chevron = collapsed ? ChevronRight : ChevronDown;
 
-      {isBatchRunning ? (
-        <button className="ss-btn ss-btn-md ss-btn-secondary ea-batch-main" disabled type="button">
-          <span className="ea-mini-spinner" />
-          {t(k('runningWithCount'), { current: analyzedCount, total: totalCount })}
-        </button>
-      ) : allDone ? (
-        <button className="ss-btn ss-btn-md ss-btn-secondary ea-batch-main" disabled type="button">
-          <Check size={12} /> {t(k('allDone'))}
-        </button>
-      ) : (
-        <button
-          className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm ea-batch-main"
-          type="button"
-          onClick={onTrigger}
-          disabled={isPending}
-        >
-          {t(k('triggerAll'))}
-        </button>
-      )}
-
-      {llmBlocked && !isBatchRunning && <LlmUnconfiguredNotice />}
-
-      {/* Subset controls: same card, straight under the main button, not behind a
-          fold — they are how a 60-event book gets affordable. The three buttons
-          run immediately (no confirm dialog, by design); gating is the guard. */}
-      {subset && !isBatchRunning && !allDone && (
-        <div className="ea-batch-subset">
-          <div className="ea-batch-subset-row">
-            <Tooltip
-              label={t(k('kernelOnlyDisabled'))}
-              disabled={subset.kernelRemaining !== 0}
-            >
-              <button
-                type="button"
-                className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
-                disabled={subset.kernelRemaining === 0 || isPending}
-                onClick={subset.onBatchKernel}
-              >
-                {t(k('kernelOnly'), { count: subset.kernelRemaining })}
-              </button>
-            </Tooltip>
-            <Tooltip
-              label={t(k('chapterOnlyDisabled'))}
-              disabled={subset.currentChapter !== null}
-            >
-              <button
-                type="button"
-                className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
-                disabled={subset.currentChapter === null || isPending}
-                onClick={subset.onBatchChapter}
-              >
-                {t(k('chapterOnly'))}
-              </button>
-            </Tooltip>
-          </div>
+  return (
+    <div className="ea-batch-wrap">
+      <div className={cardClass}>
+        <div className="ea-batch-head">
           <button
             type="button"
-            className={
-              'ss-btn ss-btn-sm ss-btn-ghost' + (subset.checkMode ? ' is-active' : '')
-            }
-            aria-pressed={subset.checkMode}
-            onClick={subset.onToggleCheckMode}
+            className="ea-batch-toggle"
+            aria-expanded={!collapsed}
+            onClick={toggle}
           >
-            <CheckSquare size={11} />{' '}
-            {subset.checkMode ? t(k('checkModeOff')) : t(k('checkModeOn'))}
+            <Chevron size={12} aria-hidden="true" />
+            <span className="ea-batch-label">{t(k('header'))}</span>
+            {value}
           </button>
-          {subset.checkMode && (
+          {collapsed && showFailNumber && onShowFailures && (
             <button
               type="button"
-              className="ss-btn ss-btn-sm ss-btn-primary ss-btn-llm"
-              disabled={subset.checkedCount === 0 || isPending}
-              onClick={subset.onBatchChecked}
+              className="ea-batch-value is-failed ea-batch-failnum"
+              onClick={onShowFailures}
             >
-              {t(k('generateChecked'))} ({subset.checkedCount})
+              {failNumberText}
             </button>
           )}
         </div>
-      )}
 
-      {!showSummary && !isBatchRunning && !allDone && (
-        <p className="ea-batch-hint">
-          {subset ? `${subset.etaLabel} · ${t(k('autoSkip'))}` : t(k('autoSkip'))}
-        </p>
-      )}
+        <div
+          className="ea-batch-track"
+          role="progressbar"
+          aria-valuenow={pct}
+          aria-valuemin={0}
+          aria-valuemax={100}
+        >
+          <div className="ea-batch-fill" style={{ width: pct + '%' }} />
+        </div>
+
+        {!collapsed && (
+          <>
+            {state === 'running' ? (
+              <div className="ea-batch-pct">
+                <Tooltip label={stage || t(k('running'))} disabled={!stage}>
+                  <span className="stage">{stage || t(k('running'))}</span>
+                </Tooltip>
+                <span className="live">
+                  <Play size={9} /> live
+                </span>
+              </div>
+            ) : (
+              <p className="ea-batch-status">
+                {batchError && !llmBlocked ? (
+                  <span className="is-error">{batchError || t(k('errorFallback'))}</span>
+                ) : state === 'attention' && batchSummary ? (
+                  t(k('summaryProgress'), { count: batchSummary.progress })
+                ) : (
+                  pendingLine
+                )}
+              </p>
+            )}
+
+            {state === 'running' ? (
+              <button
+                className="ss-btn ss-btn-md ss-btn-secondary ea-batch-main"
+                disabled
+                type="button"
+              >
+                <span className="ea-batch-spinner" aria-hidden="true" />
+                {runningLabel}
+              </button>
+            ) : (
+              <button
+                className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm ea-batch-main"
+                type="button"
+                onClick={onTrigger}
+                disabled={isPending || unanalyzedCount === 0}
+              >
+                {t(k('triggerAll'))}
+              </button>
+            )}
+
+            {state === 'attention' && batchSummary && (
+              <div className="ea-batch-section">
+                <div className="ea-batch-stats">
+                  <div className="ea-batch-stat">
+                    <span className="ea-batch-stat-n">
+                      {batchSummary.progress - batchSummary.skipped - batchSummary.failed}
+                    </span>
+                    <span className="ea-batch-stat-l">{t(k('stat.generated'))}</span>
+                  </div>
+                  <div className="ea-batch-stat">
+                    <span className="ea-batch-stat-n">{batchSummary.skipped}</span>
+                    <span className="ea-batch-stat-l">{t(k('stat.skipped'))}</span>
+                  </div>
+                  <div className="ea-batch-stat">
+                    <span className="ea-batch-stat-n">{batchSummary.failed}</span>
+                    <span className="ea-batch-stat-l">{t(k('stat.failed'))}</span>
+                  </div>
+                </div>
+                {failedCount > 0 && onShowFailures && (
+                  <button type="button" className="ea-batch-link" onClick={onShowFailures}>
+                    {t(k('showFailures'), { count: failedCount })}
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Subset controls: same card, straight under the main button, not behind a
+                fold — they are how a 60-event book gets affordable. They fold with the
+                main button (same card, in and out together). The event buttons run
+                immediately (no confirm dialog, by design); gating is the guard. */}
+            {subset && state === 'pending' && (
+              <div className="ea-batch-subset">
+                <div className="ea-batch-subset-row">
+                  <Tooltip
+                    label={t(k('kernelOnlyDisabled'))}
+                    disabled={subset.kernelRemaining !== 0}
+                  >
+                    <button
+                      type="button"
+                      className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+                      disabled={subset.kernelRemaining === 0 || isPending}
+                      onClick={subset.onBatchKernel}
+                    >
+                      {t(k('kernelOnly'), { count: subset.kernelRemaining })}
+                    </button>
+                  </Tooltip>
+                  <Tooltip
+                    label={t(k('chapterOnlyDisabled'))}
+                    disabled={subset.currentChapter !== null}
+                  >
+                    <button
+                      type="button"
+                      className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+                      disabled={subset.currentChapter === null || isPending}
+                      onClick={subset.onBatchChapter}
+                    >
+                      {t(k('chapterOnly'))}
+                    </button>
+                  </Tooltip>
+                </div>
+                <button
+                  type="button"
+                  className={
+                    'ss-btn ss-btn-sm ss-btn-ghost' + (subset.checkMode ? ' is-active' : '')
+                  }
+                  aria-pressed={subset.checkMode}
+                  onClick={subset.onToggleCheckMode}
+                >
+                  <CheckSquare size={11} />{' '}
+                  {subset.checkMode ? t(k('checkModeOff')) : t(k('checkModeOn'))}
+                </button>
+                {subset.checkMode && (
+                  <button
+                    type="button"
+                    className="ss-btn ss-btn-sm ss-btn-primary ss-btn-llm"
+                    disabled={subset.checkedCount === 0 || isPending}
+                    onClick={subset.onBatchChecked}
+                  >
+                    {t(k('generateChecked'))} ({subset.checkedCount})
+                  </button>
+                )}
+              </div>
+            )}
+
+            {topSubset && state === 'pending' && (
+              <div className="ea-batch-subset">
+                <button
+                  type="button"
+                  className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+                  disabled={topSubset.count === 0 || isPending}
+                  onClick={topSubset.onTrigger}
+                >
+                  {t(k('topSubset'))}
+                </button>
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Outside the fold: this is a state of the feature, and it must not be
+          hidden by a folded panel. */}
+      {llmBlocked && state !== 'running' && <LlmUnconfiguredNotice />}
     </div>
   );
 }
-

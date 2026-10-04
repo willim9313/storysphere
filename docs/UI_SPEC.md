@@ -299,8 +299,10 @@ CircleCheck success「所有步驟皆已補齊。」。底部分隔線下固定�
 **無左邊框**；標題 sans sm 600、內文 xs secondary、行動鈕 `ss-btn-sm secondary`（標籤後補「 →」）、X 永遠在。
 樣式在 `styles/ss-kit.css` 的 `.ss-toast*`。
 生命週期三檔：無行動鈕 5.2s／有行動鈕 9s／`persist`（只能手動關）。
-批次分析（角色、事件）完成即 push：無失敗 success 5.2s；有失敗 warning + `persist`，toast 只報數字，
-**失敗清單留在頁面的常駐面板**（事件頁 `BatchEepPanel`、角色頁左欄頂端），不放 toast（17 決議 T4）。
+批次分析（角色、事件）完成即 push：無失敗 success、有失敗 warning，**兩者都是 5.2s 自動消失**——
+toast 只當完成通知（第 5 批 09·10 決議 C 區推翻 17 決議 T4 的「有失敗 persist」）。失敗只在批次面板
+（事件頁、角色頁左欄頂端的 `BatchEepPanel`）以**數字＋「只看失敗」**常駐，不放 toast、也不在面板裡列清單。
+有失敗仍用 warning：部分完成不是乾淨的成功，Ink 下靠標題與內文的「失敗 N」區分。
 `useTaskNotifications`（掛在 `AppLayout`）輪詢 `GET /tasks`，於 ingestion 任務
 轉 done / partial / awaiting_review / error 時觸發對應 toast 與跳轉；首次輪詢
 靜默 seed，避免對載入前已終結的任務發通知。使用者終止（`error: "cancelled"`）不發 toast——那不是「解析失敗」。
@@ -575,9 +577,7 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 
 由上至下：
 
-0. **批次失敗面板**（DS v3，2026-10-01）：只在批次分析跑完且有失敗時出現——「批次角色分析完成」＋「關閉」＋
-   `BatchFailureList`，手動關閉（`batch.dismiss`）。沿用事件頁面板的 `.ea-batch` 樣式。位置是工程端代為裁決，
-   設計稿未畫，已記入 `docs/DS_V3_DESIGN_FEEDBACK.md` 0-A 待同步
+0. **批次面板**（DS v3 第 5 批 · 09·10，**最上方**，在框架軸之上；取代 2026-10-01 的「批次失敗面板」，見本節末「第 5 批 · 批次面板」）
 1. **框架選擇**：Jung 12 / Schmidt 45 chip + 「對照 Jung vs Schmidt」按鈕（觸發 drawer）+「框架索引 ↗」連結
 2. **原型篩選 dropdown**（`ArchetypeFilterDropdown`，2026-07 新增）：可搜尋多選 popover，列出當前 framework 的原型分類與各原型已分析角色數；選中值以可移除的 accent pill 呈現，只過濾「已分析」清單；切換 framework 時重置
 3. **「← 角色總覽」返回鈕**（選中角色時顯示，2026-07 新增）：全寬、`--bg-secondary` 底、accent 字；點擊回到角色總覽 landing（清空選中角色）
@@ -590,12 +590,30 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 - 兩組皆依 `mentionCount` 降冪排序；搜尋同時比對名稱與當前框架原型名
 - 鍵盤：`↑/↓` 移動選取並載入、`/` 聚焦搜尋、`1/2/3` 切 primary tab（焦點在輸入框時不攔截）
 
+#### 第 5 批 · 批次面板（09 角色，與 10 事件共用同一套四態）
+
+決議紀錄 `09·10 批次面板收合`（2026-10-04 整份採用）、計畫 `docs/plans/20261004-ds-v3-batch5-supplement.md` Q3；元件 `BatchEepPanel`，四態與收合推導在 `batchPanelModel.ts`。
+
+- **位置**：左欄最上（268），框架軸 Jung／Schmidt 讓到第二位；選了角色後面板仍在。landing 標頭只留視圖 toggle。
+- **按鈕**：「生成全部」＝主鈕（`ss-btn-primary ss-btn-llm`）、「先生成前 10 位要角」歸子集（`ss-btn-secondary ss-btn-llm`，同事件頁「只生成核心」的排法）；
+  兩顆照舊走 `ConfirmDialog`（文案不動）。狀態行「{n} 位待生成 · 已分析的角色會自動跳過」，無估時（角色沒有估時公式）。
+- **四態、收合、失敗**：規則與事件頁相同，見 §3.5「第 5 批 · 批次面板」。角色版的收合列第 1 態是「{n} 位待生成」、第 4 態是「全部角色已分析 ✓」。
+- **只看失敗**：左欄清單上方出現「失敗 N」chip（選中＝底色＋加粗，再按取消），選中時只留失敗的未分析角色（已分析群組隱藏；群組標頭既有的「顯示 / 總數」顯示筆數）；
+  失敗的未分析列尾帶**菱形** error 點（形狀而非色相，Ink 四個 status 色同為墨色）。
+- **batch 503**：`LlmUnconfiguredNotice` 在面板卡片下方（摺疊與否都看得到），不再重複出現在內容區頂。
+- **字串**（i18n `analysis:character.batch.*`，zh-TW 與 en 皆有）。**2026-10-04 裁決通過**（D 區／C 區稿面）：`header`「角色分析」、`triggerAll`「生成全部」、`topSubset`「先生成前 10 位要角」、
+  `remaining`「{n} 位待生成」、`statusLine`、`allDone`「全部角色已分析 ✓」、`failedShort`「失敗 {n}」、`showFailures`「只看失敗 ({n}) →」、`runningWithCount`（沿用事件頁句型）。
+  **這 5 句是草稿・待設計定案**（稿沒給角色版文字，依事件頁對應句意翻；i18n `character.batch.*`；JSON 不能寫註解，故記在此）：
+  `running`「分析中」、`summaryProgress`「本批次共處理 {n} 位」、`errorFallback`「批次執行失敗」、`stat.generated`「已生成」、`stat.skipped`「已跳過」
+  （`stat.failed`「失敗」與已裁決的「失敗 {n}」同詞，一併列入 i18n 但不另計）。
+- 孤兒（保留不刪）：`character.overview.batchAll／batchTop10／batchProgress`、`character.batch.toastClose`、`.ca-ov-batch-progress`。
+
 #### Content Area — 角色分析內容
 
 頂部固定一條 **Tip Ribbon**（首次進入顯示，localStorage `storysphere:tip-dismissed:character-analysis` 永久 dismiss）。
 
 **未選取角色時（角色總覽 landing，2026-07 重做，取代舊版「快速前往已分析角色」）**：
-- 標頭：「角色群像」h1 + meta 計數列（N 位角色 · 已分析 · 未分析）+ 右側兩顆分層批次鈕（「先生成前 10 位要角」outline / 「生成全部」solid accent，皆先跳 `ConfirmDialog`）；批次執行中於標頭顯示簡易進度（沿用 batchTask polling）
+- 標頭：「角色群像」h1 + meta 計數列（N 位角色 · 已分析 · 未分析）+ 右側**只留視圖 toggle**（兩顆批次鈕與執行中進度已搬進左欄批次面板，第 5 批 09·10）
 - Segmented toggle 切「定位象限」（預設）/「提及量排行」
 - **定位象限**：SVG 散點圖 + 右欄派系圖例卡；X = normalized log10(mentionCount+1)、Y = normalized pagerank（#6e `character-metrics`）、泡泡半徑 = 關係數（degree，上限封頂）、顏色 = 派系（#6d `factions`，無派系 = 透明+muted 描邊）；兩軸中位數虛線十字；提及前 8 名恆顯示 label，其餘 hover 顯示；metrics 端點失敗時降級顯示錯誤佔位（排行視圖不受影響，只依賴 #6a）
 - **提及量排行**：Hero 卡（提及最高者，已分析→「查看分析」/ 未分析→「建立核心角色分析」）+ 排行列（預設 11 列 + 展開/收合）
@@ -700,11 +718,11 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 
 - **密度**：B 檢視。內容區 padding `--space-7`（24）／下 `--space-8`（32）、內層 `max-width: 1280` 置中、區塊間距 `--space-6`（16）；
   左欄 268 固定、背景 `--bg-primary`、右緣 `--line-weight` 分隔線。間距只用 `--space-1…8`。
-- **批次面板（`BatchEepPanel`）**：主鈕「一鍵生成全部 EEP」`ss-btn-primary ss-btn-llm`，走確認框。
+- **批次面板（`BatchEepPanel`）**（第 5 批 09·10 已改寫四態與收合，見下方「第 5 批 · 批次面板」，本條只留按鈕規格）：主鈕「一鍵生成全部 EEP」`ss-btn-primary ss-btn-llm`，走確認框。
   子集區在主鈕正下方**同一張卡**、不收折疊；三顆子集鈕（只生成核心 (N)／只生成本章／生成已勾選 (N)）都掛 `ss-btn-llm`、
   筆數寫在標籤裡、**直接執行不開確認框**（不對稱是設計決定）。disabled 的鈕外層掛 `Tooltip`（逐字 `batch.kernelOnlyDisabled`／`batch.chapterOnlyDisabled`）。
   執行中整區子集隱藏、主鈕變 disabled「分析中 N/M…」＋ stage ＋ ▶ live（stage 太長時 Tooltip 顯全文）。
-  **完成後面板只顯示三格計數＋失敗清單，不再有「批次 EEP 分析完成」那一列（只在 toast）**，也沒有面板內關閉鈕（見 feedback 3-EV-7）。
+  完成後面板顯示三格計數＋失敗**數**（第 5 批起不再列失敗清單），不再有「批次 EEP 分析完成」那一列（只在 toast），也沒有面板內關閉鈕（見 feedback 3-EV-7）。
 - **清單列（`EventListItems`，動作列·行內按鈕變體）**：一行格線 `24px · 1fr · 12px`，第二行固定 28px（章號、非順敘 chip、stale 小點、未分析列的「生成分析」`ss-btn-llm`）。
   狀態點與按鈕二擇一（已分析＝success 點、partial＝空心 warning 環、生成中＝accent 脈衝點）。選中＝`--bg-secondary` 底＋加粗，無邊框／inset。
   剛完成**不整列高亮**，只有狀態點短暫放大後落定為 success。組標頭（list-group-head）「{總數} · 已析 {已分析數}」逐字。
@@ -722,6 +740,35 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 - **原生 `title=`** 全部換成 `Tooltip`（14 處；值為 "·" 的那個直接拿掉）。
 - **新字串**：無。
 - **維持現況（記 feedback）**：landing 沒有對比入口（3-EV-2）、victim 顯示「承受者」（3-EV-3）。
+
+#### 第 5 批 · 批次面板（09·10 共用，事件頁與角色頁同一套）
+
+決議紀錄 `09·10 批次面板收合`（2026-10-04 整份採用）、計畫 `docs/plans/20261004-ds-v3-batch5-supplement.md` Q3。元件 `BatchEepPanel`；
+四態判定、失敗 id 推導、覆寫鍵都是純函式（`components/analysis/batchPanelModel.ts`，有 vitest），收合覆寫在 `hooks/useBatchPanelCollapse.ts`。268 欄寬內的卡片
+（`--card-border-width`／`--card-radius`／`--bg-primary`，內距 `--space-5`；收合列與第 4 態內距 `--space-4 --space-5`）。
+
+| 態 | 判定 | 預設 | 卡片內容／收合列右端 |
+|---|---|---|---|
+| 1 有待生成 | 未分析 > 0、本次瀏覽沒跑過批次 | 展開、可收 | 展開：標頭「n/N · pct」、進度條、狀態行、主鈕、子集。收合：「{n} 件待生成」＋進度條 |
+| 2 執行中 | 批次 running | 維持當下（**開始執行不強制展開**）、可收 | accent 邊框＋進度條＋階段文字＋live＋disabled「分析中 N/M…」；收合：spinner＋「分析中 N/M…」＋邊框＋進度條 |
+| 3 完成，有失敗或仍有待生成 | 本次瀏覽跑完過一批，且仍有失敗或待生成 | 展開、可收 | 狀態行「本批次共處理 N 件」、主鈕、分隔線下三格計數＋「只看失敗 (n) →」；收合列「失敗 {n}」**優先於**待生成數 |
+| 4 全部已分析，無失敗 | 未分析 = 0 且失敗 = 0（總數 > 0） | **不可收合** | 一條狀態列「事件分析　全部事件已分析 ✓」：無展開鈕、無進度條 |
+
+- **標頭列整條是切換目標**（`button`＋`aria-expanded`，原生 Enter／Space）。收合列上的失敗數是獨立的 `button`（零成本、無字符），同「只看失敗」；其餘標頭仍切換。進度條前三態都在，欄位上緣不跳。
+- **收合覆寫**存 localStorage `storysphere:batch-panel:<bookId>:<events|characters>`（值 `collapsed`；展開＝沒有鍵）。事件頁與角色頁互不影響。
+  **進入第 4 態時清掉覆寫**，所以計數回升回到第 1 態就是預設展開。localStorage 不可用時退回只在本次元件 state 內切換。
+- **失敗**（計畫 Q3，只在本次瀏覽）：面板只放失敗**數**＋「只看失敗 (n) →」，不列清單。n＝批次結果 `failures`（角色 `entity_id`／事件 `event_id`）中**目前仍在未分析清單**的項目數——
+  失敗後單筆補生成成功的就不再算；沒帶 id 的舊結果退回 `failed` 計數、只顯示數字不顯示連結。重試＝再按主鈕（已分析的跳過）。重新整理後回到第 1 態。
+  「只看失敗」把左欄清單篩到失敗項：事件頁在篩選 chip 列多一顆「失敗 N」（選中＝`.ea-chip.active`，再按取消、「清除篩選」也會清掉）；失敗的未分析列尾帶**菱形** error 點（`.ea-row-dot.failed`，形狀＋Tooltip「失敗」）。
+  開始新一批會重設篩選。
+- **子集**（第 1 態才顯示）與主鈕同進同出；第 3 態不顯示子集（稿 A 區第 3 態沒有，見 feedback 5-BP-3）。事件頁狀態行把「{n} 件待生成 · 預估約 N 分鐘 · 已分析的事件會自動跳過」併成一行（皆既有字串）。
+- **字符**：主鈕與子集鈕 `ss-btn-llm`；「只看失敗」、收合切換、失敗 chip 不掛。
+- **toast**：只當完成通知，有失敗也 5.2s 自動消失（類型仍 warning）。
+- **batch 503**：`LlmUnconfiguredNotice` 放在卡片下方、摺疊之外。
+- **字串**：2026-10-04 裁決通過、**非草稿**：`batch.remaining`「{n} 件待生成」（既有）、`batch.failedShort`「失敗 {n}」、`batch.showFailures`「只看失敗 ({n}) →」（事件版）；角色版見 §3.4。
+  既有事件字串一字不改。
+- 孤兒（保留不刪）：i18n `batch.toastClose`。面板自己的舊樣式（`.ea-batch-hint`、`.ea-batch-count`、`.ea-batch-stat.skipped|failed`）隨面板版面改寫一併換掉。
+  `BatchFailureList` 與 `batch.failures.*` 仍被符號頁（`SymbolsDashboard`）使用，**不是孤兒**。
 
 **內容區第二輪（照決議紀錄 10 A／B／E／F／G／H／I canvas 原始碼）**
 

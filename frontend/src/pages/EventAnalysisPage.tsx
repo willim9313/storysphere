@@ -19,6 +19,7 @@ import { NarrativeChip } from '@/components/analysis/EventListItems';
 import { parseNarrativeMode } from '@/components/analysis/overview/eventTypes';
 import { EventOverviewLanding } from '@/components/analysis/overview/EventOverviewLanding';
 import { EventGroupedList } from '@/components/analysis/EventGroupedList';
+import { failedCountOf, liveFailedIds } from '@/components/analysis/batchPanelModel';
 import { EventCompareDrawer } from '@/components/analysis/EventCompareDrawer';
 import { failureKind, isLlmUnconfigured, techDetailOf } from '@/api/failureKind';
 import { GuidanceRibbon } from '@/components/ui/GuidanceRibbon';
@@ -95,6 +96,8 @@ export default function EventAnalysisPage() {
   const [compareOpen, setCompareOpen] = useState(false);
   const [checkMode, setCheckMode] = useState(false);
   const [checkedIds, setCheckedIds] = useState<Set<string>>(new Set());
+  // 「只看失敗」：把左欄清單篩到上一批失敗的項目（本次瀏覽才有）。
+  const [failedOnly, setFailedOnly] = useState(false);
 
   useEffect(() => {
     if (book) {
@@ -237,9 +240,11 @@ export default function EventAnalysisPage() {
     onDone: (summary) => {
       refreshEvents();
       if (!summary) return;
-      // A run with failures persists: the toast only says how many, the named
-      // list stays in BatchEepPanel — but five seconds is not long enough to
-      // notice the count and go read it (B-113). Clean runs auto-dismiss.
+      // The toast is only a completion notice (DS v3 第 5 批 · 09·10 C 區): it
+      // auto-dismisses either way. Failures live on in the panel as a count plus
+      // 「只看失敗」, and as marked rows in the list. The type stays `warning` when
+      // something failed — a partial run is not a clean success — so the toast
+      // still reads differently, while its body already carries the failed count.
       const hasFailures = (summary.failures?.length ?? 0) > 0;
       push({
         type: hasFailures ? 'warning' : 'success',
@@ -249,11 +254,14 @@ export default function EventAnalysisPage() {
           skipped: summary.skipped,
           failed: summary.failed,
         }),
-        persist: hasFailures,
       });
     },
     failureMessage: t('batchTriggerFailed'),
   });
+  const startBatch = (ids?: string[]) => {
+    setFailedOnly(false);
+    batch.start(ids);
+  };
 
   const selectedUnanalyzed = evtData?.unanalyzed.find((u) => u.id === selectedEntityId);
   const unanalyzedMode = parseNarrativeMode(selectedUnanalyzed?.narrativeMode);
@@ -271,6 +279,13 @@ export default function EventAnalysisPage() {
     unanalyzed.find((u) => u.id === selectedEntityId)?.chapter ??
     null;
   const etaLabel = formatEta(unanalyzed.length, t);
+  const failedIds = liveFailedIds(
+    batch.summary,
+    unanalyzed.map((u) => u.id),
+    'events',
+  );
+  const failedCount = failedCountOf(batch.summary, failedIds);
+  const failedFilterOn = failedOnly && failedIds.length > 0;
 
   if (isLoading) {
     return (
@@ -300,8 +315,18 @@ export default function EventAnalysisPage() {
       <div className="ea-body">
         {/* Left Panel */}
         <aside className="ea-left">
-          {evtData && (
+          {evtData && bookId && (
+            <div className="ea-left-section">
             <BatchEepPanel
+              bookId={bookId}
+              page="events"
+              pendingLine={[
+                t('batch.remaining', { count: unanalyzed.length }),
+                etaLabel,
+                t('batch.autoSkip'),
+              ].join(' · ')}
+              failedCount={failedCount}
+              onShowFailures={failedIds.length > 0 ? () => setFailedOnly(true) : undefined}
               analyzedCount={evtData.analyzed.length}
               totalCount={totalCount}
               batchTask={batch.task}
@@ -314,12 +339,12 @@ export default function EventAnalysisPage() {
               subset={{
                 kernelRemaining,
                 onBatchKernel: () =>
-                  batch.start(
+                  startBatch(
                     unanalyzed.filter((u) => u.importance === 'KERNEL').map((u) => u.id),
                   ),
                 currentChapter: selectedChapter,
                 onBatchChapter: () =>
-                  batch.start(
+                  startBatch(
                     unanalyzed.filter((u) => u.chapter === selectedChapter).map((u) => u.id),
                   ),
                 checkMode,
@@ -328,10 +353,10 @@ export default function EventAnalysisPage() {
                   setCheckedIds(new Set());
                 },
                 checkedCount: checkedIds.size,
-                onBatchChecked: () => batch.start([...checkedIds]),
-                etaLabel,
+                onBatchChecked: () => startBatch([...checkedIds]),
               }}
             />
+            </div>
           )}
 
           <div className="ea-left-section">
@@ -355,6 +380,9 @@ export default function EventAnalysisPage() {
               onGenerate={handleGenerate}
               generatingId={generatingId}
               justDoneIds={justDoneIds}
+              failedIds={failedIds}
+              failedOnly={failedFilterOn}
+              onFailedOnlyChange={setFailedOnly}
               checkMode={checkMode}
               checked={checkedIds}
               onToggleChecked={(id) =>
@@ -688,7 +716,7 @@ export default function EventAnalysisPage() {
         spendsTokens
         onConfirm={() => {
           setConfirmBatchEep(false);
-          batch.start(undefined);
+          startBatch(undefined);
         }}
         onCancel={() => setConfirmBatchEep(false)}
       />
