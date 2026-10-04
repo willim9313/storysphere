@@ -22,6 +22,7 @@ from fastapi import APIRouter, HTTPException
 
 from storysphere.api import task_runner
 from storysphere.api.deps import NarrativeServiceDep
+from storysphere.api.llm_guard import primary_config_error, require_llm_provider
 from storysphere.api.schemas.common import TaskStatus
 from storysphere.api.schemas.narrative import (
     ClassifyNarrativeRequest,
@@ -207,6 +208,13 @@ async def analyze_temporal(
     Requires story_time_hint coverage ≥ 60% (check with GET /narrative/temporal/coverage).
     Returns 202 with ``task_id``. Poll ``GET /narrative/temporal/{task_id}``.
     """
+    # 覆蓋率不足時 analyze_temporal_order 直接回 coverage_sufficient=False、不碰 LLM，
+    # 這種情況不該因沒設 provider 而 503。只在 provider 未設定時才多查一次覆蓋率
+    # （與 GET /temporal/coverage 同一個公開方法），一般路徑行為不變。
+    if primary_config_error() is not None:
+        coverage = await narrative_service.check_temporal_coverage(req.document_id)
+        if coverage.coverage_sufficient:
+            require_llm_provider()
     task_id = str(uuid4())
     task_store.create(task_id, kind="narrative", title="時序分析")
     task_runner.launch(task_id, _temporal(task_id, req, narrative_service))

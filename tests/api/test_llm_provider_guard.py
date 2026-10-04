@@ -37,6 +37,19 @@ ENDPOINTS = [
     ("classify-visibility", "post", "/api/v1/books/doc-1/classify-visibility", None, 202),
     ("symbol-analyze", "post", "/api/v1/symbols/img-1/analyze", {"book_id": "doc-1"}, 202),
     ("symbol-analyze-all", "post", "/api/v1/symbols/analyze-all", {"book_id": "doc-1"}, 202),
+    # DS v3 batch 4
+    ("timeline-compute", "post", "/api/v1/books/doc-1/timeline/compute", None, 202),
+    ("narrative-temporal", "post", "/api/v1/narrative/temporal", {"document_id": "doc-1"}, 202),
+    ("tension-analyze", "post", "/api/v1/tension/analyze", {"document_id": "doc-1"}, 202),
+    ("tension-group", "post", "/api/v1/tension/lines/group", {"document_id": "doc-1"}, 202),
+    (
+        "tension-synthesize",
+        "post",
+        "/api/v1/tension/theme/synthesize",
+        {"document_id": "doc-1"},
+        202,
+    ),
+    ("inferred-concepts-run", "post", "/api/v1/books/doc-1/inferred-concepts/run", None, 202),
 ]
 
 
@@ -91,6 +104,11 @@ def guard_client(mock_kg, mock_doc, mock_analysis_agent):
     mock_symbol_analysis.list_interpretations = AsyncMock(return_value={})
     mock_symbol_analysis.list_blocks = AsyncMock(return_value={})
 
+    mock_narrative = AsyncMock()
+    mock_narrative.check_temporal_coverage = AsyncMock(
+        return_value=SimpleNamespace(coverage_sufficient=True)
+    )
+
     app = create_app()
 
     @asynccontextmanager
@@ -106,9 +124,14 @@ def guard_client(mock_kg, mock_doc, mock_analysis_agent):
     app.dependency_overrides[deps.get_symbol_service] = lambda: mock_symbol
     app.dependency_overrides[deps.get_symbol_analysis_service] = lambda: mock_symbol_analysis
     app.dependency_overrides[deps.get_epistemic_state_service] = lambda: AsyncMock()
+    app.dependency_overrides[deps.get_tension_service] = lambda: AsyncMock()
+    app.dependency_overrides[deps.get_narrative_service] = lambda: mock_narrative
+    app.dependency_overrides[deps.get_temporal_pipeline] = lambda: AsyncMock()
+    app.dependency_overrides[deps.get_concept_inference_service] = lambda: AsyncMock()
 
     with TestClient(app, raise_server_exceptions=True) as c:
         c.mock_voice = mock_voice  # type: ignore[attr-defined]
+        c.mock_narrative = mock_narrative  # type: ignore[attr-defined]
         yield c
 
     app.dependency_overrides.clear()
@@ -154,6 +177,26 @@ class TestUnconfiguredProvider:
         _unconfigured(monkeypatch)
         resp = _send(guard_client, "post", "/api/v1/books/no-such-book/entities/analyze-all", None)
         assert resp.status_code == 404
+
+
+class TestTemporalSkipsGuardWhenNoLlmWouldRun:
+    """analyze_temporal_order returns coverage_sufficient=False without touching the LLM,
+    so a missing provider must not turn that into a 503."""
+
+    def test_insufficient_coverage_is_accepted_without_provider(self, guard_client, monkeypatch):
+        _unconfigured(monkeypatch)
+        guard_client.mock_narrative.check_temporal_coverage.return_value = SimpleNamespace(
+            coverage_sufficient=False
+        )
+
+        resp = _send(guard_client, "post", "/api/v1/narrative/temporal", {"document_id": "doc-1"})
+
+        assert resp.status_code == 202
+
+    def test_coverage_not_queried_when_provider_configured(self, guard_client):
+        _send(guard_client, "post", "/api/v1/narrative/temporal", {"document_id": "doc-1"})
+
+        guard_client.mock_narrative.check_temporal_coverage.assert_not_called()
 
 
 class TestVoiceOnlyGuardsGeneration:

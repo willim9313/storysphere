@@ -417,3 +417,18 @@
 }
 .rd-fade { opacity: 0; }
 .rd-fade.rd-in { animation: rd-fade .55s ease forwards; }
+
+/* BookLayout 取書失敗：書名列與 BookNav 保留，主體換 PageFailure（置中）。 */
+.book-layout-failure { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; padding: var(--space-7); }
+
+/* ConfirmDialog 擴充（DS v3 4-SH-1）：成本提示（按鈕列左側）與分段清單。
+   ss-kit.css 是設計端的檔，這裡只補新增的 class，不改既有的。 */
+.ss-dialog-cost {
+  margin-right: auto; font-family: var(--font-sans);
+  font-size: var(--font-size-2xs); color: var(--fg-muted);
+}
+.ss-dialog-section { display: flex; flex-direction: column; gap: var(--space-2); }
+.ss-dialog-section-title {
+  margin: 0; font-family: var(--font-sans);
+  font-size: var(--font-size-xs); font-weight: 600; color: var(--fg-primary);
+}

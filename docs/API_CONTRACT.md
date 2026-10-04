@@ -54,7 +54,8 @@
   建立背景任務**之前**檢查 `PRIMARY_LLM_PROVIDER` 指的 provider 是否已設定（對應的 `GEMINI_API_KEY`／`OPENAI_API_KEY`／
   `ANTHROPIC_API_KEY`／`LOCAL_LLM_MODEL`）；未設定回 `503`，body `{ "detail": "LLM provider is not configured: PRIMARY_LLM_PROVIDER=gemini but GEMINI_API_KEY is not set. …" }`
   （英文一句，指出要設哪個 env key），**不建立 task**。判準是「有應用層 JSON body 的 503」，與 gateway 的裸 503 區分（前端 `isLlmUnconfigured`）。
-  適用端點（各端點段落內亦有 `Response 503` 一行）：#7b、#7h、#7e、#7g、#8d（僅會用到 LLM 的步驟）、#12d、#15e、#15j、#16a（僅會生成時）。
+  適用端點（各端點段落內亦有 `Response 503` 一行）：#7b、#7h、#7e、#7g、#8d（僅會用到 LLM 的步驟）、#12d、#15e、#15j、#16a（僅會生成時）；
+  **第 4 批追加**：#10e、#13b、#14a、#14c、#14g、#21h（#21h 例外：覆蓋率不足時任務不碰 LLM，見該端點）。
   章節審閱的 #22 系列另有自己的 503（見該節），語意相同。
   **沒有 provider 時後端照常啟動**（零成本端點全部可用）：服務拿到一個「用到才報錯」的替身 LLM；
   聊天 WebSocket `WS /ws/chat` 保持連線、每則訊息回 `{"type":"error","detail":"LLM provider is not configured: …"}`；
@@ -1014,6 +1015,8 @@ interface InferredRelationsResponse {
 
 非同步（回 task id 輪詢），與 #10a 不同——#10a 是圖演算法、直接回結果。
 
+**Response 503**：未設定 LLM provider（見「通用規則」）；404（書不存在）優先於 503
+
 **UI 使用頁面**：建構概覽頁 `kg_concept_inferred` 節點的 CTA
 
 ---
@@ -1225,7 +1228,14 @@ interface TimelineQuality {
 
 **Response 202**：`{ taskId: string }`
 
+**Response 400**：書沒有任何事件；**404**：書不存在
+
+**Response 503**：未設定 LLM provider（見「通用規則」）；在 404／400 之後檢查
+
 **說明**：polling #8，完成後重新拉取 #13a。
+
+**成功才覆蓋（第 4 批）**：時序關係與 `chronological_rank` 只在 LLM 推論成功之後才清舊寫新。
+推論失敗時**不刪**既有時序關係與排序，任務狀態為 `error`（`error` 為可讀訊息），不再以 `done` 結束。
 
 **UI 使用頁面**：時間軸頁工具列「重新計算時序」
 
@@ -1251,6 +1261,8 @@ Step 1：觸發全書 TEU 組裝。
 ```
 
 **Response 202**：`TaskStatus`（含 taskId）
+
+**Response 503**：未設定 LLM provider（見「通用規則」）
 
 ---
 
@@ -1296,6 +1308,8 @@ Step 2：觸發 TensionLine 聚合。
 ```
 
 **Response 202**：`TaskStatus`（含 taskId）
+
+**Response 503**：未設定 LLM provider（見「通用規則」）
 
 ---
 
@@ -1554,6 +1568,8 @@ Step 3：觸發 TensionTheme 合成。
 ```
 
 **Response 202**：`TaskStatus`（含 taskId）
+
+**Response 503**：未設定 LLM provider（見「通用規則」）
 
 ---
 
@@ -2459,6 +2475,10 @@ kernel/satellite 事件時，跑一次分類等於把既有分類全部抹成未
 ```
 
 **Response 202**：`TaskStatus`（含 taskId）
+
+**Response 503**：未設定 LLM provider（見「通用規則」）。**例外**：覆蓋率不足（#21g `coverage_sufficient=false`）時任務不會呼叫 LLM、
+只回 `coverage_sufficient=false`，此時即使沒設定 provider 也照常 202；只有「會真的呼叫 LLM」才回 503。
+（僅在 provider 未設定時才多查一次覆蓋率；已設定時行為與先前完全相同。已有快取且未 `force` 的情形不特別判斷，仍回 503。）
 
 **說明**：polling 走 #21i。需先確認 #21g 覆蓋率 ≥ 60%。
 
