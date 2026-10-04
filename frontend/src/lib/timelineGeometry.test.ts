@@ -175,6 +175,18 @@ describe('buildStaveRows', () => {
     expect(row.hasUnranked).toBe(true);
   });
 
+  it('compare off puts ranked events on the midline with no outliers or notes', () => {
+    const data = buildTimelineData([
+      makeEvent({ id: 'a', chronologicalRank: 1 }),
+      makeEvent({ id: 'b', chronologicalRank: 0 }),
+      makeEvent({ id: 'c', chronologicalRank: null }),
+    ]);
+    const [row] = buildStaveRows(data, () => true, false);
+    expect(row.points.every((p) => p.yPx === STAVE_MID && !p.outlier)).toBe(true);
+    expect(row.annotations).toEqual([]);
+    expect(row.unranked.map((u) => u.id)).toEqual(['c']);
+  });
+
   it('annotates a judged event geometry would not have flagged', () => {
     // Dead on the diagonal — no deviation at all — but #21h called it a
     // flashback. Without the verdict this row would carry no annotation.

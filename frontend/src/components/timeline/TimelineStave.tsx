@@ -11,7 +11,7 @@
  * and survives resize without recomputation.
  */
 
-import { useTranslation } from 'react-i18next';
+import { useTranslation } from "react-i18next";
 import {
   STAVE_MID,
   STAVE_ROW_HEIGHT,
@@ -19,17 +19,17 @@ import {
   type StaveAnnotation,
   type StaveRow,
   type TimelineDatum,
-} from '@/lib/timelineGeometry';
+} from "@/lib/timelineGeometry";
 
 function noteKey(a: StaveAnnotation): string {
   if (a.confirmed) {
-    return a.kind === 'flashback'
-      ? 'timeline.stave.flashbackJudged'
-      : 'timeline.stave.flashforwardJudged';
+    return a.kind === "flashback"
+      ? "timeline.stave.flashbackJudged"
+      : "timeline.stave.flashforwardJudged";
   }
-  return a.kind === 'flashback'
-    ? 'timeline.stave.flashbackNote'
-    : 'timeline.stave.flashforwardNote';
+  return a.kind === "flashback"
+    ? "timeline.stave.flashbackNote"
+    : "timeline.stave.flashforwardNote";
 }
 
 interface TimelineStaveProps {
@@ -50,7 +50,7 @@ export function TimelineStave({
   onSelectChapter,
   onSelectEvent,
 }: TimelineStaveProps) {
-  const { t } = useTranslation('analysis');
+  const { t } = useTranslation("analysis");
 
   return (
     <div className="tl-stave">
@@ -58,7 +58,7 @@ export function TimelineStave({
         <div
           className="tl-stave-row"
           key={i}
-          style={{ height: STAVE_ROW_HEIGHT + (row.hasUnranked ? STAVE_UNRANKED_BAND : 0) }}
+          style={{ height: STAVE_ROW_HEIGHT + STAVE_UNRANKED_BAND }}
         >
           {/* Chapter bands sit behind everything and are the click target
               for changing chapter. They cover filtered-out chapters too, so
@@ -67,14 +67,14 @@ export function TimelineStave({
             <button
               type="button"
               key={`${band.chapter}-${band.x1Pct}`}
-              className={`tl-stave-band${band.chapter === selectedChapter ? ' active' : ''}`}
+              className={`tl-stave-band${band.chapter === selectedChapter ? " active" : ""}`}
               style={{
                 left: `${band.x1Pct}%`,
                 width: `${band.x2Pct - band.x1Pct}%`,
-                bottom: row.hasUnranked ? STAVE_UNRANKED_BAND : 0,
+                bottom: STAVE_UNRANKED_BAND,
               }}
               onClick={() => onSelectChapter(band.chapter)}
-              aria-label={t('timeline.gotoChapter', { n: band.chapter })}
+              aria-label={t("timeline.gotoChapter", { n: band.chapter })}
             >
               <span className="tl-stave-band-label">Ch.{band.chapter}</span>
             </button>
@@ -97,7 +97,7 @@ export function TimelineStave({
             {row.links.map((l, k) => (
               <line
                 key={k}
-                className={`tl-stave-link${l.outlier ? ' outlier' : ''}`}
+                className={`tl-stave-link${l.outlier ? " outlier" : ""}`}
                 x1={`${l.x1Pct}%`}
                 y1={l.y1Px}
                 x2={`${l.x2Pct}%`}
@@ -108,14 +108,14 @@ export function TimelineStave({
               <circle
                 key={p.id}
                 className={[
-                  'tl-stave-dot',
-                  p.outlier ? 'outlier' : '',
-                  p.hasAnalysis ? 'analyzed' : 'unanalyzed',
-                  p.id === selectedEventId ? 'selected' : '',
-                  dimmedIds.has(p.id) ? 'dim' : '',
+                  "tl-stave-dot",
+                  p.outlier ? "outlier" : "",
+                  p.hasAnalysis ? "analyzed" : "unanalyzed",
+                  p.id === selectedEventId ? "selected" : "",
+                  dimmedIds.has(p.id) ? "dim" : "",
                 ]
                   .filter(Boolean)
-                  .join(' ')}
+                  .join(" ")}
                 cx={`${p.xPct}%`}
                 cy={p.yPx}
                 r={p.radius}
@@ -129,7 +129,7 @@ export function TimelineStave({
             <button
               type="button"
               key={p.id}
-              className={`tl-stave-hit${p.id === selectedEventId ? ' selected' : ''}`}
+              className={`tl-stave-hit${p.id === selectedEventId ? " selected" : ""}`}
               style={{ left: `${p.xPct}%`, top: p.yPx }}
               onClick={() => onSelectEvent(p.datum)}
               title={`${p.datum.title} · rank ${p.datum.chronologicalRank?.toFixed(2)}`}
@@ -143,7 +143,7 @@ export function TimelineStave({
           {row.annotations.map((a) => (
             <span
               key={a.id}
-              className={`tl-stave-note ${a.align}${a.confirmed ? ' confirmed' : ''}`}
+              className={`tl-stave-note ${a.align}${a.confirmed ? " confirmed" : ""}`}
               style={{ left: `${a.xPct}%`, top: a.yPx }}
             >
               {t(noteKey(a), { ch: a.chapter, count: a.count })}
@@ -151,26 +151,30 @@ export function TimelineStave({
           ))}
 
           {/* rank === null is a stable class of events, so it gets a
-              permanent home rather than being hidden. */}
-          {row.hasUnranked && (
-            <div className="tl-stave-unranked" style={{ height: STAVE_UNRANKED_BAND }}>
-              <span className="tl-stave-unranked-label">{t('timeline.stave.unranked')}</span>
-              {row.unranked.map((u) => (
-                <button
-                  type="button"
-                  key={u.id}
-                  className={`tl-stave-unranked-dot${
-                    u.id === selectedEventId ? ' selected' : ''
-                  }${dimmedIds.has(u.id) ? ' dim' : ''}`}
-                  style={{ left: `${u.xPct}%` }}
-                  onClick={() => onSelectEvent(u.datum)}
-                  title={u.datum.title}
-                >
-                  <span className="sr-only">{u.datum.title}</span>
-                </button>
-              ))}
-            </div>
-          )}
+              permanent home — rendered on every row even when it is empty,
+              because the strip is part of the stave, not an empty state. */}
+          <div
+            className="tl-stave-unranked"
+            style={{ height: STAVE_UNRANKED_BAND }}
+          >
+            <span className="tl-stave-unranked-label">
+              {t("timeline.stave.unranked")}
+            </span>
+            {row.unranked.map((u) => (
+              <button
+                type="button"
+                key={u.id}
+                className={`tl-stave-unranked-dot${
+                  u.id === selectedEventId ? " selected" : ""
+                }${dimmedIds.has(u.id) ? " dim" : ""}`}
+                style={{ left: `${u.xPct}%` }}
+                onClick={() => onSelectEvent(u.datum)}
+                title={u.datum.title}
+              >
+                <span className="sr-only">{u.datum.title}</span>
+              </button>
+            ))}
+          </div>
         </div>
       ))}
     </div>

@@ -730,7 +730,7 @@
       "chrono": {
         "scope": "STEP 02 · Story Time",
         "name": "Compute Chronology",
-        "desc": "Order events by their story-time hints to unlock story-order and matrix views."
+        "desc": "Order events by their story-time hints; once computed, turn on story-order comparison on the chapter-order base."
       },
       "genette": {
         "scope": "STEP 03 · Narrative Order",
@@ -826,7 +826,7 @@
       "displacementDone": "{{analepsis}} flashbacks · {{prolepsis}} flashforwards identified",
       "displacementCostRerun": "Several minutes · overwrites the existing verdicts",
       "displacementReady": "Ready · story-time hint coverage {{pct}}%",
-      "displacementBlocked": "Not available · needs hints on 60% of events, currently {{pct}}%",
+      "displacementBlocked": "Not available · needs hints on 60% of events, currently {{n}} / {{total}} ({{pct}}%)",
       "displacementRunning": "Analyzing…",
       "displacementCost": "A few minutes · compares narrative order against story order",
       "displacementUnblock": "Story-time hints are set during knowledge-graph extraction · neither story order nor event analysis adds them · re-run the knowledge graph from Build Overview →",
@@ -871,7 +871,9 @@
       "count": "{{done}} / {{total}} ({{pct}}%)",
       "running": "Analyzing…",
       "action": "Analyze the remaining {{n}}…",
-      "actionRunning": "Analyzing…"
+      "actionRunning": "Analyzing…",
+      "prereq": "Prerequisite: event analysis {{done}} / {{total}} events ({{pct}}%)",
+      "toEvents": "Go to event analysis →"
     },
     "storyOrderPrompt": {
       "title": "Story order has not been computed, so the stave has no dots",
@@ -891,7 +893,8 @@
       "emptyFilteredDesc": "All {{n}} events in Ch.{{ch}} are excluded by the filter.",
       "emptyUnanalyzedTitle": "This chapter has not been analyzed yet",
       "emptyUnanalyzedDesc": "All {{n}} events in Ch.{{ch}} have titles only — no summary, participants or story time.",
-      "analyzeChapter": "Analyze this chapter's {{n}} events…"
+      "analyzeChapter": "Analyze this chapter's {{n}} events…",
+      "analyzeElsewhere": "Event analysis runs on the event analysis page."
     },
     "card": {
       "kernel": "K",
@@ -936,7 +939,7 @@
     "noRanked": {
       "story": "These events have no story order",
       "matrix": "These events cannot be plotted",
-      "desc": "All {{n}} matching events have no story time (chronological_rank is empty), so they cannot be ordered. They can still be inspected one by one."
+      "desc": "All {{n}} matching events have no story time (chronological_rank is empty), so they cannot be ordered."
     },
     "displacementTypes": {
       "analepsis": "flashback",
@@ -945,7 +948,17 @@
     },
     "guide": {
       "prefix": "Researcher guide:",
-      "body": "The three views ask different questions: <strong>chapter order</strong> is the order the book narrates events in, <strong>story order</strong> is the order they happened, and the <strong>matrix</strong> shows the gap between them — a crossing is an analepsis or prolepsis. Story order needs event analysis (EEP) first; flashback detection additionally needs story-time hints on 60% of events, and <strong>those hints are set during knowledge-graph extraction</strong>."
+      "body": "<strong>Chapter order</strong> is the order the book narrates events in, and the base of this page; with <strong>story-order comparison</strong> on, the vertical deviation is the gap to the order they happened — a crossing is an analepsis or prolepsis. Story order needs event analysis (EEP) first; flashback detection additionally needs story-time hints on 60% of events, and <strong>those hints are set during knowledge-graph extraction</strong>."
+    },
+    "base": {
+      "title": "Chapter order",
+      "subtitle": "The horizontal axis is the order events appear in the book; with comparison on, the vertical deviation is the gap between that and the order they actually happened (fabula) — and that gap is analepsis and prolepsis."
+    },
+    "compare": {
+      "label": "Compare with story order",
+      "zeroCost": "Zero cost · redraws only, no LLM call",
+      "blockedTitle": "Comparison with story order is not available yet",
+      "blockedHint": "Compute it with “Compute for the first time…” on the right, then compare"
     }
   },
   "unravelingLoadError": "Failed to load build overview data",

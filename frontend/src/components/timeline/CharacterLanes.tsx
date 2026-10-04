@@ -101,10 +101,13 @@ export function CharacterLanes({
             </select>
           </label>
         )}
-        {selected.length > 0 && (
-          <span className="tl-lanes-note">{t('timeline.lanes.axisNote', { n })}</span>
-        )}
       </header>
+
+      {/* Verbatim and above the lanes, not in a tooltip: 「最長連缺」 only holds
+          on the full axis, which is why the filter does not touch X. */}
+      {selected.length > 0 && (
+        <p className="tl-lanes-note">{t('timeline.lanes.axisNote', { n })}</p>
+      )}
 
       {/* Nothing selected is a working state, not an error: the reader has
           cleared the seeded cast and is about to pick their own. Show the
@@ -169,15 +172,11 @@ export function CharacterLanes({
               </button>
             ))}
           </div>
-          {/* Absence captions live in their own strip below the track so they
-              never sit on top of the dots. */}
-          <div className="tl-lane-notes">
+          {/* Absence captions are chips under the track so they never sit on
+              top of the dots. */}
+          <div className="tl-lane-chips">
             {lane.labelled.map((run, k) => (
-              <span
-                className="tl-lane-note"
-                key={k}
-                style={{ left: `${run.x1Pct}%`, width: `${run.widthPct}%` }}
-              >
+              <span className="tl-lane-chip" key={k}>
                 {t(
                   run.fromOpening
                     ? 'timeline.lanes.absentOpening'

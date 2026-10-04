@@ -1068,12 +1068,13 @@ Toolbar 搜尋欄輸入 → 下拉框出現（360px wide）：
 
 > 後端設計見 [`docs/guides/temporal-timeline.md`](guides/temporal-timeline.md)
 > 工程分期見 [`docs/plans/20260725-timeline-page-enhancements.md`](plans/20260725-timeline-page-enhancements.md)
-> **本節於 2026-07-27 全頁重做後改寫**；V2（2026-05-19）的版面已不再存在。
+> **本節於 2026-10-04 依 DS v3 第 4 批（4-1）改寫**；2026-07-27 的三視圖版面已不再存在。
+> 決議紀錄：`12 時間軸 Timeline 決議紀錄`；計畫：`docs/plans/20261004-ds-v3-batch4-views.md`；設計回饋：`DS_V3_DESIGN_FEEDBACK.md` 4-TL-*。
 
 #### 這一頁要回答什麼
 
-**作者敘述的順序（sjuzhet）與故事實際發生的順序（fabula）差在哪裡。**
-全頁的視覺重心都放在這個落差上，其量化形式是每筆事件的 `deviation`：
+**作者敘述的順序（sjuzhet）與故事實際發生的順序（fabula）差在哪裡**——差的地方就是倒敘與預敘。
+量化形式是每筆事件的 `deviation`：
 
 ```
 expectedRank = index / (N - 1)          // 若兩種順序完全一致，rank 應該是多少
@@ -1082,168 +1083,180 @@ outlier      = |deviation| > 0.15       // OUTLIER_THRESHOLD
 ```
 
 實作於 `frontend/src/lib/timelineGeometry.ts`（純函數，有單元測試）。
-`narrativeMode` 一律**由 deviation 推導**，不使用後端回傳的 `narrativeMode` 欄位——
-後端在種子書上 100% 回傳 `present`，不帶訊號。
+`narrativeMode` 一律**由 deviation 推導**，不使用後端回傳的 `narrativeMode` 欄位。
 
-#### 版面結構
+#### 兩項結構改動（2026-09-26 裁定，4-1 落地）
 
-```
-[ViewTabs 三視圖（等寬，附副標）              ← → 切換事件 · Esc 關閉]
-[Toolbar 四段：顯示範圍 | 篩選資料 | 疊加層 | 分析動作]
-[畫布 flex]                                   [事件詳情面板 320px]
-[角色軌跡泳道（疊加層，可關）]
-```
+1. **三視圖 tab 撤掉。** 故事時序與矩陣吃同一個 `chronological_rank`（沒有 rank 兩個都空、有 rank 兩個都活），所以不該是兩個 tab。
+   「章節順序」成為唯一底圖；對照能力收成一個**零成本開關**「對照故事時序」。`?view=` 不再讀（舊連結落到底圖）。
+2. **事件分析（EEP）的兩顆按鈕移回事件分析頁。** 本頁只留「前置：事件分析 d / t 筆（pct%）」＋零成本連結「到事件分析頁 →」；
+   章節帶保留說明、拿掉按鈕。本頁花 token 的入口因此只剩兩個。時間軸查詢**掛載時一律重抓**（`useTimeline` 的 `refetchOnMount: 'always'`），接住在事件分析頁跑完的 EEP。
 
-**資料取得**：三個視圖共用**同一份 `order=narrative` 的 payload**，故事時序與矩陣皆由
-前端依 `chronologicalRank` 推導。`index`（事件在書中的位置）是譜與泳道的 X 軸，
-必須跨視圖恆定；若改抓 `order=chronological` 會讓同一批事件換一組 index，泳道會整體位移。
+#### 版面結構（B 檢視：24 / 16 / 12 / 8、max-w 1280、下內距 32）
 
-**無 rank 時不上鎖**：`chronological_rank` 為 null 是**常設的一類事件**（種子書算完仍有 16%），
-不是過渡態。三個視圖各自有明確位置放它們（見下），因此不再 disable 視圖卡、不再有 `LockedView`。
-
-#### 3.7.1 工具列（四段，依「代價」分組）
+頁面整頁捲動（`.tl` 為捲動根，內容 `.tl-inner` max-w 1280）。
 
 ```
-顯示範圍          篩選資料              疊加層        分析動作  會呼叫 LLM 逐段判讀…
-[全部 62|僅已分析 13] [☰ 篩選 (n)] 符合 N/共 M  [角色軌跡·開]  ● 故事時序   已完成 52/62        [覆蓋重新計算…]
-                                                                重跑數分鐘 · 會覆蓋既有 52 筆排序
-                                                              ○ 倒敘與預敘 尚不可執行 · 需 60%…目前 15%  [識別倒敘與預敘…]
-                                                                故事時間提示要在事件分析頁逐筆補…→
+[GuidanceRibbon 研究者導覽（可關）]
+[工具列  左：顯示範圍 | 篩選資料 | 不符合的事件(+單行 hint) | 疊加層   │實線│   右：分析動作面板]
+[生效中的篩選 chips（有才出現）]
+[章節順序（serif xl 700）＋副標            [對照故事時序 開關]  零成本 · 只換畫法，不呼叫 LLM ]
+[disabled 說明卡（無 rank 時）]
+[前置：事件分析 d / t 筆（pct%）▬▬▬  到事件分析頁 →]
+[過期說明帶（時序分析已過期，有才出現）]
+[headline / meta（僅開啟對照時）]
+[譜面（每行固定帶「未排序」）]
+[圖例 2～3 行]
+[章節卡片帶]                                   [事件詳情面板 320px（開啟時譜面收窄，不覆蓋）]
+[角色軌跡（疊加層，可關）]
 ```
 
-前三段是免費、即時、可逆的；第四段是**數分鐘 + token + 不可逆**。這是分段的唯一理由。
+**資料取得**：一律 `order=narrative` 的同一份 payload；`index`（事件在書中的位置）是譜與軌跡的 X 軸，必須恆定。
+`rank` 是每筆事件自己的屬性，不另抓。
 
-**ActionRow（`.tl-action-row`）固定五欄結構**：`狀態點 · 名稱 · 兩行狀態文字 · 動作鈕 · 進度軌`。
-- **狀態文字必須兩行**：第一行狀態＋進度，第二行成本或阻擋原因。可用寬度僅約 314px，
-  單行 flex 會把任何真實文案截斷。
-- **`…` 後綴 = 會先出確認框**（`ConfirmDialog`，與事件頁／角色頁同一元件），
-  對話框內揭露影響範圍、時間、token 與「不會變動的東西」。
-- **執行中**：列底緣 3px **實心** `--accent` 進度軌（寬度＝百分比），按鈕換成「中止」。
-  **不可用半透明色塊覆蓋整列**——Ink 主題下 `--accent` 近黑，35% 疊上淺底會讓
-  `--fg-muted` 文字對比掉到約 1.4:1。
-- **阻擋原因寫在畫面上**，不是 tooltip；可點時導向解阻擋的頁面。
+#### 3.7.1 工具列：左右兩段、中間一條實線
 
-⚠️ **「倒敘與預敘」的解鎖條件是 `coverage_sufficient`（storyTimeHint ≥ 60%），
-不是「故事時序跑完」**。兩者資料來源不同，跑故事時序**不會**提高 storyTimeHint 覆蓋率。
-文案必須說清楚這件事（`timeline.action.displacementUnblock`）。
+左段是**看什麼**（零成本）、右段是**跑什麼**（花 token）；並排時容易被誤讀成同一類，所以以實線分開。
 
-**過期提示**：`temporalIsStale=true` 時，該列 status 改顯示
-`timeline.action.displacementStale`（帶入 `temporalStaleReason` 的步驟名），取代
-原本的「已完成 N 個倒敘／預敘」。**不另加橫條**——重跑按鈕就在同一列，另開一個
-提示區塊等於同一動作有兩個入口。
+左段四格（皆為零成本）：
+- **顯示範圍**：`ss-seg`「全部 n｜僅已分析 n」。
+- **篩選資料**：`ss-btn-sm` 篩選鈕（帶條件數）＋「符合 n / 共 m」；popover 見 3.7.2。
+- **不符合的事件**（`filterMode`）：`ss-seg`「淡化其餘｜只顯示符合項」，下方**單行 muted hint** 隨選中切換
+  （`filterModeDimHint`／`filterModeOnlyHint`，既有字串）。它與「顯示範圍」分兩格：後者是條件，前者是不符者怎麼呈現。
+- **疊加層**：「角色軌跡 · 開／關」。上限 3、預設開（功能凍結，見 4-TL-4）。
 
-- **「倒敘與預敘」的 `name` 標籤**（`ActionRow` 的 `nameHref` prop，2026-08-13 補）
-  連往 `/methodology?framework=genette_temporal_order`，比照其他分析頁術語連結的做法。
-  `故事時序`（`storyOrder`）不連——它是排序，不是具名理論。此前只有空狀態的
-  `TimelineOnboardingHero`（Step 03「Genette 分析」）點過名，資料跑出來後那張卡片就
-  消失，工具列本身沒有連結入口，是 B 類（Genette）方法論盤點漏掉的一塊，此次補上。
+#### 3.7.2 篩選
 
-> 按鈕外觀：`.tl button` 的頁面級 reset 已收斂為 `.tl button:not([class])`，
-> 否則其特異性 (0,1,1) 會蓋掉 `.tl-btn` (0,1,0) 的 border 與 background，
-> 造成「靜止時是裸文字、hover 才像按鈕」。這是 V2 的已知缺陷，已修正。
+popover（寬 340、`--card-radius`）內五個 AND 疊加的分區（事件類型 / 敘事模式 / 重要性 / 角色（含搜尋）/ 地點），每個選項帶命中筆數；
+地點在真實資料中為空時該區自動隱藏。`filterMode` **不再放在 popover 內**（移到工具列）。
 
-#### 3.7.2 篩選（兩種顯示模式，皆保留）
+- **篩到空 / 僅已分析＝0**：同一個殼——`沒有事件同時滿足這些條件` ＋ `目前套用 {n} 個條件…` ＋ `全部清除`。
+  生效中的 chips 列留在工具列下方，可逐一移除，讓人看得出是哪些條件把結果掐死。
+- 只顯示符合項（only）時，譜上被移除的點會**中斷連線**（不跨洞連線）。
 
-popover 內含五個 AND 疊加的分區（事件類型 / 敘事模式 / 重要性 / 角色（含搜尋）/ 地點），
-每個選項標示命中筆數；地點在真實資料中為空，該區自動隱藏。
+#### 3.7.3 底圖標題與「對照故事時序」開關
 
-**顯示模式二選一，但兩者都要有**：
-- **淡化其餘（dim，預設）**——保留全部事件的位置，不符合的降透明度。
-  在譜上尤其有用：看得出被排除的事件原本落在哪裡。
-- **只顯示符合項（only）**——不符合的整批移除，長書才讀得動。
-  譜上被移除的點會**中斷連線**（不跨洞連線，那會暗示不存在的相鄰關係）。
+標題「章節順序」（serif xl 700）＋逐字副標（README §1.2）。開關三態（`timelineModel.compareState`）：
 
-**S18 篩選結果為空**：整個畫布換成 `沒有事件同時滿足這些條件` + 條件數 + 清除按鈕。
+| 態 | 條件 | 呈現 |
+|---|---|---|
+| disabled | **全書** `stats.ranked === 0`（不隨篩選變灰） | opacity 0.55、not-allowed；下方說明卡（`--bg-secondary`）：標題「對照故事時序目前不可開啟」（partial 色）＋ `noRanked.desc`（`{n}` ＝全書事件數）＋「用右側的「首次計算…」算出後即可對照」 |
+| off（預設） | 有 rank、未開 | 已排序事件畫在**中線**，不做縱向偏離、不標 outlier、無註記；headline／meta／中線圖例**不出現** |
+| on | 有 rank、已開 | accent 描邊與軌；現行偏離畫法；headline／meta／`stave.legend` 出現 |
 
-#### 3.7.3 視圖 A — 章節順序（雙軌譜 + 章節卡片帶）
+開關旁固定「零成本 · 只換畫法，不呼叫 LLM」。說明卡**取代**原本的 prompt 卡（同一個動作不畫兩次）。
+矩陣密度版延後（稿未畫），不是第三個 tab。
 
-**雙軌譜（`TimelineStave`）** 是這頁的識別度所在：
+#### 3.7.4 分析動作面板（工具列右段）
 
-- X = 段內敘述順序線性映射；Y = `MID - deviation × SCALE`（MID 26px、SCALE 38）
-- 中線（`1px dashed`）代表 deviation = 0，即「兩種順序一致」；下方＝倒敘、上方＝預敘
-- **行數由事件數推導**（`ceil(n / 22)`，62 筆＝3 行），不寫死
-- 點：KERNEL 較大、已分析實心 / 未分析空心、outlier 用 `--accent`
-- 連線與中線以 **SVG** 繪製（`x1="2%"` 這類百分比座標），不用旋轉 div——免除旋轉數學且 resize 免重算
-- **章節帶**可點＝換章，且**涵蓋被篩選濾空的章節**（章節是導覽目標，不能因篩選消失）
-- **註記**：每章最多一條、取偏離最大者，避免 62 節點上鋪滿文字
-- **未排序帶**：`rank === null` 的事件放在該行底部 13px 的點線帶內；該行沒有就不渲染
+兩列 × 四段，grid `110px 1fr auto`：**動作 / 目前狀態 / 成本或阻擋原因 / 按鈕**。不可壓成一顆按鈕。
 
-**章節卡片帶**一次只顯示一章。已分析事件出卡片；未分析的收進右側 196px 清單
-（顯示裝得下的 4 筆 + 明確的「展開其餘 N 筆」，**不可靜默截斷**）。
-卡片摘要 `-webkit-line-clamp: 2` 且必須 `flex: none`，否則 clamp 盒會被 flex 壓縮、第二行被切一半。
+- 實心點＝可執行、空心圈＝被擋住（形狀記號，Ink 下不靠色相）。
+- **兩顆按鈕都 `.ss-btn-llm`，disabled 的也掛**：擋住的是能不能跑，不是花不花錢。
+- **被擋時**：狀態行 partial 色，帶**當下分數**「尚不可執行 · 需 60% 事件帶有故事時間提示，目前 {n} / {total}（{pct}%）」
+  （`events_with_hint`／`total_events`，來自 #21g）；第三格為可點連結「…到建構概覽重跑知識圖譜 →」（導向 `/books/:id/unraveling`）。
+- **執行中**：第三格改放 `leavePageOk`，第四段為「中止」（零成本、不掛字符），呼叫 `POST /tasks/:id/cancel`（`cancelTask`），
+  並清除本地 task id。故事時序列的進度句用 `storyOrderRunning` 原文。**兩個任務可同時在跑。**
+- **「識別倒敘與預敘」一律 `force: true`**（使用者明示要跑；否則舊的「覆蓋率不足」快取會一直擋住）。
+- **被跳過**（任務 `done` 但 `coverage_sufficient !== true`，即沒呼叫 LLM）：面板內可關閉的 **partial 卡**
+  （`toast.displacementSkipped`／`Desc`，沿用既有字串）取代 toast——「沒跑」不是「跑壞」，所以用 partial 色而非 error 色。
+- **觸發失敗**：兩個觸發都有 try/catch。`isLlmUnconfigured`（503＋body）→ 面板內就地 `LlmUnconfiguredNotice`；其他 → 既有 error toast。
+- 「倒敘與預敘」名稱連往 `/methodology?framework=genette_temporal_order`。
 
-#### 3.7.4 視圖 B — 故事時序
+⚠️ **解鎖條件是 `coverage_sufficient`（storyTimeHint ≥ 60%），不是「故事時序跑完」**——兩者資料來源不同，
+跑故事時序或事件分析都不會提高覆蓋率（`timeline.action.displacementUnblock` 必須說清楚）。
 
-依 rank 升序切成 4 欄；每列 `序號 · 標題 · Ch.N`，outlier 的章號用 `--accent`。
-底部**未排序托盤**放 `rank === null` 的事件（4 顆 chip + 「＋其餘 N 筆」，點了套用篩選帶出全部）。
+#### 3.7.5 前置列與過期帶
 
-#### 3.7.5 視圖 C — 矩陣視圖
+- **前置列**（`coverage.prereq`）：「前置：事件分析 d / t 筆（pct%）」＋ `.ss-progress` ＋ 零成本連結「到事件分析頁 →」（`/books/:id/events`，不預選章節）。
+  獨立一列、排在說明卡之下、譜面之上；與故事時序算沒算過無關。
+- **過期說明帶**：`temporalAnalyzed && temporalIsStale` 時在譜面上方顯示 `timeline.action.displacementStale`（partial 色、`--bg-secondary` 底、無左邊框）。
+  `{step}` 用 `reader:rerun.steps.*` 既有步驟名對照（`timelineModel.staleStepKey`），未知步驟退回後端原值。**舊判定仍顯示**，不隱藏。
 
-**軸編碼是這張圖的資訊本體，不可改**：X = 章節（離散）、Y = `chronological_rank`、
-45° 對照線 = 「敘述順序 = 故事順序」、未排序事件在繪圖區下方的 degraded 帶。
+#### 3.7.6 譜面（雙軌譜 + 章節卡片帶）
 
-**beeswarm 偏移解 overplotting**：同章事件共用 X，會疊成一柱（種子書 Ch.2 疊 11 顆、無法點擊）。
-偏移量 `(k % 2 ? -1 : 1) × ceil(k / 2) × spacing`，**`k` 必須按章計數**——
-用全域索引會讓同章的點拿到相同偏移，等於沒散開。
+- X = 段內敘述順序線性映射；on 時 Y = `MID - deviation × SCALE`（MID 26px、SCALE 38），off 時所有已排序點 Y = MID。
+- 中線（`1px dashed`）＝ deviation 0，下方＝倒敘、上方＝預敘。**行數由事件數推導**（`ceil(n / 22)`）。
+- 點：KERNEL 較大、已分析實心 / 未分析空心、outlier 用 `--accent`。連線與中線為 **SVG**。
+- **章節帶**可點＝換章，涵蓋被篩選濾空的章節。**註記**每章最多一條（僅 on）。
+- **未排序帶是固定結構**：**每一行都渲染**（`rank === null` 的事件放這裡），不是空狀態，就算全部算完它仍然在。
+- **圖例兩軸分開**：「實心＝已分析｜虛線＝尚未分析」一行；「底部「未排序」帶＝排不進故事時序（與尚未分析是兩回事）」另一行。
+- **章節卡片帶**一次只顯示一章；已分析事件出卡片，未分析的收進右側 196px 清單（含明確的「展開其餘 N 筆」，不可靜默截斷）。
+  整章未分析時：說明「Ch.N 的 n 筆事件都只有標題…」＋「事件分析在事件分析頁執行。」，**無按鈕**。
 
-> V2 的 d3 實作、頂部密度直方圖、Genette 著色 toggle、框選皆已移除。
+#### 3.7.7 角色軌跡（疊加層）
 
-#### 3.7.6 角色軌跡泳道（疊加層）
+是疊加層，不是第四張視圖。上限 3 位、預設帶入出場數最高的 3 位、預設開。
+- **X 軸用 `index`（敘述順序），不吃篩選**：「X 軸沿用敘述順序（{n} 筆）· 不受篩選影響」**逐字**置於軌跡上方，不收進 tooltip（連缺數只在完整軸上成立）。
+- 卡片（`--card-radius`、padding 16）內每位角色一段：serif 名稱＋右側「出場 · 缺席 · 最長連缺」、軌道、**缺席區間 chips**（`--bg-secondary`）。
+- 章節刻度對齊該章第一筆事件的索引；缺席區間連續 ≥ 3 筆才算、寬度 < 9% 不標。底部「同框」列。
 
-**是疊加層，不是第四張視圖卡**——它加的是同一條 X 軸的第二種讀法（誰在場、誰缺席），
-不是時間軸的替代品。上限 3 位角色，預設帶入出場數最高的 3 位。
+#### 3.7.8 事件詳情面板（寬 320）
 
-- **X 軸用 `index`（敘述順序），不用 rank**：rank 可能為 null，軌道會出現分不清是缺席還是缺資料的洞
-- 章節刻度**對齊該章第一筆事件的索引**，不可用等寬欄——會與軌道上的點錯開
-- 缺席區間：連續 ≥ 3 筆才算；**說明文字放在軌道下方專屬的 16px 註記帶**，絕不壓在點上；
-  區間寬度 < 9% 時不標
-- 底部「同框」列：所有選定角色同時在場的事件
+標頭：`事件詳情` ＋ **`← → 切換事件 · Esc 關閉`**（`timeline.keyHint`）＋關閉鈕。內容：`Ch.N 章名 · 類型 → 標題 → 重要度 badge → 概要 → 參與角色（ss-pill）→ 時序`。
+**兩顆跳轉（前往閱讀該段落／在知識圖譜中查看）固定在面板底部**，不隨內容捲走。開啟時譜面收窄，不覆蓋。
 
-#### 3.7.7 事件詳情面板（320px）
+- **badge 一律看 `eventImportance`，不看 `hasAnalysis`**（兩者會不一致）：核心事件 KERNEL / 衛星事件 SATELLITE（`ss-badge`）；**重要度未評**＝中性灰 badge。
+- 「需要故事時間提示」用 partial 色（與動作面板被擋行同一組 token）。敘事模式 chip 無左邊框強調。
+- 「前往閱讀該段落」走 `useSourceJump`（章節 scope）。**不再有「時序關係」區塊**（`priorEventIds`／`subsequentEventIds` 語意非時序，不得在本頁出現「因果」「前驅／後續」）。
 
-`Ch.N 章名 · 類型 → 標題 → KERNEL/SATELLITE/尚未分析 → 概要 → 參與角色 pills
-→ 時序（rank / 敘述位置 / 偏離描述 / 敘事模式 chip）→ 前往閱讀該段落 · 在知識圖譜中查看`。
-
-- 「前往閱讀該段落」走 `useSourceJump`（章節 scope），與角色頁／事件頁同一條動線
-- **不再有「時序關係」區塊**：它讀的 `priorEventIds` / `subsequentEventIds` 語意是
-  「共享參與者且位於較早／較晚章節的事件」，既非因果也非時序。在一個主打時序的頁面上
-  這樣標示比事件頁更誤導，因此**移除**而非改名（事件頁已於 PR #18 正名為「上下文位置」）。
-  **全頁文案不得出現「因果」「前驅／後續」指涉這組資料。**
-- 約八成事件未分析，**未分析才是這個面板的主要狀態**
-
-#### 3.7.8 狀態涵蓋
+#### 3.7.9 狀態涵蓋（失敗四分）
 
 | 狀態 | 呈現 |
 |------|------|
-| 首次載入 | spinner + 依視圖不同的文案 + 三塊 skeleton |
-| 背景重取 | 畫布上方浮出膠囊指示器，工具列與視圖不消失 |
-| 載入失敗 | 錯誤標題 + 說明 + 重試 |
-| 無事件 | `TimelineOnboardingHero`（三步引導卡） |
-| 篩選為空 | `沒有事件同時滿足這些條件` + 清除 |
-| 命中項全無 rank | 專屬狀態：列出那些事件為可點 chip + 兩條出路（清除篩選／重算時序） |
-| 該章被濾空 / 整章未分析 | 章節卡片帶內的兩種空狀態，各帶對應 CTA |
+| 首次載入 | spinner＋`loadingBy.chapter`（不再有 skeleton） |
+| 無事件 | `TimelineOnboardingHero`：STEP 01–03 用 `onboarding.{events,chrono,genette}.desc`，`ss-btn-primary`「前往事件分析」 |
+| 單頁失敗（有應用層 JSON body） | `PageFailure` page：title＝`timeline.error.title` 原句、定案說明句、「重試」＋「回書籍總覽」、技術細節。錯誤分支只在無資料時出現（背景重抓失敗保留舊資料） |
+| 後端失敗（裸 502/503/504） | `PageFailure` backend：「伺服器沒有回應」＋重試 |
+| 應用層 503（觸發時） | 動作面板內就地 `LlmUnconfiguredNotice`，頁面其餘照常 |
+| 時序分析已過期 | 第四種：譜面上方的說明帶（見 3.7.5），不是錯誤 |
+| 篩選為空 / 僅已分析＝0 | 同一個殼（見 3.7.2） |
+| 該章被濾空 / 整章未分析 | 章節卡片帶內兩種空狀態 |
+
+修掉的既有 bug：舊版讀不存在的 `timeline.error.desc／retry` key（畫面印出 key 本身）。
+
+#### 3.7.10 字串
+
+**既有字串一字不改**，除使用者明示例外（Q6）。
+
+**這 4 句是草稿・待設計定案**（既有 key 的改寫；i18n `analysis:timeline.*`，zh-TW 與 en 都已改）：
+- `onboarding.chrono.desc`：「依事件的故事時間提示排序，算出後即可在章節順序上對照故事時序。」
+- `guide.body`：兩視圖說法（章節順序底圖＋對照故事時序開關）。
+- `action.displacementBlocked`：「尚不可執行 · 需 60% 事件帶有故事時間提示，目前 {{n}} / {{total}}（{{pct}}%）」
+- `noRanked.desc`：拿掉第三句「它們仍可逐筆檢視。」
+
+**這 7 句是草稿・待設計定案**（新字串；i18n `analysis:timeline.*`，zh-TW 與 en 都已補）：
+`compare.label`「對照故事時序」、`compare.zeroCost`「零成本 · 只換畫法，不呼叫 LLM」、`compare.blockedTitle`「對照故事時序目前不可開啟」、
+`coverage.prereq`「前置：事件分析 {{done}} / {{total}} 筆（{{pct}}%）」、`coverage.toEvents`「到事件分析頁 →」、
+`band.analyzeElsewhere`「事件分析在事件分析頁執行。」、`base.title`「章節順序」。
+
+**已裁決，不標草稿**（README §1.2／§5）：`base.subtitle`（逐字副標）、`compare.blockedHint`「用右側的「首次計算…」算出後即可對照」。
+
+**既有字串重用**（未新增）：失敗頁名 `nav:tabs.timeline`、「回書籍總覽」`analysis:character.error.backToBook`、被跳過卡 `toast.displacementSkipped*`、
+「關閉」`closePanel`、步驟名 `reader:rerun.steps.*`、中線圖例 `stave.legend`。
+
+#### 孤兒（保留未刪，待使用者確認）
+
+`StoryOrderView`、`MatrixCanvas` 兩個元件；i18n `noRanked.story／matrix`、`storyOrderPrompt.*`、`loadingBy.story／matrix`、`tabs.*`、`modeSub.*`、
+`coverage.label／count／running／action／actionRunning`、`confirm.eventsTitle／eventsBody`、`toast.eventsDone／eventsFailed`、`band.analyzeChapter`；
+`timeline.css` 內對應的 `.tl-tabs*`、`.tl-prompt*`、`.tl-story*`、`.tl-matrix*`、`.tl-btn*`（部分元件已換用 kit）。
 
 #### 樣式檔案
 
-`frontend/src/styles/timeline.css`（`.tl-*` prefix）。**不新增、不修改 design token**——
-本頁用到的 token 全部既有，`--narrative-*` 為跨頁共用（角色頁 `ArcPane`、事件頁），改值會同時破壞那兩頁。
+`frontend/src/styles/timeline.css`（`.tl-*` prefix）＋ kit（`.ss-btn*`、`.ss-seg`、`.ss-badge*`、`.ss-pill*`、`.ss-progress`、`.ss-btn-llm`）。
+**不新增、不修改 design token**——`--narrative-*` 為跨頁共用，改值會同時破壞角色頁與事件頁。本批觸及的區塊間距一律走 `--space-*`；
+譜面／矩陣的幾何像素與 SVG 內尺寸為既有凍結值。
 
 #### 動效
 
-只用 `--transition-fast` / `--transition-normal`，只過渡 `color` / `background-color` /
-`opacity` / `box-shadow`。持續動畫僅 spinner 與 skeleton pulse，且 `prefers-reduced-motion` 下關閉。
+只用 `--transition-fast` / `--transition-normal`，只過渡 `color` / `background-color` / `opacity` / `box-shadow` / 開關旋鈕 `left`。
+持續動畫僅 spinner，且 `prefers-reduced-motion` 下關閉。
 
 #### 已知缺口
 
-- **RWD 未做**：本輪固定 1440 基準，1280 / 1024 待另開任務（設計交付包未涵蓋這三個寬度）。
-- 水平／垂直 layout 切換已移除：新骨架是固定寬的多行譜，「排列方向」不再指涉任何東西。
-
-#### API 參考
-
-見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#13a（時間軸資料，含 `hasAnalysis`）、
-#13b（觸發時序計算）、#8（任務 polling）、`/narrative/temporal/coverage`（倒敘預敘的解鎖門檻）
-
----
+- **RWD 未做**：固定 1440 基準；右段動作面板最小寬 420，窄於約 1230 時換行到左段下方（見 4-TL-8）。
+- 矩陣密度版延後（稿未畫）。
+- 譜面與軌跡的點仍用原生 `title`（見 4-TL-9）。
 
 ### 3.8 張力分析頁 `/books/:bookId/tension`
 

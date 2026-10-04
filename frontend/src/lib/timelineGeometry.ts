@@ -212,6 +212,7 @@ export function staveRowCount(n: number): number {
 export function buildStaveRows(
   data: TimelineDatum[],
   isVisible: (d: TimelineDatum) => boolean = () => true,
+  compare = true,
 ): StaveRow[] {
   const rowCount = staveRowCount(data.length);
   if (rowCount === 0) return [];
@@ -220,7 +221,7 @@ export function buildStaveRows(
   const rows: StaveRow[] = [];
   for (let r = 0; r < rowCount; r++) {
     const slice = data.slice(r * perRow, (r + 1) * perRow);
-    rows.push(buildStaveRow(slice, isVisible));
+    rows.push(buildStaveRow(slice, isVisible, compare));
   }
   return rows;
 }
@@ -228,6 +229,7 @@ export function buildStaveRows(
 function buildStaveRow(
   slice: TimelineDatum[],
   isVisible: (d: TimelineDatum) => boolean,
+  compare: boolean,
 ): StaveRow {
   const n = slice.length;
   const xOf = (k: number) =>
@@ -262,13 +264,16 @@ function buildStaveRow(
       return;
     }
 
-    const yPx = STAVE_MID - d.deviation * STAVE_SCALE;
+    // compare off: ranked events sit on the midline — no vertical deviation,
+    // and nothing is flagged as an outlier (that claim needs the comparison).
+    const yPx = compare ? STAVE_MID - d.deviation * STAVE_SCALE : STAVE_MID;
+    const outlier = compare && d.outlier;
     points.push({
       id: d.id,
       xPct,
       yPx,
       radius: d.isKernel ? 4.5 : 3,
-      outlier: d.outlier,
+      outlier,
       hasAnalysis: d.hasAnalysis,
       datum: d,
     });
@@ -279,10 +284,10 @@ function buildStaveRow(
         y1Px: prev.yPx,
         x2Pct: xPct,
         y2Px: yPx,
-        outlier: d.outlier || prev.outlier,
+        outlier: outlier || prev.outlier,
       });
     }
-    prev = { xPct, yPx, outlier: d.outlier };
+    prev = { xPct, yPx, outlier };
   });
 
   return {
@@ -290,7 +295,7 @@ function buildStaveRow(
     links,
     bands,
     unranked,
-    annotations: buildAnnotations(points),
+    annotations: compare ? buildAnnotations(points) : [],
     hasUnranked: unranked.length > 0,
   };
 }

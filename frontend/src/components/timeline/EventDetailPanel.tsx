@@ -59,11 +59,22 @@ export function EventDetailPanel({
       : datum.importance === 'SATELLITE'
         ? t('timeline.panel.satellite')
         : t('timeline.panel.unrated');
+  const kindClass =
+    datum.importance === 'KERNEL'
+      ? 'ss-badge ss-badge-info'
+      : datum.importance === 'SATELLITE'
+        ? 'ss-badge ss-badge-success'
+        : 'ss-badge tl-panel-badge-neutral';
 
   return (
     <aside className="tl-panel" aria-label={t('timeline.panel.region')}>
       <header className="tl-panel-head">
-        <span className="tl-panel-eyebrow">{t('timeline.panel.eyebrow')}</span>
+        <div className="tl-panel-head-text">
+          <span className="tl-panel-eyebrow">{t('timeline.panel.eyebrow')}</span>
+          {/* Lives in the header, not the toolbar: it is how you move through
+              the events this panel shows. */}
+          <span className="tl-panel-keys">{t('timeline.keyHint')}</span>
+        </div>
         <button
           type="button"
           className="tl-panel-close"
@@ -84,9 +95,7 @@ export function EventDetailPanel({
           <h2 className="tl-panel-title">{datum.title}</h2>
           {/* Muting tracks the label it styles: the unrated state is the one
               that should read as absent, whether or not analysis ran. */}
-          <span className={`tl-panel-kind${datum.importance === null ? ' muted' : ''}`}>
-            {kind}
-          </span>
+          <span className={kindClass}>{kind}</span>
         </div>
 
         <p className="tl-panel-desc">
@@ -104,12 +113,12 @@ export function EventDetailPanel({
             </div>
             <div className="tl-panel-pills">
               {visible.map((p) => (
-                <span className={`tl-pill tl-pill-${p.type}`} key={p.id}>
+                <span className={`ss-pill ss-pill-${pillType(p.type)}`} key={p.id}>
                   {p.name}
                 </span>
               ))}
               {overflow > 0 && (
-                <span className="tl-pill tl-pill-overflow">
+                <span className="ss-pill tl-pill-overflow">
                   {t('timeline.panel.morePills', { n: overflow })}
                 </span>
               )}
@@ -129,7 +138,11 @@ export function EventDetailPanel({
               {t('timeline.panel.position', { i: datum.index + 1, n: totalEvents })}
             </span>
           </div>
-          <span className={`tl-panel-dev${datum.outlier ? ' outlier' : ''}`}>
+          <span
+            className={`tl-panel-dev${datum.outlier ? ' outlier' : ''}${
+              datum.deviation === null ? ' is-partial' : ''
+            }`}
+          >
             {deviationText(datum, t)}
           </span>
           <span className={`tl-narrative-chip tl-narrative-${datum.mode}`}>
@@ -148,24 +161,32 @@ export function EventDetailPanel({
           )}
         </div>
 
-        <div className="tl-panel-actions">
-          <button
-            type="button"
-            className="tl-btn"
-            onClick={onJumpToSource}
-            disabled={sourceJumpPending}
-          >
-            {sourceJumpPending
-              ? t('character.sourceJump.locating')
-              : t('timeline.panel.gotoReader')}
-          </button>
-          <button type="button" className="tl-btn" onClick={onOpenGraph}>
-            {t('timeline.panel.gotoGraph')}
-          </button>
-        </div>
+      </div>
+
+      <div className="tl-panel-actions">
+        <button
+          type="button"
+          className="ss-btn ss-btn-sm ss-btn-secondary"
+          onClick={onJumpToSource}
+          disabled={sourceJumpPending}
+        >
+          {sourceJumpPending
+            ? t('character.sourceJump.locating')
+            : t('timeline.panel.gotoReader')}
+        </button>
+        <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary" onClick={onOpenGraph}>
+          {t('timeline.panel.gotoGraph')}
+        </button>
       </div>
     </aside>
   );
+}
+
+const PILL_TYPES = new Set(['character', 'location', 'organization', 'object', 'concept', 'event']);
+
+/** Entity types the kit has a pill colour for; anything else reads as other. */
+function pillType(type: string): string {
+  return PILL_TYPES.has(type) ? type : 'other';
 }
 
 function deviationText(
