@@ -428,3 +428,7 @@
 .st-failure { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-5); padding: var(--space-5) 0; }
 .st-failure-line { display: flex; align-items: center; gap: var(--space-4); font-size: var(--font-size-xs); color: var(--color-error); }
 .st-failure-line svg { flex-shrink: 0; }
+
+/* Guidance panel: reset button + live count on one row. */
+.st-guidance-row { display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap; }
+.st-guidance-count { font-size: var(--font-size-xs); color: var(--fg-muted); }

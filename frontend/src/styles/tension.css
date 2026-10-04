@@ -21,8 +21,6 @@
   display: flex; flex-direction: column; gap: var(--space-6);
   font-family: var(--font-sans); color: var(--fg-primary);
 }
-/* 共用導覽條自帶 margin-bottom；內容區用 gap 排版，這裡歸零 */
-.tn-page > .sg-ribbon { margin-bottom: 0; }
 .tn-page > .ss-state-stage { padding: var(--space-8) 0; }
 
 /* ── 共用小件 ───────────────────────────────────────────────────── */

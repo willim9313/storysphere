@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { reopenGuidance, useReopenableSurfaces } from '@/components/ui/guidanceStore';
 import { BOOK_VIEWS } from './bookViews';
 
 interface BookNavProps {
@@ -16,6 +17,10 @@ interface BookNavProps {
 export function BookNav({ bookId, bookTitle }: BookNavProps) {
   const location = useLocation();
   const { t } = useTranslation('nav');
+  const { t: tSettings } = useTranslation('settings');
+  // Surfaces whose ribbon is on screen but dismissed — a page with two ribbons
+  // (event overview / detail) only ever mounts one, so this is at most one.
+  const reopenable = useReopenableSurfaces();
   const base = `/books/${bookId}`;
   const current = BOOK_VIEWS.find((v) => location.pathname === `${base}${v.path}`);
 
@@ -32,6 +37,15 @@ export function BookNav({ bookId, bookTitle }: BookNavProps) {
           <span className="ss-booknav-chev" aria-hidden="true">›</span>
           <span className="ss-booknav-view" aria-current="page">{t(current.labelKey)}</span>
         </>
+      )}
+      {reopenable.length > 0 && (
+        <button
+          type="button"
+          className="ss-btn ss-btn-ghost ss-btn-sm gd-reopen"
+          onClick={() => reopenGuidance(reopenable)}
+        >
+          {tSettings('guidance.title')}
+        </button>
       )}
     </div>
   );

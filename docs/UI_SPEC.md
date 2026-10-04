@@ -84,6 +84,14 @@ font-family: 'Caveat', 'Noto Serif TC', cursive;               /* 僅限插畫�
 **書名列不放導航**——九個書籍功能的切換只在側欄書籍群（§2.1），導航從兩處收攏成一處、上緣保持安靜
 （框架 §4）。DS v3 之前這裡是 40px 的九格文字分頁列，已移除。
 
+**右端重開鈕（第 5 批 5-1，19 決議紀錄）**：當下頁面的研究者導覽條**已被關閉**時，書名列右端
+（`margin-left:auto`）出現 ghost 小鈕（`.ss-btn .ss-btn-ghost .ss-btn-sm`，標籤 `settings:guidance.title`「研究者導覽」，
+無字符、無 toast）；導覽條開著時不出現。點＝刪掉該 surface 的 `storysphere:guidance-dismissed:<surface>`，導覽條重新出現就是回饋。
+一頁兩條（`event-overview`／`event-detail`，互斥顯示）只看當下掛載的那條。`GuidanceRibbon` 掛載時向
+`components/ui/guidanceStore.ts` 登記自己的 surface、卸載時取消，書名列據此判斷（不靠 props）。10 個 surface 全套。
+`BookLayout` 取書失敗時書名列仍在、但沒有導覽條，所以鈕不出現。非書籍路由目前沒有任何頁使用導覽條，本批不做
+（決議：屆時放頁面標題列右端，行為相同）。
+
 九個功能（**表列順序即側欄書籍群順序**）：
 
 | 功能 | 路由 | 側欄 icon |
@@ -913,7 +921,7 @@ partial 時附「部分分析」徽章。其下為研究者導覽 ribbon。
 
 分級 **A 工作台**（12／8／8／4、無 max-width）。樣式在 `styles/graph.css`（`kg-*`），純邏輯在 `components/graph/graphPanelModel.ts`（含 vitest）。
 
-- **版型**：`kg-page` 直排＝工具列（扁平條，不再浮在畫布上）／`kg-stage`（畫布＋所有浮動物件）／圖例帶（貼畫布下緣）。導覽條 `.sg-ribbon-float` 改為 `top: var(--space-5)` 且位於 stage 內，所以永遠在工具列正下方，不隨工具列換行而被蓋住。
+- **版型**：`kg-page` 直排＝工具列（扁平條，不再浮在畫布上）／`kg-stage`（畫布＋所有浮動物件）／圖例帶（貼畫布下緣）。導覽條位於 stage 內、工具列之下（5-1 起為 `.ss-guidance.is-float`：stage 內 `top`／`left` 皆 `--space-5`、max-w 430，工具列換行時跟著下移；沒有改用滿版的 `.ss-guidance-bleed`，因為滿版帶會壓在畫布邊緣的未連結實體 chip 與 lens 卡上）。
 - **工具列一列**（控制項高 32、型別 chip 高 22）：鏡頭 segmented 每格帶 11px 副標；搜尋；重設視圖；7 顆型別 chip（唯一開關，`aria-pressed`）；推論鈕＋其下常駐「無 token 成本」。放不下時整列換行、不裁切；推論群靠右（popover／選單向左展開）。
 - **圖例帶**：帶頭「目前鏡頭 · {mode}」；型別列 7 類全列（含 0；社群整列不出現）；四色只在個別鏡頭，類型鏡頭不渲染關係色，社群只有「敵對（虛線）」；右端「型別開關在上方工具列」（社群不顯示）。整條不可點。右內距讓出浮動聊天鈕。
 - **群集概觀**：「此檢視範圍」「怎麼分的」兩卡在社群面板**頂端**常駐；列尾無「⋯更多」；無派系／非角色宣告保留；進階群集設定四項（偵測算法只顯示現值 `greedy_modularity`，後端不收參數），重新運算零成本、不掛字符、旁註「零成本」。
@@ -1379,7 +1387,7 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 - 離頁後回來看不到進行中的任務（taskId 在 state、未綁書，B-128）。
 - Step 1 失敗清單只存在於剛結束那次執行的 task result，重新整理即消失（後端沒有按書留存）。
 - 「從張力線移除 TEU」沒有 API／UI（所以 409 說明只能說「沒有移動這個動作」）。
-- 導覽條仍是共用 `GuidanceRibbon`（`sg-ribbon`，含左邊框強調），等第 19 稿。
+- 導覽條是共用 `GuidanceRibbon`（5-1 起走 kit `.ss-guidance`，無左邊框強調）。
 - 鍵盤 `A`／`X` 在未開抽屜時作用於第一列（既有行為，未動）。
 - 孤兒（已不使用，保留）：`TensionRerunDialog.tsx`；i18n：`tension.drawer.notePlaceholder`、`tension.drawer.editorTitle` 仍使用中、`tension.rerun.separator`、`tension.table.selectAll／clearAll`（仍用於表頭勾選框的 aria-label）。
 
@@ -1818,10 +1826,15 @@ byModel 顯示原始 model id。
 #### 密度與骨架（C 入口）
 
 - 內容區 padding 32、section 24、card 16、面板 `max-width: 960`；左側 nav 172px，一次只顯示一個面板。
-- nav：頁首「設定」serif＋分隔線；三組（偏好設定／系統／其他）、七項 Lucide 圖示（`palette`／`languages`／`cpu`／`server`／
+- nav：頁首「設定」serif＋分隔線；三組（偏好設定／系統／其他）、八項 Lucide 圖示（`palette`／`languages`／`compass`／`cpu`／`server`／
   `keyboard`／`flask-conical`／`info`）；底部版本號上方分隔線。列 padding `--space-4`、gap `--space-4`、`--radius-sm`、xs；
   **選中＝`--bg-tertiary` 底＋accent 字 600，無左緣條**。標籤＋徽章放不下時（英文介面），徽章換到第二行靠右，標籤不截——暫時修法，待設計定案（FEEDBACK 2-ST-13）。
-- **研究者導覽（04 A2）本批不畫**：nav 維持三組七項，不放空項（FEEDBACK 2-ST-3，待第 19 稿 nav 項與面板一起做）。
+- **研究者導覽（04 A2）第 5 批 5-1 已落地**：偏好設定群組第三項（外觀與主題、語言之後），圖示 Lucide `compass`；nav 共三組八項。
+  面板 `GuidancePanel`：`PanelHead`（標題 `settings.guidance.title`、副標 `settings.guidance.hint`）＋一列
+  secondary 小鈕「重設所有導覽」（`guidance.reset`；零成本、可逆、不動分析資料，所以**無字符、無確認框、無 toast**）＋右側計數
+  （`guidance.count`「已關閉 {{n}} 條」／`guidance.countNone`「目前沒有已關閉的導覽」；n=0 時按鈕 disabled，這就是回饋）。
+  計數由 `localStorage` 的 `storysphere:guidance-dismissed:*` 鍵數即時算出（`guidanceStore.useDismissedCount`），不是估計值。
+  四條字串 2026-09-25 裁決通過（**非草稿**；en 依語意翻）。
 - **三種徽章視覺分化**（文字互不相同，Ink 下不另掛圖示）：開發者＝warning 底、整合＝success 底、規劃中＝虛線描邊＋muted 字且整列 opacity 0.55。
   面板標題旁同框：語言「整合」、環境「開發者」。
 - 區段小標（accent 圖示＋serif）：介面主題、目前設定、部署模式、目前狀態、資料遷移。其餘小標（Qdrant Service、知識圖譜後端、
@@ -2192,7 +2205,7 @@ WebSocket 連線，含訊息列表 + 輸入框。
 
 | 層 | 回答的問題 | 載體 | 位置 | 可關閉 |
 |---|---|---|---|---|
-| 1 · 頁層導覽 | 這頁能回答什麼問題？ | `GuidanceRibbon` | 頁面主區最上方，工具列之前 | ✅ 記住 |
+| 1 · 頁層導覽 | 這頁能回答什麼問題？ | `GuidanceRibbon`（kit `.ss-guidance`） | 頁面主區最上方，工具列之前 | ✅ 記住，且可從書名列／設定頁重開 |
 | 2 · 區塊說明 | 這個圖表／區塊怎麼讀？ | 區塊自己的 caption / legend | 緊貼該區塊下方或圖例內 | ❌ |
 | 3 · 欄位溯源 | 這個值哪來的？跑什麼會變、跑什麼不會？ | 貼著值的行內說明 | 緊貼它解釋的那個值或動作 | ❌ |
 
@@ -2217,15 +2230,21 @@ WebSocket 連線，含訊息列表 + 輸入框。
   `storysphere:guidance-dismissed:<surface>`
 - **內容用 children 傳，不傳 i18n key**——說明住在各頁原本的 namespace，元件若收 key
   就得連 namespace 一起收
-- class 前綴 `sg-`，**不用頁面前綴**。前兩代叫 `ca-tip` / `ea-guide`，名字跟著「第一個
-  剛好需要它的頁面」走，那正是後來沒人重用它們的原因
+- 樣式是 kit 的 `.ss-guidance`（`ss-kit.css`；`<p>` 內文＋關閉鈕；第 5 批 5-1 起取代舊的 `sg-ribbon*`），
+  **不用頁面前綴**。前兩代叫 `ca-tip` / `ea-guide`，名字跟著「第一個剛好需要它的頁面」走，那正是後來沒人重用它們的原因。
+  各頁**不再覆寫導覽條 margin**：`.ss-guidance` 自己沒有外距，間距由頁面的 flex gap 給（閱讀頁 landing 另有
+  `.rd-landing > .ss-guidance` 的下外距）。圖譜 `float` 為頁面層定位 `.ss-guidance.is-float`（`guidance.css`）。
+- **dismiss 狀態集中在 `components/ui/guidanceStore.ts`**（純邏輯 `guidanceModel.ts`，含 vitest）：讀寫
+  `storysphere:guidance-dismissed:<surface>`、列舉、重設全部；localStorage 失敗時退回本次工作階段的記憶體集合。
+  ribbon 掛載時登記 surface（供書名列重開鈕），設定頁「研究者導覽」讀同一份計數。
+- **第 2 層區塊註記、第 3 層欄位出處不受這個機制影響**：不登記、不計數、不被「重設所有導覽」重新顯示，也不可合併成同一元件。
 
 #### 圖示是訊號，不是裝飾
 
-`GuidanceRibbon` 的 `Info` 圖示**不可拿掉**。左側 accent 邊框在 warm 主題下看起來已經
-夠明顯，但 **ink 主題把所有語意色塌成同一個 `#111111`**（見 `tokens.css`：
-「Status — 單一單色處理；狀態由 icon 字形承載」），3px 的近黑邊框貼著 `#1a1a1a` 的
-外框只會讀成「邊框比較粗」。**任何只靠顏色區分狀態的設計，都要在 ink 下再看一次。**
+`.ss-guidance` 的資訊字符**不可拿掉**。它由 `::before` 以 mask 畫（`--ss-guidance-glyph`，**markup 不放 `Info` 圖示**），
+**不用左側色條**（第 5 批 5-1 起；舊版 3px accent 左緣已移除）。**ink 主題把所有語意色塌成同一個 `#151515`**
+（見 `tokens.css`：「Status — 單一單色處理；狀態由 icon 字形承載」），所以辨識靠字符與「研究者導覽：」粗體開頭，不靠色相。
+**任何只靠顏色區分狀態的設計，都要在 ink 下再看一次。**
 
 #### 第 3 層 · 欄位溯源要回答的三件事
 
