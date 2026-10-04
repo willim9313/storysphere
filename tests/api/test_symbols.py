@@ -823,6 +823,29 @@ class TestSymbolInterpretationReview:
         assert data["theme"] == "new theme"
         assert data["polarity"] == "positive"
 
+    def test_patch_passes_evidence_summary(self, client, mock_symbol_analysis_svc):
+        from storysphere.domain.symbol_analysis import SymbolInterpretation
+        updated = SymbolInterpretation(
+            imagery_id="img-1", book_id="book-1", term="mirror",
+            theme="t", evidence_summary="edited", polarity="neutral",
+            review_status="modified",
+        )
+        mock_symbol_analysis_svc.update_interpretation_review = AsyncMock(
+            return_value=updated
+        )
+        resp = client.patch(
+            "/api/v1/symbols/img-1/interpretation",
+            json={
+                "book_id": "book-1",
+                "review_status": "modified",
+                "evidence_summary": "edited",
+            },
+        )
+        assert resp.status_code == 200
+        assert resp.json()["evidence_summary"] == "edited"
+        kwargs = mock_symbol_analysis_svc.update_interpretation_review.await_args.kwargs
+        assert kwargs["evidence_summary"] == "edited"
+
     def test_patch_missing_returns_404(self, client, mock_symbol_analysis_svc):
         mock_symbol_analysis_svc.update_interpretation_review = AsyncMock(
             return_value=None

@@ -1424,7 +1424,7 @@ export interface paths {
          * Review Narrative Structure
          * @description Update the review_status of a NarrativeStructure.
          *
-         *     ``review_status``: "approved" or "rejected".
+         *     ``review_status``: "approved", "rejected", or "pending" (back to unreviewed).
          */
         patch: operations["review_narrative_structure_api_v1_narrative__document_id__review_patch"];
         trace?: never;
@@ -1907,9 +1907,9 @@ export interface paths {
         head?: never;
         /**
          * Review Symbol Interpretation
-         * @description Update the review_status (and optionally theme/polarity) of a SymbolInterpretation.
+         * @description Update the review_status (and optionally theme/evidence_summary/polarity) of a SymbolInterpretation.
          *
-         *     Optionally override ``theme`` / ``polarity`` when
+         *     Optionally override ``theme`` / ``evidence_summary`` / ``polarity`` when
          *     ``review_status`` is ``"modified"``.
          */
         patch: operations["review_symbol_interpretation_api_v1_symbols__imagery_id__interpretation_patch"];
@@ -3487,7 +3487,7 @@ export interface components {
              * Review Status
              * @enum {string}
              */
-            review_status: "approved" | "rejected";
+            review_status: "approved" | "rejected" | "pending";
         };
         /**
          * NarrativeStructure
@@ -4088,6 +4088,8 @@ export interface components {
             review_status: "approved" | "modified" | "rejected";
             /** Theme */
             theme?: string | null;
+            /** Evidence Summary */
+            evidence_summary?: string | null;
             /** Polarity */
             polarity?: ("positive" | "negative" | "neutral" | "mixed") | null;
         };

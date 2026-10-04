@@ -31,7 +31,7 @@ class HeroJourneyRequest(BaseModel):
 
 
 class NarrativeReviewRequest(BaseModel):
-    review_status: Literal["approved", "rejected"]
+    review_status: Literal["approved", "rejected", "pending"]
 
 
 class TemporalAnalysisRequest(BaseModel):

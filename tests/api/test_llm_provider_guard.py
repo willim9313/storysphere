@@ -50,6 +50,9 @@ ENDPOINTS = [
         202,
     ),
     ("inferred-concepts-run", "post", "/api/v1/books/doc-1/inferred-concepts/run", None, 202),
+    # DS v3 batch 5
+    ("narrative-hero-journey", "post", "/api/v1/narrative/hero-journey", {"document_id": "doc-1"}, 202),
+    ("narrative-refine", "post", "/api/v1/narrative/refine", {"document_id": "doc-1"}, 202),
 ]
 
 

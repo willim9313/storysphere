@@ -46,11 +46,19 @@ class TestWithRepresentativeEvents:
         out = self._resolve([_stage("ordinary_world", [1, 2])], kernels)
         assert out[0]["representative_event_ids"] == ["a", "b"]
 
-    def test_range_is_a_span_not_a_membership_list(self):
-        # [2, 4] means chapters 2 through 4 — chapter 3 counts.
-        kernels = [_kernel("a", 2), _kernel("b", 3), _kernel("c", 4), _kernel("d", 5)]
-        out = self._resolve([_stage("refusal_of_call", [2, 4])], kernels)
-        assert out[0]["representative_event_ids"] == ["a", "b", "c"]
+    def test_range_is_a_membership_list_not_a_span(self):
+        # [1, 2, 5, 8] names four chapters; the kernels in 3-7 are not its own.
+        kernels = [
+            _kernel("a", 1), _kernel("b", 2), _kernel("x3", 3), _kernel("x4", 4),
+            _kernel("c", 5), _kernel("x6", 6), _kernel("x7", 7), _kernel("d", 8),
+        ]
+        out = self._resolve([_stage("refusal_of_call", [1, 2, 5, 8])], kernels)
+        assert out[0]["representative_event_ids"] == ["a", "b", "c", "d"]
+
+    def test_unsorted_duplicated_range_still_resolves(self):
+        kernels = [_kernel("a", 2), _kernel("b", 3), _kernel("c", 5)]
+        out = self._resolve([_stage("refusal_of_call", [5, 2, 5, 2])], kernels)
+        assert out[0]["representative_event_ids"] == ["a", "c"]
 
     def test_caps_at_four_keeping_the_earliest(self):
         kernels = [_kernel(f"e{i}", 1) for i in range(7)]
@@ -189,6 +197,27 @@ class TestGetNarrativeStructure:
         body = narrative_client.get("/api/v1/narrative?book_id=book-1").json()
         assert body["is_stale"] is True
         assert body["stale_reason"] == "event_analysis"
+
+
+class TestReviewEndpoint:
+    def test_accepts_pending(self, narrative_client):
+        narrative_client.mock_narrative.update_review.return_value = NarrativeStructure(
+            document_id="book-1", review_status="pending"
+        )
+        resp = narrative_client.patch(
+            "/api/v1/narrative/book-1/review", json={"review_status": "pending"}
+        )
+        assert resp.status_code == 200
+        assert resp.json()["review_status"] == "pending"
+        narrative_client.mock_narrative.update_review.assert_awaited_once_with(
+            "book-1", "pending"
+        )
+
+    def test_rejects_unknown_status(self, narrative_client):
+        resp = narrative_client.patch(
+            "/api/v1/narrative/book-1/review", json={"review_status": "bogus"}
+        )
+        assert resp.status_code == 422
 
 
 # ── Classify guard ───────────────────────────────────────────────────────────
@@ -492,6 +521,32 @@ class TestUpdateReview:
         svc = self._service("llm_classified", ["llm_classified"])
         result = await svc.update_review("book-1", "rejected")
         assert result.classification_source == "llm_classified"
+
+    @pytest.mark.asyncio
+    async def test_approved_back_to_pending_restores_the_llm_source(self):
+        svc = self._service("human_verified", ["llm_classified", "summary_heuristic"])
+        result = await svc.update_review("book-1", "pending")
+        assert result.review_status == "pending"
+        assert result.classification_source == "llm_classified"
+
+    @pytest.mark.asyncio
+    async def test_approved_back_to_pending_falls_back_to_the_heuristic(self):
+        svc = self._service("human_verified", ["summary_heuristic"])
+        result = await svc.update_review("book-1", "pending")
+        assert result.classification_source == "summary_heuristic"
+
+    @pytest.mark.asyncio
+    async def test_rejected_to_pending_leaves_the_source_alone(self):
+        svc = self._service("llm_classified", ["llm_classified"])
+        result = await svc.update_review("book-1", "pending")
+        assert result.review_status == "pending"
+        assert result.classification_source == "llm_classified"
+
+    @pytest.mark.asyncio
+    async def test_pending_to_approved_advances_to_human_verified(self):
+        svc = self._service("summary_heuristic", ["summary_heuristic"])
+        result = await svc.update_review("book-1", "approved")
+        assert result.classification_source == "human_verified"
 
     @pytest.mark.asyncio
     async def test_returns_none_when_nothing_is_cached(self):

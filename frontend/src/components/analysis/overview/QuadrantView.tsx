@@ -193,7 +193,7 @@ export function QuadrantView({
                 const bx = cx(x);
                 const by = cy(y);
                 const nearRightEdge = x > RIGHT_EDGE_LABEL_THRESHOLD;
-                const color = token ? `var(--ca-${token}-bg)` : undefined;
+                const color = token ? `var(--${token})` : undefined;
                 const detail = hovered && (
                   <tspan className="ca-ov-bubble-detail">
                     {' '}

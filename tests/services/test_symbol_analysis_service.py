@@ -286,6 +286,37 @@ class TestReview:
         assert updated.theme == "new theme"
         assert updated.polarity == "negative"
 
+    async def test_update_evidence_summary(self, mock_cache):
+        existing = SymbolInterpretation(
+            imagery_id="img-1", book_id="book-1", term="mirror", theme="t",
+            evidence_summary="old", polarity="neutral",
+        )
+        mock_cache.get = AsyncMock(return_value=existing.model_dump(mode="json"))
+        svc = SymbolAnalysisService(cache=mock_cache)
+
+        updated = await svc.update_interpretation_review(
+            imagery_id="img-1",
+            book_id="book-1",
+            review_status="modified",
+            evidence_summary="new evidence",
+        )
+        assert updated is not None
+        assert updated.evidence_summary == "new evidence"
+        assert updated.theme == "t"
+
+    async def test_omitted_evidence_summary_is_kept(self, mock_cache):
+        existing = SymbolInterpretation(
+            imagery_id="img-1", book_id="book-1", term="mirror", theme="t",
+            evidence_summary="keep me", polarity="neutral",
+        )
+        mock_cache.get = AsyncMock(return_value=existing.model_dump(mode="json"))
+        svc = SymbolAnalysisService(cache=mock_cache)
+
+        updated = await svc.update_interpretation_review(
+            imagery_id="img-1", book_id="book-1", review_status="approved"
+        )
+        assert updated.evidence_summary == "keep me"
+
     async def test_update_missing_returns_none(self, mock_cache):
         mock_cache.get = AsyncMock(return_value=None)
         svc = SymbolAnalysisService(cache=mock_cache)
