@@ -730,7 +730,7 @@
       "chrono": {
         "scope": "STEP 02 · 故事時序",
         "name": "計算故事時序",
-        "desc": "依事件的故事時間提示排序，解鎖故事時序與矩陣視圖。"
+        "desc": "依事件的故事時間提示排序，算出後即可在章節順序上對照故事時序。"
       },
       "genette": {
         "scope": "STEP 03 · 敘事時序",
@@ -826,7 +826,7 @@
       "displacementDone": "已識別 {{analepsis}} 筆倒敘 · {{prolepsis}} 筆預敘",
       "displacementCostRerun": "重跑數分鐘 · 會覆蓋既有判定",
       "displacementReady": "可執行 · 故事時間提示覆蓋率 {{pct}}%",
-      "displacementBlocked": "尚不可執行 · 需 60% 事件帶有故事時間提示，目前 {{pct}}%",
+      "displacementBlocked": "尚不可執行 · 需 60% 事件帶有故事時間提示，目前 {{n}} / {{total}}（{{pct}}%）",
       "displacementRunning": "分析中…",
       "displacementCost": "約數分鐘 · 比對敘述順序與故事順序",
       "displacementUnblock": "故事時間提示在知識圖譜抽取時決定 · 跑故事時序或事件分析都不會增加 · 到建構概覽重跑知識圖譜 →",
@@ -871,7 +871,9 @@
       "count": "{{done}} / {{total}} 筆（{{pct}}%）",
       "running": "正在分析…",
       "action": "分析其餘 {{n}} 筆…",
-      "actionRunning": "分析中…"
+      "actionRunning": "分析中…",
+      "prereq": "前置：事件分析 {{done}} / {{total}} 筆（{{pct}}%）",
+      "toEvents": "到事件分析頁 →"
     },
     "storyOrderPrompt": {
       "title": "還沒算過故事時序，所以譜上沒有點",
@@ -891,7 +893,8 @@
       "emptyFilteredDesc": "Ch.{{ch}} 共 {{n}} 筆事件，全部被篩選條件排除。",
       "emptyUnanalyzedTitle": "這一章還沒有被分析過",
       "emptyUnanalyzedDesc": "Ch.{{ch}} 的 {{n}} 筆事件都只有標題，沒有摘要、參與者與故事時間。",
-      "analyzeChapter": "分析本章 {{n}} 筆事件…"
+      "analyzeChapter": "分析本章 {{n}} 筆事件…",
+      "analyzeElsewhere": "事件分析在事件分析頁執行。"
     },
     "card": {
       "kernel": "核",
@@ -936,7 +939,7 @@
     "noRanked": {
       "story": "這些事件排不進故事時序",
       "matrix": "這些事件畫不進矩陣",
-      "desc": "符合條件的 {{n}} 筆全部沒有故事時間（chronological_rank 為空），因此無法排出先後。它們仍可逐筆檢視。"
+      "desc": "符合條件的 {{n}} 筆全部沒有故事時間（chronological_rank 為空），因此無法排出先後。"
     },
     "displacementTypes": {
       "analepsis": "倒敘",
@@ -945,7 +948,17 @@
     },
     "guide": {
       "prefix": "研究者導覽：",
-      "body": "三個視圖問的是不同問題——<strong>章節順序</strong>是書中敘述的先後，<strong>故事時序</strong>是事件實際發生的先後，<strong>矩陣視圖</strong>看兩者的偏離，交叉處就是倒敘或預敘。故事時序要先跑事件分析（EEP）；倒敘與預敘另需 60% 事件帶有故事時間提示，<strong>而那個提示在知識圖譜抽取時就決定了</strong>。"
+      "body": "<strong>章節順序</strong>是書中敘述的先後，也是這頁的底圖；開啟<strong>對照故事時序</strong>後，縱向偏離就是事件實際發生的先後與它的差，交叉處就是倒敘或預敘。故事時序要先跑事件分析（EEP）；倒敘與預敘另需 60% 事件帶有故事時間提示，<strong>而那個提示在知識圖譜抽取時就決定了</strong>。"
+    },
+    "base": {
+      "title": "章節順序",
+      "subtitle": "橫軸是書中出現的先後；開啟對照後，縱向偏離就是事件實際發生的先後（Fabula）與它的差——差的地方就是倒敘與預敘。"
+    },
+    "compare": {
+      "label": "對照故事時序",
+      "zeroCost": "零成本 · 只換畫法，不呼叫 LLM",
+      "blockedTitle": "對照故事時序目前不可開啟",
+      "blockedHint": "用右側的「首次計算…」算出後即可對照"
     }
   },
   "unravelingLoadError": "無法載入建構概覽資料",

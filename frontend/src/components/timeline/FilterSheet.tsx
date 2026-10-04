@@ -11,7 +11,6 @@ import { useTranslation } from 'react-i18next';
 import { Search } from 'lucide-react';
 import {
   createDefaultFilter,
-  type FilterMode,
   type FilterOptions,
   type FilterState,
 } from './filterState';
@@ -55,8 +54,6 @@ export interface FilterSheetProps {
   eventTypeLabel: (type: string) => string;
   /** How many events each option value would match, keyed `section:value`. */
   counts: Map<string, number>;
-  mode: FilterMode;
-  onModeChange: (m: FilterMode) => void;
 }
 
 export function FilterSheet({
@@ -67,8 +64,6 @@ export function FilterSheet({
   modeLabel,
   eventTypeLabel,
   counts,
-  mode,
-  onModeChange,
 }: FilterSheetProps) {
   const { t } = useTranslation('analysis');
   const [charSearch, setCharSearch] = useState('');
@@ -90,33 +85,6 @@ export function FilterSheet({
 
   return (
     <div className="tl-filter-sheet" role="dialog" aria-label={t('timeline.filter')}>
-      {/* Both display modes are kept: dim preserves position on the stave, */}
-      {/* "only" makes a long book readable. Not an either/or. */}
-      <div className="tl-filter-sheet-section">
-        <div className="tl-filter-sheet-label">{t('timeline.filterModeLabel')}</div>
-        <div className="tl-segmented" role="group">
-          <button
-            type="button"
-            className={`tl-segmented-item${mode === 'dim' ? ' active' : ''}`}
-            onClick={() => onModeChange('dim')}
-            aria-pressed={mode === 'dim'}
-          >
-            {t('timeline.filterModeDim')}
-          </button>
-          <button
-            type="button"
-            className={`tl-segmented-item${mode === 'only' ? ' active' : ''}`}
-            onClick={() => onModeChange('only')}
-            aria-pressed={mode === 'only'}
-          >
-            {t('timeline.filterModeOnly')}
-          </button>
-        </div>
-        <div className="tl-filter-mode-hint">
-          {mode === 'dim' ? t('timeline.filterModeDimHint') : t('timeline.filterModeOnlyHint')}
-        </div>
-      </div>
-
       <div className="tl-filter-sheet-section">
         <div className="tl-filter-sheet-label">{t('timeline.filterSections.eventTypes')}</div>
         <div className="tl-filter-chips">
@@ -216,10 +184,10 @@ export function FilterSheet({
       )}
 
       <div className="tl-filter-sheet-foot">
-        <button type="button" className="tl-btn" onClick={reset}>
+        <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary" onClick={reset}>
           {t('timeline.reset')}
         </button>
-        <button type="button" className="tl-btn tl-btn-primary" onClick={onClose}>
+        <button type="button" className="ss-btn ss-btn-sm ss-btn-primary" onClick={onClose}>
           {t('timeline.apply')}
         </button>
       </div>
