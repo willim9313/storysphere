@@ -1,57 +1,69 @@
 /* Shared batch-analysis panel styles.
  * Used by BatchEepPanel (event analysis page + character analysis page).
  * Class prefix kept as `.ea-batch-*` for historical reasons; do not rename
- * without updating BatchEepPanel.tsx. */
+ * without updating BatchEepPanel.tsx.
+ *
+ * DS v3 第 5 批 · 09·10：268 欄寬內的卡片，四態（見 batchPanelModel.ts）。
+ * 收合列固定一行高；進度條在前三態都保留；第 4 態是一條狀態列（沒有展開鈕、沒有進度條）。
+ * 間距只用 --space-*；選中／狀態不用左緣強調。 */
+
+.ea-batch-wrap { display: flex; flex-direction: column; gap: var(--space-4); }
 
 .ea-batch {
-  padding: var(--space-6) var(--space-5);
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-secondary);
-  position: relative;
+  box-sizing: border-box;
+  display: flex; flex-direction: column; gap: var(--space-4);
+  padding: var(--space-5);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
+  background: var(--bg-primary);
 }
-.ea-batch-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: var(--space-4);
+.ea-batch.is-collapsed,
+.ea-batch.is-done { padding: var(--space-4) var(--space-5); gap: var(--space-3); }
+.ea-batch.running { border-color: var(--accent); }
+
+/* 標頭列：整條是切換目標（button），第 4 態是純文字列 */
+.ea-batch-head { display: flex; align-items: center; gap: var(--space-3); min-width: 0; }
+.ea-batch-toggle {
+  flex: 1; min-width: 0;
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: 0; border: none; background: none; cursor: pointer;
+  font: inherit; color: inherit; text-align: left;
 }
+.ea-batch-toggle > svg { flex: none; color: var(--fg-muted); }
 .ea-batch-label {
-  font-size: var(--font-size-2xs);
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--fg-muted);
-  font-family: var(--font-sans);
-}
-.ea-batch-count {
-  font-family: var(--font-serif);
-  font-size: var(--font-size-sm);
-  font-weight: 700;
+  flex: 1; min-width: 0;
+  font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 700;
   color: var(--fg-primary);
-  font-feature-settings: 'tnum';
-  white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
-.ea-batch-count .total {
-  font-weight: 400;
-  color: var(--fg-muted);
-  font-size: var(--font-size-2xs);
-  margin-left: var(--space-1);
+.ea-batch-value {
+  flex: none; display: inline-flex; align-items: center; gap: var(--space-3);
+  font-family: var(--font-sans); font-size: var(--font-size-2xs);
+  font-variant-numeric: tabular-nums; white-space: nowrap;
+  color: var(--fg-secondary);
+}
+.ea-batch-value.is-count,
+.ea-batch-value.is-live { color: var(--accent); }
+.ea-batch-value.is-failed { color: var(--color-error); }
+/* 收合列上的失敗數：獨立的按鈕（零成本，點了同「只看失敗」），其餘標頭列照樣切換 */
+.ea-batch-failnum {
+  padding: 0; border: none; background: none; cursor: pointer;
+  text-decoration: underline; text-underline-offset: 2px;
+}
+.ea-batch-spinner {
+  display: inline-block; flex: none; width: 11px; height: 11px;
+  border: 1.5px solid var(--bg-tertiary); border-top-color: var(--accent);
+  border-radius: 50%; animation: spin 800ms linear infinite;
 }
 
 /* Progress track */
 .ea-batch-track {
-  position: relative;
-  height: 8px;
-  background: var(--bg-tertiary);
-  border-radius: 4px;
-  overflow: hidden;
-  margin-bottom: var(--space-2);
+  position: relative; height: 4px; flex: none;
+  background: var(--bg-tertiary); border-radius: 2px; overflow: hidden;
 }
 .ea-batch-fill {
-  position: absolute;
-  inset: 0 auto 0 0;
-  background: var(--accent);
-  border-radius: 4px;
+  position: absolute; inset: 0 auto 0 0;
+  background: var(--accent); border-radius: 2px;
   transition: width var(--transition-normal) ease;
 }
 .ea-batch.running .ea-batch-fill {
@@ -73,84 +85,60 @@
   to   { background-position: 14px 0; }
 }
 
+/* 執行中：階段文字＋live */
 .ea-batch-pct {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-  font-feature-settings: 'tnum';
-  margin-bottom: var(--space-5);
-  gap: var(--space-4);
+  display: flex; justify-content: space-between; align-items: baseline;
+  font-size: var(--font-size-2xs); color: var(--fg-secondary);
+  font-feature-settings: 'tnum'; gap: var(--space-4);
 }
-.ea-batch-pct > span {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  min-width: 0;
-}
-.ea-batch-pct .stage {
-  flex: 1;
-  font-family: var(--font-sans);
-}
-.ea-batch-pct .live {
-  color: var(--accent);
-}
+.ea-batch-pct > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
+.ea-batch-pct .stage { flex: 1; font-family: var(--font-sans); }
+.ea-batch-pct .live { color: var(--accent); }
+.ea-batch-pct > .ss-tooltip-anchor { flex: 1; min-width: 0; }
+.ea-batch-pct > .ss-tooltip-anchor > .stage { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.ea-batch-hint {
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-  margin-top: var(--space-3);
-  line-height: 1.4;
-  font-family: var(--font-sans);
+/* 狀態行（待生成數 · 估時 · 自動跳過／本批次共處理 N） */
+.ea-batch-status {
+  margin: 0; font-family: var(--font-sans);
+  font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-secondary);
 }
-.ea-batch-hint.row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
-.ea-batch-hint .dismiss {
-  background: none;
-  border: none;
-  color: var(--accent);
-  cursor: pointer;
-  font-size: var(--font-size-2xs);
-  padding: 0;
-  font-family: inherit;
-}
+.ea-batch-status .is-error { color: var(--color-error); }
 
-.ea-batch-stats {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--space-2);
-  margin-bottom: var(--space-4);
+.ea-batch-main { width: 100%; }
+
+/* 第 3 態：三格計數＋「只看失敗」 */
+.ea-batch-section {
+  display: flex; flex-direction: column; gap: var(--space-4);
+  padding-top: var(--space-4);
+  border-top: var(--line-weight) var(--border-style) var(--border);
 }
+.ea-batch-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-3); }
 .ea-batch-stat {
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
+  display: flex; flex-direction: column; gap: 2px;
+  padding: var(--space-4);
+  background: var(--bg-secondary);
   border-radius: var(--radius-sm);
-  padding: var(--space-3) var(--space-2);
-  text-align: center;
 }
 .ea-batch-stat-n {
-  font-family: var(--font-serif);
-  font-size: var(--font-size-base);
-  font-weight: 700;
-  color: var(--fg-primary);
-  font-feature-settings: 'tnum';
-  display: block;
-  line-height: 1.1;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm); font-weight: 700; color: var(--fg-primary);
+  font-feature-settings: 'tnum'; line-height: 1.2;
 }
-.ea-batch-stat.skipped .ea-batch-stat-n { color: var(--fg-muted); }
-.ea-batch-stat.failed .ea-batch-stat-n { color: var(--color-error); }
-.ea-batch-stat-l {
-  font-size: var(--font-size-2xs);
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--fg-muted);
-  display: block;
-  margin-top: var(--space-1);
+.ea-batch-stat-l { font-size: var(--font-size-2xs); color: var(--fg-muted); }
+/* 零成本、不帶字符 */
+.ea-batch-link {
+  align-self: flex-start; padding: 0; border: none; background: none; cursor: pointer;
+  font-family: var(--font-sans); font-size: var(--font-size-2xs); color: var(--accent);
 }
+.ea-batch-link:hover { text-decoration: underline; text-underline-offset: 2px; }
+
+/* 子集：同一張卡、緊貼主鈕（與主鈕同進同出） */
+.ea-batch-subset { display: flex; flex-direction: column; gap: var(--space-3); }
+.ea-batch-subset-row { display: flex; gap: var(--space-3); }
+.ea-batch-subset-row > .ss-tooltip-anchor { flex: 1; min-width: 0; }
+.ea-batch-subset-row .ss-btn { width: 100%; }
+.ea-batch-subset > .ss-btn { width: 100%; }
+.ea-batch-subset > .ss-btn.is-active { background: var(--bg-tertiary); font-weight: 700; }
 
 /* ── Batch failure list (B-113) ─────────────────────────────────────
    Shared by the events, characters and symbols batches. Deliberately the same

@@ -153,7 +153,24 @@
       "confirmTop10Title": "Generate top-10 lead analyses",
       "confirmTop10Message": "Run deep analysis on the {{count}} unanalyzed characters with the most mentions. Already-analyzed characters are skipped. This consumes a significant amount of tokens.",
       "confirmBtn": "Confirm",
-      "triggerFailed": "Failed to trigger batch analysis. Please try again later."
+      "triggerFailed": "Failed to trigger batch analysis. Please try again later.",
+      "header": "Character Analysis",
+      "running": "Analyzing",
+      "allDone": "All characters analyzed ✓",
+      "triggerAll": "Generate all",
+      "topSubset": "Generate top 10 leads first",
+      "remaining": "{{count}} pending",
+      "statusLine": "{{count}} pending · Already-analyzed characters will be skipped",
+      "summaryProgress": "Processed {{count}} this batch",
+      "runningWithCount": "Analyzing {{current}}/{{total}}…",
+      "errorFallback": "Batch run failed",
+      "failedShort": "{{count}} failed",
+      "showFailures": "Show failures only ({{count}}) →",
+      "stat": {
+        "generated": "Generated",
+        "skipped": "Skipped",
+        "failed": "Failed"
+      }
     },
     "voice": {
       "regenerateFailed": "Regeneration failed; the existing voice profile was kept.",
@@ -442,6 +459,8 @@
     "toastBody": "Generated {{generated}} · Skipped {{skipped}} · Failed {{failed}}",
     "toastClose": "Close",
     "errorFallback": "Batch run failed",
+    "failedShort": "{{count}} failed",
+    "showFailures": "Show failures only ({{count}}) →",
     "runningWithCount": "Analyzing {{current}}/{{total}}…",
     "kernelOnly": "Kernel only ({{count}})",
     "kernelOnlyDisabled": "Importance is only assigned during analysis, so no kernel events are known to be pending",

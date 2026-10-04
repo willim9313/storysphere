@@ -153,12 +153,16 @@ export function EventUnanalyzedItem({
   onSelect,
   onGenerate,
   isGenerating,
+  failed,
 }: Readonly<{
   item: UnanalyzedEntity;
   isSelected: boolean;
   onSelect: () => void;
   onGenerate: () => void;
   isGenerating: boolean;
+  /** The last batch run failed on this one: marked with a diamond dot (shape,
+   *  not hue — Ink has one colour for every status). */
+  failed?: boolean;
 }>) {
   const { t } = useTranslation('analysis');
   const mode = normalizeNarrative(item.narrativeMode);
@@ -169,7 +173,12 @@ export function EventUnanalyzedItem({
       tabIndex={0}
       onClick={onSelect}
       onKeyDown={activateOnKey(onSelect)}
-      className={'ea-row pending' + (isGenerating ? ' is-generating' : '') + (isSelected ? ' selected' : '')}
+      className={
+        'ea-row pending' +
+        (isGenerating ? ' is-generating' : '') +
+        (failed && !isGenerating ? ' is-failed' : '') +
+        (isSelected ? ' selected' : '')
+      }
     >
       <ImportanceBadge importance={null} analyzed={false} />
       <span className="ea-row-body">
@@ -190,6 +199,11 @@ export function EventUnanalyzedItem({
         </RowMeta>
       </span>
       {isGenerating && <span className="ea-row-dot running" />}
+      {failed && !isGenerating && (
+        <Tooltip label={t('batch.stat.failed')}>
+          <span className="ea-row-dot failed" role="img" aria-label={t('batch.stat.failed')} />
+        </Tooltip>
+      )}
     </div>
   );
 }

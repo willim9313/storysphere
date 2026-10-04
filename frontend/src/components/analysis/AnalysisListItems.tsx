@@ -67,6 +67,7 @@ export function UnanalyzedItem({
   onSelect,
   onGenerate,
   isGenerating,
+  failed,
   maxMentionCount,
   itemId,
 }: Readonly<{
@@ -75,6 +76,9 @@ export function UnanalyzedItem({
   onSelect: () => void;
   onGenerate: () => void;
   isGenerating: boolean;
+  /** The last batch run failed on this one: marked with a diamond dot (shape,
+   *  not hue — Ink has one colour for every status). */
+  failed?: boolean;
   maxMentionCount?: number;
   itemId?: string;
 }>) {
@@ -83,7 +87,7 @@ export function UnanalyzedItem({
   return (
     <div
       id={itemId}
-      className={'ca-row pending' + (isSelected ? ' selected' : '')}
+      className={'ca-row pending' + (failed ? ' is-failed' : '') + (isSelected ? ' selected' : '')}
       onClick={onSelect}
       role="button"
       tabIndex={0}
@@ -127,6 +131,11 @@ export function UnanalyzedItem({
           </button>
         </span>
       </span>
+      {failed && (
+        <Tooltip label={t('character.batch.stat.failed')}>
+          <span className="ca-row-dot failed" role="img" aria-label={t('character.batch.stat.failed')} />
+        </Tooltip>
+      )}
     </div>
   );
 }
