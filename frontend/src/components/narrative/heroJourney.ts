@@ -101,37 +101,6 @@ export function stageState(stage: HeroJourneyStage | undefined): StageState {
   return 'filled';
 }
 
-// Confidence → accent fill intensity (%). Higher confidence = deeper fill.
-export function fillPct(confidence: number): number {
-  return Math.round(20 + confidence * 44);
-}
-
-export function discFill(stage: HeroJourneyStage): string {
-  if (stageState(stage) === 'absent') return 'transparent';
-  return `color-mix(in oklab, var(--accent) ${fillPct(stage.confidence)}%, var(--bg-primary))`;
-}
-
-export function discText(stage: HeroJourneyStage): string {
-  if (stageState(stage) === 'absent') return 'var(--fg-muted)';
-  return fillPct(stage.confidence) >= 48 ? 'var(--bg-primary)' : 'var(--fg-primary)';
-}
-
-export function phaseWash(phase: Phase, strong: boolean): string {
-  const pct =
-    phase === 'departure'
-      ? strong
-        ? 10
-        : 5
-      : phase === 'initiation'
-        ? strong
-          ? 16
-          : 9
-        : strong
-          ? 12
-          : 6;
-  return `color-mix(in oklab, var(--accent) ${pct}%, var(--bg-primary))`;
-}
-
 // ── Stage theory lookup (from frameworksData, localized) ───────────
 
 export interface StageTheory {

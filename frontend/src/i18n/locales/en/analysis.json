@@ -108,9 +108,6 @@
       "metaTotal": "characters",
       "metaAnalyzed": "analyzed",
       "metaUnanalyzed": "unanalyzed",
-      "batchTop10": "Generate top 10 leads first",
-      "batchAll": "Generate all",
-      "batchProgress": "Analyzing · {{progress}}%",
       "backToOverview": "Cast Overview",
       "viewQuadrant": "Position Quadrant",
       "viewRanking": "Mention Ranking",
@@ -147,7 +144,6 @@
     "batch": {
       "toastTitle": "Batch character analysis complete",
       "toastBody": "{{generated}} generated · {{skipped}} skipped · {{failed}} failed",
-      "toastClose": "Close",
       "confirmTitle": "Generate all character analyses",
       "confirmMessage": "Run deep analysis on {{count}} unanalyzed characters. Already-analyzed characters are skipped. This consumes a significant amount of tokens.",
       "confirmTop10Title": "Generate top-10 lead analyses",
@@ -457,7 +453,6 @@
     "summaryProgress": "Processed {{count}} this batch",
     "toastTitle": "Batch EEP Complete",
     "toastBody": "Generated {{generated}} · Skipped {{skipped}} · Failed {{failed}}",
-    "toastClose": "Close",
     "errorFallback": "Batch run failed",
     "failedShort": "{{count}} failed",
     "showFailures": "Show failures only ({{count}}) →",
@@ -505,7 +500,6 @@
       "title": "Re-run Step 2?",
       "body": "This calls the LLM, consumes tokens (a few minutes), and overwrites the existing result.",
       "willLose": "You will lose:",
-      "separator": ", ",
       "lossLines": "{{count}} tension lines",
       "lossApproved": "{{count}} approved",
       "lossEdited": "{{count}} with edited labels",
@@ -571,7 +565,6 @@
       "editedNote": "Reason: {{note}}",
       "editorTitle": "Edit pole labels",
       "noteLabel": "Reason for the edit (optional, recorded in the review log)",
-      "notePlaceholder": "e.g. the original label mistook a carrier for a concept",
       "editorHint": "Edits the label text only — no LLM call, no tokens; evidence and intensity are unchanged. Saving marks this line as Modified.",
       "cancel": "Cancel",
       "saveLabels": "Save labels",
@@ -716,16 +709,6 @@
     }
   },
   "timeline": {
-    "tabs": {
-      "narrative": "Narrative Order",
-      "chronological": "Chronological",
-      "matrix": "Matrix View"
-    },
-    "modeSub": {
-      "narrative": "Order in which events appear, grouped by chapter",
-      "chronological": "Order in which events actually occurred (Fabula)",
-      "matrix": "Chapter × story-time — see how narration diverges from chronology"
-    },
     "narrativeModes": {
       "present": "Present",
       "flashback": "Flashback",
@@ -807,9 +790,6 @@
       "xAxisLabel": "Narrative Order (Sjuzhet) →",
       "yAxisLabel": "↑ Story Chronology (Fabula)",
       "diagonalLabel": "Perfect narrative order",
-      "legendTitle": "Chapter × story order",
-      "legendDesc": "Each dot is an event: X is the chapter it appears in, Y is where it actually happens in the story. On the 45° line = told in story order; the further off, the greater the divergence.",
-      "legendFoot": "Same-chapter events are spread sideways to avoid overlap; the spread carries no meaning.",
       "unrankedBand": "↵ Unranked events {{n}}",
       "cellsLegend": "Events per cell",
       "legendFourPlus": "4 or more",
@@ -820,13 +800,10 @@
       "selectedTitle": "Selected cell",
       "clearSelection": "Clear selection"
     },
-    "viewTabs": "View",
     "keyHint": "← → switch event · Esc close",
     "gotoChapter": "Go to chapter {{n}}",
     "loadingBy": {
-      "chapter": "Loading timeline…",
-      "story": "Loading story order…",
-      "matrix": "Computing matrix coordinates…"
+      "chapter": "Loading timeline…"
     },
     "error": {
       "title": "Failed to load timeline data"
@@ -878,9 +855,7 @@
       "storyBody": "This calls the LLM to read the story time of all {{total}} events and overwrites the existing {{ranked}} rankings. It takes several minutes and consumes tokens; you can leave the page while it runs. Event content, participants and the knowledge graph are unaffected.",
       "displacementTitle": "Identify flashback & flashforward",
       "displacementBody": "This calls the LLM to compare narrative order against story order across {{total}} events. It takes several minutes and consumes tokens; you can leave the page while it runs.",
-      "start": "Start",
-      "eventsTitle": "Analyze the unanalyzed events",
-      "eventsBody": "This calls the LLM to analyze the {{n}} events that have no analysis yet, producing importance, state changes, participant roles and causal chains. It takes several minutes and consumes tokens; you can leave the page while it runs. Already-analyzed events are not re-run, and event content and the knowledge graph are unaffected."
+      "start": "Start"
     },
     "toast": {
       "storyOrderDone": "Story order computed",
@@ -888,9 +863,7 @@
       "displacementDone": "Displacement analysis complete",
       "displacementFailed": "Displacement analysis failed",
       "displacementSkipped": "Displacement analysis did not run",
-      "displacementSkippedDesc": "Story-time hint coverage is below 60%, so no LLM call was made and no verdicts were produced.",
-      "eventsDone": "Event analysis complete",
-      "eventsFailed": "Event analysis failed"
+      "displacementSkippedDesc": "Story-time hint coverage is below 60%, so no LLM call was made and no verdicts were produced."
     },
     "stave": {
       "headline": "The narrative runs {{rows}} rows; story order breaks away {{outliers}} times",
@@ -902,21 +875,6 @@
       "flashforwardNote": "Ch.{{ch}} tells {{count}} events ahead of time",
       "flashbackJudged": "Judged flashback ↩ Ch.{{ch}} ({{count}})",
       "flashforwardJudged": "Judged flashforward ↗ Ch.{{ch}} ({{count}})"
-    },
-    "coverage": {
-      "label": "Event analysis",
-      "count": "{{done}} / {{total}} ({{pct}}%)",
-      "running": "Analyzing…",
-      "action": "Analyze the remaining {{n}}…",
-      "actionRunning": "Analyzing…",
-      "prereq": "Prerequisite: event analysis {{done}} / {{total}} events ({{pct}}%)",
-      "toEvents": "Go to event analysis →"
-    },
-    "storyOrderPrompt": {
-      "title": "Story order has not been computed, so the stave has no dots",
-      "desc": "None of these {{n}} events has a story time yet, so there is nothing to compare narrative order against — they all sit in the \"unordered\" strip under each row. Once computed, each event is plotted along the midline: flashbacks below, flashforwards above.",
-      "action": "Compute story order",
-      "running": "Computing…"
     },
     "band": {
       "region": "Chapter {{n}} events",
@@ -930,7 +888,6 @@
       "emptyFilteredDesc": "All {{n}} events in Ch.{{ch}} are excluded by the filter.",
       "emptyUnanalyzedTitle": "This chapter has not been analyzed yet",
       "emptyUnanalyzedDesc": "All {{n}} events in Ch.{{ch}} have titles only — no summary, participants or story time.",
-      "analyzeChapter": "Analyze this chapter's {{n}} events…",
       "analyzeElsewhere": "Event analysis runs on the event analysis page."
     },
     "card": {
@@ -974,8 +931,6 @@
       "desc": "{{n}} conditions applied. Relax one, or clear the filter."
     },
     "noRanked": {
-      "story": "These events have no story order",
-      "matrix": "These events cannot be plotted",
       "desc": "All {{n}} matching events have no story time (chronological_rank is empty), so they cannot be ordered."
     },
     "displacementTypes": {
@@ -1002,7 +957,6 @@
       }
     }
   },
-  "unravelingLoadError": "Failed to load build overview data",
   "unraveling": {
     "status": {
       "complete": "complete",
@@ -1023,8 +977,7 @@
       "layerList": "Layer list",
       "nodeDetail": "Node detail",
       "backToList": "Back to layer list",
-      "nodeCount": "{{n}} nodes",
-      "layerLabel": "L{{n}}"
+      "nodeCount": "{{n}} nodes"
     },
     "detail": {
       "chapterDist": "Per-chapter distribution",
@@ -1101,11 +1054,6 @@
         }
       },
       "confirm": {
-        "title": "Start this build?",
-        "intro": "About to run: {{action}}.",
-        "token": "This calls the LLM and costs tokens; anything already built is skipped.",
-        "dropsDerived": "This step regenerates entities and events, so the analyses derived from them are deleted and will need rebuilding.",
-        "start": "Start building",
         "dropsDownstream": "Rerunning this node will discard {{n}} downstream outputs already built",
         "keepsDownstream": "Only fills in what is missing; no downstream output is affected",
         "affectsDownstream": "After the rerun, the downstream outputs listed below will be affected.",
@@ -1158,8 +1106,7 @@
       "chronological_rank": "Chronological Rank"
     },
     "toolbar": {
-      "clearSelection": "Clear selection",
-      "showAll": "Show all"
+      "clearSelection": "Clear selection"
     },
     "openPageNotImplemented": "Not yet wired",
     "counts": {
@@ -1236,14 +1183,12 @@
       "other": "Other"
     },
     "polarity": {
-      "label": "Narrative polarity",
       "positive": "Positive",
       "negative": "Negative",
       "neutral": "Neutral",
       "mixed": "Mixed"
     },
     "review": {
-      "label": "HITL review",
       "pending": "Pending",
       "approved": "Approved",
       "modified": "Modified",
@@ -1251,16 +1196,10 @@
       "approve": "Approve",
       "modify": "Modify",
       "reject": "Reject",
-      "save": "Save",
       "cancel": "Cancel"
     },
     "interpretation": {
       "tag": "LLM interpretation",
-      "evidence": "Evidence summary",
-      "confidence": "Model confidence",
-      "confidenceNote": "Based on {{count}} occurrences",
-      "linkedCharacters": "Linked characters",
-      "linkedEvents": "Linked events",
       "linkedEmpty": "No linked records",
       "regenerate": "Regenerate",
       "regenerateConfirm": "Regenerating will overwrite the existing interpretation and review status. Continue?",
@@ -1715,10 +1654,6 @@
       "track": "The order of the 12",
       "columns": "Departure, initiation, return",
       "ring": "Where the gap falls on the ring"
-    },
-    "ring": {
-      "knownWorld": "KNOWN WORLD",
-      "specialWorld": "SPECIAL WORLD"
     },
     "spine": {
       "title": "Event Spine",
