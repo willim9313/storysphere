@@ -25,15 +25,15 @@
 }
 
 /* Canvas pages have no document flow to sit in — the knowledge graph is a
-   full-bleed viewport whose overlays are absolutely positioned. Not
-   `.ss-guidance-bleed`: that strip spans the width and would cover the lens
-   toolbar (個別 / 類型 / 社群, y 52–127, drawn by a child component), and a
-   page's primary control must never be what its help text hides. So the
-   bordered card stays, capped in width, below the toolbar. */
+   full-bleed viewport whose overlays are absolutely positioned. The offset is
+   relative to the canvas area, which already starts below the toolbar, so it
+   is the canvas inset — not the old top:140px tuned to a two-row floating
+   toolbar. Not `.ss-guidance-bleed`: a full-width strip would sit over the
+   canvas edge where the unlinked-entity chip and lens card live. */
 .ss-guidance.is-float {
   position: absolute;
-  top: 140px;
-  left: 16px;
+  top: var(--space-5);
+  left: var(--space-5);
   z-index: 10;
   max-width: 430px;
   box-shadow: var(--shadow-sm);
@@ -41,7 +41,7 @@
 
 @media (max-width: 640px) {
   .ss-guidance.is-float {
-    right: 16px;
+    right: var(--space-5);
     max-width: none;
   }
 }

@@ -1428,7 +1428,7 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 |---|------|------|
 | 5-GD-1 | 遺漏 · 影響頁漏列時間軸與知識圖譜 | 待同步 |
 | 5-GD-2 | 遺漏 · 非書籍路由目前沒有導覽條 | 待同步 |
-| 5-GD-3 | 遺漏 · 圖譜頁的導覽條位置（滿版 bleed 會蓋住工具列） | 待同步 |
+| 5-GD-3 | 遺漏 · 圖譜頁的導覽條位置（浮卡或滿版 bleed） | 待同步 |
 | 5-GD-4 | 遺漏 · kit `.ss-guidance` 沒有關閉鈕樣式 | 待同步 |
 
 #### 5-GD-1 影響頁漏列時間軸與知識圖譜
@@ -1448,8 +1448,8 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 #### 5-GD-3 圖譜頁的導覽條位置
 
 - **出處**：`ss-kit.css` `.ss-guidance` 註解「Workbench pages (graph) may sit it full-bleed」；稿上沒有圖譜頁的畫面。
-- **問題**：圖譜頁導覽條浮在畫布內；滿版 `.ss-guidance-bleed` 會橫跨整個寬度並蓋住鏡頭工具列。
-- **目前處置**：維持浮動卡片 `.ss-guidance.is-float`（頁面層定位，工具列之下、max-w 430），沒用 bleed。
+- **問題**：圖譜頁導覽條浮在畫布內；滿版 `.ss-guidance-bleed` 會橫跨整個畫布寬度，壓在畫布邊緣的未連結實體 chip 與 lens 卡上。
+- **目前處置**：維持浮動卡片 `.ss-guidance.is-float`（畫布 stage 內左上、`--space-5` 內距、max-w 430，工具列換行時跟著下移），沒用 bleed。
 - **請設計端**：確認圖譜頁導覽條要浮卡還是貼在工具列下方的滿版帶。
 
 #### 5-GD-4 kit `.ss-guidance` 沒有關閉鈕樣式
