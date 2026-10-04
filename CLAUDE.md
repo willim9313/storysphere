@@ -73,12 +73,13 @@
 - 若功能對應 BACKLOG.md 條目，已將詳細內容移至 `docs/BACKLOG_ARCHIVE.md`，並更新 `docs/BACKLOG.md` 狀態表
 - 有無孤兒腳本或文件因改動而與實作漂移
 
-**程式碼品質——五道閘門，這裡是唯一的清單：**
+**程式碼品質——六道閘門，這裡是唯一的清單：**
 - 執行 `ruff check backend/` 全綠
 - 執行 `ruff check tests/` 全綠
 - 執行 `python -m pytest -m "not integration"` 全綠
 - 執行 `cd frontend && npm run lint` 全綠
 - 執行 `cd frontend && npm run build` 全綠
+- 執行 `cd frontend && npm run knip` 全綠
 - 實作範疇未超出 checkpoint 所列的檔案與 endpoint
 
 **判準是「全綠」，也就是 exit code 為 0——不是「沒有比之前更糟」。** 前三道於 2026-08-20
@@ -93,7 +94,12 @@ TESTING.md 與 B-085 都改為指回這裡。
 `npm run build` 是必跑項：`lint` 攔不到型別問題（typescript-eslint 關掉了
 `no-undef`），刪掉變數卻漏改使用端這類 runtime ReferenceError 只有 `tsc` 會抓到。
 
-**CI 會盯這五道**（`.github/workflows/gates.yml`，2026-08-22 建立，見 B-085）。PR 與推上
+`npm run knip`（2026-10-04 加入）擋兩件事：沒有任何人 import 的檔案、`package.json` 裡沒用到的套件。
+加入的起因是 DS v3 改版：結構改動一路留下孤兒，靠「看起來沒用不刪」的規則逐批保留，最後要一次 grep 清點
+（B-129）。有了這道，孤兒在產生的那個 PR 就會亮紅燈。範圍刻意只有檔案與套件——export 層級雜訊太多；
+CSS class 與 i18n key 它看不到，仍要人工清點。設定與例外在 `frontend/knip.jsonc`。
+
+**CI 會盯這六道**（`.github/workflows/gates.yml`，2026-08-22 建立，見 B-085）。PR 與推上
 main 都會跑，backend / frontend 兩個 job 並行。**但提交前仍然自己跑**——CI 是安全網，
 不是取代你按下 commit 前該知道的事。
 
