@@ -1592,88 +1592,148 @@ TensionLine 聚合）、#14d-2（TEU 清單）、#14d-3（TEU 人工指派）、
 
 ---
 
-### 3.10 建構概覽頁 `/books/:bookId/unraveling`
+### 3.10 建構概覽頁 `/books/:bookId/unraveling`（DS v3 第 4 批 · 4-2）
+
+決議紀錄 `13 建構概覽 Unraveling 決議紀錄`，2026-09-25 定案；計畫 `docs/plans/20261004-ds-v3-batch4-views.md`；設計端待同步項見 `DS_V3_DESIGN_FEEDBACK.md` 4-UN-1～4-UN-14。
 
 #### 功能目的
 
-1. **可見性**：讓用戶清楚知道「這本書被分析到了什麼程度」（含全局完成度 %）
-2. **診斷性**：功能不可用時，可來此確認哪個資料層、哪個上游節點尚未建立
-3. **依賴關係的呈現**：DAG 反映建構依賴——同層平行，依賴方向左→右
-4. **行動引導**：選取節點後可直接跳轉到對應頁面（symbols / characters / events / timeline / tension），未來可觸發對應建構 pipeline
+這頁回答三件事：**哪一層建了、哪一層是誰的前提、補這一層會連帶丟掉什麼。** 分析層不是 DAG 本身，而是 DAG 上的**依賴方向**與**重跑會丟下游**這條因果。27 個節點、層位、三態、共用觸發器關係、後端契約全部凍結。
 
-#### 版面結構（重設計 Direction A · Diagnostic Dashboard）
+#### 版面（B 檢視：24／16／12／8、max-w 1280、下內距 32）
 
 ```
-┌────────────────────────────────────────────────────────────────┐
-│ Summary Strip（頂部，flex-shrink: 0）                          │
-│  ├─ 大百分比 + complete/partial/empty 計數                      │
-│  └─ Stacked bar + 5 個 Layer chips（L0–L4 進度）                │
-├────────────────────────────────────────────────────────────────┤
-│ DAG Canvas（flex 1）              │ Inspector（360px）          │
-│  └─ Cytoscape preset layout      │  ├─ 預設：層次清單           │
-│     pan/zoom + 浮動 toolbar       │  └─ 選中後：節點細節         │
-└────────────────────────────────────────────────────────────────┘
+┌─ GuidanceRibbon（共用，可關） ──────────────────────────────────┐
+├─ 完成度總覽（一列）──────────────────────────────────────────────┤
+│  eyebrow ／ 59%（3xl serif）＋ completionRule │ 分段總進度條 ＋ 圖例列   │
+├─ DAG 面板（flex 1）──────────────────────────┬─ 右欄 340 ─────────┤
+│  五欄欄頭（L0–L4：x/y · N 部分 · 加權進度條）  │  層次清單 ↔ 節點細節 │
+│  選取時：圖例列＋「清除選取」                  │  （兩態同寬，DAG 寬度  │
+│  SVG 920×586：五欄各 184、節點框 150×36        │   不隨選取變動）      │
+└───────────────────────────────────────────────┴────────────────────┘
 ```
 
-舊版的 220px 左側 `InfoPanel`、底部 `Legend` 浮層已移除；其功能由 Summary Strip 與 Inspector 取代。
+- 頁面本身是捲動容器（`.bo-page`），內容 `.bo-inner` max-w 1280 置中；導覽條 margin-bottom 歸零，間距交給 gap。
+- **完成度總覽**：加權 `(complete + partial × 0.5) / total`（示例 `(14 + 4×0.5) / 27 = 59%`）；大百分比旁一行 `unraveling.summary.completionRule`；右側分段條（complete／partial／empty 各用該狀態的底＋框，段間 2px）加圖例列（形狀記號＋計數＋`共 N 節點`）。
+- **欄頭**：五層卡片下沉成 DAG 欄頭，`x/y`、`· N 部分`、進度條都保留，各層進度用同一套加權算法。
+- **DAG**：`NODE_SLOT`（`components/buildOverview/buildOverviewModel.ts`）照稿列序；邊表 43 條來自 manifest（與稿逐條相同）。SVG 以 `width:100%` 等比縮放，`.bo-dagwrap` 最小 860，再窄就橫向捲動——字級不再縮小（SVG 文字用 `--font-size-2xs`）。
+  - 同層邊（L0 鏈、`kg_event → kg_temporal_relation`）走欄外短側接；
+  - **回頭邊** `eep → kg_temporal_relation`（唯一一條 L2 → L1）繞到譜面下方、虛線、加箭頭與標記字；
+  - `paragraphs`（出 7）、`kg_event`（出 6）等多條扇出／扇入沿節點邊緣分散錨點；
+  - 邊不畫箭頭（方向由欄序表達），只有回頭邊有；
+  - KG 特徵虛線群組框保留。
+- **節點三態**加形狀記號（右上）：實心＝完整、半實＝部分、空心＝未建立。**沒有「過時」這個狀態**。Ink 的四個 status 色都是 `#151515`，狀態只靠記號與文字，不靠色相。節點也可用鍵盤聚焦（Enter／Space 選取）。
+- **L0 來源節點**：標籤前一個菱形記號，Tooltip `unraveling.layer.sourceHint`（SVG 形狀裝不了共用 Tooltip，疊一塊透明點擊區）。
 
-#### Summary Strip
+#### 選取（B 區）
 
-- 左側：`{pct}%` 完成度（大字體）+ 子標題（`complete / partial / empty` 計數 + 總節點數）
-- 右側：14px 高 stacked bar（complete + partial + empty 三段）+ 5 個 Layer chips（L0–L4 各自進度條 + `complete/total` 計數）；點 chip 等同選中該層第一個節點
+選中一個節點時，畫布同時標出三層：
 
-#### Inspector — 預設「層次清單」
+| 層 | 畫法 |
+|----|------|
+| 上游依賴鏈（遞移，我需要它） | 節點 accent 實線框；連線 accent 實線 1.5 |
+| 直接相連的節點（上下游一階） | 全亮；連線 `--fg-secondary` 實線 1.5 |
+| 會被刪除（只在選中的節點屬 dropsDerived 觸發器、且表內有已建立節點時） | 節點 `--color-error` 虛線框、計數加刪除線、節點內加「會被刪除」 |
 
-依 Layer 0–4 分組顯示所有節點，每列含狀態點、節點名稱、sub-label（依 nodeId 顯示計數，如 `9 / 12 章`）。點任一節點切換到「節點細節」。
+- 其餘節點淡出（opacity 0.3）、其餘邊 0.14。**邊不因失效著色**：失效範圍是逐觸發器的一張表，不是沿 DAG 遞移。
+- 圖例列：`上游依賴鏈 N 個`（accent 線樣）＋ `unraveling.cta.confirm.dropsDownstream`（error 虛線樣，與確認框清單標頭、節點細節說明條逐字共用）；右側 `unraveling.toolbar.clearSelection`（既有字串「清除選取」，取代舊的「全部」；`toolbar.showAll` 成孤兒）。
+- 失效表（前端常數 `DROPS_BY_TRIGGER`，畫布與確認框共讀，只列已建立〔complete／partial〕的節點）：
 
-#### Inspector — 「節點細節」
+| 觸發器 | 列出 |
+|--------|------|
+| feature-extraction | （空） |
+| symbol-discovery | sep、symbol_analysis_result |
+| knowledge-graph | cep、character_analysis_result、teu、voice_profile、eep、causality_analysis、impact_analysis，**加 kg_temporal_relation、chronological_rank、kg_concept_inferred**（後端 KG 重跑實際另清這三顆；計畫 Q2，回饋 4-UN-1） |
 
-- Header：節點名稱 + `L{n} · {nodeId}` + 狀態 badge
-- **Progress card**（僅在節點有意義 `numerator/denominator` 時顯示）：大數字 + 進度條
-- **章節分佈 sparkline**（僅 5 個支援的節點：`paragraphs / summaries / keywords / kg_event / symbols`）：12-bar mini chart，資料來自 #19b
-- **行動區**（status ≠ complete 時）：
-  - 若有未完成上游依賴：顯示 blocker chips + disabled CTA「需先完成上游 N 個依賴」
-  - 否則若節點有對應的建構 pipeline：主色 active CTA，文案依 nodeId × 狀態給具體動作（partial →「補齊剩餘章節摘要」、empty →「生成章節摘要」）。按下先開 token 確認視窗（見 §5.3），確認後觸發並轉為 disabled「建構中…」+ 目前 stage 與百分比；完成後自動重抓 manifest，失敗則在 CTA 下方顯示錯誤訊息並可重試
-  - 否則（尚無對應端點的節點，如 `teu` / `voice_profile` / `chronological_rank` / `narrative_structure`）：disabled CTA「觸發建構功能規劃中」
-  - 若節點對應某書內頁面：顯示 secondary CTA「前往對應頁面瀏覽」（連結至 graph / symbols / characters / events / timeline / tension）
-- **原始計數**：`counts` raw key/value 列表
-- **附加資訊**：`meta` raw key/value 列表
+#### 右欄
 
-#### DAG 節點層次
+- **層次清單**（components-rows＋list-group-head）：標頭 `L{n} · {層名}` 左、`{N} · 已析 {M}` 右（**已析只算完整**）；列 grid `24px 1fr auto 12px`（L0 菱形／名稱／計數／狀態記號）。計數沿用既有 `nodeSubLabel`；推斷概念有待審時改顯示 `{n} 待審`（待審數由前端打 `GET /inferred-concepts?status=pending` 自算，**節點狀態仍照 manifest，不覆寫成 partial**）。
+- **節點細節**（標頭「節點細節」＋右側「返回層次清單」）。結構順序：節點名＋狀態 badge → `L{n} · nodeId` → 〔L0 說明條〕→ 進度卡（有分子分母時）→ 章節分佈（只有 paragraphs／summaries／keywords／kg_event／symbols 五個節點）→ 同一次執行說明條 → 刪除說明條 → **動作區（下表）** → 前往對應頁面瀏覽 → 推斷概念審查佇列 → 原始計數 → 附加資訊（空值顯示「—」）。
 
-| Layer | 節點名稱 | 形狀 |
-|-------|---------|------|
-| 0 — Text Layer | Book Meta / Chapters / Paragraphs | diamond |
-| 1 — KG Layer | Summaries / Keywords / Symbols + KG compound（Entity / Concept / Relation / Event / Temporal Relation） | rectangle |
-| 2 — Analysis | CEP / EEP / TEU / SEP | round-rectangle |
-| 3 — Derived | Character / Causality / Impact / Tension Lines / Symbol / Narrative / Hero Journey / Temporal / Voice Profile | round-rectangle |
-| 4 — Synthesis | Tension Theme / Chronological Rank | round-rectangle |
+動作區六態（`actionModeFor`，順序即優先序）：
 
-#### 節點狀態
+| 態 | 條件 | 呈現 |
+|----|------|------|
+| 建構中 | 本節點的任務在跑 | **只留 spinner＋「建構中…」**（不顯示 stage／%／TASK id） |
+| 來源（L0） | `layer === 0` | 沒有觸發鈕、沒有原始計數；說明條 `sourceHint`；「前往對應頁面瀏覽 · 尚未實作」；只有附加資訊 |
+| 刻意擋掉 | `narrative_structure`（優先於 blocker，完整時也是） | warning 底盒＋ `unraveling.detail.blockedByHazard` |
+| 被上游擋住 | 非完整且有未完成的一階上游 | 「尚未就緒」＋「需先完成上游 N 個依賴」＋ **blocker chips（可點，跳去該節點）**＋ disabled 鈕「還缺 N 項前置」 |
+| 觸發 | 有觸發器 | 觸發鈕（`.ss-btn-llm`；dropsDerived 觸發器用 `.ss-btn-danger`）＋鈕下「會呼叫 LLM，消耗 token」。**完整節點也可重跑**，沿用「補齊／繼續…」那一句 |
+| 規劃中 | 無觸發器、非完整 | disabled「觸發建構功能規劃中」（其餘 8 顆無觸發器節點，回饋 4-UN-5） |
 
-| 狀態 | 顏色（Warm 主題） |
-|------|----------------------|
-| `complete` | 橄欖底橄欖框 |
-| `partial` | 赭黃底赭黃框 |
-| `empty` | 紙面底 hairline 框 |
+- **同一次執行**：觸發鈕上方說明條 `與 {names} 是同一次執行的不同檢視`，`names` 由觸發器共用關係推（CEP＋角色分析；EEP＋因果＋影響力；實體＋概念＋關係＋事件）。
+- **觸發失敗**：既有「觸發失敗」盒（error 底）＋重試鈕；`triggerFailedDetail` **不渲染**（任務錯誤只有自由字串，沒有 status／reason，回饋 4-UN-7），後端回的原文收成技術細節一行。
+- **應用層 503**（未設定 LLM provider）：就地 `LlmUnconfiguredNotice`，面板其餘照常、觸發鈕仍在（原本直接顯示英文 detail）。
+- 原始計數只顯示 API 有的鍵（稿上的 `chapters_covered`、`last_run`、`links` 等 API 沒有，回饋 4-UN-2）。
+- 章節分佈長條用 `--symbol-density-mid`，Tooltip 顯示 `Ch.N: 值`（原生 `title` 已換掉），軸兩端標 `Ch.1`、`Ch.N`。
 
-`--status-*` token 在兩主題各自定義（Ink 以 fill 極性＋線重承載完成度）；詳見 [`docs/DESIGN_TOKENS.md`](DESIGN_TOKENS.md)。
+#### LLM 字符與三條軸
 
-**已實作**：
-- 全局進度 Summary Strip
-- 點擊節點 → Inspector 切到節點細節（含進度、章節分佈、blockers、跳轉 CTA）
-- DAG 內 highlight + fade 鄰居節點
-- CTA「觸發建構」（Phase 1，12 個節點）：summaries / keywords / symbols / kg_entity·concept·relation·event / cep / character_analysis_result / eep / causality_analysis / impact_analysis
+七個觸發器（摘要、關鍵字、象徵、知識圖譜、角色批次、事件批次、概念推斷）**全部 `.ss-btn-llm`，確認框內那顆也是**；點節點、清除選取、返回、前往頁面、採用／否決不掛。**花 token、寫資料、不可逆互不蘊含**：危險色只看 dropsDerived（feature-extraction／symbol-discovery／knowledge-graph 三種），不看花不花 token。關鍵字預設不呼叫 LLM、字符偏保守，見回饋 4-UN-3。
+
+#### 確認框（D 區，一律 `ConfirmDialog`）
+
+標題＝動作名、確認鈕＝動作名、`costHint`「會呼叫 LLM，消耗 token」在按鈕列左側（既有字串 `tension.state.tokenHintShort`）。內文只有一句：
+
+| 情況 | 適用 | 內文 | 按鈕 |
+|------|------|------|------|
+| 補洞 | summarization、概念推斷、角色批次、事件批次 | `keepsDownstream` | 一般＋字符 |
+| 刪除 | symbol-discovery、knowledge-graph | `affectsDownstream`＋分段清單（標頭 `dropsDownstream`，項目「名稱 · 計數」） | danger＋字符 |
+| 覆蓋 | feature-extraction（清單為空） | `overwrites`（清單整段不出現） | danger＋字符 |
+
+舊的 `confirm.title／intro／start／token／dropsDerived` 成孤兒（舊句「已完成的部分會自動跳過」不留）。
+
+#### 推斷概念審查佇列（E 區，全頁唯一的 HITL）
+
+掛在 `kg_concept_inferred` 節點細節裡；無待審時整塊不渲染。標頭 `待審查命題（N）`＋右側「展開審查 ↓／收合審查 ↑」（預設展開，回饋 4-UN-11），下一行 `rejectPermanent`。每張卡：名稱（serif）＋`信心 {v}%`（mono、tabular-nums）、描述、證據逐字條列（`·` 前綴、無左邊框）、**採用＝次要鈕（冪等）、否決＝危險鈕（永久）**，兩顆零成本，**都不掛字符**。
+
+#### 頁面狀態（F 區）
+
+| 態 | 呈現 |
+|----|------|
+| 載入 | **骨架**（形狀已知：總覽一列、五欄欄頭、五欄節點格 3／6／3／5／2、右欄 8 列）；不顯示導覽條 |
+| 單頁失敗（應用層 JSON body） | `PageFailure` page：「無法載入建構概覽」（`nav:tabs.unraveling`）＋「重試」＋「回書籍總覽」（既有 `character.error.backToBook`），錯誤碼收進「技術細節」；書名列與側欄照常 |
+| 後端失敗（裸 502／503／504） | `PageFailure` backend：「伺服器沒有回應」＋「重試」 |
+| 取書失敗 | `BookLayout`（4-0）處理，本頁不介入 |
+
+錯誤分支是同一元件內的條件渲染，不會 mount／unmount 本頁，沒有 react-query 掛載迴圈。
+
+#### 字串來源與草稿
+
+既有字串一字不改（「全部」不是改字，是改用既有的 `clearSelection`）。README §5「已裁決」的新字串（i18n `unraveling.*`，zh-TW 與 en 皆已補）：`cta.confirm.dropsDownstream／keepsDownstream／affectsDownstream／overwrites`、`detail.sharedTrigger／missingPrereq／blockedByHazard`、`layer.sourceHint`、`concepts.rejectPermanent`、`summary.completionRule`。`detail.triggerFailedDetail` 已裁決但**本批不渲染（無資料），未進 i18n**。
+
+**這 9 句是草稿・待設計定案**（i18n `analysis:unraveling.*`；JSON 不能寫註解，故記在此；zh-TW 與 en 都已補）：
+
+| key | zh-TW |
+|-----|-------|
+| `selection.upstreamCount` | 上游依賴鏈 {{n}} 個 |
+| `selection.willDelete` | 會被刪除 |
+| `dag.kgGroup` | KG 特徵 · 同一次重跑 |
+| `dag.backEdge` | 回頭邊 · 時序關係要等 EEP（L2 → L1） |
+| `layerList.counts` | {{n}} · 已析 {{done}} |
+| `concepts.pendingCount` | {{n}} 待審 |
+| `concepts.expand` | 展開審查 ↓ |
+| `concepts.collapse` | 收合審查 ↑ |
+| `detail.nameJoin` | 、（`sharedTrigger` 的 `{names}` 分隔符） |
+
+**孤兒 i18n key（保留，待使用者裁決）**：`toolbar.showAll`、`cta.confirm.title／intro／start／token／dropsDerived`、`inspector.layerLabel`、`unravelingLoadError`（analysis 頂層）。
+
+#### 已實作
+
+- 完成度總覽一列、欄頭、DAG 重排與回頭邊、三態形狀記號、選取三層、失效表、六態節點細節、三種確認框、審查佇列、骨架、錯誤四分
+- 純邏輯在 `components/buildOverview/buildOverviewModel.ts`（測試 `buildOverviewModel.test.ts`）
 
 **規劃中（Backlog）**：
-- B-046 Phase 2：其餘節點的觸發 CTA（tension / hero journey / temporal 端點已存在；`narrative_structure` 需先讓 classify 對缺 EEP 快取的情況安全；`teu` / `voice_profile` / `chronological_rank` 需新增後端批次端點）
+- B-046 Phase 2：其餘節點的觸發 CTA（tension / hero journey / temporal 端點已存在；`narrative_structure` 刻意擋掉；`teu` / `voice_profile` / `chronological_rank` 需新增後端批次端點）
 - 章節分佈擴展到 `kg_entity` / `kg_concept`（需 domain model 加上 chapter linkage）
+- B-127：已採用推斷概念在 KG 重跑後永久消失、無法再採用（後端）
+- 研究者導覽的重開入口（第 19 稿，不在本批）
 
 #### API 參考
 
 見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：
-- #19（建構概覽 manifest）
-- #19b（章節分佈，用於 NodeDetail panel）
+- #19（建構概覽 manifest）、#19b（章節分佈，用於節點細節）
+- #10f／#10g／#10h（推斷概念清單／採用／否決）、#10e（概念推斷，4-0 起未設定 provider 回 503）
 
 ---
 
