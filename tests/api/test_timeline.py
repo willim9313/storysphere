@@ -239,7 +239,7 @@ def compute_client(timeline_client, mock_doc):
 
     pipeline = AsyncMock()
     pipeline.run = AsyncMock(return_value=SimpleNamespace(
-        temporal_relations=3, events_ranked=2, cycles_resolved=0, errors=[],
+        temporal_relations=3, events_ranked=2, cycles_resolved=0, errors=[], failure=None,
     ))
     timeline_client.app.dependency_overrides[deps.get_temporal_pipeline] = lambda: pipeline
     timeline_client.pipeline = pipeline
@@ -294,3 +294,17 @@ class TestComputeCancellation:
         status = poll_until_terminal(compute_client, task_id)
         assert status["status"] == "error"
         assert status["error"] == "KG 讀取失敗"
+
+    def test_pipeline_failure_makes_the_task_error(self, compute_client):
+        """Inference failed and the old timeline was kept: the task must not report done."""
+        compute_client.pipeline.run = AsyncMock(return_value=SimpleNamespace(
+            temporal_relations=0, events_ranked=0, cycles_resolved=0,
+            errors=["TimelineAgent failed: quota"],
+            failure="Temporal inference failed, existing timeline kept: quota",
+        ))
+
+        task_id = self._start(compute_client)
+
+        status = poll_until_terminal(compute_client, task_id)
+        assert status["status"] == "error"
+        assert "existing timeline kept" in status["error"]

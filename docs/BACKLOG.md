@@ -791,6 +791,31 @@ prompt 有寫 `Do not invent patterns not present in the passages`、證據不�
 
 ---
 
+#### B-127 已採用的推斷概念在知識圖譜重跑後永久消失、無法再採用
+
+**背景**: 2026-10-04 DS v3 第 4 批 API 檢查時發現。
+
+**現況**: KG 重跑會刪掉實體，但 `concept_inference_store` 那筆仍是 CONFIRMED，
+`confirmed_entity_id` 指向已刪除的實體。之後 `confirm` 回 404（找不到實體），
+重新推斷時 upsert 也不會把它變回 pending，於是該概念永久卡住：看不到、也無法再採用
+（`services/concept_inference_service.py:85-116`、`concept_inference_store.py:49-90`）。
+
+**觸發時機**: 待排。第 4 批只在 KG 重跑確認框的刪除表列出 `kg_concept_inferred` 會連帶過期，不修此問題。
+
+---
+
+#### B-128 書籍層背景任務沒有綁 bookId，離開頁面再回來看不到「進行中」
+
+**背景**: 2026-10-04 DS v3 第 4 批 API 檢查時發現。
+
+**現況**: 時間軸（故事時序／倒敘預敘）、張力、建構概覽的任務 id 只存在元件 state。
+離開頁面再回來看不到「進行中」，按鈕會重新可按；任務中心也導不回該頁
+（`api/store.py` 的 create 只有 kind／title，沒有 bookId）。
+
+**觸發時機**: 待排。
+
+---
+
 ## F 系列（新功能）
 
 **前置閱讀**: `docs/CORE.md`
@@ -1296,6 +1321,8 @@ FrameworksPage（I-09）獨立最後處理，因含 140+ 靜態內容字串（�
 | B-092 | ConceptInferencePipeline 從未接線，張力分析一直少一段證據 | 🟡 中 | ✅ 已完成（2026-09-10 PR #101/#102/#103；四段全數落地，見 ARCHIVE） |
 | B-093 | 前後端 taxonomy 漂移防護只蓋了五分之二 | 🟢 低 | ✅ 已完成（2026-09-06 PR #87；防護 2/5 → 5/5、新增 id 集合對等、hero_journey 英文 5 筆對齊、刪掉零引用的 `STAGE_IDS`/`PHASES`，見 ARCHIVE；殘項另立 B-095） |
 | B-094 | pytest 撞見過一次間歇性失敗（原記「約 1/8」） | 🟢 低 | 🔶 查證完成、未重現（2026-09-13；94 次 pytest 呼叫 0 失敗 + CI 102 次全綠 → 「約 1/8」是**一次觀測不是量到的比率**。`Event loop is closed` 已證明在結構上不可能弄紅測試。無隨機化外掛，`PYTHONHASHSEED` 是唯一的重播把手）（2026-09-05 撞見一次，7 次重跑未重現，未取得測試名稱；非該批造成） |
+| B-127 | 已採用的推斷概念在知識圖譜重跑後永久消失、無法再採用 | 🟡 中 | 待開始（2026-10-04 DS v3 第 4 批 API 檢查發現。KG 重跑刪實體後，`concept_inference_store` 那筆仍是 CONFIRMED、`confirmed_entity_id` 指向已刪實體；`confirm` 回 404、upsert 不會變回 pending） |
+| B-128 | 書籍層背景任務沒有綁 bookId，離開頁面再回來看不到「進行中」 | 🟡 中 | 待開始（2026-10-04 同上。時間軸／張力／建構概覽的任務 id 只存元件 state，任務中心也導不回該頁；`api/store.py` create 只有 kind／title） |
 | B-124 | 三條單元測試實際上在對開發者的 `.env` 下斷言 | 🟢 低 | 待開始（2026-09-13 查 B-094 時順帶發現，與那個 flake 無關。`Settings()` 不帶參數會讀本機 `.env`；實測 `DEPLOY_MODE=full` 就讓 3 條變紅。今天綠只是因為 `.env` 剛好沒設那個鍵） |
 | B-125 | 語氣分布量的是句式而非語氣，且對所有角色幾乎給出同一張圖 | 🟡 中 | 待開始（2026-09-24 對設計稿時發現。輸入是「提到角色的段落」不是對白，判準是句尾標點，《名字的潮汐》實測陳述 97.24%，每個角色都長一樣。另有孤兒收尾引號佔 10% 句數、把平均句長拉低 10%，該項可獨立修。**2026-09-25 補問題四**：輸入缺陷同時污染「主導語調」等四個 LLM 欄位，且連序／前言／後記都計入——伊內絲 27 段裡第一段是推薦序、敘述佔 83.9%） |
 | B-105 | 移除 10 個無呼叫端的 HTTP 端點 | 🟢 低 | ✅ 已完成（2026-09-07；`documents.py` / `relations.py` 整檔刪除、`entities.py` 只留 `GET /:entityId`，連同 7 個孤兒 schema 與兩個測試檔；generated.ts 少 673 行） |

@@ -20,6 +20,7 @@ from fastapi import APIRouter, HTTPException
 
 from storysphere.api import task_runner
 from storysphere.api.deps import DocServiceDep, KGServiceDep, TensionServiceDep
+from storysphere.api.llm_guard import require_llm_provider
 from storysphere.api.schemas.common import TaskStatus
 from storysphere.api.schemas.tension import (
     AnalyzeBookTensionsRequest,
@@ -69,6 +70,7 @@ async def group_tension_lines(
     Returns 202 with ``task_id``.  Poll ``GET /tension/lines/group/{task_id}``
     until ``status`` is ``"done"`` or ``"error"``.
     """
+    require_llm_provider()
     task_id = str(uuid4())
     task_store.create(task_id, kind="tension", title="張力線分組")
     task_runner.launch(task_id, _group_lines(task_id, req, tension_service, kg_service))
@@ -332,6 +334,7 @@ async def analyze_book_tensions(
     Returns 202 with ``task_id``.  Poll ``GET /tension/analyze/{task_id}``
     for progress and final result.
     """
+    require_llm_provider()
     task_id = str(uuid4())
     task_store.create(task_id, kind="tension", title="張力曲線分析")
     task_runner.launch(
@@ -376,6 +379,7 @@ async def synthesize_tension_theme(
     Returns 202 with ``task_id``.  Poll ``GET /tension/theme/synthesize/{task_id}``
     until ``status`` is ``"done"`` or ``"error"``.
     """
+    require_llm_provider()
     task_id = str(uuid4())
     task_store.create(task_id, kind="tension", title="張力主題綜合")
     task_runner.launch(task_id, _synthesize_theme(task_id, req, tension_service))

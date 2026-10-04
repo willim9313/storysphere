@@ -21,6 +21,7 @@ from storysphere.api.deps import (
     KGServiceDep,
     TemporalPipelineDep,
 )
+from storysphere.api.llm_guard import require_llm_provider
 from storysphere.api.schemas.book_timeline import (
     ParticipantRef,
     TemporalDisplacementEntry,
@@ -334,6 +335,10 @@ async def _temporal_pipeline(
         language=language,
         progress_callback=task_runner.progress(task_id),
     )
+    if result.failure:
+        # The pipeline failed before replacing anything; a "done" task would
+        # tell the client the timeline was recomputed when it was not.
+        raise task_runner.TaskAborted(result.failure)
     return {
         "temporal_relations": result.temporal_relations,
         "events_ranked": result.events_ranked,
@@ -364,6 +369,8 @@ async def compute_book_timeline(
     events = await kg.get_events(document_id=book_id)
     if not events:
         raise HTTPException(status_code=400, detail="No events found for this book")
+
+    require_llm_provider()
 
     language = await doc.get_document_language(book_id)
     task_id = str(uuid4())

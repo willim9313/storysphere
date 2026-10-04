@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
+import { visibleSections, type ConfirmSection } from './confirmSections';
 
 interface ConfirmDialogProps {
   open: boolean;
@@ -13,6 +14,12 @@ interface ConfirmDialogProps {
   /** Loss-list variant: what the action removes, itemised between the body
    *  and the buttons. Nothing else about the dialog changes. */
   items?: string[];
+  /** Titled lists (「會失去：」＋項目、「會連帶過期：」＋項目) rendered after `items`
+   *  when both are given. A section with no items is not rendered at all. */
+  sections?: ConfirmSection[];
+  /** Plain-text cost note on the left of the button row (2xs muted). Text only —
+   *  no sparkles; the glyph stays on the execute button via `spendsTokens`. */
+  costHint?: string;
   /** Destructive confirm — `.ss-btn-danger` instead of primary. */
   danger?: boolean;
   onConfirm: () => void;
@@ -26,6 +33,8 @@ export function ConfirmDialog({
   confirmLabel,
   spendsTokens = false,
   items,
+  sections,
+  costHint,
   danger = false,
   onConfirm,
   onCancel,
@@ -55,7 +64,18 @@ export function ConfirmDialog({
             ))}
           </ul>
         )}
+        {visibleSections(sections).map((section) => (
+          <div key={section.title} className="ss-dialog-section">
+            <p className="ss-dialog-section-title">{section.title}</p>
+            <ul className="ss-dialog-list">
+              {section.items.map((item) => (
+                <li key={item}>{item}</li>
+              ))}
+            </ul>
+          </div>
+        ))}
         <div className="ss-dialog-actions">
+          {costHint && <span className="ss-dialog-cost">{costHint}</span>}
           <button className="ss-btn ss-btn-md ss-btn-ghost" onClick={onCancel}>
             {t('cancel')}
           </button>

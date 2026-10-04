@@ -312,6 +312,8 @@ async def run_concept_inference(
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
 
+    require_llm_provider()
+
     language = await doc.get_document_language(book_id)
     task_id = str(uuid4())
     task_store.create(task_id, kind="concept", title="概念推論")
