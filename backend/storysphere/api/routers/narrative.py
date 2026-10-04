@@ -132,6 +132,7 @@ async def refine_narrative(
     By default refines all satellite events. Supply ``event_ids`` to target
     specific events. Requires heuristic classification to have run first.
     """
+    require_llm_provider()
     task_id = str(uuid4())
     task_store.create(task_id, kind="narrative", title="敘事模式校正")
     task_runner.launch(task_id, _refine(task_id, req, narrative_service))
@@ -158,6 +159,7 @@ async def map_hero_journey(
 
     Returns 202 with ``task_id``. Poll ``GET /narrative/hero-journey/{task_id}``.
     """
+    require_llm_provider()
     task_id = str(uuid4())
     task_store.create(task_id, kind="narrative", title="英雄旅程對應")
     task_runner.launch(task_id, _hero_journey(task_id, req, narrative_service))
@@ -266,7 +268,8 @@ _MAX_REPRESENTATIVE_EVENTS = 4
 
 
 def _with_representative_events(stages: list[dict], kernels: list) -> list[dict]:
-    """Fill each stage's representative_event_ids from chapter_range ∩ kernel spine.
+    """Fill each stage's representative_event_ids from chapter_range ∩ kernel spine
+    (the chapters actually listed, not the span between its ends).
 
     map_hero_journey never writes the field, so it arrives empty on every cached
     structure. Resolving it here rather than at generation time means existing
@@ -286,8 +289,11 @@ def _with_representative_events(stages: list[dict], kernels: list) -> list[dict]
         chapter_range = stage.get("chapter_range") or []
         ids: list[str] = []
         if chapter_range:
-            low, high = min(chapter_range), max(chapter_range)
-            ids = [e.id for e in kernels if low <= e.chapter <= high][
+            # chapter_range is a discrete, unsorted, possibly duplicated list of
+            # chapters (e.g. [1, 2, 5, 8]), not a min/max span — only events in
+            # the chapters it actually names count.
+            chapters = set(chapter_range)
+            ids = [e.id for e in kernels if e.chapter in chapters][
                 :_MAX_REPRESENTATIVE_EVENTS
             ]
         resolved.append({**stage, "representative_event_ids": ids})
@@ -336,7 +342,7 @@ async def review_narrative_structure(
 ) -> dict:
     """Update the review_status of a NarrativeStructure.
 
-    ``review_status``: "approved" or "rejected".
+    ``review_status``: "approved", "rejected", or "pending" (back to unreviewed).
     """
     structure = await narrative_service.update_review(document_id, req.review_status)
     if structure is None:

@@ -56,6 +56,7 @@
   （英文一句，指出要設哪個 env key），**不建立 task**。判準是「有應用層 JSON body 的 503」，與 gateway 的裸 503 區分（前端 `isLlmUnconfigured`）。
   適用端點（各端點段落內亦有 `Response 503` 一行）：#7b、#7h、#7e、#7g、#8d（僅會用到 LLM 的步驟）、#12d、#15e、#15j、#16a（僅會生成時）；
   **第 4 批追加**：#10e、#13b、#14a、#14c、#14g、#21h（#21h 例外：覆蓋率不足時任務不碰 LLM，見該端點）。
+  **第 5 批追加**：#21c、#21e。
   章節審閱的 #22 系列另有自己的 503（見該節），語意相同。
   **沒有 provider 時後端照常啟動**（零成本端點全部可用）：服務拿到一個「用到才報錯」的替身 LLM；
   聊天 WebSocket `WS /ws/chat` 保持連線、每則訊息回 `{"type":"error","detail":"LLM provider is not configured: …"}`；
@@ -2033,6 +2034,7 @@ HITL 審核 / 修改 SymbolInterpretation。
   book_id: string;
   review_status: 'approved' | 'modified' | 'rejected';
   theme?: string;     // modified 時填入
+  evidence_summary?: string; // 選用；省略 = 不動既有值（第 5 批）
   polarity?: 'positive' | 'negative' | 'neutral' | 'mixed';
 }
 ```
@@ -2040,6 +2042,9 @@ HITL 審核 / 修改 SymbolInterpretation。
 **Response 200**：`SymbolInterpretation`（更新後）
 
 **Response 404**：interpretation 不存在
+
+**注意**：此端點走 `save_interpretation()` 寫回，會一併清掉該意象的 `symbol_analysis_block:`
+（`clear_block()`）。不收 `pending`（review_status 只收三值，否則 422）；`assembled_at` 不更新。
 
 **UI 使用頁面**：象徵意象頁詳情區「審核」按鈕
 
@@ -2362,25 +2367,17 @@ interface ChapterDistribution {
 
 **Response 202**：`TaskStatus`（含 taskId）
 
-**Response 409**：本次執行只會摧毀既有分類，拒絕啟動任務。
+**Response 409**：全書沒有任何事件命中 EEP 分析快取，本次執行不會改變任何東西，拒絕啟動任務。
 
-分類的唯一輸入是 `event:{document_id}:{event_id}` 快取（EEP 分析結果）；**沒有快取的
-事件一律被寫回 `narrative_weight="unclassified"`**。因此當快取全數遺失、而 KG 中仍有
-kernel/satellite 事件時，跑一次分類等於把既有分類全部抹成未分類——書庫兩本測試書的
-未分類比例（9/47、59/62）就是這樣來的。
+分類的唯一輸入是 `event:{document_id}:{event_id}` 快取（EEP 分析結果）。B-096 之後 service 層
+不再把「沒有快取的事件」寫回 `unclassified`（既有權重一律保留），所以過去的「會抹除既有分類」
+守衛（`_would_wipe`）已刪除；409 現在**只在「EEP 命中數 == 0」時**發生，不論 KG 中有沒有已分類事件。
 
-判定條件（最保守，只擋真正會損失資訊的情況）：
+`detail` 為英文一句（`Nothing to classify: none of the N events has an event-analysis (EEP) entry … Run event analysis first.`），
+帶出總事件數與目前已分類數；body 只有 `{ detail }`，沒有結構化欄位。`force` 參數對此檢查沒有作用。
 
-> EEP 命中數 == 0 **且** KG 中至少有一個事件目前是 kernel/satellite
-
-全新書（尚無任何分類）不受阻擋：拿 `unclassified` 覆寫 `unclassified` 不損失任何資訊。
-
-`detail` 會帶出實際數字（總事件數、將被抹除的已分類數），前端可直接顯示。
-
-> **同一守衛也存在於 service 層**（`classify_from_eep`），因為 `GET /narrative/kernel-spine`
-> 與 `POST /narrative/refine` 在「全書皆未分類」時會自動呼叫它——前者每次進敘事結構頁
-> 都會執行。service 層命中守衛時記 warning、回傳既有快取結構、**完全不寫 KG**，不拋例外
-> （一個 GET 不該因此讓整頁壞掉）。
+> `GET /narrative/kernel-spine` 與 `POST /narrative/refine` 在「全書皆未分類」時會自動呼叫 `classify_from_eep`；
+> 命中守衛時只記 warning、回傳既有快取結構，不拋例外（一個 GET 不該因此讓整頁壞掉）。
 
 **說明**：polling 走 #21b。
 
@@ -2410,6 +2407,8 @@ kernel/satellite 事件時，跑一次分類等於把既有分類全部抹成未
 
 **Response 202**：`TaskStatus`（含 taskId）
 
+**Response 503**：未設定 LLM provider（見「通用規則」）；第 5 批新增，不建立 task
+
 **說明**：polling 走 #21d。
 
 ---
@@ -2436,6 +2435,8 @@ kernel/satellite 事件時，跑一次分類等於把既有分類全部抹成未
 ```
 
 **Response 202**：`TaskStatus`（含 taskId；`result.stages` 為 HeroJourneyStage[]）
+
+**Response 503**：未設定 LLM provider（見「通用規則」）；第 5 批新增，不建立 task
 
 **說明**：polling 走 #21f。
 
@@ -2507,7 +2508,7 @@ kernel/satellite 事件時，跑一次分類等於把既有分類全部抹成未
   event_type: string;
   description: string;
   significance?: string;
-  narrative_weight: number;
+  narrative_weight: string;   // 'kernel' | 'satellite' | 'unclassified'
   narrative_weight_source: string;
   narrative_position: number;
 }[]
@@ -2527,12 +2528,14 @@ kernel/satellite 事件時，跑一次分類等於把既有分類全部抹成未
 {
   // …NarrativeStructure 既有欄位（snake_case，domain model）
   is_stale: boolean;          // 快取分析早於它所依賴的 pipeline 步驟最後一次執行
-  stale_reason: string | null; // 造成過期的步驟名，如 "feature-extraction"
+  stale_reason: string | null; // 造成過期的步驟名，如 "feature-extraction"、"summarization"
 }
 ```
 
 `is_stale` 每次請求即時推導（比對快取條目的寫入時間與 `PipelineStatus` 的步驟完成
-時間），**不寫入快取**。重跑 pipeline 步驟時，後端不再刪除本書層級的分析——包含
+時間），**不寫入快取**。本端點看的是 `narrative_structure:{book}` 條目，其過期來源為
+`feature-extraction`、`knowledge-graph` 與 `summarization`（第 5 批新增：章節摘要是 LLM 精煉與英雄旅程的輸入，
+重跑後本頁要顯示過期）。重跑 pipeline 步驟時，後端不再刪除本書層級的分析——包含
 `review_status`——而是留著並在此回報過期，由使用者決定要不要重跑。
 
 無法判定時一律回報 `false`：步驟沒有完成時間戳（代表它上次執行早於此機制引入）
@@ -2544,7 +2547,8 @@ kernel/satellite 事件時，跑一次分類等於把既有分類全部抹成未
 
 **`hero_journey_stages[].representative_event_ids` 亦為讀取時推導**，與 `is_stale`
 同類：欄位本身早已存在於 `HeroJourneyStage`，但生成端（`map_hero_journey`）從未寫入。
-本端點回傳前以每個階段的 `chapter_range`（取首尾為區間）與 kernel 骨幹取交集補上，
+本端點回傳前以每個階段的 `chapter_range`（**只取其實際列出的章**，先去重；`[1,2,5,8]` 不含第 3–7 章的事件，
+第 5 批起不再取首尾為區間）與 kernel 骨幹取交集補上，
 沿用 #21j 的章節遞增順序，每階段上限 4 筆。**不寫入快取**，因此既有快取無需 force
 重跑即生效，重複呼叫結果穩定。
 
@@ -2701,12 +2705,12 @@ LLM 讀取偵測到的目錄段落文字，抽出**書本自己聲明的章節�
 
 ### #21l PATCH /narrative/:documentId/review
 
-HITL 審核 NarrativeStructure（approved / rejected）。
+HITL 審核 NarrativeStructure（approved / rejected / pending）。
 
 **Request Body**
 ```ts
 {
-  review_status: 'approved' | 'rejected';
+  review_status: 'approved' | 'rejected' | 'pending'; // pending = 回到未審閱（第 5 批）
 }
 ```
 
@@ -2716,11 +2720,11 @@ HITL 審核 NarrativeStructure（approved / rejected）。
 `human_verified`。該列舉值一直存在於 domain model，但先前沒有任何寫入點，導致
 「已核可」與「未審閱」的分類在來源上無法區分。
 
-撤回核可（已是 `human_verified` 時改為 `rejected`）必須把來源放回去，而先前的值
+撤回核可（已是 `human_verified` 時改為 `rejected` 或 `pending`）必須把來源放回去，而先前的值
 從未被保存——改由事件自身的 `narrative_weight_source` 還原：任一事件為
 `llm_classified` 則回到 `llm_classified`，否則回到 `summary_heuristic`。
 
-未曾核可過的結構改為 `rejected` 時，`classification_source` 不變。
+未曾核可過的結構改為 `rejected` 或 `pending` 時，`classification_source` 不變；`pending` → `approved` 照常推進為 `human_verified`。
 
 ---
 
@@ -2954,6 +2958,7 @@ response schema 與測試檔。
   - 2026-06-01：#21k / #21l 加 `response_model=NarrativeStructure`，#21j 加 `response_model=list[KernelSpineEvent]`（新增 schema），讓 `generated.ts` 取得 `NarrativeStructure` / `HeroJourneyStage` / `KernelSpineEvent` 型別。回傳 JSON shape 不變（皆為既有 snake_case domain dump）。前端封裝於 `frontend/src/api/narrative.ts`，頁面為 `/books/:bookId/narrative`（B-045）。
   - 2026-08-12：#21k 的 `representative_event_ids` 改為讀取時推導（response schema 不變，欄位早已存在）。詳見 #21k 段落。
   - 2026-08-12：#21a 新增 409（分類會抹除既有分類時拒絕啟動），service 層同步加守衛。詳見 #21a 段落。
+  - 2026-10-04（DS v3 第 5 批）：#21c／#21e 補 503；#21l 開放 `pending`；#21k 過期來源加 `summarization`、代表事件改只取 `chapter_range` 實際列出的章；#21a 的 409 說明改為現況（`_would_wipe` 已於 B-096 刪除）；#21j `narrative_weight` 更正為 string；#15h 加選用 `evidence_summary`。
   - 2026-08-12：#21l 核可時一併寫入 `classification_source='human_verified'`（撤回核可時由事件來源還原）。詳見 #21l 段落。
 - [x] **#2-a / #3 lastOpenedAt**：`POST /books/:bookId/opened`（#2-c）寫入，#1 / #2-a / #3 回傳 `lastOpenedAt`
 - [x] **#23a 跨書語意搜尋**：`POST /api/v1/search/`，metadata 欄位（`documentId`、`chapterNumber`、`position`）已修復；前端頁面 `/search` 已實作，Sidebar 圖示已啟用（2026-06-13）

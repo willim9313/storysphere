@@ -159,6 +159,41 @@
 
 **新色相禁令**：需要新分類色時，取既有 entity/symbol/status token 或 warm arc 未使用的一步，不發明新 hue。
 
+### 3.7.1 語氣色（Tone · 跨主題共用）
+
+6 色語氣家族，供語氣色帶、語氣標記使用。**兩主題共用、Ink 不覆寫**（同 entity 家族）。**語氣色跨角色、跨書固定**——同一語氣在任何角色、任何書都是同一色。
+
+| token | 值 | 備註 |
+|------|----|----|
+| `--tone-warm` | `oklch(0.83 0.07 50)` | |
+| `--tone-inquire` | `oklch(0.85 0.085 85)` | 疑問 |
+| `--tone-steady` | `oklch(0.84 0.05 118)` | 陳述 |
+| `--tone-cold` | `oklch(0.79 0.055 268)` | |
+| `--tone-ironic` | `oklch(0.79 0.07 345)` | |
+| `--tone-agitated` | `oklch(0.77 0.095 25)` | 感嘆 |
+| `--tone-unmapped` | `var(--border)` | **只描邊、不填色** |
+| `--tone-fg` | `var(--fg-primary)` | 全部墨色字；對比 Warm 6.98–9.49、Ink 8.48–11.52（皆 ≥ 4.5:1） |
+
+### 3.7.2 類別色（Categorical · 跨主題共用）
+
+資料標記用的 5＋1 色（深／淺交替，相鄰必不同明度）。**兩主題共用、Ink 不覆寫。** 規則：
+
+- 只用在資料標記（點、色塊、描邊），**不做 pill、不進正文**。
+- **登記制**：目前只登記 09 角色分析的派系；新用途要先登記再用。依排名配色，不依名稱。
+- `cat-none` 只描邊、不填色。
+
+| token | 值 | 字色 token | 對比（Warm / Ink） |
+|------|----|----|----|
+| `--cat-1` | `oklch(0.55 0.105 25)`（磚紅） | `--cat-1-fg` = `--paper-warmth-0` | 4.7 / 5.1 |
+| `--cat-2` | `oklch(0.82 0.070 118)` | `--cat-2-fg` = `--fg-primary` | 8.7 / 10.6 |
+| `--cat-3` | `oklch(0.54 0.085 345)` | `--cat-3-fg` = `--paper-warmth-0` | 4.9 / 5.3 |
+| `--cat-4` | `oklch(0.84 0.085 85)` | `--cat-4-fg` = `--fg-primary` | 9.2 / 11.2 |
+| `--cat-5` | `oklch(0.55 0.055 268)` | `--cat-5-fg` = `--paper-warmth-0` | 4.67 / 4.9 |
+| `--cat-other` | `oklch(0.88 0.012 75)` | `--cat-other-fg` = `--fg-primary` | 10.5 / 12.7 |
+| `--cat-none` | `var(--border)` | — | 只描邊 |
+
+> 紙色字取 `--paper-warmth-0`（`#fdfaf1`，兩主題皆為固定值），不取 `--bg-primary`：Warm 的 `#f8f3e7` 放在 `cat-5` 上只有 4.40:1。Ink 的墨色字 `--fg-primary` 是 `#151515`，比 Warm 的 `#2a2620` 更深，故兩邊都過 4.5:1。
+
 ### 3.8 象徵意象類型（Symbol Pills · 跨主題共用）
 
 同一 warm arc 重映射（bg / fg / dot 對應 entity 表的同色相）：

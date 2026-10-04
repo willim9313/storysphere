@@ -122,6 +122,7 @@ export interface ReviewSymbolInterpretationOpts {
   bookId: string;
   reviewStatus: 'approved' | 'modified' | 'rejected';
   theme?: string;
+  evidenceSummary?: string;
   polarity?: Polarity;
 }
 
@@ -135,6 +136,7 @@ export function reviewSymbolInterpretation(
       book_id: opts.bookId,
       review_status: opts.reviewStatus,
       theme: opts.theme,
+      evidence_summary: opts.evidenceSummary,
       polarity: opts.polarity,
     }),
   });

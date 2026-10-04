@@ -59,4 +59,5 @@ class SymbolInterpretationReviewRequest(BaseModel):
     book_id: str = Field(description="Book document ID")
     review_status: Literal["approved", "modified", "rejected"]
     theme: str | None = None
+    evidence_summary: str | None = None
     polarity: Literal["positive", "negative", "neutral", "mixed"] | None = None

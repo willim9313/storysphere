@@ -441,9 +441,9 @@ async def review_symbol_interpretation(
     req: SymbolInterpretationReviewRequest,
     symbol_analysis_svc: SymbolAnalysisServiceDep,
 ) -> SymbolInterpretation:
-    """Update the review_status (and optionally theme/polarity) of a SymbolInterpretation.
+    """Update the review_status (and optionally theme/evidence_summary/polarity) of a SymbolInterpretation.
 
-    Optionally override ``theme`` / ``polarity`` when
+    Optionally override ``theme`` / ``evidence_summary`` / ``polarity`` when
     ``review_status`` is ``"modified"``.
     """
     updated = await symbol_analysis_svc.update_interpretation_review(
@@ -452,6 +452,7 @@ async def review_symbol_interpretation(
         review_status=req.review_status,
         theme=req.theme,
         polarity=req.polarity,
+        evidence_summary=req.evidence_summary,
     )
     if updated is None:
         raise HTTPException(

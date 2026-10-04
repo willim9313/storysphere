@@ -6,24 +6,9 @@
 
 @import './analysis-batch.css';
 
-/* ─── Page-local colour definitions ─────────────────────────────────────────
-   以下色值出自 README 明文（§2.3／§2.5，類別色與語氣家族色），「考慮納入設計系統」
-   但尚未寫進 tokens，所以只在本頁定義，之後收進 DS 時整段搬走。兩主題共用。 */
+/* ─── Page-local tokens ─────────────────────────────────────────────────────
+   類別色／語氣色已升為全域 token（--cat-*／--tone-*，見 tokens.css）。 */
 .ca-page {
-  /* 類別色 cat-1…5（深／淺交替，相鄰必不同明度）＋ 其他。依排名配色，不依名稱。 */
-  --ca-cat-1-bg: oklch(0.55 0.105 50);
-  --ca-cat-2-bg: oklch(0.82 0.070 118);
-  --ca-cat-3-bg: oklch(0.54 0.085 345);
-  --ca-cat-4-bg: oklch(0.84 0.085 85);
-  --ca-cat-5-bg: oklch(0.55 0.055 268);
-  --ca-cat-other-bg: oklch(0.88 0.012 75);
-  /* 語氣家族色（README §2.5）。後端目前只有陳述／疑問／感嘆三段，用到 steady／inquiry／agitated。 */
-  --ca-tone-warm: oklch(0.83 0.07 50);
-  --ca-tone-inquiry: oklch(0.85 0.085 85);
-  --ca-tone-steady: oklch(0.84 0.05 118);
-  --ca-tone-cold: oklch(0.79 0.055 268);
-  --ca-tone-irony: oklch(0.79 0.07 345);
-  --ca-tone-agitated: oklch(0.77 0.095 25);
   /* 弧線色帶一行的高度 */
   --ca-arc-band-h: 22px;
 }
@@ -598,12 +583,12 @@
   font-size: var(--font-size-2xs); color: var(--fg-primary);
   white-space: nowrap; overflow: hidden; font-variant-numeric: tabular-nums;
 }
-.tone-warm { background: var(--ca-tone-warm); }
-.tone-inquiry { background: var(--ca-tone-inquiry); }
-.tone-steady { background: var(--ca-tone-steady); }
-.tone-cold { background: var(--ca-tone-cold); }
-.tone-irony { background: var(--ca-tone-irony); }
-.tone-agitated { background: var(--ca-tone-agitated); }
+.tone-warm { background: var(--tone-warm); }
+.tone-inquiry { background: var(--tone-inquire); }
+.tone-steady { background: var(--tone-steady); }
+.tone-cold { background: var(--tone-cold); }
+.tone-irony { background: var(--tone-ironic); }
+.tone-agitated { background: var(--tone-agitated); }
 .tone-none { background: transparent; box-shadow: inset 0 0 0 1px var(--border); }
 .ca-tone-legend { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-6); font-size: var(--font-size-2xs); color: var(--fg-secondary); }
 .ca-tone-legend-item { display: inline-flex; align-items: center; gap: var(--space-2); }

@@ -102,7 +102,7 @@ export function triggerTemporalAnalysis(
 
 export function reviewNarrativeStructure(
   documentId: string,
-  reviewStatus: 'approved' | 'rejected',
+  reviewStatus: 'approved' | 'rejected' | 'pending',
 ): Promise<NarrativeStructure> {
   return apiFetch<NarrativeStructure>(`/narrative/${documentId}/review`, {
     method: 'PATCH',

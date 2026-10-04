@@ -13,7 +13,7 @@ export function FactionSwatch({ token }: Readonly<{ token: CategoricalToken | nu
   return (
     <span
       className={'ca-swatch' + (token ? '' : ' none')}
-      style={token ? { background: `var(--ca-${token}-bg)` } : undefined}
+      style={token ? { background: `var(--${token})` } : undefined}
     />
   );
 }
