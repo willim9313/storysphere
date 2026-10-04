@@ -1,4 +1,4 @@
-# The five gates from CLAUDE.md's "程式碼品質" section.
+# The six gates from CLAUDE.md's "程式碼品質" section.
 #
 # Commands here are copied verbatim from that list on purpose. If CI runs a
 # variant — an extra flag, a different marker — then "CI is green" and "the
@@ -93,3 +93,9 @@ jobs:
         # deleted variable with a live use site is a runtime ReferenceError that
         # only tsc catches.
         run: npm run build
+
+      - name: Gate 6 — npm run knip
+        # Unused files and unused package.json dependencies (added 2026-10-04,
+        # after B-129 had to grep a whole redesign's worth of orphans by hand).
+        # Export-level findings are deliberately off; see frontend/knip.jsonc.
+        run: npm run knip
