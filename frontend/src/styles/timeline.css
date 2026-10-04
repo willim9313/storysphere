@@ -15,6 +15,8 @@
 .tl * {
   box-sizing: border-box;
 }
+/* B 檢視 (24 / 16 / 12 / 8): the page scrolls as a whole, content is a
+   max-w 1280 column with 32 under it. */
 .tl {
   font-family: var(--font-sans);
   color: var(--fg-primary);
@@ -24,9 +26,15 @@
   line-height: 1.45;
   width: 100%;
   height: 100%;
-  display: grid;
-  grid-template-rows: auto auto 1fr;
-  overflow: hidden;
+  overflow-y: auto;
+}
+.tl-inner {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: var(--space-7) var(--space-7) var(--space-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
 }
 /* Scoped so it cannot swallow `.tl-btn`'s own border/background. */
 .tl button:not([class]) {
@@ -42,7 +50,8 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
+  gap: var(--space-5);
+  min-height: 50vh;
 }
 
 .sr-only {
@@ -111,14 +120,6 @@
   border-style: dashed;
   color: var(--fg-secondary);
 }
-.tl-badge {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-2xs);
-  background: var(--accent);
-  color: var(--accent-fg);
-  border-radius: var(--badge-radius);
-  padding: 0 5px;
-}
 
 /* ── View tabs ────────────────────────────────────────────── */
 .tl-tabs {
@@ -167,98 +168,120 @@
 }
 
 /* ── Toolbar ──────────────────────────────────────────────── */
+/* Left = 看什麼 (free), right = 跑什麼 (spends tokens), one solid rule between:
+   side by side they read as the same kind of control otherwise. */
 .tl-toolbar {
   display: flex;
-  align-items: stretch;
-  padding: 7px 14px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-primary);
+  align-items: flex-start;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  padding-bottom: var(--space-6);
+  border-bottom: var(--border-width) var(--border-style) var(--border);
 }
-.tl-toolbar-seg {
+.tl-toolbar-left {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  padding-right: var(--space-6);
+  border-right: var(--border-width) solid var(--border);
+}
+.tl-toolbar-right {
+  flex: 1;
+  min-width: 420px;
+}
+.tl-cluster {
   display: flex;
   flex-direction: column;
-  gap: 5px;
-  padding: 0 14px;
-  border-right: 1px solid var(--border);
+  align-items: flex-start;
+  gap: var(--space-3);
 }
-.tl-toolbar-seg:first-child {
-  padding-left: 0;
-}
-.tl-toolbar-seg:last-child {
-  border-right: none;
-  padding-right: 0;
-}
-.tl-toolbar-seg-label {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
+.tl-cluster-label {
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
-  letter-spacing: 0.05em;
 }
-.tl-toolbar-seg-note {
-  color: var(--accent);
-  letter-spacing: 0;
-}
-.tl-toolbar-filter {
-  position: relative;
+.tl-cluster-row {
   display: flex;
   align-items: center;
-  gap: 9px;
+  gap: var(--space-4);
 }
-.tl-toolbar-match {
-  display: flex;
-  align-items: baseline;
-  gap: 7px;
+/* One line, muted, follows the selected filterMode. */
+.tl-cluster-hint {
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
   white-space: nowrap;
 }
-.tl-toolbar-mode {
-  color: var(--accent);
+.tl-filter-anchor {
+  position: relative;
 }
-/* The two expensive actions get the remaining width — their status text
-   needs two full lines and must not be truncated. */
-.tl-toolbar-actions {
-  flex: 1;
-  min-width: 0;
+.tl-toolbar-match {
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+.tl-badge {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  background: var(--accent);
+  color: var(--accent-fg);
+  border-radius: var(--badge-radius);
+  padding: 0 var(--space-3);
 }
 
-/* ── Action rows (expensive, irreversible LLM runs) ───────── */
+/* ── 分析動作面板 ────────────────────────────────────────── */
+.tl-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.tl-actions-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+.tl-actions-title {
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+}
+.tl-actions-note {
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+/* 動作 / 目前狀態 / 成本或阻擋原因 / 按鈕 — the status and cost share the
+   middle column as two stacked lines. */
 .tl-action-row {
-  position: relative;
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  gap: var(--space-5);
+  align-items: start;
+  padding: var(--space-4) 0;
+  border-top: var(--border-width) var(--border-style) var(--border);
+}
+.tl-action-row.is-first {
+  border-top: none;
+}
+.tl-action-name {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 3px 8px;
-  border-radius: var(--btn-radius);
-  overflow: hidden;
+  gap: var(--space-3);
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+  min-height: 24px;
 }
-.tl-action-row.emphasis {
-  background: var(--bg-secondary);
-}
+/* Solid = can run, hollow = blocked. A shape, not a hue: Ink collapses the
+   status colours. */
 .tl-action-dot {
   flex: none;
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  border: 1px solid var(--fg-muted);
+  background: var(--accent);
+}
+.tl-action-dot.is-hollow {
   background: transparent;
-}
-.tl-action-dot.on {
-  background: var(--fg-primary);
-  border-color: var(--fg-primary);
-}
-.tl-action-name {
-  flex: none;
-  width: 84px;
-  font-family: var(--font-serif);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--fg-primary);
-}
-.tl-action-name.muted {
-  color: var(--fg-muted);
+  border: var(--border-width) var(--border-style) var(--fg-muted);
 }
 .tl-action-name-link {
   color: inherit;
@@ -269,80 +292,69 @@
   color: var(--accent);
   border-bottom-color: var(--accent);
 }
-/* Two lines, always. One line at ~314px truncates any real sentence.
-   `overflow: hidden` lets the text column absorb the squeeze so the action
-   button stays on screen instead of being pushed past the viewport edge. */
 .tl-action-text {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
-  line-height: 1.35;
-}
-.tl-action-row > .tl-btn {
-  flex: none;
+  gap: var(--space-2);
+  min-width: 0;
 }
 .tl-action-status {
   font-size: var(--font-size-2xs);
-  color: var(--fg-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  color: var(--fg-primary);
+  line-height: 1.6;
+}
+/* Blocked is 沒跑, not 跑壞: the partial colour, never the error one. */
+.tl-action-status.is-blocked {
+  color: var(--status-partial-fg);
 }
 .tl-action-sub {
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  line-height: 1.6;
   text-align: left;
 }
-.tl-action-sub.blocked {
-  color: var(--accent);
-}
-.tl-action-sub.link {
+.tl-action-sub.is-link {
   border: none;
   background: none;
   padding: 0;
+  font-family: inherit;
+  color: var(--accent);
+  text-decoration: underline;
   cursor: pointer;
 }
-/* Solid rail, not a translucent wash: under Ink `--accent` is near-black
-   and a 35% overlay drops muted text to ~1.4:1 contrast. */
 .tl-action-progress {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  height: 3px;
-  background: var(--accent);
+  margin-top: var(--space-2);
+  max-width: 280px;
 }
-
-/* ── Segmented control ────────────────────────────────────── */
-.tl-segmented {
-  display: inline-flex;
-  border: var(--btn-border-width) var(--border-style) var(--border);
-  border-radius: var(--btn-radius);
-  overflow: hidden;
+/* 倒敘與預敘 未進行 — a gate not met, so partial, and dismissible. */
+.tl-skipped {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  background: var(--bg-primary);
+  border: var(--card-border-width) var(--border-style) var(--status-partial-border);
+  border-radius: var(--card-radius);
 }
-.tl-segmented-item {
-  border: none;
-  background: transparent;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  padding: 5px 10px;
+.tl-skipped-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  color: var(--status-partial-fg);
+}
+.tl-skipped-title {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--fg-primary);
+}
+.tl-skipped-desc {
+  margin: 0;
+  font-size: var(--font-size-2xs);
+  line-height: 1.7;
   color: var(--fg-secondary);
-  cursor: pointer;
-  white-space: nowrap;
-  transition:
-    background-color var(--transition-fast),
-    color var(--transition-fast);
-}
-.tl-segmented-item + .tl-segmented-item {
-  border-left: 1px solid var(--border);
-}
-.tl-segmented-item.active {
-  background: var(--fg-primary);
-  color: var(--accent-fg);
+  text-wrap: pretty;
 }
 
 /* ── Filter popover ───────────────────────────────────────── */
@@ -478,44 +490,152 @@
 /* ── Main layout ──────────────────────────────────────────── */
 .tl-main {
   display: grid;
-  grid-template-columns: 1fr;
-  min-height: 0;
-  overflow: hidden;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-7);
+  align-items: start;
 }
+/* The panel takes its own 320 and the stave narrows — it never covers it. */
 .tl-main.with-panel {
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: minmax(0, 1fr) 320px;
 }
 .tl-canvas {
-  position: relative;
   display: flex;
   flex-direction: column;
+  gap: var(--space-6);
   min-width: 0;
-  min-height: 0;
-  overflow-y: auto;
-}
-.tl-refreshing {
-  position: absolute;
-  top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 12;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--font-size-2xs);
-  color: var(--fg-secondary);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--badge-radius);
-  padding: 3px 10px;
 }
 
-/* ── View header ──────────────────────────────────────────── */
+/* ── 底圖標題 + 對照開關 ─────────────────────────────────── */
+.tl-base-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+}
+.tl-base-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  flex: 1 1 420px;
+}
+.tl-base-title {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  margin: 0;
+}
+.tl-base-sub {
+  margin: 0;
+  font-size: var(--font-size-2xs);
+  line-height: 1.6;
+  color: var(--fg-muted);
+}
+.tl-compare {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+.tl-compare-note {
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+/* disabled / off / on. On is the accent outline and track; disabled is dimmed
+   and not-allowed, with the reason in the card right below. */
+.tl-switch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  font-family: inherit;
+  color: var(--fg-primary);
+  background: transparent;
+  border-radius: var(--control-radius);
+  border: var(--border-width) var(--border-style) var(--border);
+  cursor: pointer;
+}
+.tl-switch.is-on {
+  border-color: var(--accent);
+}
+.tl-switch.is-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.tl-switch-track {
+  position: relative;
+  flex: none;
+  width: 26px;
+  height: 15px;
+  border-radius: 9px;
+  background: var(--bg-tertiary);
+  border: var(--border-width) var(--border-style) var(--border);
+}
+.tl-switch.is-on .tl-switch-track {
+  background: var(--accent);
+}
+.tl-switch-knob {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--fg-muted);
+  transition: left var(--transition-fast);
+}
+.tl-switch.is-on .tl-switch-knob {
+  left: 12px;
+  background: var(--accent-fg);
+}
+.tl-switch-label {
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.tl-compare-blocked {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+}
+.tl-compare-blocked-title {
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+  color: var(--status-partial-fg);
+}
+.tl-compare-blocked-desc {
+  margin: 0;
+  max-width: 86ch;
+  font-size: var(--font-size-2xs);
+  line-height: 1.7;
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+.tl-compare-blocked-hint {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+/* The kit has no :disabled look; scoped here like upload.css does. */
+.tl .ss-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* ── View header (headline, shown only when comparing) ──── */
 .tl-view-head {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 10px 18px 4px;
+  gap: var(--space-1);
 }
 .tl-view-headline {
   font-family: var(--font-serif);
@@ -531,89 +651,62 @@
   margin: 0;
 }
 /* Legend lines carry a `.tl-legend-dot` sample, and that shared mark is sized
-   with width/height — it needs a flex row to lay out against, the way the
-   matrix legend's `li` does. Text-only legend lines are unaffected. */
+   with width/height — it needs a flex row to lay out against. */
 .tl-view-legend {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: var(--space-3);
 }
-/* Analysis coverage — the count behind the dot marks. Sits in the view head
-   rather than the toolbar's action segment because it explains what the stave
-   is showing, and the run it offers is the fix for what the marks reveal. */
-/* Owns its horizontal inset: it is a sibling of .tl-view-head, not a child,
-   so it cannot inherit that padding. Keep the 18px in step with it. */
+.tl-legend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* 前置：事件分析 d / t — its own row, between the note and the stave. EEP
+   coverage is independent of whether story order was ever computed. */
 .tl-coverage {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 2px 18px 6px;
+  gap: var(--space-5);
   flex-wrap: wrap;
 }
-.tl-coverage-text {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  font-size: var(--font-size-2xs);
-}
 .tl-coverage-label {
-  color: var(--fg-secondary);
-}
-.tl-coverage-count {
-  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
   color: var(--fg-muted);
 }
-/* Fixed width, not `flex: 1`: a rail that restretches as the run progresses
-   reads as the bar moving backwards. */
+/* Fixed width, not `flex: 1`: a rail that restretches reads as moving backwards. */
 .tl-coverage-rail {
-  position: relative;
   width: 168px;
-  height: 3px;
-  background: var(--border);
-  border-radius: 2px;
-  overflow: hidden;
 }
-.tl-coverage-fill {
-  position: absolute;
-  left: 0;
-  top: 0;
-  height: 100%;
-  background: var(--accent);
-  transition: width var(--transition-normal);
+.tl-link {
+  font-size: var(--font-size-2xs);
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
 }
-
-/* Stands in for .tl-view-head when the stave has nothing to plot. */
-.tl-prompt {
+/* 時序分析已過期 — not an error, the data and the verdicts disagree. The old
+   verdicts stay on screen; this band says so. */
+.tl-stale {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-  margin: 10px 18px 4px;
-  padding: 10px 14px;
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-md);
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
   background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-2xs);
+  line-height: 1.6;
+  color: var(--status-partial-fg);
 }
-.tl-prompt-title {
-  font-family: var(--font-serif);
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  color: var(--fg-primary);
-  margin: 0;
-}
-.tl-prompt-desc {
-  font-size: var(--font-size-xs);
-  color: var(--fg-muted);
-  max-width: 68ch;
-  margin: 0;
+.tl-stale svg {
+  flex: none;
 }
 
 /* ── Stave ────────────────────────────────────────────────── */
 .tl-stave {
   display: flex;
   flex-direction: column;
-  padding: 0 18px;
 }
 .tl-stave-row {
   position: relative;
@@ -771,22 +864,21 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  background: var(--timeline-chapter-bg);
-  padding: 8px 18px 12px;
+  gap: var(--space-4);
 }
 .tl-band-head {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: var(--space-5);
+  flex-wrap: wrap;
 }
 .tl-band-title {
   display: flex;
   align-items: baseline;
-  gap: 7px;
+  gap: var(--space-4);
   font-family: var(--font-serif);
-  font-size: var(--font-size-base);
-  font-weight: 600;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
   margin: 0;
 }
 .tl-band-chapter-title {
@@ -806,7 +898,7 @@
   flex: 1;
   min-height: 0;
   display: flex;
-  gap: 14px;
+  gap: var(--space-6);
 }
 .tl-cards {
   flex: 1;
@@ -960,18 +1052,22 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
-  padding: 22px 0;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
 }
 .tl-band-empty-title {
-  font-family: var(--font-hand);
-  font-size: var(--font-size-xl);
+  font-family: var(--font-serif);
+  font-size: var(--font-size-base);
+  font-weight: 700;
   color: var(--fg-primary);
   margin: 0;
 }
 .tl-band-empty-desc {
-  font-size: var(--font-size-xs);
-  color: var(--fg-muted);
+  font-size: var(--font-size-2xs);
+  line-height: 1.7;
+  color: var(--fg-secondary);
   margin: 0;
 }
 
@@ -1310,19 +1406,24 @@
 /* ── Character lanes ──────────────────────────────────────── */
 .tl-lanes {
   flex: none;
-  border-top: 1px solid var(--border);
-  background: var(--bg-secondary);
-  padding: 7px 14px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  background: var(--bg-primary);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
+  padding: var(--space-6);
 }
 .tl-lanes-head {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-3);
   flex-wrap: wrap;
 }
 .tl-lanes-title {
-  font-size: var(--font-size-xs);
-  color: var(--fg-secondary);
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+  color: var(--fg-primary);
 }
 .tl-lanes-clear {
   font-family: var(--font-sans);
@@ -1368,19 +1469,18 @@
   cursor: pointer;
 }
 .tl-lanes-note {
-  margin-left: auto;
+  margin: 0;
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
 }
 .tl-lanes-empty {
-  margin: var(--space-sm) 0 0;
+  margin: 0;
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
 }
 .tl-lanes-ticks {
   position: relative;
   height: 14px;
-  margin-left: 140px;
 }
 .tl-lanes-tick {
   position: absolute;
@@ -1391,18 +1491,22 @@
   color: var(--fg-muted);
 }
 .tl-lane {
-  display: grid;
-  grid-template-columns: 136px 1fr;
-  column-gap: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5) 0;
+  border-top: var(--border-width) var(--border-style) var(--border);
 }
 .tl-lane-label {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-5);
+  flex-wrap: wrap;
 }
 .tl-lane-name {
   font-family: var(--font-serif);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--fg-primary);
 }
@@ -1454,24 +1558,18 @@
 .tl-lane-dot.selected {
   box-shadow: 0 0 0 3px var(--timeline-selected-ring);
 }
-/* Absence captions live in their own strip so they never sit on the dots. */
-.tl-lane-notes {
-  position: relative;
-  grid-column: 2;
-  height: 16px;
+/* Absence captions are chips under the track, never on the dots. */
+.tl-lane-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
 }
-.tl-lane-note {
-  position: absolute;
-  top: 0;
-  padding-left: 3px;
-  border-left: 1px solid var(--border);
-  font-family: var(--font-hand);
-  font-size: var(--font-size-sm);
-  line-height: 16px;
+.tl-lane-chip {
+  font-size: var(--font-size-2xs);
   color: var(--fg-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  padding: var(--space-1) var(--space-4);
+  background: var(--bg-secondary);
+  border-radius: var(--badge-radius);
 }
 .tl-lane-together-mark {
   position: absolute;
@@ -1484,8 +1582,9 @@
 .tl-lanes-legend {
   list-style: none;
   display: flex;
-  gap: 14px;
-  margin: 4px 0 0;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  margin: 0;
   padding: 0;
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
@@ -1493,36 +1592,49 @@
 .tl-lanes-legend li {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 /* ── Detail panel ─────────────────────────────────────────── */
 .tl-panel {
   display: flex;
   flex-direction: column;
+  position: sticky;
+  top: 0;
+  max-height: calc(100vh - var(--space-8) * 2);
   min-height: 0;
-  border-left: 1px solid var(--border);
   background: var(--bg-primary);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
 }
 .tl-panel-head {
   flex: none;
   display: flex;
-  align-items: center;
-  height: 40px;
-  padding: 0 12px 0 16px;
-  border-bottom: 1px solid var(--border);
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-6) var(--space-4);
+}
+.tl-panel-head-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
 }
 .tl-panel-eyebrow {
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+}
+.tl-panel-keys {
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
 }
 .tl-panel-close {
   margin-left: auto;
   display: inline-flex;
   border: none;
   background: none;
-  padding: 4px;
+  padding: var(--space-2);
   color: var(--fg-muted);
   cursor: pointer;
 }
@@ -1534,23 +1646,23 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: var(--space-5);
+  padding: 0 var(--space-6) var(--space-6);
   overflow-y: auto;
 }
 .tl-panel-block {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
 }
 .tl-panel-block.bordered {
-  border-top: 1px solid var(--border);
-  padding-top: 11px;
+  border-top: var(--border-width) var(--border-style) var(--border);
+  padding-top: var(--space-5);
 }
 .tl-panel-kicker {
   display: flex;
   align-items: baseline;
-  gap: 7px;
+  gap: var(--space-3);
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
 }
@@ -1560,18 +1672,19 @@
 .tl-panel-title {
   font-family: var(--font-serif);
   font-size: var(--font-size-xl);
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.35;
   color: var(--fg-primary);
   margin: 0;
 }
-.tl-panel-kind {
+/* 重要度未評 is a real state, not a gap: neutral grey. */
+.tl-panel-badge-neutral {
   align-self: flex-start;
-  font-size: var(--font-size-2xs);
-  color: var(--fg-secondary);
-}
-.tl-panel-kind.muted {
+  background: var(--bg-secondary);
   color: var(--fg-muted);
+}
+.tl-panel-block > .ss-badge {
+  align-self: flex-start;
 }
 .tl-panel-desc {
   font-family: var(--font-serif);
@@ -1617,6 +1730,10 @@
 .tl-panel-dev.outlier {
   color: var(--accent);
 }
+/* 需要故事時間提示 — same reason, same colour as the blocked toolbar row. */
+.tl-panel-dev.is-partial {
+  color: var(--status-partial-fg);
+}
 .tl-panel-verdict {
   font-size: var(--font-size-2xs);
   color: var(--fg-secondary);
@@ -1630,13 +1747,17 @@
   border-color: var(--accent);
   color: var(--accent);
 }
+/* Pinned to the bottom: these two are exits from the page and must not
+   scroll away with the content. */
 .tl-panel-actions {
-  margin-top: auto;
+  flex: none;
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-6) var(--space-6);
+  border-top: var(--border-width) var(--border-style) var(--border);
 }
-.tl-panel-actions .tl-btn {
+.tl-panel-actions .ss-btn {
   justify-content: center;
 }
 
@@ -1692,51 +1813,45 @@
   align-self: flex-start;
   font-size: var(--font-size-2xs);
   color: var(--fg-secondary);
-  padding: 2px 8px;
-  border-left: 2px solid var(--narrative-unknown-border);
+  padding: var(--space-1) var(--space-4);
   background: var(--narrative-unknown-bg);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  border-radius: var(--radius-sm);
 }
 .tl-narrative-present {
-  border-left-color: var(--narrative-present-border);
   background: var(--narrative-present-bg);
 }
 .tl-narrative-flashback {
-  border-left-color: var(--narrative-flashback-border);
   background: var(--narrative-flashback-bg);
 }
 .tl-narrative-flashforward {
-  border-left-color: var(--narrative-flashforward-border);
   background: var(--narrative-flashforward-bg);
 }
 .tl-narrative-parallel {
-  border-left-color: var(--narrative-parallel-border);
   background: var(--narrative-parallel-bg);
 }
 
 /* ── Page-level states ────────────────────────────────────── */
 .tl-state {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 40px 24px;
-  text-align: center;
-}
-.tl-state-icon {
-  color: var(--color-error);
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  background: var(--bg-primary);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
 }
 .tl-state-title {
-  font-family: var(--font-hand);
-  font-size: var(--font-size-2xl);
+  font-family: var(--font-serif);
+  font-size: var(--font-size-base);
+  font-weight: 700;
   color: var(--fg-primary);
   margin: 0;
 }
 .tl-state-desc {
-  font-size: var(--font-size-xs);
-  color: var(--fg-muted);
+  font-size: var(--font-size-2xs);
+  line-height: 1.7;
+  color: var(--fg-secondary);
   max-width: 52ch;
   margin: 0;
 }
@@ -1790,24 +1905,25 @@
 
 /* ── Onboarding hero (empty book) ─────────────────────────── */
 .tl-hero {
-  max-width: 720px;
-  margin: 40px auto;
+  max-width: 1000px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+  text-align: center;
   background: var(--bg-primary);
-  border: 1px solid var(--border);
-  border-style: var(--border-style);
-  border-radius: var(--radius-lg);
-  padding: 28px 32px;
-  box-shadow: var(--shadow-sm);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
+  padding: var(--space-8);
 }
 .tl-hero-eyebrow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  margin-bottom: 16px;
+  letter-spacing: 0.08em;
 }
 .tl-hero-eyebrow-dot {
   width: 6px;
@@ -1817,58 +1933,49 @@
 }
 .tl-hero-intro {
   font-family: var(--font-serif);
-  font-size: var(--font-size-xl);
-  line-height: 1.45;
-  color: var(--fg-muted);
-  font-style: italic;
-  margin: 0 0 24px;
+  font-size: var(--font-size-lg);
+  line-height: 1.7;
+  color: var(--fg-primary);
+  margin: 0;
   text-wrap: pretty;
-  max-width: 80ch;
+  max-width: 62ch;
 }
 .tl-hero-steps {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  width: 100%;
+  text-align: left;
 }
 .tl-hero-step {
-  padding: 16px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-style: var(--border-style);
-  border-radius: var(--radius-md);
-  position: relative;
+  flex: 1 1 220px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
 }
+/* The step number is already in the scope line ("STEP 01 · …"). */
 .tl-hero-step-num {
-  position: absolute;
-  top: 12px;
-  right: 14px;
-  font-family: var(--font-serif);
-  font-size: var(--font-size-2xl);
-  color: var(--fg-muted);
-  opacity: 0.3;
-  line-height: 1;
+  display: none;
 }
 .tl-hero-step-scope {
+  font-family: var(--font-mono);
   font-size: var(--font-size-2xs);
   color: var(--accent);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-bottom: 8px;
 }
 .tl-hero-step-name {
   font-family: var(--font-serif);
   font-size: var(--font-size-base);
+  font-weight: 700;
   color: var(--fg-primary);
-  margin-bottom: 4px;
 }
 .tl-hero-step-desc {
-  font-size: var(--font-size-xs);
-  color: var(--fg-secondary);
-  line-height: 1.5;
-}
-.tl-hero-cta {
-  margin-top: 4px;
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  line-height: 1.7;
 }
 @media (max-width: 640px) {
   .tl-hero-steps {
