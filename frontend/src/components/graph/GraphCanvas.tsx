@@ -15,6 +15,8 @@ cytoscape.use(fcose);
 
 export interface ViewportSnapshot {
   viewport: { x1: number; y1: number; x2: number; y2: number };
+  /** cytoscape zoom level (1 = 100%) — read by the ± strip's percentage. */
+  zoom: number;
   nodes: { id: string; x: number; y: number; type: string }[];
   edges: { source: string; target: string }[];
 }
@@ -23,6 +25,8 @@ export interface GraphCanvasHandle {
   centerOn: (graphX: number, graphY: number) => void;
   panByGraph: (dxGraph: number, dyGraph: number) => void;
   fitView: () => void;
+  /** Multiply the current zoom by `factor` around the viewport centre. */
+  zoomBy: (factor: number) => void;
 }
 
 interface GraphCanvasProps {
@@ -277,6 +281,15 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
         if (!cy) return;
         cy.animate({ fit: { eles: cy.elements(), padding: 48 } }, { duration: 300, easing: 'ease' });
       },
+      zoomBy(factor) {
+        const cy = cyRef.current;
+        if (!cy) return;
+        const level = Math.min(cy.maxZoom(), Math.max(cy.minZoom(), cy.zoom() * factor));
+        cy.animate(
+          { zoom: { level, renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 } } },
+          { duration: 150, easing: 'ease' },
+        );
+      },
     }),
     [],
   );
@@ -301,6 +314,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
       }));
       cb({
         viewport: { x1: ext.x1, y1: ext.y1, x2: ext.x2, y2: ext.y2 },
+        zoom: cy.zoom(),
         nodes,
         edges,
       });

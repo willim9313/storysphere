@@ -132,13 +132,13 @@ export function SearchDropdown({
   return (
     <div
       ref={listRef}
-      className="absolute z-20 flex flex-col"
+      className="absolute z-40 flex flex-col"
       style={{
-        // Anchored just under the toolbar (top:12 + ~32 toolbar height + 12 gap)
-        top: 56,
-        left: 12,
+        // Rendered inside the toolbar's search wrapper, so it hangs right under the box.
+        top: 'calc(100% + var(--space-3))',
+        left: 0,
         width: 460,
-        maxHeight: 'calc(100% - 80px)',
+        maxHeight: '70vh',
         backgroundColor: 'var(--bg-primary)',
         border: '1px solid var(--border)',
         borderRadius: 'var(--radius-md)',

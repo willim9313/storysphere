@@ -1,16 +1,11 @@
-import { useState } from 'react';
+import { useState, type CSSProperties, type ReactNode } from 'react';
 import {
   Search,
   RotateCcw,
-  SlidersHorizontal,
-  Circle,
-  Shapes,
-  Users,
   GitBranch,
   ChevronDown,
   Loader,
   AlertTriangle,
-  Eye,
   ArrowRight,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -34,6 +29,8 @@ interface GraphToolbarProps {
   readonly searchQuery: string;
   readonly onSearchChange: (q: string) => void;
   readonly onSearchFocus?: () => void;
+  /** Rendered anchored under the search box (the results dropdown). */
+  readonly searchDropdown?: ReactNode;
   readonly onReset: () => void;
   // Type filter chips
   readonly visibleTypes: Set<string>;
@@ -55,10 +52,12 @@ interface GraphToolbarProps {
   readonly nodeCount: number;
 }
 
-const CLUSTER_MODES: { mode: ClusterMode; labelKey: string; icon: React.ReactNode }[] = [
-  { mode: 'node', labelKey: 'v1.cluster.mode.node', icon: <Circle size={10} /> },
-  { mode: 'type', labelKey: 'v1.cluster.mode.type', icon: <Shapes size={10} /> },
-  { mode: 'community', labelKey: 'v1.cluster.mode.community', icon: <Users size={10} /> },
+// 鏡頭是三個不同的問題，不是三種樣式：每格副標寫出它問什麼，
+// 這樣導覽條關掉之後畫面上仍說得清三者的差別。
+const CLUSTER_MODES: { mode: ClusterMode; labelKey: string; subKey: string }[] = [
+  { mode: 'node', labelKey: 'v1.cluster.mode.node', subKey: 'mode.subtitle.node' },
+  { mode: 'type', labelKey: 'v1.cluster.mode.type', subKey: 'mode.subtitle.type' },
+  { mode: 'community', labelKey: 'v1.cluster.mode.community', subKey: 'mode.subtitle.community' },
 ];
 
 // 設計 contract：KG 的類型控制一律涵蓋完整 7 類，不用 4 類 demo 子集
@@ -73,10 +72,25 @@ const TYPE_CHIPS: { type: EntityType; dotKey: string }[] = [
   { type: 'other', dotKey: 'other' },
 ];
 
+function chipStyle(dotKey: string): CSSProperties {
+  return {
+    '--chip-bg': `var(--entity-${dotKey}-bg)`,
+    '--chip-border': `var(--entity-${dotKey}-border)`,
+    '--chip-fg': `var(--entity-${dotKey}-fg)`,
+    '--chip-dot': `var(--entity-${dotKey}-dot)`,
+  } as CSSProperties;
+}
+
+/**
+ * One-row toolbar (control height 32, type chips 22). A flush bar above the
+ * canvas rather than floating over it, so it never hides the graph; when the
+ * viewport is too narrow the row wraps, nothing is clipped.
+ */
 export function GraphToolbar({
   searchQuery,
   onSearchChange,
   onSearchFocus,
+  searchDropdown,
   onReset,
   visibleTypes,
   onTypeToggle,
@@ -97,220 +111,81 @@ export function GraphToolbar({
   const { t } = useTranslation('graph');
 
   return (
-    <div
-      className="absolute z-10 flex flex-col"
-      style={{ top: 12, left: 12, gap: 8 }}
-    >
-      {/* Row 1: search, cluster mode segmented, reset */}
-      <div className="flex items-center flex-wrap" style={{ gap: 8 }}>
-        <div
-          className="inline-flex items-center"
-          style={{
-            gap: 6,
-            padding: '4px 10px',
-            borderRadius: 'var(--radius-md)',
-            backgroundColor: 'var(--bg-primary)',
-            border: '1px solid var(--border)',
-            boxShadow: 'var(--shadow-sm)',
-            width: 250,
-          }}
-        >
-          <Search size={11} style={{ color: 'var(--fg-muted)' }} />
+    <div className="kg-toolbar">
+      <div className="kg-mode" role="radiogroup" aria-label={t('v1.cluster.label', '群集模式')}>
+        {CLUSTER_MODES.map(({ mode, labelKey, subKey }) => {
+          const active = clusterMode === mode;
+          return (
+            <button
+              key={mode}
+              type="button"
+              role="radio"
+              aria-checked={active}
+              onClick={() => onClusterModeChange(mode)}
+              className={active ? 'kg-mode-item is-active' : 'kg-mode-item'}
+            >
+              <span className="kg-mode-label">{t(labelKey)}</span>
+              <span className="kg-mode-sub">{t(subKey)}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      <div className="kg-sep" />
+
+      <div className="kg-search">
+        <div className="kg-search-box">
+          <Search size={13} />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             onFocus={onSearchFocus}
             placeholder={t('v1.toolbar.searchPlaceholder')}
-            className="bg-transparent outline-none border-0"
-            style={{
-              fontSize: 'var(--font-size-2xs)',
-              color: 'var(--fg-primary)',
-              width: '100%',
-              fontFamily: 'inherit',
-            }}
           />
         </div>
-
-        <div
-          className="inline-flex"
-          role="radiogroup"
-          aria-label={t('v1.cluster.label', '群集模式')}
-          style={{
-            backgroundColor: 'var(--bg-secondary)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-md)',
-            padding: 2,
-            gap: 1,
-          }}
-        >
-          {CLUSTER_MODES.map(({ mode, labelKey, icon }) => {
-            const active = clusterMode === mode;
-            return (
-              <button
-                key={mode}
-                onClick={() => onClusterModeChange(mode)}
-                role="radio"
-                aria-checked={active}
-                className="inline-flex items-center"
-                style={{
-                  gap: 5,
-                  padding: '3px 9px',
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: 'var(--font-size-2xs)',
-                  backgroundColor: active ? 'var(--bg-primary)' : 'transparent',
-                  color: active ? 'var(--accent)' : 'var(--fg-secondary)',
-                  boxShadow: active ? 'var(--shadow-sm)' : 'none',
-                }}
-              >
-                {icon}
-                {t(labelKey)}
-              </button>
-            );
-          })}
-        </div>
-
-        <ToolButton onClick={onReset} icon={<RotateCcw size={11} />}>
-          {t('v1.toolbar.reset')}
-        </ToolButton>
+        {searchDropdown}
       </div>
 
-      {/* Row 2: type filter chips, inference cluster */}
-      <div className="flex items-center flex-wrap" style={{ gap: 8 }}>
-        <div
-          className="inline-flex items-center"
-          style={{
-            gap: 6,
-            padding: '5px 9px',
-            borderRadius: 'var(--radius-md)',
-            backgroundColor: 'var(--bg-primary)',
-            border: '1px solid var(--border)',
-            boxShadow: 'var(--shadow-sm)',
-          }}
-        >
-          <SlidersHorizontal size={11} style={{ color: 'var(--fg-muted)', marginRight: 2 }} />
-          {TYPE_CHIPS.map(({ type, dotKey }) => {
-            const on = visibleTypes.has(type);
-            return (
-              <button
-                key={type}
-                onClick={() => onTypeToggle(type)}
-                className="inline-flex items-center"
-                style={{
-                  gap: 4,
-                  padding: '3px 8px',
-                  borderRadius: 12,
-                  backgroundColor: on ? 'var(--bg-tertiary)' : 'var(--bg-secondary)',
-                  border: '1px solid var(--border)',
-                  fontSize: 'var(--font-size-2xs)',
-                  color: on ? 'var(--fg-primary)' : 'var(--fg-secondary)',
-                }}
-              >
-                <span
-                  className="inline-block rounded-full"
-                  style={{
-                    width: 6,
-                    height: 6,
-                    backgroundColor: `var(--entity-${dotKey}-dot)`,
-                  }}
-                />
-                {t(`entityTypes.${type}`)}
-              </button>
-            );
-          })}
-        </div>
+      <button type="button" onClick={onReset} className="ss-btn ss-btn-sm ss-btn-secondary">
+        <RotateCcw size={11} />
+        {t('v1.toolbar.reset')}
+      </button>
 
-        <Divider />
-
-        <InferenceControls
-          inferenceState={inferenceState}
-          pendingCount={pendingCount}
-          decidedCount={decidedCount}
-          showInferred={showInferred}
-          onShowInferredChange={onShowInferredChange}
-          onRunInference={onRunInference}
-          onSafeRerun={onSafeRerun}
-          onForceRerun={onForceRerun}
-          onOpenReview={onOpenReview}
-          chapterCount={chapterCount}
-          nodeCount={nodeCount}
-        />
+      {/* Type chips: the ONLY entrance of the type switch (C6) — the legend only explains. */}
+      <div className="kg-chips">
+        {TYPE_CHIPS.map(({ type, dotKey }) => {
+          const on = visibleTypes.has(type);
+          return (
+            <button
+              key={type}
+              type="button"
+              onClick={() => onTypeToggle(type)}
+              aria-pressed={on}
+              className={on ? 'kg-chip' : 'kg-chip is-off'}
+              style={chipStyle(dotKey)}
+            >
+              <span className="kg-chip-dot" />
+              {t(`entityTypes.${type}`)}
+            </button>
+          );
+        })}
       </div>
+
+      <InferenceControls
+        inferenceState={inferenceState}
+        pendingCount={pendingCount}
+        decidedCount={decidedCount}
+        showInferred={showInferred}
+        onShowInferredChange={onShowInferredChange}
+        onRunInference={onRunInference}
+        onSafeRerun={onSafeRerun}
+        onForceRerun={onForceRerun}
+        onOpenReview={onOpenReview}
+        chapterCount={chapterCount}
+        nodeCount={nodeCount}
+      />
     </div>
-  );
-}
-
-function Divider() {
-  return (
-    <div
-      style={{
-        width: 1,
-        height: 20,
-        backgroundColor: 'var(--border)',
-        margin: '0 2px',
-      }}
-    />
-  );
-}
-
-interface ToolButtonProps {
-  readonly onClick?: () => void;
-  readonly icon: React.ReactNode;
-  readonly children: React.ReactNode;
-  readonly variant?: 'default' | 'warn' | 'warn-active';
-  readonly disabled?: boolean;
-  readonly title?: string;
-}
-
-function ToolButton({
-  onClick,
-  icon,
-  children,
-  variant = 'default',
-  disabled,
-  title,
-}: ToolButtonProps) {
-  const palette =
-    variant === 'warn-active'
-      ? {
-          background: 'var(--accent)',
-          color: 'var(--bg-primary)',
-          border: 'var(--accent)',
-        }
-      : variant === 'warn'
-      ? {
-          background: 'var(--color-warning-bg)',
-          color: 'var(--color-warning)',
-          border: 'var(--color-warning)',
-        }
-      : {
-          background: 'var(--bg-primary)',
-          color: 'var(--fg-primary)',
-          border: 'var(--border)',
-        };
-
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      title={title}
-      className="inline-flex items-center"
-      style={{
-        gap: 5,
-        padding: '4px 9px',
-        borderRadius: 'var(--radius-md)',
-        backgroundColor: palette.background,
-        color: palette.color,
-        border: `1px solid ${palette.border}`,
-        fontSize: 'var(--font-size-2xs)',
-        boxShadow: 'var(--shadow-sm)',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.5 : 1,
-      }}
-    >
-      {icon}
-      {children}
-    </button>
   );
 }
 
@@ -328,6 +203,13 @@ interface InferenceControlsProps {
   readonly nodeCount: number;
 }
 
+/**
+ * Inference is a pure graph algorithm — synchronous, no LLM — so it carries NO
+ * cost glyph, and the button always has 「無 token 成本」 under it (the popover's
+ * fourth row says the same thing; the popover needs a click, this does not).
+ * While it runs there is only a spinner and 「推論中…」: nothing to report
+ * progress on, so no progress bar.
+ */
 function InferenceControls({
   inferenceState,
   pendingCount,
@@ -347,50 +229,31 @@ function InferenceControls({
 
   if (inferenceState === 'running') {
     return (
-      <ToolButton icon={<Loader size={11} className="animate-spin" />} disabled>
+      <div className="kg-infer-running" role="status">
+        <Loader size={13} className="animate-spin" />
         {t('v1.inferred.toolbar.running')}
-      </ToolButton>
+      </div>
     );
   }
 
   if (inferenceState === 'idle') {
     return (
-      <div className="relative inline-flex">
-        <ToolButton
+      <div className="kg-infer">
+        <button
+          type="button"
           onClick={() => setPopoverOpen((v) => !v)}
-          icon={<GitBranch size={11} style={{ color: 'var(--accent)' }} />}
+          aria-expanded={popoverOpen}
+          className="ss-btn ss-btn-sm ss-btn-secondary"
         >
+          <GitBranch size={11} style={{ color: 'var(--accent)' }} />
           {t('v1.inferred.toolbar.run')}
           <ChevronDown size={11} />
-        </ToolButton>
+        </button>
+        <span className="kg-infer-note">{t('inference.noTokenCostInline')}</span>
         {popoverOpen && (
-          <div
-            className="absolute"
-            style={{
-              top: '100%',
-              left: 0,
-              marginTop: 6,
-              width: 300,
-              padding: 14,
-              backgroundColor: 'var(--bg-primary)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-md)',
-              boxShadow: 'var(--shadow-md, var(--shadow-sm))',
-              zIndex: 20,
-            }}
-          >
-            <div
-              style={{
-                fontFamily: 'var(--font-serif)',
-                fontSize: 15,
-                fontWeight: 700,
-                marginBottom: 8,
-                color: 'var(--fg-primary)',
-              }}
-            >
-              {t('v1.inferred.toolbar.popover.title')}
-            </div>
-            <div className="flex flex-col" style={{ gap: 6, marginBottom: 10 }}>
+          <div className="kg-pop kg-pop-form">
+            <span className="kg-pop-title">{t('v1.inferred.toolbar.popover.title')}</span>
+            <div className="kg-pop-rows">
               <PopoverRow
                 label={t('v1.inferred.toolbar.popover.scopeLabel')}
                 value={t('v1.inferred.toolbar.popover.scopeValue', { chapters: chapterCount, nodes: nodeCount })}
@@ -408,34 +271,17 @@ function InferenceControls({
                 value={t('v1.inferred.toolbar.popover.costValue')}
               />
             </div>
-            <div className="flex items-center justify-end" style={{ gap: 8 }}>
-              <button
-                onClick={() => setPopoverOpen(false)}
-                style={{
-                  padding: '5px 10px',
-                  fontSize: 'var(--font-size-2xs)',
-                  color: 'var(--fg-secondary)',
-                  background: 'none',
-                  border: 0,
-                  cursor: 'pointer',
-                }}
-              >
+            <div className="kg-pop-actions">
+              <button type="button" onClick={() => setPopoverOpen(false)} className="ss-btn ss-btn-sm ss-btn-ghost">
                 {t('v1.inferred.toolbar.popover.cancel')}
               </button>
               <button
+                type="button"
                 onClick={() => {
                   onRunInference();
                   setPopoverOpen(false);
                 }}
-                style={{
-                  padding: '5px 12px',
-                  borderRadius: 'var(--radius-md)',
-                  fontSize: 'var(--font-size-2xs)',
-                  backgroundColor: 'var(--accent)',
-                  color: 'var(--bg-primary)',
-                  border: 0,
-                  cursor: 'pointer',
-                }}
+                className="ss-btn ss-btn-sm ss-btn-primary"
               >
                 {t('v1.inferred.toolbar.popover.start')}
               </button>
@@ -449,121 +295,89 @@ function InferenceControls({
   // inferenceState === 'ready': rerun menu + pending badge + show toggle,
   // each an independently-actuated control (brief §4: 執行/顯示分離).
   return (
-    <div className="flex items-center" style={{ gap: 8 }}>
-      <div className="relative inline-flex">
-        <ToolButton
+    <div className="kg-infer-row">
+      <div className="kg-infer">
+        <button
+          type="button"
           onClick={() => setMenuOpen((v) => !v)}
-          icon={<GitBranch size={11} style={{ color: 'var(--accent)' }} />}
+          aria-expanded={menuOpen}
+          className="ss-btn ss-btn-sm ss-btn-secondary"
         >
+          <GitBranch size={11} style={{ color: 'var(--accent)' }} />
           {t('v1.inferred.toolbar.rerun')}
           <ChevronDown size={11} />
-        </ToolButton>
+        </button>
+        <span className="kg-infer-note">{t('inference.noTokenCostInline')}</span>
         {menuOpen && (
-          <div
-            className="absolute flex flex-col"
-            style={{
-              top: '100%',
-              left: 0,
-              marginTop: 6,
-              width: 300,
-              padding: 6,
-              backgroundColor: 'var(--bg-primary)',
-              border: '1px solid var(--border)',
-              borderRadius: 'var(--radius-md)',
-              boxShadow: 'var(--shadow-md, var(--shadow-sm))',
-              zIndex: 20,
-            }}
-          >
+          <div className="kg-pop kg-menu">
+            {/* Safe rerun is an ordinary row; force rerun is the danger row (it
+                destroys decisions) — different visual weight on purpose. */}
             <button
+              type="button"
               onClick={() => {
                 onSafeRerun();
                 setMenuOpen(false);
               }}
-              className="flex items-start text-left"
-              style={{ gap: 8, padding: 9, background: 'none', border: 0, cursor: 'pointer', borderRadius: 'var(--radius-sm)' }}
+              className="kg-menu-item"
             >
-              <RotateCcw size={13} style={{ color: 'var(--fg-secondary)', marginTop: 2 }} />
-              <div>
-                <div style={{ fontSize: 'var(--font-size-2xs)', fontWeight: 600, color: 'var(--fg-primary)' }}>
+              <RotateCcw size={13} className="kg-menu-icon" />
+              <span>
+                <span className="kg-menu-title" style={{ display: 'block' }}>
                   {t('v1.inferred.toolbar.menu.safeRerun')}
-                </div>
-                <div style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}>
-                  {t('v1.inferred.toolbar.menu.safeRerunDesc')}
-                </div>
-              </div>
+                </span>
+                <span className="kg-menu-desc">{t('v1.inferred.toolbar.menu.safeRerunDesc')}</span>
+              </span>
             </button>
-            <div style={{ borderTop: '1px solid var(--border)', margin: '4px 0' }} />
             <button
+              type="button"
               onClick={() => {
                 onForceRerun();
                 setMenuOpen(false);
               }}
-              className="flex items-start text-left"
-              style={{ gap: 8, padding: 9, background: 'none', border: 0, cursor: 'pointer', borderRadius: 'var(--radius-sm)' }}
+              className="kg-menu-item is-danger"
             >
-              <AlertTriangle size={13} style={{ color: 'var(--color-error)', marginTop: 2 }} />
-              <div>
-                <div style={{ fontSize: 'var(--font-size-2xs)', fontWeight: 600, color: 'var(--color-error)' }}>
+              <AlertTriangle size={13} className="kg-menu-icon" />
+              <span>
+                <span className="kg-menu-title" style={{ display: 'block' }}>
                   {t('v1.inferred.toolbar.menu.forceRerun')}
-                </div>
-                <div style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--color-error)', opacity: 0.85 }}>
-                  {t('v1.inferred.toolbar.menu.forceRerunDesc', { n: decidedCount })}
-                </div>
-              </div>
+                </span>
+                <span className="kg-menu-desc">{t('v1.inferred.toolbar.menu.forceRerunDesc', { n: decidedCount })}</span>
+              </span>
             </button>
           </div>
         )}
       </div>
 
       {pendingCount > 0 && (
-        <button
-          onClick={onOpenReview}
-          className="inline-flex items-center"
-          style={{
-            gap: 6,
-            padding: '4px 9px',
-            borderRadius: 'var(--radius-md)',
-            backgroundColor: 'var(--bg-primary)',
-            border: '1px solid var(--border)',
-            boxShadow: 'var(--shadow-sm)',
-            fontSize: 'var(--font-size-2xs)',
-            color: 'var(--fg-primary)',
-            cursor: 'pointer',
-          }}
-        >
-          <AlertTriangle size={11} style={{ color: 'var(--color-warning)' }} />
+        <button type="button" onClick={onOpenReview} className="kg-pending">
+          <AlertTriangle size={11} />
           {t('v1.inferred.toolbar.pending')}
-          <span
-            className="tabular-nums"
-            style={{
-              padding: '0 6px',
-              borderRadius: 'var(--pill-radius, 999px)',
-              backgroundColor: 'var(--color-warning-bg)',
-              color: 'var(--color-warning)',
-            }}
-          >
-            {pendingCount}
-          </span>
-          <ArrowRight size={11} style={{ color: 'var(--fg-muted)' }} />
+          <span className="kg-pending-count">{pendingCount}</span>
+          <ArrowRight size={11} />
         </button>
       )}
 
-      <ToolButton
+      <button
+        type="button"
+        role="switch"
+        aria-checked={showInferred}
         onClick={() => onShowInferredChange(!showInferred)}
-        icon={<Eye size={11} />}
-        variant={showInferred ? 'warn-active' : 'default'}
+        className="kg-switch"
       >
+        <span className="kg-switch-track">
+          <span className="kg-switch-knob" />
+        </span>
         {t('v1.inferred.toolbar.showInferredEdges')}
-      </ToolButton>
+      </button>
     </div>
   );
 }
 
 function PopoverRow({ label, value }: { readonly label: string; readonly value: string }) {
   return (
-    <div className="flex items-start justify-between" style={{ gap: 10, fontSize: 'var(--font-size-2xs)' }}>
-      <span style={{ color: 'var(--fg-muted)', flexShrink: 0 }}>{label}</span>
-      <span style={{ color: 'var(--fg-secondary)', textAlign: 'right' }}>{value}</span>
+    <div className="kg-pop-row">
+      <span className="kg-pop-key">{label}</span>
+      <span className="kg-pop-val">{value}</span>
     </div>
   );
 }
