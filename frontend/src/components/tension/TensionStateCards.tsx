@@ -1,15 +1,44 @@
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { Sparkles, Info } from 'lucide-react';
-import heroImage from '@/assets/splash/reading-hero.png';
+import { Loader2, Scale } from 'lucide-react';
+import { Tooltip } from '@/components/ui/Tooltip';
+import { densityBarHeight } from './tensionModel';
 
-/** "會呼叫 LLM、消耗 token" — stated wherever an action spends money. */
-function TokenHint({ text }: { text: string }) {
+/** "會呼叫 LLM、消耗 token" — plain text wherever an action spends money.
+ *  The glyph lives on the button (`ss-btn-llm`), never on this hint. */
+function CostHint({ text }: { text: string }) {
+  return <span className="tn-cost-hint">{text}</span>;
+}
+
+export interface TeuFailure {
+  event_id: string;
+  title: string;
+  chapter: number;
+  reason: string;
+}
+
+/**
+ * Step 1's partial failures. Collapsed by default: most events succeeded, so
+ * this is a footnote. It only describes the run that just finished — nothing
+ * persists it per book, and the hint says so.
+ */
+export function TensionFailureList({ failures }: { failures: TeuFailure[] }) {
+  const { t } = useTranslation('analysis');
+  if (failures.length === 0) return null;
   return (
-    <span className="tn-token-hint">
-      <Sparkles size={12} />
-      {text}
-    </span>
+    <details className="tn-failures">
+      <summary>{t('tension.failures.summary', { count: failures.length })}</summary>
+      <ul>
+        {failures.map((f) => (
+          <li key={f.event_id}>
+            <span className="tn-failure-where">{t('tension.failures.chapter', { chapter: f.chapter })}</span>
+            <span>{f.title}</span>
+            <code className="tn-failure-reason">{f.reason}</code>
+          </li>
+        ))}
+      </ul>
+      <p className="tn-failures-hint">{t('tension.failures.hint')}</p>
+    </details>
   );
 }
 
@@ -20,38 +49,30 @@ export function TensionEmptyCard({
 }: {
   onStart: () => void;
   bookId: string;
-  /** No inferred Concept nodes exist, so TEU assembly will run without them. */
+  /** The build manifest loaded and no inferred Concept nodes exist. */
   conceptsMissing?: boolean;
 }) {
   const { t } = useTranslation('analysis');
   return (
-    <div className="tn-state-empty">
-      <img src={heroImage} alt="" className="tn-state-hero" />
-      <div className="tn-state-empty-title">{t('tension.state.emptyTitle')}</div>
-      <p className="tn-state-empty-body">{t('tension.state.emptyBody')}</p>
-      {/* Said before the run, not after: TEU assembly puts inferred Concepts in
-          its prompt, so starting without them costs a full LLM pass and yields
-          evidence that cannot be topped up afterwards — the TEUs would have to
-          be reassembled. This is not a blocker; the step works either way. */}
+    <div className="ss-state ss-state-stage ss-state-ready tn-empty">
+      <Scale size={72} strokeWidth={1.5} absoluteStrokeWidth aria-hidden="true" className="tn-empty-spot" />
+      <h3 className="ss-state-title">{t('tension.state.emptyTitle')}</h3>
+      <p className="ss-state-text">{t('tension.state.emptyBody')}</p>
+      {/* A missing prerequisite, not a blocker: TEU assembly works without
+          inferred Concepts, but the evidence cannot be topped up afterwards. */}
       {conceptsMissing && (
-        <div className="tn-state-notice">
-          <Info size={13} />
-          <span>
-            {t('tension.state.conceptsMissing')}{' '}
-            <Link to={`/books/${bookId}/unraveling`} className="tn-state-notice-link">
-              {t('tension.state.conceptsMissingCta')}
-            </Link>
-          </span>
+        <div className="tn-note is-warning tn-empty-note">
+          <span>{t('tension.state.conceptsMissing')}</span>
+          <Link to={`/books/${bookId}/unraveling`}>{t('tension.state.conceptsMissingCta')} →</Link>
         </div>
       )}
-      {/* One button only. The design also offered "一鍵生成全部", which would
-          run all three steps without stopping at either review gate — exactly
-          the path that produces a theme built from unreviewed lines. */}
-      <button type="button" className="tn-state-cta" onClick={onStart}>
-        <Sparkles size={14} />
-        {t('tension.state.startStep1')}
-      </button>
-      <TokenHint text={t('tension.state.tokenHintLong')} />
+      {/* One button only: no "run all three", which would skip both gates. */}
+      <div className="tn-empty-cta">
+        <button type="button" className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm" onClick={onStart}>
+          {t('tension.state.startStep1')}
+        </button>
+        <CostHint text={t('tension.state.tokenHintLong')} />
+      </div>
     </div>
   );
 }
@@ -61,59 +82,49 @@ export function TensionStep1Card({
   runCount,
   sceneSummary,
   chapterCounts,
+  failures,
   onGroup,
 }: {
   teuCount: number;
   /** Stretches of continuous narration; equals teuCount when nothing groups. */
   runCount: number;
-  /** Scenes, kept apart from the chapters that have no answer — see below. */
+  /** Scenes, kept apart from the chapters that have no answer. */
   sceneSummary: { total: number; knownChapters: number; unknownChapters: number };
   /** [chapter, teuCount, runCount, sceneCount | null] in chapter order. */
   chapterCounts: [number, number, number, number | null][];
+  failures: TeuFailure[];
   onGroup: () => void;
 }) {
   const { t } = useTranslation('analysis');
+  const max = chapterCounts.reduce((m, [, teus]) => Math.max(m, teus), 0);
   return (
-    <div className="tn-state-card">
-      <div className="tn-state-title">
-        {t('tension.state.step1Title', { count: teuCount, runs: runCount })}
+    <div className="tn-card tn-step1">
+      <div className="tn-step1-head">
+        <h3>{t('tension.state.step1Title', { count: teuCount, runs: runCount })}</h3>
+        {/* Scenes are text, never a bar: "cannot determine" must not read as 0
+            or 1 (B-068). */}
+        <span className="tn-step1-scenes">
+          {sceneSummary.knownChapters === 0
+            ? t('tension.state.scenesNone')
+            : sceneSummary.unknownChapters === 0
+              ? t('tension.state.scenes', { count: sceneSummary.total })
+              : t('tension.state.scenesPartial', {
+                  count: sceneSummary.total,
+                  chapters: sceneSummary.knownChapters,
+                  unknown: sceneSummary.unknownChapters,
+                })}
+        </span>
       </div>
-      {/* Scenes are text, never a bar: the density chart is deliberately drawn
-          from the TEU count (see below), and a second number on the same chart
-          would invite reading one as the other.
-
-          The chapters with no answer are stated rather than folded into the
-          total. Scenes come from the typographic dividers the prose is set
-          with, so a book without them yields nothing — and "0 scenes" or
-          "1 scene" would both assert something the criterion cannot see
-          (B-068). Saying so costs a line and prevents the reader concluding
-          the book has one scene per chapter. */}
-      <p className="tn-state-scenes">
-        {sceneSummary.knownChapters === 0
-          ? t('tension.state.scenesNone')
-          : sceneSummary.unknownChapters === 0
-            ? t('tension.state.scenes', { count: sceneSummary.total })
-            : t('tension.state.scenesPartial', {
-                count: sceneSummary.total,
-                chapters: sceneSummary.knownChapters,
-                unknown: sceneSummary.unknownChapters,
-              })}
-      </p>
-      {/* The bar is the TEU count. Drawing it from the run count was tried and
-          reverted: a run is not a scene, so a chapter with no flashback is one
-          run whatever its length, and Age of Fire's five chapters all became
-          identical 15px stubs — the chart stopped saying anything at all. The
-          TEU count overstates coverage where one scene was cut into beats, but
-          it at least preserves the relative density between chapters. */}
+      {/* One neutral colour: a TEU count is not an intensity, so no analysis
+          family colours it. The number sits on the bar; hover gives the runs. */}
       <div
         className="tn-density"
-        style={{ gridTemplateColumns: `repeat(${Math.max(chapterCounts.length, 1)}, 1fr)` }}
+        style={{ gridTemplateColumns: `repeat(${Math.max(chapterCounts.length, 1)}, minmax(0, 1fr))` }}
       >
         {chapterCounts.map(([chapter, teus, runs, scenes]) => (
-          <div
+          <Tooltip
             key={chapter}
-            className="tn-density-col"
-            title={
+            label={
               t('tension.state.chapterDensity', { n: chapter, teus, runs }) +
               ' · ' +
               (scenes == null
@@ -121,48 +132,46 @@ export function TensionStep1Card({
                 : t('tension.state.chapterScenes', { count: scenes }))
             }
           >
-            <i style={{ height: `${8 + teus * 7}px` }} />
-            <span>{t('tension.state.chapterShort', { n: chapter })}</span>
-          </div>
+            <div className="tn-density-col">
+              <span className="tn-density-n">{teus}</span>
+              <span className="tn-density-bar" style={{ height: densityBarHeight(teus, max) }} />
+              <span className="tn-density-ch">{t('tension.state.chapterShort', { n: chapter })}</span>
+            </div>
+          </Tooltip>
         ))}
       </div>
-      <p className="tn-state-body">{t('tension.state.step1Body')}</p>
-      <div className="tn-state-actions">
-        <button type="button" className="tn-state-cta sm" onClick={onGroup}>
-          <Sparkles size={14} />
+      <p className="tn-step1-body">{t('tension.state.step1Body')}</p>
+      <div className="tn-step1-actions">
+        <button type="button" className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm" onClick={onGroup}>
           {t('tension.state.runStep2')}
         </button>
-        <TokenHint text={t('tension.state.tokenHintShort')} />
+        <CostHint text={t('tension.state.tokenHintShort')} />
       </div>
+      <TensionFailureList failures={failures} />
     </div>
   );
 }
 
-export function TensionRunningCard({
-  title,
-  progress,
-  stage,
-}: {
-  title: string;
-  progress: number;
-  stage: string | null;
-}) {
+/** One running step. The backend's own stage string is deliberately not shown,
+ *  and no ETA is promised. */
+export function TensionRunningCard({ title, progress }: { title: string; progress: number }) {
   const { t } = useTranslation('analysis');
   return (
-    <div className="tn-state-card">
-      <div className="tn-state-row">
-        <span className="tn-state-title sm">{title}</span>
-        <span className="tn-state-pct">{Math.round(progress)}%</span>
+    <div className="tn-card tn-run" role="status">
+      <div className="tn-run-row">
+        <Loader2 size={14} className="tn-spin" aria-hidden="true" />
+        <span className="tn-run-title">{title}</span>
+        <span className="tn-run-pct">{Math.round(progress)}%</span>
       </div>
-      <div className="tn-state-bar">
-        <i style={{ width: `${progress}%` }} />
+      <div className="ss-progress">
+        <div className="ss-progress-fill" style={{ width: `${progress}%` }} />
       </div>
-      {stage && <div className="tn-state-stage">{stage}</div>}
-      <TokenHint text={t('tension.state.runningHint')} />
+      <span className="tn-run-hint">{t('tension.state.runningHint')}</span>
     </div>
   );
 }
 
+/** Inserted above the previous result rather than replacing it. */
 export function TensionErrorCard({
   title,
   message,
@@ -177,16 +186,45 @@ export function TensionErrorCard({
   meta?: string | null;
 }) {
   return (
-    <div className="tn-state-card error">
-      <div className="tn-state-title sm error">{title}</div>
-      <p className="tn-state-body">{message}</p>
-      <div className="tn-state-actions">
-        <button type="button" className="tn-state-cta sm" onClick={onRetry}>
-          <Sparkles size={13} />
+    <div className="tn-note is-error tn-alert" role="alert">
+      <span className="tn-alert-title">{title}</span>
+      <span className="tn-alert-body">{message}</span>
+      <div className="tn-alert-actions">
+        <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm" onClick={onRetry}>
           {retryLabel}
         </button>
-        {meta && <span className="tn-state-meta">{meta}</span>}
+        {meta && <span className="tn-meta-mono">{meta}</span>}
       </div>
+    </div>
+  );
+}
+
+/** Soft gate: the synthesise action only appears once every line is ruled on.
+ *  Nothing forbids synthesising early, but the page stops offering it. */
+export function TensionSoftGate({
+  unreviewed,
+  onSynthesize,
+}: {
+  unreviewed: number;
+  onSynthesize: () => void;
+}) {
+  const { t } = useTranslation('analysis');
+  return (
+    <div className="tn-card tn-gate">
+      {unreviewed > 0 ? (
+        <>
+          <span className="tn-gate-text">{t('tension.stage.themeRemaining', { count: unreviewed })}</span>
+          <span className="tn-gate-hint">{t('tension.state.gateHint')}</span>
+        </>
+      ) : (
+        <>
+          <span className="tn-gate-text">{t('tension.stage.themeReady')}</span>
+          <button type="button" className="ss-btn ss-btn-sm ss-btn-primary ss-btn-llm" onClick={onSynthesize}>
+            {t('tension.stage.synthesize')}
+          </button>
+          <CostHint text={t('tension.state.tokenHintShort')} />
+        </>
+      )}
     </div>
   );
 }

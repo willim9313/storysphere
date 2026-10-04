@@ -1,15 +1,13 @@
-import type { CSSProperties } from 'react';
-import { AlertTriangle, Check, Minus, Sparkles } from 'lucide-react';
+import { AlertTriangle, Check, Minus } from 'lucide-react';
 
 /**
  * The pipeline has five stages, not three.
  *
- * The old strip showed only the three machine steps, which taught the page's
- * central lie: that you press 1, 2, 3 and are done. The two human gates between
- * them are where the actual work happens, and leaving them out is how themes
- * ended up synthesised from lines nobody had reviewed. They are drawn here as
- * first-class cells — narrower and chromeless, so they read as checkpoints
- * rather than buttons, but present.
+ * The two human gates between the machine steps are where the actual work
+ * happens; they are first-class cells. Machine cells carry a circle marker and
+ * gate cells a square one — the shape says "the system does this" vs "you do
+ * this" without relying on colour, which collapses to one black in Ink.
+ * A not-yet-reachable cell is drawn in the lowered text tone, never dashed.
  */
 export type StageKind = 'machine' | 'gate';
 
@@ -24,24 +22,13 @@ export interface TensionStageSpec {
   done?: boolean;
   running?: boolean;
   failed?: boolean;
-  /**
-   * Ran to completion, but not everything made it — e.g. 12 of 15 TEUs
-   * assembled. Distinct from `failed`, which means the step itself broke and
-   * produced nothing. A partial step still unblocks what comes after it, so it
-   * is normally set alongside `done`.
-   */
+  /** Ran to completion but not everything made it; set alongside `done`. */
   partial?: boolean;
-  /** Reachable but not yet satisfiable — drawn dashed and dimmed. */
+  /** Reachable but not yet satisfiable — lowered text tone. */
   notReady?: boolean;
-  /** Everything upstream is finished; the stage offers its action. */
-  ready?: boolean;
   progress?: number;
   error?: string | null;
-  actionLabel?: string;
-  onAction?: () => void;
 }
-
-const FLEX: Record<StageKind, number> = { machine: 1.15, gate: 0.95 };
 
 interface Props {
   stages: TensionStageSpec[];
@@ -49,66 +36,51 @@ interface Props {
 
 export function TensionStepperStrip({ stages }: Props) {
   return (
-    <div className="tn-stepper-wrap">
-      <div className="tn-stepper">
-        {stages.map((s) => (
-          <div
-            key={s.id}
-            className="tn-stage"
-            // Handed to CSS as a custom property rather than `flex` directly:
-            // an inline `flex` would beat the stacking media query below 640px
-            // and could only be undone with `!important`.
-            style={{ '--tn-stage-flex': FLEX[s.kind] } as CSSProperties}
-            data-kind={s.kind}
-            data-done={!!s.done}
-            data-running={!!s.running}
-            data-failed={!!s.failed}
-            data-partial={!!s.partial}
-            data-notready={!!s.notReady}
-            data-ready={!!s.ready}
-          >
-            <div className="tn-stage-top">
-              {/* Machine steps get a circle, gates a square: the shape says
-                  "the system does this" vs "you do this" without relying on
-                  colour, which collapses to one black in the Ink theme. */}
-              {/* A dash for "some but not all" — the same glyph a tri-state
-                  checkbox uses for indeterminate. It has to differ from ✓ and ▲
-                  in *shape*, not tone: the Ink theme flattens success, warning
-                  and error into one black. */}
-              <span className="tn-stage-dot" data-kind={s.kind}>
-                {s.done && !s.partial && <Check size={9} />}
-                {s.partial && <Minus size={9} />}
-                {s.failed && <AlertTriangle size={9} />}
-              </span>
-              <span className="tn-stage-kicker">{s.kicker}</span>
-            </div>
-            <div className="tn-stage-title">{s.title}</div>
-            <div className="tn-stage-note" data-warn={!!s.noteWarning}>
-              {s.note}
-            </div>
-
-            {s.running && (
-              <div className="tn-stage-bar">
-                <i style={{ width: `${s.progress ?? 0}%` }} />
-              </div>
-            )}
-
-            {s.actionLabel && s.onAction && (
-              <button type="button" className="tn-stage-action" onClick={s.onAction}>
-                <Sparkles size={12} />
-                {s.actionLabel}
-              </button>
-            )}
-
-            {s.error && (
-              <div className="tn-stage-error">
-                <AlertTriangle size={11} />
-                <span>{s.error}</span>
-              </div>
-            )}
+    <div className="tn-stepper">
+      {stages.map((s) => (
+        <div
+          key={s.id}
+          className="tn-stage"
+          data-kind={s.kind}
+          data-done={!!s.done}
+          data-running={!!s.running}
+          data-failed={!!s.failed}
+          data-partial={!!s.partial}
+          data-notready={!!s.notReady}
+        >
+          <div className="tn-stage-top">
+            {/* A dash for "some but not all" (indeterminate), a triangle for
+                broken: they differ from the tick in shape, not tone. */}
+            <span className="tn-stage-mark" data-kind={s.kind} aria-hidden="true">
+              {s.partial ? (
+                <Minus size={9} />
+              ) : s.failed ? (
+                <AlertTriangle size={9} />
+              ) : s.done ? (
+                <Check size={9} />
+              ) : null}
+            </span>
+            <span className="tn-stage-kicker">{s.kicker}</span>
           </div>
-        ))}
-      </div>
+          <div className="tn-stage-title">{s.title}</div>
+          <div className="tn-stage-note" data-warn={!!s.noteWarning}>
+            {s.note}
+          </div>
+
+          {s.running && (
+            <div className="ss-progress">
+              <div className="ss-progress-fill" style={{ width: `${s.progress ?? 0}%` }} />
+            </div>
+          )}
+
+          {s.error && (
+            <div className="tn-stage-error">
+              <AlertTriangle size={11} aria-hidden="true" />
+              <span>{s.error}</span>
+            </div>
+          )}
+        </div>
+      ))}
     </div>
   );
 }

@@ -11,19 +11,19 @@ interface Props {
   sort: ReviewSort;
   onSortChange: (s: ReviewSort) => void;
   selectedCount: number;
-  allSelected: boolean;
-  onToggleAll: () => void;
+  /** How many of the last batch's writes failed (they stay selected). */
+  batchFailed: number;
+  batchBusy: boolean;
   onBatchApprove: () => void;
   onBatchReject: () => void;
   onClearSelection: () => void;
 }
 
 /**
- * Status filter, sort, and the batch bar that appears once rows are selected.
- *
- * The filter is a single control on purpose: the previous page had status chips
- * *and* a "hide rejected" checkbox, which could disagree — picking "rejected 1"
- * with the checkbox on listed zero rows while the chip still said one.
+ * Status filter and sort are both segmented controls over the same data, and
+ * the batch bar appears once rows are selected. One filter dimension only: the
+ * old page had status chips *and* a "hide rejected" checkbox that could
+ * disagree.
  */
 export function TensionReviewToolbar({
   counts,
@@ -32,24 +32,24 @@ export function TensionReviewToolbar({
   sort,
   onSortChange,
   selectedCount,
-  allSelected,
-  onToggleAll,
+  batchFailed,
+  batchBusy,
   onBatchApprove,
   onBatchReject,
   onClearSelection,
-}: Props) {
+}: Readonly<Props>) {
   const { t } = useTranslation('analysis');
 
   return (
     <>
-      <div className="tn-toolbar">
-        <span className="tn-toolbar-label">{t('tension.reviewSummary')}</span>
-        <div className="tn-filter-group" role="group" aria-label={t('tension.reviewSummary')}>
+      <div className="tn-card-bar">
+        <span className="tn-hint">{t('tension.reviewSummary')}</span>
+        <div className="ss-seg" role="group" aria-label={t('tension.reviewSummary')}>
           {FILTERS.map((f) => (
             <button
               key={f}
               type="button"
-              className="tn-filter-btn"
+              className={`ss-seg-item${filter === f ? ' active' : ''}`}
               aria-pressed={filter === f}
               onClick={() => onFilterChange(f)}
             >
@@ -57,37 +57,39 @@ export function TensionReviewToolbar({
             </button>
           ))}
         </div>
-        <span className="tn-toolbar-spacer" />
-        <span className="tn-toolbar-label">{t('tension.toolbar.sortLabel')}</span>
-        {SORTS.map((s) => (
-          <button
-            key={s}
-            type="button"
-            className="tn-sort-btn"
-            aria-pressed={sort === s}
-            onClick={() => onSortChange(s)}
-          >
-            {t(`tension.toolbar.sort${s[0].toUpperCase()}${s.slice(1)}`)}
-          </button>
-        ))}
+        <span className="tn-spacer" />
+        <span className="tn-hint">{t('tension.toolbar.sortLabel')}</span>
+        <div className="ss-seg" role="group" aria-label={t('tension.toolbar.sortLabel')}>
+          {SORTS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              className={`ss-seg-item${sort === s ? ' active' : ''}`}
+              aria-pressed={sort === s}
+              onClick={() => onSortChange(s)}
+            >
+              {t(`tension.toolbar.sort${s[0].toUpperCase()}${s.slice(1)}`)}
+            </button>
+          ))}
+        </div>
       </div>
 
       {selectedCount > 0 && (
-        <div className="tn-batch-bar">
-          <span className="tn-batch-count">
-            {t('tension.toolbar.selected', { count: selectedCount })}
-          </span>
-          <button type="button" className="tn-batch-ghost" onClick={onToggleAll}>
-            {allSelected ? t('tension.table.clearAll') : t('tension.table.selectAll')}
-          </button>
-          <button type="button" className="tn-batch-primary" onClick={onBatchApprove}>
+        <div className="tn-card-bar is-batch">
+          <strong className="tn-batch-count">{t('tension.toolbar.selected', { count: selectedCount })}</strong>
+          <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary" onClick={onBatchApprove} disabled={batchBusy}>
             {t('tension.toolbar.batchApprove')}
           </button>
-          <button type="button" className="tn-batch-ghost" onClick={onBatchReject}>
+          <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary" onClick={onBatchReject} disabled={batchBusy}>
             {t('tension.toolbar.batchReject')}
           </button>
-          <span className="tn-toolbar-spacer" />
-          <button type="button" className="tn-batch-dismiss" onClick={onClearSelection}>
+          {batchFailed > 0 && (
+            <span className="tn-batch-failed" role="alert">
+              {t('tension.toolbar.batchFailed', { count: batchFailed })}
+            </span>
+          )}
+          <span className="tn-spacer" />
+          <button type="button" className="ss-btn ss-btn-sm ss-btn-ghost" onClick={onClearSelection}>
             {t('tension.toolbar.clearSelection')}
           </button>
         </div>

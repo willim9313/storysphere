@@ -537,7 +537,8 @@
       "clearSelection": "Esc 取消選取",
       "sortIntensity": "強度 ↓",
       "sortChapter": "章節 ↑",
-      "sortCount": "證據數 ↓"
+      "sortCount": "證據數 ↓",
+      "batchFailed": "有 {{count}} 條沒有處理成功，仍留在選取中，可再試一次。"
     },
     "drawer": {
       "title": "張力線審核",
@@ -560,7 +561,8 @@
       "backToText": "回到原文 · 第 {{n}} 章",
       "approveKey": "核准　A",
       "editKey": "改標籤　E",
-      "rejectKey": "拒絕　X"
+      "rejectKey": "拒絕　X",
+      "carrier": "載體"
     },
     "stage": {
       "scopeScene": "SCENE 場景級",
@@ -623,7 +625,8 @@
       "groupErrorTitle": "TensionLine 聚合失敗",
       "groupErrorBody": "{{error}} 上次成功的結果（{{count}} 條張力線）仍保留在下方，未被覆寫。",
       "groupErrorBodyNoPrev": "{{error}}",
-      "retryGroup": "重試聚合"
+      "retryGroup": "重試聚合",
+      "gateHint": "全部審完 →"
     },
     "theme": {
       "eyebrow": "BOOK 全書級 · TENSIONTHEME",
@@ -641,7 +644,9 @@
       "incompleteBody": "這些線仍以模型原始輸出參與合成；審核完後建議重新合成一次。",
       "supporting": "支撐的張力線",
       "builtFrom": "依 {{reviewed}} / {{total}} 條已審核張力線",
-      "cancel": "取消"
+      "cancel": "取消",
+      "fryeLabel": "Frye",
+      "bookerLabel": "Booker"
     },
     "grid": {
       "title": "章節格點",
@@ -673,7 +678,12 @@
       "someOrphan": "{{count}} 個未歸入",
       "noneOrphan": "全部已歸入",
       "orphanBadge": "未歸入",
-      "noneMatch": "沒有符合的 TEU。"
+      "noneMatch": "沒有符合的 TEU。",
+      "assign": {
+        "conflict": "這個 TEU 已由另一條張力線認領。一個 TEU 只屬於一條線，沒有「移動」這個動作。",
+        "zeroCost": "只寫入歸屬，零成本",
+        "failed": "指派失敗：{{reason}}"
+      }
     },
     "mode": {
       "lines": "張力線 {{count}}",
