@@ -37,12 +37,6 @@ export const STAVE_TARGET_PER_ROW = 22;
 /** Horizontal inset so end points aren't flush against the row edges. */
 const STAVE_X_INSET = 2;
 
-/* ── Matrix (矩陣視圖) ─────────────────────────────────────────── */
-
-export const MATRIX_HEIGHT = 356;
-export const BEESWARM_SPACING = 7;
-export const BEESWARM_UNRANKED_SPACING = 9;
-
 /* ── Character lanes (角色軌跡) ────────────────────────────────── */
 
 /** Consecutive absent events needed before it counts as an absence run. */
@@ -361,86 +355,6 @@ function buildAnnotations(points: StavePoint[]): StaveAnnotation[] {
     kept.push(a);
   }
   return kept;
-}
-
-/* ── Matrix ───────────────────────────────────────────────────── */
-
-/**
- * Beeswarm offset in px for the `k`-th point within one chapter column.
- *
- * Must be counted *per chapter*: a global index makes same-chapter points
- * land on identical offsets and overlap into an unclickable stack.
- */
-export function beeswarmOffset(k: number, spacing: number): number {
-  return (k % 2 === 0 ? 1 : -1) * Math.ceil(k / 2) * spacing;
-}
-
-export interface MatrixPoint {
-  id: string;
-  /** X as a percentage of the plot width (chapter column centre + offset). */
-  xPct: number;
-  offsetPx: number;
-  yPx: number;
-  radius: number;
-  outlier: boolean;
-  hasAnalysis: boolean;
-  datum: TimelineDatum;
-}
-
-/** Centre of chapter `chapter` as a percentage, given the chapter list. */
-export function chapterCentrePct(chapter: number, chapters: number[]): number {
-  const i = chapters.indexOf(chapter);
-  if (i < 0 || chapters.length === 0) return 50;
-  return ((i + 0.5) / chapters.length) * 100;
-}
-
-export function buildMatrixPoints(
-  data: TimelineDatum[],
-  chapters: number[],
-): MatrixPoint[] {
-  const out: MatrixPoint[] = [];
-  for (const chapter of chapters) {
-    const inChapter = data.filter(
-      (d) => d.chapter === chapter && d.chronologicalRank !== null,
-    );
-    inChapter.forEach((d, k) => {
-      out.push({
-        id: d.id,
-        xPct: chapterCentrePct(chapter, chapters),
-        offsetPx: beeswarmOffset(k, BEESWARM_SPACING),
-        yPx: MATRIX_HEIGHT - d.chronologicalRank! * MATRIX_HEIGHT,
-        radius: d.isKernel ? 5 : 3.5,
-        outlier: d.outlier,
-        hasAnalysis: d.hasAnalysis,
-        datum: d,
-      });
-    });
-  }
-  return out;
-}
-
-/** Unranked events for the matrix's degraded band, offset per chapter. */
-export function buildMatrixUnranked(
-  data: TimelineDatum[],
-  chapters: number[],
-): MatrixPoint[] {
-  const seen = new Map<number, number>();
-  return data
-    .filter((d) => d.chronologicalRank === null)
-    .map((d) => {
-      const k = seen.get(d.chapter) ?? 0;
-      seen.set(d.chapter, k + 1);
-      return {
-        id: d.id,
-        xPct: chapterCentrePct(d.chapter, chapters),
-        offsetPx: beeswarmOffset(k, BEESWARM_UNRANKED_SPACING),
-        yPx: 0,
-        radius: 3.5,
-        outlier: false,
-        hasAnalysis: d.hasAnalysis,
-        datum: d,
-      };
-    });
 }
 
 /* ── Character lanes ──────────────────────────────────────────── */

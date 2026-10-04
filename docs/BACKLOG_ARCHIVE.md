@@ -3902,3 +3902,29 @@ id / status / confirmed_entity_id / created_at。
 
 **未做**: B-069（張力證據同場景摺疊）仍等 B-068，與本項無關。
 
+
+---
+
+## B-129 DS v3 結構改動後留下的孤兒元件、i18n key 與 CSS ✅ 完成（2026-10-04）
+
+**背景**: DS v3 第 4、5 批（#149–#158）撤掉時間軸三視圖 tab、改寫建構概覽與張力確認框、敘事結構／批次面板／符號詮釋改版後，
+一批程式失去呼叫端。依「看起來沒用不刪」規則逐批保留，使用者裁示 `feat/ds-v3` 全部做完、合 main 前一次清。
+
+**清點方法**: 對 `origin/feat/ds-v3`（b14c878）逐項 grep——元件與函式看 import／呼叫；i18n key 比對字面引用，並檢查
+`` `prefix.${x}` `` 這類動態組字串；CSS class 比對 TSX 字面與動態前綴。孤兒檔案彼此引用不算數。另以 knip 交叉驗證元件檔。
+
+**刪除內容**:
+- 元件：`timeline/StoryOrderView.tsx`、`timeline/MatrixCanvas.tsx`、`tension/TensionRerunDialog.tsx`
+- 函式：`heroJourney.ts` 的 `fillPct`／`discFill`／`discText`／`phaseWash`；`timelineGeometry.ts` 的散點矩陣
+  （`buildMatrixPoints`／`buildMatrixUnranked`／`beeswarmOffset`／`chapterCentrePct`／`MATRIX_HEIGHT`／`BEESWARM_*`）與其測試
+- i18n（zh-TW／en 各 57 條）：時間軸 `tabs.*`、`modeSub.*`、`viewTabs`、`storyOrderPrompt.*`、`noRanked.story／matrix`、`loadingBy.story／matrix`、
+  `coverage.*`、`confirm.events*`、`toast.events*`、`band.analyzeChapter`、`matrix.legendTitle／legendDesc／legendFoot`；
+  建構概覽 `toolbar.showAll`、`cta.confirm.title／intro／start／token／dropsDerived`、`inspector.layerLabel`、`unravelingLoadError`；
+  圖譜 `v1.cluster.toggleSort`、`panel.eventInfo`；張力 `drawer.notePlaceholder`、`rerun.separator`；敘事 `ring.knownWorld／specialWorld`；
+  批次 `character.overview.batchAll／batchTop10／batchProgress`、`character.batch.toastClose`、`batch.toastClose`；
+  符號 `interpretation.evidence／confidence／confidenceNote／linkedCharacters／linkedEvents`、`review.label／save`、`polarity.label`
+- CSS（74 個 class）：`.tl-tab*`、`.tl-story*`、`.tl-matrix*`、`.sym-hero*`（保留 `-error`／`-warn`／`-cta-warn`）、`.sym-polblock*`、
+  `.sym-confblock*`、`.sym-linked-*`、`.sym-review-btn`、`.ca-ov-batch-progress`
+
+**未在本條範圍**: knip 另報的 `entityAvatarStyle.ts` 與四個未用套件（隨常設 knip 閘門一起處理）；`.tl-btn*` 也無呼叫端，CSS 不在 knip 偵測範圍，
+其餘疑似無用的 i18n key 需逐條人工確認，皆未處理。

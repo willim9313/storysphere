@@ -1,20 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import type { TimelineEvent } from '@/api/types';
 import {
-  BEESWARM_SPACING,
   LANE_GAP_MIN,
-  MATRIX_HEIGHT,
   OUTLIER_THRESHOLD,
   STAVE_MID,
   STAVE_SCALE,
   STAVE_TARGET_PER_ROW,
-  beeswarmOffset,
   buildLane,
-  buildMatrixPoints,
-  buildMatrixUnranked,
   buildStaveRows,
   buildTimelineData,
-  chapterCentrePct,
   chapterList,
   coPresence,
   deriveMode,
@@ -308,72 +302,6 @@ describe('buildStaveRows', () => {
     expect(ch1[0].id).toBe('e1');
     expect(ch1[0].count).toBe(2);
     expect(ch1[0].kind).toBe('flashforward');
-  });
-});
-
-describe('beeswarmOffset', () => {
-  it('alternates around the column centre', () => {
-    const offsets = [0, 1, 2, 3, 4].map((k) => beeswarmOffset(k, BEESWARM_SPACING));
-    expect(offsets).toEqual([0, -7, 7, -14, 14]);
-  });
-
-  it('never repeats an offset within a chapter, so points stay clickable', () => {
-    const offsets = Array.from({ length: 11 }, (_, k) =>
-      beeswarmOffset(k, BEESWARM_SPACING),
-    );
-    expect(new Set(offsets).size).toBe(11);
-  });
-});
-
-describe('matrix', () => {
-  it('maps rank 1 to the top and rank 0 to the bottom', () => {
-    const data = buildTimelineData([
-      makeEvent({ id: 'top', chronologicalRank: 1 }),
-      makeEvent({ id: 'bottom', chronologicalRank: 0 }),
-    ]);
-    const pts = buildMatrixPoints(data, [1]);
-    expect(pts.find((p) => p.id === 'top')!.yPx).toBe(0);
-    expect(pts.find((p) => p.id === 'bottom')!.yPx).toBe(MATRIX_HEIGHT);
-  });
-
-  it('excludes unranked events from the plot', () => {
-    const data = buildTimelineData([
-      makeEvent({ id: 'a', chronologicalRank: 0.5 }),
-      makeEvent({ id: 'b', chronologicalRank: null }),
-    ]);
-    expect(buildMatrixPoints(data, [1]).map((p) => p.id)).toEqual(['a']);
-  });
-
-  it('counts the beeswarm index per chapter, not globally', () => {
-    const events = [
-      makeEvent({ id: 'a1', chapter: 1, chronologicalRank: 0.1 }),
-      makeEvent({ id: 'a2', chapter: 1, chronologicalRank: 0.2 }),
-      makeEvent({ id: 'b1', chapter: 2, chronologicalRank: 0.3 }),
-    ];
-    const pts = buildMatrixPoints(buildTimelineData(events), [1, 2]);
-    // First point of each chapter must sit at offset 0.
-    expect(pts.find((p) => p.id === 'a1')!.offsetPx).toBe(0);
-    expect(pts.find((p) => p.id === 'b1')!.offsetPx).toBe(0);
-    expect(pts.find((p) => p.id === 'a2')!.offsetPx).not.toBe(0);
-  });
-
-  it('offsets the unranked band per chapter too', () => {
-    const events = [
-      makeEvent({ id: 'a1', chapter: 1 }),
-      makeEvent({ id: 'a2', chapter: 1 }),
-      makeEvent({ id: 'b1', chapter: 2 }),
-    ];
-    const un = buildMatrixUnranked(buildTimelineData(events), [1, 2]);
-    expect(un.find((p) => p.id === 'a1')!.offsetPx).toBe(0);
-    expect(un.find((p) => p.id === 'b1')!.offsetPx).toBe(0);
-    expect(un.find((p) => p.id === 'a2')!.offsetPx).not.toBe(0);
-  });
-
-  it('spaces chapter columns evenly from the actual chapter list', () => {
-    expect(chapterCentrePct(1, [1, 2])).toBe(25);
-    expect(chapterCentrePct(2, [1, 2])).toBe(75);
-    // Chapter numbers need not be contiguous.
-    expect(chapterCentrePct(9, [3, 9])).toBe(75);
   });
 });
 

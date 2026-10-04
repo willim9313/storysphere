@@ -606,7 +606,7 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
   **這 5 句是草稿・待設計定案**（稿沒給角色版文字，依事件頁對應句意翻；i18n `character.batch.*`；JSON 不能寫註解，故記在此）：
   `running`「分析中」、`summaryProgress`「本批次共處理 {n} 位」、`errorFallback`「批次執行失敗」、`stat.generated`「已生成」、`stat.skipped`「已跳過」
   （`stat.failed`「失敗」與已裁決的「失敗 {n}」同詞，一併列入 i18n 但不另計）。
-- 孤兒（保留不刪）：`character.overview.batchAll／batchTop10／batchProgress`、`character.batch.toastClose`、`.ca-ov-batch-progress`。
+- 改版後無呼叫端的 `character.overview.batchAll／batchTop10／batchProgress`、`character.batch.toastClose`、`.ca-ov-batch-progress` 已刪（2026-10-04 刪除，B-129）。
 
 #### Content Area — 角色分析內容
 
@@ -767,7 +767,7 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 - **batch 503**：`LlmUnconfiguredNotice` 放在卡片下方、摺疊之外。
 - **字串**：2026-10-04 裁決通過、**非草稿**：`batch.remaining`「{n} 件待生成」（既有）、`batch.failedShort`「失敗 {n}」、`batch.showFailures`「只看失敗 ({n}) →」（事件版）；角色版見 §3.4。
   既有事件字串一字不改。
-- 孤兒（保留不刪）：i18n `batch.toastClose`。面板自己的舊樣式（`.ea-batch-hint`、`.ea-batch-count`、`.ea-batch-stat.skipped|failed`）隨面板版面改寫一併換掉。
+- i18n `batch.toastClose` 已刪（2026-10-04 刪除，B-129）。面板自己的舊樣式（`.ea-batch-hint`、`.ea-batch-count`、`.ea-batch-stat.skipped|failed`）隨面板版面改寫一併換掉。
   `BatchFailureList` 與 `batch.failures.*` 仍被符號頁（`SymbolsDashboard`）使用，**不是孤兒**。
 
 **內容區第二輪（照決議紀錄 10 A／B／E／F／G／H／I canvas 原始碼）**
@@ -1264,7 +1264,7 @@ off／disabled 時分段切換不出現。分段狀態與開關一樣是頁面 l
 #### 3.7.11 密度矩陣（5-5，12 補稿）
 
 > 稿：`design/12 時間軸 矩陣密度版 補稿.dc.html`；計畫 Q6；設計回饋 `DS_V3_DESIGN_FEEDBACK.md` 5-TL-*。
-> 元件 `components/timeline/DensityMatrix.tsx`；純邏輯 `matrixModel.ts`（vitest）。舊散點 `MatrixCanvas` 未回收、仍是孤兒。
+> 元件 `components/timeline/DensityMatrix.tsx`；純邏輯 `matrixModel.ts`（vitest）。舊散點 `MatrixCanvas` 未回收，已刪（2026-10-04 刪除，B-129）。
 
 「對照故事時序」開啟後、分段選到「密度矩陣」時，**取代**譜面＋圖例＋章節卡片帶（headline／meta 也不出現）；角色軌跡疊加層照舊。
 兩種畫法讀同一份 `chronologicalRank`，**不打新請求**；選取格是元件 local state，離開矩陣即清掉。
@@ -1353,13 +1353,12 @@ off／disabled 時分段切換不出現。分段狀態與開關一樣是頁面 l
 **既有字串重用**（未新增）：失敗頁名 `nav:tabs.timeline`、「回書籍總覽」`analysis:character.error.backToBook`、被跳過卡 `toast.displacementSkipped*`、
 「關閉」`closePanel`、步驟名 `reader:rerun.steps.*`、中線圖例 `stave.legend`。
 
-#### 孤兒（保留未刪，待使用者確認）
+#### 已清除的孤兒（2026-10-04 刪除，B-129）
 
-`StoryOrderView`、`MatrixCanvas` 兩個元件（5-5 另寫 `DensityMatrix`，沒有回收 `MatrixCanvas`）；
-舊散點矩陣專用 i18n：`matrix.legendTitle／legendDesc／legendFoot`、`loadingBy.matrix`、`noRanked.matrix`、`tabs.matrix`、`modeSub.matrix`（`matrix.xAxisLabel／yAxisLabel／diagonalLabel／unrankedBand` 現由 `DensityMatrix` 使用）；
-i18n `noRanked.story／matrix`、`storyOrderPrompt.*`、`loadingBy.story／matrix`、`tabs.*`、`modeSub.*`、
-`coverage.label／count／running／action／actionRunning`、`confirm.eventsTitle／eventsBody`、`toast.eventsDone／eventsFailed`、`band.analyzeChapter`；
-`timeline.css` 內對應的 `.tl-tabs*`、`.tl-prompt*`、`.tl-story*`、`.tl-matrix*`、`.tl-btn*`（部分元件已換用 kit）。
+`StoryOrderView`、`MatrixCanvas` 兩個元件與 `timelineGeometry` 的散點矩陣函式（`buildMatrixPoints`／`buildMatrixUnranked`／`beeswarmOffset`／`chapterCentrePct`／`MATRIX_HEIGHT`／`BEESWARM_*`）；
+i18n `matrix.legendTitle／legendDesc／legendFoot`、`noRanked.story／matrix`、`storyOrderPrompt.*`、`loadingBy.story／matrix`、`tabs.*`、`modeSub.*`、`viewTabs`、
+`coverage.*`、`confirm.eventsTitle／eventsBody`、`toast.eventsDone／eventsFailed`、`band.analyzeChapter`（`matrix.xAxisLabel／yAxisLabel／diagonalLabel／unrankedBand` 由 `DensityMatrix` 使用，保留）；
+`timeline.css` 的 `.tl-tab*`、`.tl-story*`、`.tl-matrix*`。`.tl-btn*` 目前也無呼叫端，未在本次清單內，尚未刪。
 
 #### 樣式檔案
 
@@ -1412,7 +1411,7 @@ i18n `noRanked.story／matrix`、`storyOrderPrompt.*`、`loadingBy.story／matri
 ```
 
 元件：`components/tension/` —— `TensionStepperStrip`／`TensionStateCards`（Empty、Step1、Running、Error、SoftGate、FailureList）／`TensionThemeHero`／`TensionChapterGrid`／`TensionReviewToolbar`／`TensionLineTable`／`TensionReviewDrawer`／`TensionTEUInspector`／`TensionAssignControl`／`tensionModel.ts`（純邏輯，有 vitest）／`intensity.ts`／`drawerData.ts`／`reviewTypes.ts`／`hooks/useTensionTask`。
-`TensionRerunDialog` **已不使用**（孤兒，檔案保留，待使用者確認後刪）。
+`TensionRerunDialog` 已刪（2026-10-04 刪除，B-129），重跑確認改用共用 `ConfirmDialog`。
 
 #### 三條軸（花 token／寫資料／不可逆互不蘊含）
 
@@ -1479,7 +1478,7 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 - 「從張力線移除 TEU」沒有 API／UI（所以 409 說明只能說「沒有移動這個動作」）。
 - 導覽條是共用 `GuidanceRibbon`（5-1 起走 kit `.ss-guidance`，無左邊框強調）。
 - 鍵盤 `A`／`X` 在未開抽屜時作用於第一列（既有行為，未動）。
-- 孤兒（已不使用，保留）：`TensionRerunDialog.tsx`；i18n：`tension.drawer.notePlaceholder`、`tension.drawer.editorTitle` 仍使用中、`tension.rerun.separator`、`tension.table.selectAll／clearAll`（仍用於表頭勾選框的 aria-label）。
+- 已刪（2026-10-04 刪除，B-129）：`TensionRerunDialog.tsx`；i18n `tension.drawer.notePlaceholder`、`tension.rerun.separator`。`tension.drawer.editorTitle`、`tension.table.selectAll／clearAll`（表頭勾選框的 aria-label）仍使用中。
 
 #### API 參考
 
@@ -1500,7 +1499,7 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 > `interpretation.field.{theme,polarity,confidence,evidence}`（主題／極性／信心／證據摘要）、`interpretation.linkedCharactersN`／`linkedEventsN`（連結角色 · {n}／連結事件 · {n}）、
 > `interpretation.rejectedNote`（只留後句）、`interpretation.saveEdit`（儲存修訂）、`interpretation.editZeroCost`（只改文字，不呼叫 LLM）、`interpretation.blockedKept`、
 > `regen.title`、`regen.loss.content`、`regen.loss.status`。稿的 `symbols.pin.cancel`「取消並看」與既有 `pin.clearSelf` 同字，用既有、不新增；「LLM 詮釋」用既有 `interpretation.tag`。
-> 因此既有 `interpretation.evidence`（證據綜述）、`confidence`（模型信心）、`confidenceNote`、`linkedCharacters`、`linkedEvents`、`review.label`、`review.save` 已無呼叫端（孤兒，保留未刪）。
+> 因此既有 `interpretation.evidence`（證據綜述）、`confidence`（模型信心）、`confidenceNote`、`linkedCharacters`、`linkedEvents`、`review.label`、`review.save` 已無呼叫端，連同 `symbol.polarity.label` 與舊 `.sym-hero*`／`.sym-polblock*`／`.sym-confblock*`／`.sym-linked-*`／`.sym-review-btn` 樣式已刪（2026-10-04 刪除，B-129）。
 > 已裁決：`generating.stageRunning`「進行中」；供應商阻擋標題「LLM供應商拒絕意象相關文本內容」並刪去內文兩句冗句；
 > `generating.footerNote` 拿掉「預計 ~12 秒」（保留「每 2 秒輪詢狀態」）。此三處是已裁決的例外，不是改既有字串的通則。
 
@@ -1630,7 +1629,7 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 | 會被刪除（只在選中的節點屬 dropsDerived 觸發器、且表內有已建立節點時） | 節點 `--color-error` 虛線框、計數加刪除線、節點內加「會被刪除」 |
 
 - 其餘節點淡出（opacity 0.3）、其餘邊 0.14。**邊不因失效著色**：失效範圍是逐觸發器的一張表，不是沿 DAG 遞移。
-- 圖例列：`上游依賴鏈 N 個`（accent 線樣）＋ `unraveling.cta.confirm.dropsDownstream`（error 虛線樣，與確認框清單標頭、節點細節說明條逐字共用）；右側 `unraveling.toolbar.clearSelection`（既有字串「清除選取」，取代舊的「全部」；`toolbar.showAll` 成孤兒）。
+- 圖例列：`上游依賴鏈 N 個`（accent 線樣）＋ `unraveling.cta.confirm.dropsDownstream`（error 虛線樣，與確認框清單標頭、節點細節說明條逐字共用）；右側 `unraveling.toolbar.clearSelection`（既有字串「清除選取」，取代舊的「全部」；`toolbar.showAll` 已刪（2026-10-04 刪除，B-129））。
 - 失效表（前端常數 `DROPS_BY_TRIGGER`，畫布與確認框共讀，只列已建立〔complete／partial〕的節點）：
 
 | 觸發器 | 列出 |
@@ -1675,7 +1674,7 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 | 刪除 | symbol-discovery、knowledge-graph | `affectsDownstream`＋分段清單（標頭 `dropsDownstream`，項目「名稱 · 計數」） | danger＋字符 |
 | 覆蓋 | feature-extraction（清單為空） | `overwrites`（清單整段不出現） | danger＋字符 |
 
-舊的 `confirm.title／intro／start／token／dropsDerived` 成孤兒（舊句「已完成的部分會自動跳過」不留）。
+舊的 `confirm.title／intro／start／token／dropsDerived` 已刪（2026-10-04 刪除，B-129）（舊句「已完成的部分會自動跳過」不留）。
 
 #### 推斷概念審查佇列（E 區，全頁唯一的 HITL）
 
@@ -1710,7 +1709,7 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 | `concepts.collapse` | 收合審查 ↑ |
 | `detail.nameJoin` | 、（`sharedTrigger` 的 `{names}` 分隔符） |
 
-**孤兒 i18n key（保留，待使用者裁決）**：`toolbar.showAll`、`cta.confirm.title／intro／start／token／dropsDerived`、`inspector.layerLabel`、`unravelingLoadError`（analysis 頂層）。
+**已刪的孤兒 i18n key**（2026-10-04 刪除，B-129）：`toolbar.showAll`、`cta.confirm.title／intro／start／token／dropsDerived`、`inspector.layerLabel`、`unravelingLoadError`（analysis 頂層）。
 
 #### 已實作
 
@@ -2118,9 +2117,9 @@ en 對應：Previewing／Requirement not met: Standard mode · KG backend set to
 - 其餘皆為既有字串一字不改；跨命名空間沿用：`tension.state.tokenHintShort`（成本提示）、`timeline.action.displacementDone`（倒敘預敘筆數）、`reader:rerun.steps.*`（過期步驟名）、`character.error.backToBook`。無「原寫死字串移入 i18n」。
 - 前置於本批的既有問題（不在 5-3 修）：en `narrative.unclassified.refineConfirmBody` 含字面 `\\u2019`（5-NR-10）。
 
-#### 孤兒（因結構改動保留，待使用者決定）
+#### 已清除的孤兒（2026-10-04 刪除，B-129）
 
-`heroJourney.ts` 的 `fillPct`／`discFill`／`discText`／`phaseWash`（舊填色邏輯，已無呼叫端）；i18n `narrative.ring.knownWorld`／`specialWorld`（圓環區帶已移除，5-NR-3）。舊 `.nl-view*`、`.nl-band-split`、`.nl-trigger-btn` 等 CSS 與 `StageDisc` 元件已隨改寫一併替換（皆為本頁私有）。
+`heroJourney.ts` 的 `fillPct`／`discFill`／`discText`／`phaseWash`（舊填色邏輯）；i18n `narrative.ring.knownWorld`／`specialWorld`（圓環區帶已移除，5-NR-3）。舊 `.nl-view*`、`.nl-band-split`、`.nl-trigger-btn` 等 CSS 與 `StageDisc` 元件已隨改寫一併替換（皆為本頁私有）。
 
 #### API 參考
 
@@ -2354,7 +2353,7 @@ WebSocket 連線，含訊息列表 + 輸入框。
 - **損失清單版**（`items`）：body 與按鈕列之間插入一份清單（`.ss-dialog-list`，xs、左內距 `--space-7`），其餘不變。
   破壞性動作另傳 `danger`，執行鈕改 `ss-btn-danger`（不帶字符）。使用者：上傳頁「終止處理」（DS v3 第 1 批）。
 - **未做**：規格卡按鈕列左側那行「會呼叫 LLM，消耗 token」是卡片註解，不是產品元素（2026-10-01 裁決），不做。
-  張力頁的 `TensionRerunDialog` 是獨立元件，隨該頁批次再評估是否併入。
+  張力頁原本的獨立 `TensionRerunDialog` 已於第 4 批改用本元件，舊檔已刪（2026-10-04 刪除，B-129）。
 
 ### 4.4 浮動軌（右下角位置契約 · DS v3）
 

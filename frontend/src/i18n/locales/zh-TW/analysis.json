@@ -108,9 +108,6 @@
       "metaTotal": "位角色",
       "metaAnalyzed": "已分析",
       "metaUnanalyzed": "未分析",
-      "batchTop10": "先生成前 10 位要角",
-      "batchAll": "生成全部",
-      "batchProgress": "分析中 · {{progress}}%",
       "backToOverview": "角色總覽",
       "viewQuadrant": "定位象限",
       "viewRanking": "提及量排行",
@@ -147,7 +144,6 @@
     "batch": {
       "toastTitle": "批次角色分析完成",
       "toastBody": "已生成 {{generated}} 位 · 跳過 {{skipped}} · 失敗 {{failed}}",
-      "toastClose": "關閉",
       "confirmTitle": "批次生成角色分析",
       "confirmMessage": "將對 {{count}} 個尚未分析的角色執行深度分析，已分析的角色會自動跳過。此操作將消耗大量 token。",
       "confirmTop10Title": "生成前 10 位要角分析",
@@ -457,7 +453,6 @@
     "summaryProgress": "本批次共處理 {{count}} 件",
     "toastTitle": "批次 EEP 分析完成",
     "toastBody": "已生成 {{generated}} 件 · 跳過 {{skipped}} · 失敗 {{failed}}",
-    "toastClose": "關閉",
     "errorFallback": "批次執行失敗",
     "failedShort": "失敗 {{count}}",
     "showFailures": "只看失敗 ({{count}}) →",
@@ -505,7 +500,6 @@
       "title": "重新執行 Step 2？",
       "body": "這會呼叫 LLM、消耗 token（約需數分鐘），並覆寫既有結果。",
       "willLose": "會失去：",
-      "separator": "、",
       "lossLines": "{{count}} 條張力線",
       "lossApproved": "{{count}} 條已核准",
       "lossEdited": "{{count}} 條已改寫標籤",
@@ -571,7 +565,6 @@
       "editedNote": "理由：{{note}}",
       "editorTitle": "編輯極點標籤",
       "noteLabel": "修改理由（選填，寫入審核紀錄）",
-      "notePlaceholder": "例如：原標籤把載體當成概念",
       "editorHint": "只改標籤文字，不重跑 LLM、不消耗 token，證據歸屬與強度不變。儲存後這條線標記為「已修改」。",
       "cancel": "取消",
       "saveLabels": "儲存標籤",
@@ -716,16 +709,6 @@
     }
   },
   "timeline": {
-    "tabs": {
-      "narrative": "章節順序",
-      "chronological": "故事時序",
-      "matrix": "矩陣視圖"
-    },
-    "modeSub": {
-      "narrative": "依書中出現順序，含章節分組",
-      "chronological": "依事件實際發生先後（Fabula）",
-      "matrix": "章節 × 時序，看敘事順序與真實時序的偏離"
-    },
     "narrativeModes": {
       "present": "當下敘事",
       "flashback": "回敘",
@@ -807,9 +790,6 @@
       "xAxisLabel": "敘事順序 (Sjuzhet) →",
       "yAxisLabel": "↑ 故事時序 (Fabula)",
       "diagonalLabel": "完全按故事順序敘事",
-      "legendTitle": "章節 × 故事時序",
-      "legendDesc": "每個點是一筆事件：橫軸是它在書中的章節，縱軸是它在故事裡實際發生的位置。貼著 45° 線＝作者照故事順序講；偏離越遠＝敘述順序與故事順序差越多。",
-      "legendFoot": "同章事件在欄內橫向散開以避免重疊，散開位置不帶意義。",
       "unrankedBand": "↵ 未排序事件 {{n}}",
       "cellsLegend": "每格事件數",
       "legendFourPlus": "4 以上",
@@ -820,13 +800,10 @@
       "selectedTitle": "選取的格",
       "clearSelection": "清除選取"
     },
-    "viewTabs": "視圖切換",
     "keyHint": "← → 切換事件 · Esc 關閉",
     "gotoChapter": "跳到第 {{n}} 章",
     "loadingBy": {
-      "chapter": "正在讀取時間軸…",
-      "story": "正在讀取故事時序…",
-      "matrix": "正在計算矩陣座標…"
+      "chapter": "正在讀取時間軸…"
     },
     "error": {
       "title": "時間軸資料載入失敗"
@@ -878,9 +855,7 @@
       "storyBody": "這會呼叫 LLM 逐一判讀 {{total}} 筆事件的故事時間，並覆蓋既有的 {{ranked}} 筆排序。需要數分鐘並消耗 token；執行期間可離開本頁。事件內容、參與者與知識圖譜不會變動。",
       "displacementTitle": "識別倒敘與預敘",
       "displacementBody": "這會呼叫 LLM 比對 {{total}} 筆事件的敘述順序與故事順序，標記倒敘與預敘。需要數分鐘並消耗 token；執行期間可離開本頁。",
-      "start": "開始計算",
-      "eventsTitle": "分析尚未分析的事件",
-      "eventsBody": "這會呼叫 LLM 逐一分析 {{n}} 筆尚未分析的事件，產生重要度、狀態變化、參與者角色與因果鏈。需要數分鐘並消耗 token；執行期間可離開本頁。已分析過的事件不會重跑，事件內容與知識圖譜不會變動。"
+      "start": "開始計算"
     },
     "toast": {
       "storyOrderDone": "故事時序計算完成",
@@ -888,9 +863,7 @@
       "displacementDone": "倒敘與預敘分析完成",
       "displacementFailed": "倒敘與預敘分析失敗",
       "displacementSkipped": "倒敘與預敘未進行",
-      "displacementSkippedDesc": "故事時間提示覆蓋率不足 60%，這次沒有呼叫 LLM，也沒有產生任何判定。",
-      "eventsDone": "事件分析完成",
-      "eventsFailed": "事件分析失敗"
+      "displacementSkippedDesc": "故事時間提示覆蓋率不足 60%，這次沒有呼叫 LLM，也沒有產生任何判定。"
     },
     "stave": {
       "headline": "敘述順序走了 {{rows}} 行，故事順序掉出去 {{outliers}} 次",
@@ -902,21 +875,6 @@
       "flashforwardNote": "Ch.{{ch}} 有 {{count}} 筆被提前講出來",
       "flashbackJudged": "已判定倒敘 ↩ Ch.{{ch}}（{{count}}）",
       "flashforwardJudged": "已判定預敘 ↗ Ch.{{ch}}（{{count}}）"
-    },
-    "coverage": {
-      "label": "事件分析",
-      "count": "{{done}} / {{total}} 筆（{{pct}}%）",
-      "running": "正在分析…",
-      "action": "分析其餘 {{n}} 筆…",
-      "actionRunning": "分析中…",
-      "prereq": "前置：事件分析 {{done}} / {{total}} 筆（{{pct}}%）",
-      "toEvents": "到事件分析頁 →"
-    },
-    "storyOrderPrompt": {
-      "title": "還沒算過故事時序，所以譜上沒有點",
-      "desc": "這 {{n}} 筆事件目前都沒有故事時間，無法和敘述順序對照，全部落在每行下方的「未排序」。算完之後，每筆事件才會沿中線畫出來，倒敘在下、預敘在上。",
-      "action": "計算故事時序",
-      "running": "計算中…"
     },
     "band": {
       "region": "第 {{n}} 章事件",
@@ -930,7 +888,6 @@
       "emptyFilteredDesc": "Ch.{{ch}} 共 {{n}} 筆事件，全部被篩選條件排除。",
       "emptyUnanalyzedTitle": "這一章還沒有被分析過",
       "emptyUnanalyzedDesc": "Ch.{{ch}} 的 {{n}} 筆事件都只有標題，沒有摘要、參與者與故事時間。",
-      "analyzeChapter": "分析本章 {{n}} 筆事件…",
       "analyzeElsewhere": "事件分析在事件分析頁執行。"
     },
     "card": {
@@ -974,8 +931,6 @@
       "desc": "目前套用 {{n}} 個條件。放寬其中一項，或清除全部篩選。"
     },
     "noRanked": {
-      "story": "這些事件排不進故事時序",
-      "matrix": "這些事件畫不進矩陣",
       "desc": "符合條件的 {{n}} 筆全部沒有故事時間（chronological_rank 為空），因此無法排出先後。"
     },
     "displacementTypes": {
@@ -1002,7 +957,6 @@
       }
     }
   },
-  "unravelingLoadError": "無法載入建構概覽資料",
   "unraveling": {
     "status": {
       "complete": "完整",
@@ -1023,8 +977,7 @@
       "layerList": "層次清單",
       "nodeDetail": "節點細節",
       "backToList": "返回層次清單",
-      "nodeCount": "{{n}} 節點",
-      "layerLabel": "L{{n}}"
+      "nodeCount": "{{n}} 節點"
     },
     "detail": {
       "chapterDist": "章節分佈",
@@ -1101,11 +1054,6 @@
         }
       },
       "confirm": {
-        "title": "確認觸發建構",
-        "intro": "即將執行：{{action}}。",
-        "token": "此操作會呼叫 LLM 並消耗 token，已完成的部分會自動跳過。",
-        "dropsDerived": "此步驟會重新產生實體與事件，依賴它們的既有分析結果將被刪除，需要重新生成。",
-        "start": "開始建構",
         "dropsDownstream": "重跑這個節點會丟掉 {{n}} 個已建立的下游產物",
         "keepsDownstream": "只補沒有的部分，不影響任何下游產物",
         "affectsDownstream": "重跑後，下列已建立的下游產物會受影響。",
@@ -1158,8 +1106,7 @@
       "chronological_rank": "故事時序排名"
     },
     "toolbar": {
-      "clearSelection": "清除選取",
-      "showAll": "全部"
+      "clearSelection": "清除選取"
     },
     "openPageNotImplemented": "尚未實作",
     "counts": {
@@ -1236,14 +1183,12 @@
       "other": "其他"
     },
     "polarity": {
-      "label": "敘事極性",
       "positive": "正向",
       "negative": "負向",
       "neutral": "中性",
       "mixed": "複合"
     },
     "review": {
-      "label": "HITL 審核",
       "pending": "待審",
       "approved": "已通過",
       "modified": "已修訂",
@@ -1251,16 +1196,10 @@
       "approve": "通過",
       "modify": "修訂",
       "reject": "駁回",
-      "save": "儲存",
       "cancel": "取消"
     },
     "interpretation": {
       "tag": "LLM 詮釋",
-      "evidence": "證據綜述",
-      "confidence": "模型信心",
-      "confidenceNote": "基於 {{count}} 次出現的證據",
-      "linkedCharacters": "相關角色",
-      "linkedEvents": "相關事件",
       "linkedEmpty": "無相關記錄",
       "regenerate": "重新生成",
       "regenerateConfirm": "重新生成將覆蓋現有詮釋與審核狀態，確認執行？",
@@ -1715,10 +1654,6 @@
       "track": "看 12 階段的順序",
       "columns": "看啟程啟蒙歸返",
       "ring": "看缺口在環上哪裡"
-    },
-    "ring": {
-      "knownWorld": "平凡世界",
-      "specialWorld": "特殊世界"
     },
     "spine": {
       "title": "事件骨幹",

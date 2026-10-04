@@ -900,7 +900,6 @@
 .ca-ov-meta strong { color: var(--fg-primary); }
 .ca-ov-meta-item { display: inline-flex; align-items: center; gap: var(--space-2); }
 .ca-ov-head-actions { display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap; }
-.ca-ov-batch-progress { font-size: var(--font-size-2xs); color: var(--accent); font-variant-numeric: tabular-nums; }
 .ca-ov-caption { font-size: var(--font-size-2xs); color: var(--fg-secondary); line-height: 1.6; }
 
 /* ─── Quadrant view ─── */
