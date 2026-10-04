@@ -1,347 +1,526 @@
 /* ─────────────────────────────────────────────────────────────────
-   .tn-* — Tension analysis page styles
-   ─────────────────────────────────────────────────────────────── */
+   .tn-* — 張力分析（DS v3 第 4 批 · 15）
+   B 檢視：24／16／12／8、max-w 1280、下內距 32。
+   數值來源：決議紀錄 15 canvas 原始碼 inline style。
+   稿凍結的幾何值照抄：階段格、格點標籤欄 340、迷你長條 6 寬、勾選框 13×13、抽屜 400。
+   顏色一律 var(--*)。選中態用底色＋加粗，不用 inset／左緣強調；卡片、引文、提示條沒有左邊框。
+   ──────────────────────────────────────────────────────────────── */
 
-/* Local box-sizing reset (project has no global reset, see timeline.css) */
 .tn-page, .tn-page * { box-sizing: border-box; }
 
-/* ── Page wrapper ──────────────────────────────────────────────── */
+/* ── 版面 ───────────────────────────────────────────────────────── */
 
-.tn-page {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 24px 28px 80px;
-  width: 100%;
-}
-
-/* ── Pipeline stepper (5 段：3 個機器步驟 + 2 個人工關卡) ────────── */
-
-.tn-stepper-wrap { padding: 0 0 20px; }
-.tn-stepper {
-  display: flex;
-  align-items: stretch;
-  padding: 12px;
+.tn-shell { display: flex; min-height: 0; flex: 1; height: 100%; background: var(--bg-primary); }
+.tn-shell-main {
+  flex: 1; min-width: 0; min-height: 0; overflow: auto;
   background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--card-radius);
+}
+.tn-page {
+  max-width: 1280px; margin: 0 auto; width: 100%;
+  padding: var(--space-7) var(--space-7) var(--space-8);
+  display: flex; flex-direction: column; gap: var(--space-6);
+  font-family: var(--font-sans); color: var(--fg-primary);
+}
+/* 共用導覽條自帶 margin-bottom；內容區用 gap 排版，這裡歸零 */
+.tn-page > .sg-ribbon { margin-bottom: 0; }
+.tn-page > .ss-state-stage { padding: var(--space-8) 0; }
+
+/* ── 共用小件 ───────────────────────────────────────────────────── */
+
+.tn-spacer { flex: 1; }
+.tn-nowrap { white-space: nowrap; }
+.tn-hint { font-size: var(--font-size-2xs); color: var(--fg-muted); }
+.tn-meta-mono { font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-muted); }
+.tn-vs { font-family: var(--font-sans); font-size: var(--font-size-2xs); color: var(--fg-muted); padding: 0 var(--space-3); }
+.tn-spin { animation: spin 1s linear infinite; }
+.tn-actions-end { display: flex; gap: var(--space-4); justify-content: flex-end; }
+.tn-link {
+  background: none; border: none; padding: 0; cursor: pointer;
+  font: inherit; font-size: var(--font-size-2xs); color: var(--accent);
+}
+.tn-link:hover { opacity: 0.9; text-decoration: underline; }
+
+/* kit 的 .ss-btn 沒有 :disabled 樣式，比照時間軸在頁面內補 */
+.tn-shell .ss-btn:disabled { opacity: 0.55; cursor: not-allowed; }
+.tn-shell .ss-btn[aria-pressed="true"].tn-toggle-btn {
+  background: var(--bg-tertiary); font-weight: 600; border-color: var(--fg-muted);
 }
 
-.tn-stage {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  flex: var(--tn-stage-flex, 1);
-  gap: 5px;
-  padding: 11px 13px;
-  margin: 0 4px;
+.tn-card {
   background: var(--bg-primary);
-  border: 1px solid transparent;
+  border: var(--card-border-width) var(--border-style) var(--border);
   border-radius: var(--card-radius);
-  min-width: 0;
+  box-shadow: var(--card-shadow);
 }
-/* Gates are chromeless and sit on the recessed tone: they are checkpoints in
-   the flow, not something the system runs. */
-.tn-stage[data-kind="gate"] {
+.tn-card-bar {
+  display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap;
+  padding: var(--space-5);
+  border-bottom: var(--line-weight) var(--border-style) var(--border);
+}
+.tn-card-bar.is-batch { background: var(--bg-secondary); padding: var(--space-4) var(--space-5); }
+
+/* 提示條：底色區分，沒有左邊框 */
+.tn-note {
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-primary);
+}
+.tn-note.is-warning { background: var(--color-warning-bg); }
+.tn-note.is-warning strong { color: var(--color-warning); }
+.tn-note.is-error { background: var(--color-error-bg); }
+.tn-note-col { display: flex; flex-direction: column; gap: var(--space-3); }
+
+/* 失敗卡／過期卡：標題＋內文＋動作 */
+.tn-alert { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-5); }
+.tn-alert-title { font-size: var(--font-size-xs); font-weight: 600; }
+.tn-alert-body { font-size: var(--font-size-2xs); line-height: 1.7; text-wrap: pretty; }
+.tn-alert-actions { display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap; }
+
+.tn-cost-hint {
+  font-size: var(--font-size-2xs); color: var(--fg-secondary);
   background: var(--bg-tertiary);
-  border-width: 0;
+  padding: var(--space-1) var(--space-5);
+  border-radius: var(--badge-radius);
 }
-.tn-stage[data-failed="true"] { border-color: var(--color-error); }
-.tn-stage[data-running="true"] { border-color: var(--accent); }
-.tn-stage[data-ready="true"] {
-  background: var(--color-success-bg);
-  border-color: var(--color-success);
-}
-.tn-stage[data-notready="true"] {
-  border-style: dashed;
-  border-color: var(--border);
-  opacity: 0.7;
+.tn-empty-line {
+  display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap;
+  padding: var(--space-5);
+  font-size: var(--font-size-xs); color: var(--fg-secondary);
 }
 
-/* Below 640px the five cells get narrower than their own titles. Measured on
-   the real strip: 640px keeps every title on one line (cell 106px), 560px wraps
-   to two, 400px to three — at which point the row reads as five columns of
-   vertical text with "TensionLine 聚合" overlapping its neighbour. Stack them
-   instead: taller, but every step stays readable and none hides behind a
-   scroll. Breakpoint is CSS-only — unlike the 1080px drawer one, no JS needs
-   to know about it. */
-@media (max-width: 640px) {
-  .tn-stepper { flex-direction: column; gap: 6px; }
-  .tn-stage { flex: none; margin: 0; }
+.tn-input {
+  width: 100%;
+  font-family: var(--font-sans); font-size: var(--font-size-xs);
+  padding: var(--space-4) var(--space-5);
+  color: var(--fg-primary);
+  background: var(--input-bg);
+  border: var(--input-border-width) var(--border-style) var(--border);
+  border-radius: var(--input-radius);
+}
+.tn-input.is-serif { font-family: var(--font-serif); font-size: var(--font-size-sm); line-height: 1.8; resize: vertical; }
+.tn-input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
+.tn-select {
+  font-family: var(--font-sans); font-size: var(--font-size-xs);
+  padding: var(--space-4) var(--space-5);
+  min-width: 240px; max-width: 100%;
+  color: var(--fg-primary);
+  background: var(--input-bg);
+  border: var(--input-border-width) var(--border-style) var(--border);
+  border-radius: var(--input-radius);
 }
 
-.tn-stage-top { display: flex; align-items: center; gap: 7px; }
-.tn-stage-dot {
-  width: 17px;
-  height: 17px;
-  flex: none;
-  border: 1.5px solid var(--border);
+/* ── 階段條（五格：圓＝計算、方＝人工關卡） ─────────────────────── */
+
+.tn-stepper { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: var(--space-4); }
+.tn-stage {
+  display: flex; flex-direction: column; gap: var(--space-3); min-width: 0;
+  padding: var(--space-5);
+  border-radius: var(--card-radius);
+  border: var(--card-border-width) var(--border-style) var(--border);
   background: var(--bg-primary);
-  color: var(--bg-primary);
-  display: flex;
-  align-items: center;
-  justify-content: center;
 }
-/* Circle for machine steps, square for gates: the shape carries "the system
-   does this" vs "you do this" without colour, which flattens to one black in
-   the Ink theme. */
-.tn-stage-dot[data-kind="machine"] { border-radius: 50%; }
-.tn-stage-dot[data-kind="gate"] { border-radius: 3px; }
-.tn-stage[data-done="true"] .tn-stage-dot {
-  background: var(--color-success);
-  border-color: var(--color-success);
-}
-.tn-stage[data-failed="true"] .tn-stage-dot {
-  background: var(--color-error);
-  border-color: var(--color-error);
-}
-.tn-stage[data-running="true"] .tn-stage-dot {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-/* Partial: ran to completion with a shortfall. It outranks `done` on the dot
-   (both are set) so the step never claims a clean ✓ while the note says three
-   scenes failed. Warning tone, not error — the step did produce the rest. */
-.tn-stage[data-partial="true"] .tn-stage-dot {
-  background: var(--color-warning);
-  border-color: var(--color-warning);
-}
+.tn-stage[data-kind="gate"] { background: var(--bg-tertiary); }
+.tn-stage[data-running="true"] { border-color: var(--accent); }
+.tn-stage[data-failed="true"] { border-color: var(--color-error); }
 .tn-stage[data-partial="true"] { border-color: var(--color-warning); }
 
-.tn-stage-kicker {
-  font: 500 9.5px var(--font-sans);
-  letter-spacing: 0.07em;
-  color: var(--fg-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.tn-stage-title { font: 600 15px var(--font-serif); color: var(--fg-primary); }
-.tn-stage[data-kind="gate"] .tn-stage-title { font-size: 13px; }
-.tn-stage[data-running="true"] .tn-stage-title { color: var(--accent); }
-.tn-stage[data-notready="true"] .tn-stage-title { color: var(--fg-secondary); }
-
-.tn-stage-note { font: 400 11px var(--font-sans); color: var(--fg-secondary); }
-.tn-stage-note[data-warn="true"] { color: var(--color-warning); }
-.tn-stage[data-failed="true"] .tn-stage-note { color: var(--color-error); }
-
-.tn-stage-bar {
-  height: 3px;
-  background: var(--bg-tertiary);
-  border-radius: 2px;
-  overflow: hidden;
-}
-.tn-stage-bar > i {
-  display: block;
-  height: 100%;
-  background: var(--accent);
-  transition: width var(--transition-normal) ease;
-}
-
-.tn-stage-action {
-  margin-top: 2px;
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 5px 11px;
-  font: 500 11.5px var(--font-sans);
-  background: var(--accent);
+.tn-stage-top { display: flex; align-items: center; gap: var(--space-3); }
+.tn-stage-mark {
+  width: 13px; height: 13px; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: var(--line-weight) var(--border-style) var(--fg-muted);
+  border-radius: 50%;
   color: var(--accent-fg);
-  border: var(--btn-border-width) solid var(--accent);
-  border-radius: var(--btn-radius);
-  cursor: pointer;
 }
-.tn-stage-action:hover { opacity: 0.9; }
+.tn-stage-mark[data-kind="gate"] { border-radius: 2px; }
+.tn-stage[data-done="true"] .tn-stage-mark { background: var(--color-success); border-color: var(--color-success); }
+.tn-stage[data-partial="true"] .tn-stage-mark { background: var(--color-warning); border-color: var(--color-warning); }
+.tn-stage[data-failed="true"] .tn-stage-mark { background: var(--color-error); border-color: var(--color-error); }
+/* 鎖定格：降階文字色，不用虛線框 */
+.tn-stage[data-notready="true"] .tn-stage-mark { border-color: var(--border); }
 
+.tn-stage-kicker {
+  font-family: var(--font-mono); font-size: var(--font-size-2xs);
+  letter-spacing: 0.04em; color: var(--fg-muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tn-stage-title { font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 700; color: var(--fg-primary); }
+.tn-stage[data-notready="true"] .tn-stage-title { color: var(--fg-muted); }
+.tn-stage[data-running="true"] .tn-stage-title { color: var(--accent); }
+.tn-stage-note { font-size: var(--font-size-2xs); color: var(--fg-secondary); font-variant-numeric: tabular-nums; }
+.tn-stage[data-notready="true"] .tn-stage-note { color: var(--fg-muted); }
+.tn-stage-note[data-warn="true"] { color: var(--color-warning); font-weight: 600; }
+.tn-stage[data-failed="true"] .tn-stage-note { color: var(--color-error); }
 .tn-stage-error {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font: 400 10.5px var(--font-sans);
-  color: var(--color-error);
+  display: flex; align-items: center; gap: var(--space-3);
+  font-size: var(--font-size-2xs); color: var(--color-error);
 }
 
-/* ── Step 1 failure list (B-072) ───────────────────────────────── */
+/* ── Step 1 失敗清單（預設收合；run-scoped） ─────────────────────── */
 
-.tn-teu-failures {
-  border: 1px solid var(--border);
-  border-left: 2px solid var(--color-warning);
-  border-radius: var(--radius-sm);
-  background: var(--bg-secondary);
-  padding: 8px 12px;
-  margin-bottom: 12px;
+.tn-failures {
+  border-top: var(--line-weight) var(--border-style) var(--border);
+  padding-top: var(--space-5);
 }
-.tn-teu-failures > summary {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  cursor: pointer;
-  font: 500 12px var(--font-sans);
-  color: var(--color-warning);
-}
-/* `display:flex` above drops summary's default `list-item` marker, and with it
-   the only sign that this row expands — cursor:pointer shows up on hover, which
-   is too late to be an affordance. This chevron puts one back. */
-.tn-teu-failures > summary::after {
-  content: '';
-  width: 5px;
-  height: 5px;
-  margin-left: auto;
-  border-right: 1.5px solid currentColor;
-  border-bottom: 1.5px solid currentColor;
-  transform: rotate(-45deg);
-  transition: transform var(--transition-fast);
-}
-.tn-teu-failures[open] > summary::after { transform: rotate(45deg); }
-.tn-teu-failures > ul {
-  list-style: none;
-  margin: 8px 0 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.tn-teu-failures > ul > li {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: 8px;
-  font: 400 11.5px var(--font-sans);
-  color: var(--fg-primary);
-}
-.tn-teu-failure-where {
-  color: var(--fg-secondary);
-  white-space: nowrap;
-}
-.tn-teu-failure-title { font-weight: 500; }
-/* The reason is a raw exception string — monospace stops it reading as prose,
-   and it wraps because "RuntimeError: …" can be arbitrarily long. */
-.tn-teu-failure-reason {
-  font: 400 10.5px var(--font-mono);
-  color: var(--color-error);
-  overflow-wrap: anywhere;
-}
-.tn-teu-failure-hint {
-  margin: 8px 0 0;
-  font: 400 10.5px var(--font-sans);
-  color: var(--fg-secondary);
-}
-
-/* ── Theme hero ────────────────────────────────────────────────── */
-
-.tn-hero {
+.tn-page > .tn-failures {
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
   background: var(--bg-primary);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  padding: 28px 32px;
-  margin-bottom: 24px;
-  position: relative;
-  box-shadow: var(--shadow-sm);
-  border-style: var(--border-style);
+  padding: var(--space-5);
 }
+.tn-failures > summary {
+  display: flex; align-items: center; justify-content: space-between;
+  cursor: pointer; list-style: none;
+  font-size: var(--font-size-xs); color: var(--fg-secondary);
+}
+.tn-failures > summary::-webkit-details-marker { display: none; }
+/* flex 會丟掉原生 marker，補一個 chevron 當「可展開」的提示 */
+.tn-failures > summary::after {
+  content: ''; width: 5px; height: 5px;
+  border-right: 1.5px solid currentColor; border-bottom: 1.5px solid currentColor;
+  transform: rotate(-45deg); transition: transform var(--transition-fast);
+}
+.tn-failures[open] > summary::after { transform: rotate(45deg); }
+.tn-failures > ul {
+  list-style: none; margin: 0; padding: var(--space-5) 0 0;
+  display: flex; flex-direction: column; gap: var(--space-4);
+}
+.tn-failures > ul > li {
+  display: grid; grid-template-columns: 64px minmax(0, 1fr) auto; gap: var(--space-5);
+  font-size: var(--font-size-2xs); color: var(--fg-secondary);
+}
+.tn-failure-where { font-family: var(--font-mono); white-space: nowrap; }
+.tn-failure-reason { font-family: var(--font-mono); color: var(--color-error); overflow-wrap: anywhere; }
+.tn-failures-hint { margin: var(--space-5) 0 0; font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-muted); max-width: 78ch; }
 
-.tn-hero-eyebrow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  margin-bottom: 16px;
-}
+/* ── 階段 0：空態 ───────────────────────────────────────────────── */
 
-.tn-hero-proposition {
-  font-family: var(--font-serif);
-  font-size: var(--font-size-2xl);
-  line-height: 1.45;
-  color: var(--fg-primary);
-  margin: 0 0 24px;
-  text-wrap: pretty;
-  max-width: 80ch;
+.tn-empty { padding: var(--space-7) 0; }
+.tn-empty-spot { color: var(--illustration-stroke); flex-shrink: 0; }
+.tn-empty .ss-state-text { max-width: 44ch; font-family: var(--font-serif); font-size: var(--font-size-sm); line-height: 1.8; text-wrap: pretty; }
+.tn-empty-note { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2); max-width: 52ch; text-align: left; }
+.tn-empty-note a { color: var(--accent); text-decoration: none; }
+.tn-empty-note a:hover { opacity: 0.9; text-decoration: underline; }
+.tn-empty-cta { display: flex; flex-direction: column; align-items: center; gap: var(--space-4); }
+
+/* ── 階段 1：Step 1 卡 ─────────────────────────────────────────── */
+
+.tn-step1 { padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-6); }
+.tn-step1-head { display: flex; flex-direction: column; gap: var(--space-3); }
+.tn-step1-head h3 { margin: 0; font-family: var(--font-serif); font-size: var(--font-size-lg); font-weight: 700; }
+.tn-step1-scenes { font-size: var(--font-size-2xs); color: var(--fg-muted); }
+.tn-step1-body {
+  margin: 0; max-width: 72ch; text-wrap: pretty;
+  font-family: var(--font-serif); font-size: var(--font-size-sm); line-height: 1.8; color: var(--fg-secondary);
 }
+.tn-step1-actions { display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap; }
+
+.tn-density { display: grid; gap: var(--space-3); align-items: end; height: 112px; }
+.tn-density .ss-tooltip-anchor { display: flex; flex-direction: column; justify-content: flex-end; height: 100%; }
+.tn-density-col { display: flex; flex-direction: column; align-items: stretch; gap: var(--space-2); flex: 1; justify-content: flex-end; }
+.tn-density-n {
+  font-size: var(--font-size-2xs); color: var(--fg-secondary);
+  text-align: center; font-variant-numeric: tabular-nums;
+}
+/* 單色中性：TEU 數不是強度，不借任何分析族的色 */
+.tn-density-bar { display: block; background: var(--fg-muted); }
+.tn-density-ch { font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-muted); text-align: center; }
+
+/* ── 執行中／軟閘門 ─────────────────────────────────────────────── */
+
+.tn-run { padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4); }
+.tn-run-row { display: flex; align-items: center; gap: var(--space-4); }
+.tn-run-row svg { color: var(--accent); }
+.tn-run-title { font-size: var(--font-size-xs); font-weight: 600; }
+.tn-run-pct { margin-left: auto; font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-muted); }
+.tn-run-hint { font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-secondary); }
+
+.tn-gate { padding: var(--space-5); display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap; }
+.tn-gate-text { font-size: var(--font-size-xs); color: var(--fg-secondary); margin-right: auto; }
+.tn-gate-hint { font-size: var(--font-size-2xs); color: var(--fg-muted); }
+
+/* ── 全書主題 Hero ─────────────────────────────────────────────── */
+
+.tn-hero { padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-5); }
+.tn-hero-top { display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap; }
+.tn-hero-eyebrow { font-family: var(--font-mono); font-size: var(--font-size-2xs); letter-spacing: 0.06em; color: var(--fg-muted); }
+.tn-chip-group { display: inline-flex; align-items: center; gap: var(--space-3); }
+.tn-chip-label { font-size: var(--font-size-2xs); color: var(--fg-muted); }
 
 .tn-frye-badge, .tn-booker-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 5px 11px 5px 9px;
-  border-radius: 20px;
-  font-size: var(--font-size-xs);
-  font-weight: 500;
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  font-size: var(--font-size-2xs);
+  padding: var(--space-1) var(--space-5);
+  border-radius: var(--badge-radius);
   text-decoration: none;
 }
-.tn-frye-badge:hover, .tn-booker-badge:hover {
-  opacity: 0.85;
-}
-.tn-frye-badge { border: 1px solid; }
+.tn-frye-badge:hover, .tn-booker-badge:hover { opacity: 0.85; }
+.tn-frye-badge { border: var(--line-weight) var(--border-style); }
 .tn-frye-badge[data-mode="romance"]      { background: var(--frye-romance-bg); color: var(--frye-romance-fg); border-color: var(--frye-romance-border); }
 .tn-frye-badge[data-mode="comedy"]       { background: var(--frye-comedy-bg);  color: var(--frye-comedy-fg);  border-color: var(--frye-comedy-border); }
 .tn-frye-badge[data-mode="tragedy"]      { background: var(--frye-tragedy-bg); color: var(--frye-tragedy-fg); border-color: var(--frye-tragedy-border); }
 .tn-frye-badge[data-mode="irony"],
 .tn-frye-badge[data-mode="irony_satire"] { background: var(--frye-irony-bg);   color: var(--frye-irony-fg);   border-color: var(--frye-irony-border); }
-.tn-frye-dot {
-  width: 7px; height: 7px;
-  border-radius: 50%;
-  background: currentColor;
-  opacity: 0.7;
-}
-
+.tn-frye-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; }
 .tn-booker-badge {
-  background: var(--booker-bg);
-  color: var(--booker-fg);
-  border: 1px solid var(--booker-border);
-  font-family: var(--font-sans);
+  background: var(--booker-bg); color: var(--booker-fg);
+  border: var(--line-weight) var(--border-style) var(--booker-border);
 }
 
-/* ── Status badge ──────────────────────────────────────────────── */
+/* 命題是頁面最大的字 */
+.tn-hero-proposition {
+  margin: 0; max-width: 44em; text-wrap: pretty;
+  font-family: var(--font-serif); font-size: var(--font-size-xl); line-height: 1.7; color: var(--fg-primary);
+}
+.tn-hero-warn { display: flex; gap: var(--space-5); align-items: baseline; flex-wrap: wrap; }
+.tn-hero-editor { display: flex; flex-direction: column; gap: var(--space-4); }
 
-.tn-status-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  padding: 2px 9px;
-  border-radius: 20px;
-  font-size: var(--font-size-2xs);
-  font-weight: 500;
-  border: 1px solid;
+.tn-hero-lines { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
+.tn-hero-line-pill {
+  display: inline-flex; align-items: center; gap: var(--space-3);
+  font-family: var(--font-serif); font-size: var(--font-size-2xs); color: var(--fg-primary);
+  padding: var(--space-2) var(--space-5);
+  background: var(--bg-primary);
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--badge-radius);
+  cursor: pointer;
 }
-.tn-status-badge[data-s="pending"]  { background: var(--bg-tertiary);      color: var(--fg-secondary); border-color: var(--border); }
-.tn-status-badge[data-s="approved"] { background: var(--color-success-bg); color: var(--color-success); border-color: var(--color-success); }
-.tn-status-badge[data-s="modified"] { background: var(--color-info-bg);    color: var(--color-info);    border-color: var(--color-info); }
-.tn-status-badge[data-s="rejected"] { background: var(--color-error-bg);   color: var(--color-error);   border-color: var(--color-error); }
-.tn-pole { padding: 0 14px; }
-.tn-pole:first-child { border-right: 1px solid var(--border); }
-.tn-pole-name {
-  font-family: var(--font-serif);
-  font-size: var(--font-size-base);
-  color: var(--fg-primary);
-  margin-bottom: 10px;
+.tn-hero-line-pill:hover { background: var(--bg-secondary); }
+.tn-hero-line-pill > i { display: block; width: 3px; height: 12px; flex-shrink: 0; border-radius: 1px; }
+.tn-hero-line-pill > i[data-band="low"]  { background: var(--tension-intensity-low-edge); }
+.tn-hero-line-pill > i[data-band="mid"]  { background: var(--tension-intensity-mid-edge); }
+.tn-hero-line-pill > i[data-band="high"] { background: var(--tension-intensity-high-edge); }
+
+.tn-hero-foot {
+  display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap;
+  border-top: var(--line-weight) var(--border-style) var(--border);
+  padding-top: var(--space-5);
 }
-.tn-pole-carriers {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 4px;
-}
-.tn-pole-carriers-empty {
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-  font-style: italic;
+.tn-stale-old {
+  padding: var(--space-5);
+  background: var(--bg-primary); border-radius: var(--radius-sm);
+  font-family: var(--font-serif); font-size: var(--font-size-sm); line-height: 1.85; color: var(--fg-muted);
+  text-wrap: pretty;
 }
 
+/* ── 模式切換 ───────────────────────────────────────────────────── */
+
+.tn-mode-row { display: flex; align-items: center; gap: var(--space-6); flex-wrap: wrap; }
+.tn-mode-seg .ss-seg-item { font-size: var(--font-size-xs); padding: var(--space-3) var(--space-6); }
+
+/* ── 章節格點 ───────────────────────────────────────────────────── */
+
+.tn-grid-card { padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-5); }
+.tn-grid-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-6); flex-wrap: wrap; }
+.tn-grid-title-wrap { display: flex; align-items: baseline; gap: var(--space-5); }
+.tn-grid-title { font-family: var(--font-serif); font-size: var(--font-size-base); font-weight: 700; }
+.tn-grid-legend {
+  display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap;
+  font-size: var(--font-size-2xs); color: var(--fg-muted);
+}
+.tn-legend-item { display: inline-flex; align-items: flex-end; gap: var(--space-2); }
+.tn-grid-legend-note { border-left: var(--line-weight) var(--border-style) var(--border); padding-left: var(--space-5); }
+
+/* 迷你長條（6 寬；低 8／中 14／高 20；未歸入＝實線空心框，warning 描邊、不填色） */
+.tn-legend-item > i, .tn-grid-cell > i, .tn-teu-mini > i, .tn-bar-mark {
+  display: block; width: 6px; flex-shrink: 0; box-sizing: border-box;
+}
+.tn-legend-item > i[data-band="low"], .tn-grid-cell > i[data-band="low"] { height: 8px; }
+.tn-legend-item > i[data-band="mid"], .tn-grid-cell > i[data-band="mid"] { height: 14px; }
+.tn-legend-item > i[data-band="high"], .tn-grid-cell > i[data-band="high"] { height: 20px; }
+.tn-legend-item > i[data-orphan="true"], .tn-grid-cell > i[data-orphan="true"] { height: 14px; }
+.tn-legend-item > i[data-band="low"],  .tn-grid-cell > i[data-band="low"],  .tn-teu-mini > i[data-band="low"],  .tn-bar-mark[data-band="low"]  { background: var(--tension-intensity-low-bg);  border: var(--line-weight) solid var(--tension-intensity-low-edge); }
+.tn-legend-item > i[data-band="mid"],  .tn-grid-cell > i[data-band="mid"],  .tn-teu-mini > i[data-band="mid"],  .tn-bar-mark[data-band="mid"]  { background: var(--tension-intensity-mid-bg);  border: var(--line-weight) solid var(--tension-intensity-mid-edge); }
+.tn-legend-item > i[data-band="high"], .tn-grid-cell > i[data-band="high"], .tn-teu-mini > i[data-band="high"], .tn-bar-mark[data-band="high"] { background: var(--tension-intensity-high-bg); border: var(--line-weight) solid var(--tension-intensity-high-edge); }
+.tn-legend-item > i[data-orphan="true"], .tn-grid-cell > i[data-orphan="true"],
+.tn-teu-mini > i[data-orphan="true"], .tn-bar-mark[data-orphan="true"] {
+  background: transparent; border: var(--line-weight) solid var(--color-warning);
+}
+
+/* 欄寬由 custom property 控制，響應式規則全留在 CSS；格底線保證長書橫捲而不是壓扁 */
+.tn-grid {
+  display: grid; align-items: stretch; overflow-x: auto;
+  --tn-grid-label-w: 340px;
+  --tn-grid-cell-w: 28px;
+}
+.tn-grid-rowgroup { display: contents; }
+.tn-grid-corner, .tn-grid-colhead {
+  font-size: var(--font-size-2xs); color: var(--fg-muted);
+  padding-bottom: var(--space-3);
+  border-bottom: var(--line-weight) var(--border-style) var(--border);
+  background: var(--bg-primary);
+}
+.tn-grid-corner { position: sticky; left: 0; z-index: 1; align-self: end; }
+.tn-grid-colhead { text-align: center; font-family: var(--font-mono); align-self: end; }
+
+.tn-grid-rowlabel {
+  position: sticky; left: 0; z-index: 1;   /* 捲動時標籤凍結，否則柱子不屬於任何一條線 */
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-2);
+  min-width: 0; text-align: left; cursor: pointer;
+  padding: var(--space-4) var(--space-5) var(--space-4) 0;
+  background: var(--bg-primary); color: inherit;
+  border: none; border-bottom: var(--line-weight) var(--border-style) var(--border);
+}
+.tn-grid-poles {
+  max-width: 100%;
+  font-family: var(--font-serif); font-size: var(--font-size-sm); color: var(--fg-primary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tn-grid-rowmeta {
+  display: flex; align-items: center; gap: var(--space-4);
+  font-size: var(--font-size-2xs); color: var(--fg-muted); font-variant-numeric: tabular-nums;
+}
+.tn-grid-cell {
+  display: flex; align-items: flex-end; justify-content: center; gap: 2px;
+  min-height: 52px; padding: 0 0 var(--space-4);
+  background: var(--bg-primary); cursor: pointer;
+  border: none; border-left: var(--line-weight) var(--border-style) var(--border);
+  border-bottom: var(--line-weight) var(--border-style) var(--border);
+}
+/* 選中的線：底色＋標籤加粗，不用左緣強調 */
+.tn-grid-rowgroup[data-open="true"] .tn-grid-rowlabel,
+.tn-grid-rowgroup[data-open="true"] .tn-grid-cell { background: var(--bg-secondary); }
+.tn-grid-rowgroup[data-open="true"] .tn-grid-poles { font-weight: 700; }
+
+.tn-grid-rowgroup.is-orphan .tn-grid-rowlabel,
+.tn-grid-rowgroup.is-orphan .tn-grid-cell { border-top: 1.5px solid var(--fg-muted); border-bottom: none; }
+.tn-grid-orphan-title { font-size: var(--font-size-xs); font-weight: 600; color: var(--color-warning); }
+.tn-grid-orphan-meta { color: var(--color-warning); }
+.tn-grid-orphan-toggle { color: var(--accent); }
+
+.tn-orphan-list {
+  display: flex; flex-direction: column;
+  border-top: var(--line-weight) var(--border-style) var(--border);
+}
+.tn-orphan-list-head { display: flex; align-items: baseline; gap: var(--space-5); padding: var(--space-4) 0; }
+.tn-orphan-list-title { font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 700; }
+.tn-orphan-row {
+  display: grid; grid-template-columns: 56px minmax(0, 1fr) 96px auto; align-items: start; gap: var(--space-5);
+  padding: var(--space-4) 0;
+  border-top: var(--line-weight) var(--border-style) var(--border);
+}
+.tn-orphan-ch { font-family: var(--font-serif); font-size: var(--font-size-xs); font-weight: 600; }
+.tn-orphan-poles { font-family: var(--font-serif); font-size: var(--font-size-sm); text-wrap: pretty; }
+
+/* ── 審核卡（工具列＋批次列＋線表＋鍵位列） ─────────────────────── */
+
+.tn-review { display: flex; flex-direction: column; }
+.tn-batch-count { font-size: var(--font-size-xs); font-weight: 600; }
+.tn-batch-failed { font-size: var(--font-size-2xs); color: var(--color-error); }
+
+/* 列高固定、審核欄 nowrap、章節欄不溢入證據欄 */
+.tn-table-head, .tn-row {
+  display: grid;
+  grid-template-columns: 13px minmax(0, 1fr) 128px 64px 152px 72px 236px;
+  column-gap: var(--space-6); align-items: center;
+  padding: var(--space-4) var(--space-5);
+}
+.tn-table-head {
+  border-bottom: var(--line-weight) var(--border-style) var(--border);
+  font-size: var(--font-size-2xs); font-weight: 600; color: var(--fg-muted);
+}
+.tn-col-right { text-align: right; }
+.tn-row {
+  min-height: 48px;
+  border-bottom: var(--line-weight) var(--border-style) var(--border);
+  cursor: pointer;
+}
+.tn-row:hover { background: var(--bg-secondary); }
+.tn-row[data-selected="true"], .tn-row[data-open="true"] { background: var(--bg-secondary); }
+.tn-row[data-open="true"] .tn-row-poles { font-weight: 700; }
+/* 已拒絕的線仍可讀但退後：處理完了，不是不見了 */
+.tn-row[data-rejected="true"] { opacity: 0.5; }
+
+.tn-row-poles {
+  min-width: 0; text-align: left; cursor: pointer;
+  background: none; border: none; padding: 0; color: var(--fg-primary);
+  font-family: var(--font-serif); font-size: var(--font-size-sm);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.tn-row-chapters {
+  font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-secondary);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0;
+}
+.tn-row-evidence { font-size: var(--font-size-2xs); color: var(--fg-secondary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tn-row-intensity { display: flex; align-items: center; gap: var(--space-4); min-width: 0; }
+.tn-row-status { justify-self: start; white-space: nowrap; }
+.tn-row-actions { display: flex; gap: var(--space-3); justify-content: flex-end; white-space: nowrap; }
+
+.tn-bar { flex: 1; height: 4px; background: var(--bg-tertiary); border-radius: 2px; overflow: hidden; display: block; }
+.tn-bar-fill { display: block; height: 100%; }
+.tn-bar-fill[data-band="low"]  { background: var(--tension-intensity-low-edge); }
+.tn-bar-fill[data-band="mid"]  { background: var(--tension-intensity-mid-edge); }
+.tn-bar-fill[data-band="high"] { background: var(--tension-intensity-high-edge); }
+
+.tn-check {
+  width: 13px; height: 13px; padding: 0; flex-shrink: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 2px; cursor: pointer;
+  border: var(--line-weight) var(--border-style) var(--border);
+  background: transparent; color: var(--accent-fg);
+}
+.tn-check[data-state="on"], .tn-check[data-state="partial"] { background: var(--accent); border-color: var(--accent); }
+
+.tn-shortcuts { display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap; padding: var(--space-4) var(--space-5); }
+
+/* ── TEU 逐章（一張卡內的 action rows） ─────────────────────────── */
+
+.tn-teu-card { display: flex; flex-direction: column; }
+.tn-teu-meta { font-size: var(--font-size-xs); font-variant-numeric: tabular-nums; }
+.tn-teu-rows { display: flex; flex-direction: column; padding: var(--space-3) var(--space-4); }
+.tn-teu-chapter { display: flex; flex-direction: column; border-bottom: var(--line-weight) var(--border-style) var(--border); }
+.tn-teu-chapter:last-child { border-bottom: none; }
+.tn-teu-row {
+  display: grid; grid-template-columns: 64px 64px 120px minmax(0, 1fr) 40px; column-gap: var(--space-5); align-items: center;
+  width: 100%; padding: var(--space-4) var(--space-5);
+  background: transparent; border: none; border-radius: var(--radius-md);
+  cursor: pointer; text-align: left; color: inherit;
+}
+.tn-teu-row:hover, .tn-teu-chapter[data-open="true"] > .tn-teu-row { background: var(--bg-secondary); }
+.tn-teu-ch { font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 600; white-space: nowrap; }
+.tn-teu-n { font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-muted); white-space: nowrap; }
+.tn-teu-mini { display: flex; align-items: flex-end; gap: 2px; height: 20px; }
+/* 未歸入計數用 warning，全部已歸入降為 muted */
+.tn-teu-status { font-size: var(--font-size-2xs); color: var(--fg-muted); }
+.tn-teu-status[data-warn="true"] { color: var(--color-warning); font-weight: 600; }
+.tn-teu-toggle { font-size: var(--font-size-2xs); color: var(--fg-secondary); text-align: right; }
+
+.tn-teu-items { display: flex; flex-direction: column; padding: var(--space-4) var(--space-5) var(--space-6) 104px; }
+.tn-teu-item {
+  display: flex; flex-direction: column; gap: var(--space-4);
+  padding: var(--space-5) 0;
+  border-top: var(--line-weight) var(--border-style) var(--border);
+}
+.tn-teu-item:first-child { border-top: none; padding-top: 0; }
+.tn-teu-item-top { display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap; }
+.tn-teu-poles { font-family: var(--font-serif); font-size: var(--font-size-sm); text-wrap: pretty; }
+.tn-teu-source {
+  font-size: var(--font-size-2xs); color: var(--fg-muted);
+  padding: var(--space-1) var(--space-5); border-radius: var(--badge-radius);
+  border: var(--line-weight) var(--border-style) var(--border);
+  max-width: 60%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.tn-teu-source[data-orphan="true"] { color: var(--color-warning); border-color: var(--color-warning); background: var(--color-warning-bg); }
+.tn-teu-summary { margin: 0; font-family: var(--font-serif); font-size: var(--font-size-xs); line-height: 1.75; color: var(--fg-secondary); text-wrap: pretty; }
+/* 引文：text row，沒有左邊框、沒有斜體底線 */
+.tn-quote { margin: 0; font-family: var(--font-serif); font-size: var(--font-size-sm); line-height: 1.85; color: var(--fg-primary); text-wrap: pretty; }
+.tn-teu-item-foot { display: flex; align-items: flex-start; gap: var(--space-5); flex-wrap: wrap; }
+.tn-carriers { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
+
+.tn-assign { display: flex; flex-direction: column; gap: var(--space-4); align-items: flex-start; }
+.tn-assign-row { display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap; }
+.tn-assign .tn-note { max-width: 68ch; text-wrap: pretty; }
+
+/* 載體 pill */
 .tn-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 9px;
-  border-radius: 20px;
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  padding: var(--space-1) var(--space-5);
+  border-radius: var(--badge-radius);
   font-size: var(--font-size-2xs);
-  border: 1px solid;
+  border: var(--line-weight) var(--border-style);
 }
-.tn-pill-dot {
-  width: 5px; height: 5px;
-  border-radius: 50%;
-}
+.tn-pill-dot { width: 5px; height: 5px; border-radius: 50%; }
+.tn-pill-share { font-family: var(--font-mono); opacity: 0.7; }
 .tn-pill[data-t="character"]    { background: var(--entity-char-bg);  color: var(--entity-char-fg);  border-color: var(--entity-char-border); }
 .tn-pill[data-t="character"] .tn-pill-dot { background: var(--entity-char-dot); }
 .tn-pill[data-t="organization"] { background: var(--entity-org-bg);   color: var(--entity-org-fg);   border-color: var(--entity-org-border); }
@@ -355,1209 +534,88 @@
 .tn-pill[data-t="other"]        { background: var(--entity-other-bg); color: var(--entity-other-fg); border-color: var(--entity-other-border); }
 .tn-pill[data-t="other"] .tn-pill-dot { background: var(--entity-other-dot); }
 
-.tn-evidence {
-  padding: 12px 0 4px;
-}
-.tn-evidence-head {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  margin-bottom: 10px;
-}
-.tn-evidence-title {
-  font-size: var(--font-size-xs);
-  color: var(--fg-secondary);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-weight: 500;
-}
-.tn-evidence-count {
-  font-size: var(--font-size-xs);
-  color: var(--fg-muted);
-}
-
-.tn-teu {
-  padding: 10px 0 12px;
-  display: grid;
-  grid-template-columns: 60px 60px 1fr;
-  gap: 14px;
-  border-top: 1px dashed var(--border);
-}
-.tn-teu:first-of-type { border-top: none; }
-.tn-teu-ch {
-  font-family: var(--font-serif);
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-}
-.tn-teu-ch strong {
-  font-family: var(--font-serif);
-  font-size: var(--font-size-base);
-  color: var(--fg-primary);
-  font-weight: 500;
-}
-
-/* Spin animation (used by inline Loader icons) */
-.tn-spin { animation: spin 1s linear infinite; }
-
-/* ─────────────────────────────────────────────────────────────────────────
-   Review toolbar + line table (張力線審核主視圖)
-   Column widths are fixed px + one 1fr, not equal fractions: the pole labels
-   are 8–10 characters of Chinese and everything else is a short number.
-   ───────────────────────────────────────────────────────────────────────── */
-
-.tn-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 13px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--control-radius);
-}
-.tn-toolbar-label { font: 500 11px var(--font-sans); color: var(--fg-muted); }
-.tn-toolbar-spacer { flex: 1; }
-
-.tn-filter-group {
-  display: flex;
-  border: 1px solid var(--border);
-  border-radius: var(--control-radius);
-  overflow: hidden;
-  background: var(--bg-primary);
-}
-.tn-filter-btn {
-  padding: 5px 12px;
-  font: 400 12px var(--font-sans);
-  background: transparent;
-  color: var(--fg-secondary);
-  border: none;
-  border-left: 1px solid var(--border);
-  cursor: pointer;
-}
-.tn-filter-btn:first-child { border-left: none; }
-.tn-filter-btn:hover { background: var(--bg-tertiary); }
-.tn-filter-btn[aria-pressed="true"] {
-  background: var(--accent);
-  color: var(--accent-fg);
-  font-weight: 500;
-}
-
-.tn-sort-btn {
-  padding: 5px 11px;
-  font: 400 12px var(--font-sans);
-  background: var(--bg-primary);
-  color: var(--fg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--control-radius);
-  cursor: pointer;
-}
-.tn-sort-btn:hover { background: var(--bg-tertiary); }
-.tn-sort-btn[aria-pressed="true"] {
-  background: var(--bg-tertiary);
-  border-color: var(--fg-muted);
-  font-weight: 500;
-}
-
-.tn-batch-bar {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 9px 13px;
-  margin-top: 9px;
-  background: var(--accent);
-  border-radius: var(--control-radius);
-}
-.tn-batch-count { font: 500 12px var(--font-sans); color: var(--accent-fg); }
-.tn-batch-primary {
-  padding: 4px 13px;
-  font: 500 12px var(--font-sans);
-  background: var(--accent-fg);
-  color: var(--accent);
-  border: none;
-  border-radius: var(--btn-radius);
-  cursor: pointer;
-}
-.tn-batch-ghost {
-  padding: 4px 11px;
-  font: 400 11.5px var(--font-sans);
-  background: transparent;
-  color: var(--accent-fg);
-  border: 1px solid var(--accent-fg);
-  border-radius: var(--btn-radius);
-  cursor: pointer;
-}
-.tn-batch-dismiss {
-  padding: 4px 10px;
-  font: 400 11.5px var(--font-sans);
-  background: transparent;
-  color: var(--accent-fg);
-  border: none;
-  cursor: pointer;
-  opacity: 0.85;
-}
-.tn-batch-primary:hover, .tn-batch-ghost:hover, .tn-batch-dismiss:hover { opacity: 0.9; }
-
-.tn-table {
-  margin-top: 9px;
-  border: 1px solid var(--border);
-  border-radius: var(--card-radius);
-  overflow: hidden;
-}
-.tn-table-head,
-.tn-row {
-  display: grid;
-  grid-template-columns: 36px 1fr 78px 84px 124px 76px 152px;
-  align-items: center;
-}
-.tn-table-head {
-  padding: 8px 13px;
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
-  font: 500 10.5px var(--font-sans);
-  letter-spacing: 0.05em;
-  color: var(--fg-muted);
-}
-.tn-col-right { text-align: right; }
-
-.tn-row {
-  padding: 11px 13px;
-  border-bottom: 1px solid var(--border);
-  border-left: 3px solid transparent;
-  background: var(--bg-primary);
-  cursor: pointer;
-}
-.tn-row:last-child { border-bottom: none; }
-.tn-row:hover { background: var(--bg-secondary); }
-.tn-row[data-cursor="true"] { border-left-color: var(--border); }
-.tn-row[data-open="true"] {
-  border-left-color: var(--accent);
-  background: var(--bg-secondary);
-}
-/* Rejected lines stay legible but recede — they are done with, not gone. */
-.tn-row[data-rejected="true"] { opacity: 0.5; }
-
-.tn-row-poles {
-  font: 400 15px var(--font-serif);
-  color: var(--fg-primary);
-  text-wrap: pretty;
-  text-align: left;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-}
-.tn-vs {
-  font-family: var(--font-sans);
-  font-size: 10.5px;
-  color: var(--fg-muted);
-  padding: 0 6px;
-}
-.tn-row-chapters { font: 400 11px var(--font-mono); color: var(--fg-secondary); }
-.tn-row-evidence { font: 400 11px var(--font-sans); color: var(--fg-secondary); }
-
-.tn-row-intensity { display: flex; align-items: center; gap: 7px; }
-.tn-bar {
-  display: block;
-  width: 62px;
-  height: 6px;
-  background: var(--bg-tertiary);
-  border-radius: 3px;
-  overflow: hidden;
-  flex: none;
-}
-.tn-bar-fill { display: block; height: 100%; }
-.tn-bar-fill[data-band="low"]  { background: var(--tension-intensity-low-bg); }
-.tn-bar-fill[data-band="mid"]  { background: var(--tension-intensity-mid-bg); }
-.tn-bar-fill[data-band="high"] { background: var(--tension-intensity-high-bg); }
-.tn-bar-value { font: 400 11px var(--font-mono); color: var(--fg-secondary); }
-
-.tn-row-actions { display: flex; gap: 6px; justify-content: flex-end; }
-.tn-act-primary {
-  padding: 4px 11px;
-  font: 500 11.5px var(--font-sans);
-  background: var(--accent);
-  color: var(--accent-fg);
-  border: none;
-  border-radius: var(--btn-radius);
-  cursor: pointer;
-}
-.tn-act-primary:hover { opacity: 0.9; }
-.tn-act-ghost {
-  padding: 4px 9px;
-  font: 400 11.5px var(--font-sans);
-  background: var(--bg-primary);
-  color: var(--fg-secondary);
-  border: var(--btn-border-width) solid var(--border);
-  border-radius: var(--btn-radius);
-  cursor: pointer;
-}
-.tn-act-ghost:hover { background: var(--bg-tertiary); }
-
-.tn-check {
-  width: 15px;
-  height: 15px;
-  padding: 0;
-  border-radius: 3px;
-  border: 1.5px solid var(--border);
-  background: var(--bg-primary);
-  color: var(--accent-fg);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-}
-.tn-check[data-state="on"],
-.tn-check[data-state="partial"] {
-  background: var(--accent);
-  border-color: var(--accent);
-}
-
-.tn-table-empty {
-  padding: 30px;
-  text-align: center;
-  font: 400 13px var(--font-sans);
-  color: var(--fg-muted);
-}
-.tn-link-btn {
-  background: none;
-  border: none;
-  padding: 0 0 0 4px;
-  font: 500 13px var(--font-sans);
-  color: var(--accent);
-  cursor: pointer;
-}
-.tn-shortcuts {
-  margin-top: 10px;
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  font: 400 11px var(--font-sans);
-  color: var(--fg-muted);
-}
-
-/* ─────────────────────────────────────────────────────────────────────────
-   Review drawer (右側 432px 審核抽屜)
-   ───────────────────────────────────────────────────────────────────────── */
-
-.tn-shell { display: flex; min-height: 0; flex: 1; }
-.tn-shell-main { flex: 1; min-width: 0; min-height: 0; overflow: auto; }
+/* ── 審核抽屜（400） ───────────────────────────────────────────── */
 
 .tn-drawer {
-  width: 432px;
-  flex: none;
-  min-height: 0;
-  border-left: 1px solid var(--border);
-  background: var(--bg-secondary);
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
+  width: 400px; flex: none; min-height: 0;
+  display: flex; flex-direction: column; overflow: hidden;
+  background: var(--bg-primary);
+  border-left: var(--line-weight) var(--border-style) var(--border);
 }
-
 .tn-drawer-head {
-  flex: none;
-  padding: 16px 18px 13px;
-  background: var(--bg-primary);
-  border-bottom: 1px solid var(--border);
+  flex: none; display: flex; align-items: center; gap: var(--space-5);
+  padding: var(--space-5) var(--space-6);
+  border-bottom: var(--line-weight) var(--border-style) var(--border);
 }
-.tn-drawer-head-top {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  margin-bottom: 7px;
-}
-.tn-drawer-pos {
-  font: 500 10px var(--font-sans);
-  letter-spacing: 0.08em;
-  color: var(--fg-muted);
-}
-.tn-drawer-close {
-  background: none;
-  border: none;
-  color: var(--fg-muted);
-  cursor: pointer;
-  padding: 0;
-  display: flex;
-}
+.tn-drawer-title { margin: 0; font-family: var(--font-serif); font-size: var(--font-size-base); font-weight: 700; }
+.tn-drawer-pos { font-size: var(--font-size-2xs); color: var(--fg-muted); font-variant-numeric: tabular-nums; }
+.tn-drawer-close { display: inline-flex; background: none; border: none; padding: 0; cursor: pointer; color: var(--fg-muted); }
 .tn-drawer-close:hover { color: var(--fg-primary); }
-.tn-drawer-poles { font: 400 17px/1.5 var(--font-serif); text-wrap: pretty; }
-.tn-drawer-meta {
-  margin-top: 8px;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-  font: 400 11px var(--font-sans);
-  color: var(--fg-muted);
+.tn-drawer-body { flex: 1; min-height: 0; overflow: auto; padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-5); }
+.tn-drawer-meta { display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap; }
+.tn-drawer-poles {
+  display: grid; grid-template-columns: 32px minmax(0, 1fr); row-gap: var(--space-4); align-items: baseline;
+  font-size: var(--font-size-sm);
 }
+.tn-drawer-pole { display: flex; flex-direction: column; gap: var(--space-2); font-family: var(--font-serif); }
+.tn-drawer-pole small { font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-secondary); }
+.tn-drawer-carriers { display: flex; flex-direction: column; gap: var(--space-3); }
 
-.tn-drawer-body {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  padding: 16px 18px;
-  display: flex;
-  flex-direction: column;
-  gap: 15px;
+.tn-evidence { display: flex; flex-direction: column; border-top: var(--line-weight) var(--border-style) var(--border); }
+.tn-evidence-head { font-size: var(--font-size-2xs); color: var(--fg-muted); padding: var(--space-4) 0; }
+.tn-evidence-row {
+  display: flex; flex-direction: column; gap: var(--space-3);
+  padding: var(--space-4) 0;
+  border-top: var(--line-weight) var(--border-style) var(--border);
 }
-
-/* Warning notes carry an icon-free bold lead-in rather than colour alone, so
-   they survive the Ink theme where warning/success/error collapse to one black. */
-.tn-note-warn {
-  padding: 9px 12px;
-  background: var(--color-warning-bg);
-  border-radius: var(--control-radius);
-  font: 400 11.5px/1.65 var(--font-sans);
-  color: var(--fg-secondary);
-}
-.tn-note-warn.column { display: flex; flex-direction: column; gap: 4px; }
-.tn-note-warn b { color: var(--color-warning); }
-
-.tn-pole-card {
-  padding: 13px 15px;
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
-  border-radius: var(--card-radius);
-}
-.tn-pole-label {
-  font: 500 10px var(--font-sans);
-  letter-spacing: 0.08em;
-  color: var(--fg-muted);
-  margin-bottom: 6px;
-}
-.tn-pole-name { font: 600 14.5px var(--font-serif); margin-bottom: 9px; }
-.tn-pole-desc {
-  font: 400 13px/1.75 var(--font-serif);
-  color: var(--fg-secondary);
-  margin: 0 0 11px;
-  text-wrap: pretty;
-}
-.tn-pill-share {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  opacity: 0.7;
-}
+.tn-evidence-desc { margin: 0; font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-secondary); text-wrap: pretty; }
+.tn-evidence-meta { display: flex; align-items: baseline; gap: var(--space-5); font-size: var(--font-size-2xs); color: var(--fg-muted); }
 
 .tn-editor {
-  padding: 14px 15px;
-  background: var(--bg-primary);
-  border: var(--card-border-width) solid var(--accent);
-  border-radius: var(--card-radius);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
+  display: flex; flex-direction: column; gap: var(--space-4);
+  border-top: var(--line-weight) var(--border-style) var(--border); padding-top: var(--space-5);
 }
-.tn-editor-title {
-  font: 500 10px var(--font-sans);
-  letter-spacing: 0.08em;
-  color: var(--fg-muted);
-}
-.tn-field { display: flex; flex-direction: column; gap: 5px; }
-.tn-field > span { font: 400 11px var(--font-sans); color: var(--fg-secondary); }
-.tn-input {
-  width: 100%;
-  box-sizing: border-box;
-  padding: 8px 10px;
-  font: 400 12.5px var(--font-sans);
-  color: var(--fg-primary);
-  background: var(--bg-primary);
-  border: 1px solid var(--border);
-  border-radius: var(--control-radius);
-}
-.tn-input.serif { font: 400 14px var(--font-serif); }
-.tn-input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
-.tn-editor-hint {
-  font: 400 11px/1.65 var(--font-sans);
-  color: var(--fg-muted);
-  margin: 0;
-}
-.tn-editor-actions { display: flex; gap: 8px; justify-content: flex-end; }
-
-.tn-evidence-head { display: flex; align-items: baseline; gap: 9px; }
-.tn-evidence-title {
-  font: 500 11px var(--font-sans);
-  letter-spacing: 0.05em;
-  color: var(--fg-secondary);
-}
-.tn-evidence-count { font: 400 11px var(--font-sans); color: var(--fg-muted); }
-
-.tn-ev-card {
-  display: flex;
-  gap: 12px;
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--card-radius);
-  background: var(--bg-primary);
-}
-.tn-ev-side { flex: 0 0 62px; display: flex; flex-direction: column; gap: 5px; }
-.tn-ev-ch { font: 600 13px var(--font-serif); }
-.tn-ev-bar {
-  display: block;
-  width: 40px;
-  height: 5px;
-  border-radius: 3px;
-  overflow: hidden;
-  background: var(--bg-tertiary);
-}
-.tn-ev-pct { font: 400 10px var(--font-mono); color: var(--fg-muted); }
-.tn-ev-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 8px; }
-.tn-ev-summary {
-  font: 400 13px/1.75 var(--font-serif);
-  color: var(--fg-primary);
-  margin: 0;
-  text-wrap: pretty;
-}
-.tn-ev-quote {
-  margin: 0;
-  padding-left: 11px;
-  border-left: 2px solid var(--accent);
-  font: 400 12.5px/1.7 var(--font-serif);
-  color: var(--fg-secondary);
-  font-style: italic;
-}
-.tn-link-btn.inline {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  align-self: flex-start;
-  font: 500 11px var(--font-sans);
-  padding: 0;
-}
+.tn-editor-title { font-size: var(--font-size-2xs); font-weight: 600; }
+.tn-editor-hint { margin: 0; font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-secondary); text-wrap: pretty; }
 
 .tn-drawer-foot {
-  flex: none;
-  /* The chat launcher is a global position:fixed button at z-index 50 in the
-     bottom-right corner; the prototype had no such element, so the design's
-     18px right padding would put 拒絕 underneath it and swallow the clicks.
-     Reserve the launcher's footprint instead. */
-  padding: 13px 76px 13px 18px;
-  border-top: 1px solid var(--border);
-  background: var(--bg-primary);
-  display: flex;
-  gap: 8px;
+  flex: none; display: flex; align-items: center; gap: var(--space-4);
+  /* 全域聊天啟動鈕是右下角 fixed（z-index 50）；預留它的位置，不然「拒絕」會被蓋住 */
+  padding: var(--space-5) 76px var(--space-5) var(--space-6);
+  border-top: var(--line-weight) var(--border-style) var(--border);
 }
-.tn-drawer-foot button { padding: 9px 13px; font: 500 13px var(--font-sans); }
-.tn-act-primary.grow { flex: 1; }
+.tn-drawer-foot .ss-btn[aria-pressed="true"] { background: var(--bg-tertiary); }
 
-/* ─────────────────────────────────────────────────────────────────────────
-   Pipeline state cards (empty / step1 / running / error)
-   ───────────────────────────────────────────────────────────────────────── */
-
-.tn-state-empty {
-  padding: 70px 0 90px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  text-align: center;
-}
-.tn-state-hero {
-  width: 260px;
-  height: auto;
-  /* Without this the column flex container shrinks the image to a sliver. */
-  flex: none;
-  opacity: var(--splash-image-opacity);
-  filter: var(--splash-image-filter);
-}
-.tn-state-empty-title { font: 600 20px var(--font-serif); }
-.tn-state-empty-body {
-  font: 400 14px/1.85 var(--font-serif);
-  color: var(--fg-secondary);
-  max-width: 440px;
-  margin: 0;
-  text-wrap: pretty;
-}
-
-.tn-state-card {
-  padding: var(--space-lg);
-  border: var(--card-border-width) solid var(--border);
-  border-radius: var(--card-radius);
-  background: var(--bg-primary);
-  box-shadow: var(--card-shadow);
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  margin-bottom: 24px;
-}
-/* Failure keeps the previous result visible below it: the error card is
-   inserted above, it does not replace anything. */
-.tn-state-card.error {
-  border-color: var(--color-error);
-  background: var(--color-error-bg);
-  box-shadow: none;
-}
-
-.tn-state-title { font: 600 17px var(--font-serif); }
-.tn-state-title.sm { font-size: 15px; }
-.tn-state-title.error { color: var(--color-error); }
-.tn-state-body {
-  font: 400 13.5px/1.8 var(--font-serif);
-  color: var(--fg-secondary);
-  margin: 0;
-  text-wrap: pretty;
-}
-.tn-state-row { display: flex; align-items: baseline; justify-content: space-between; }
-.tn-state-pct { font: 400 12px var(--font-mono); color: var(--fg-secondary); }
-.tn-state-stage { font: 400 12px var(--font-sans); color: var(--fg-secondary); }
-.tn-state-meta { font: 400 11.5px var(--font-mono); color: var(--fg-muted); }
-
-.tn-state-bar {
-  height: 8px;
-  background: var(--bg-tertiary);
-  border-radius: 4px;
-  overflow: hidden;
-}
-.tn-state-bar > i {
-  display: block;
-  height: 100%;
-  background: var(--accent);
-  transition: width var(--transition-normal) ease;
-}
-
-.tn-state-actions { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
-.tn-state-cta {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 10px 22px;
-  font: 500 13px var(--font-sans);
-  background: var(--accent);
-  color: var(--accent-fg);
-  border: none;
-  border-radius: var(--btn-radius);
-  cursor: pointer;
-}
-.tn-state-cta.sm { padding: 9px 18px; }
-.tn-state-cta:hover { opacity: 0.9; }
-
-.tn-token-hint {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 11px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--badge-radius);
-  font: 400 11.5px var(--font-sans);
-  color: var(--fg-secondary);
-}
-.tn-token-hint svg { color: var(--accent); flex: none; }
-
-/* Step 1 pre-run notice (B-092) — an advisory, not a blocker, so it sits
-   below the body text rather than replacing the CTA. */
-.tn-state-notice {
-  display: flex;
-  align-items: flex-start;
-  gap: 7px;
-  max-width: 420px;
-  margin: 0 auto 4px;
-  padding: 8px 12px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--card-radius);
-  font: 400 11.5px/1.6 var(--font-sans);
-  color: var(--fg-secondary);
-  text-align: left;
-}
-.tn-state-notice svg { color: var(--accent); flex: none; margin-top: 2px; }
-.tn-state-notice-link {
-  color: var(--accent);
-  text-decoration: underline;
-  text-underline-offset: 2px;
-  /* Wrap as a unit — the default broke it mid-phrase ("前往建構概 / 覽推斷"). */
-  white-space: nowrap;
-}
-
-.tn-density { display: grid; gap: 6px; align-items: end; }
-.tn-density-col { display: flex; flex-direction: column; align-items: center; gap: 5px; }
-.tn-density-col > i {
-  display: block;
-  width: 100%;
-  background: var(--tension-intensity-mid-bg);
-  border-radius: 2px;
-}
-.tn-density-col > span { font: 400 10px var(--font-mono); color: var(--fg-muted); }
-
-/* ── Re-run confirmation modal ─────────────────────────────────── */
-
-.tn-modal-scrim {
-  position: fixed;
-  inset: 0;
-  z-index: 60;
-  /* Flat scrim: the design system forbids backdrop-filter. */
-  background: rgba(42, 38, 32, 0.42);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.tn-modal {
-  width: 470px;
-  max-width: calc(100vw - 32px);
-  padding: var(--space-lg);
-  background: var(--bg-primary);
-  border: var(--card-border-width) solid var(--border);
-  border-radius: var(--card-radius);
-  box-shadow: var(--shadow-lg);
-  display: flex;
-  flex-direction: column;
-  gap: 14px;
-}
-.tn-modal-head {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font: 600 16px var(--font-serif);
-}
-.tn-modal-head svg { color: var(--accent); flex: none; }
-.tn-modal-body {
-  margin: 0;
-  font: 400 13.5px/1.8 var(--font-serif);
-  color: var(--fg-secondary);
-  text-wrap: pretty;
-}
-.tn-modal-loss {
-  padding: 12px 14px;
-  background: var(--color-error-bg);
-  border-radius: var(--card-radius);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font: 400 12.5px/1.7 var(--font-sans);
-  color: var(--fg-primary);
-}
-.tn-modal-actions { display: flex; gap: 10px; justify-content: flex-end; }
-.tn-modal-danger {
-  padding: 8px 16px;
-  font: 500 12.5px var(--font-sans);
-  background: var(--color-error);
-  color: var(--bg-primary);
-  border: none;
-  border-radius: var(--btn-radius);
-  cursor: pointer;
-}
-.tn-modal-danger:hover { opacity: 0.9; }
-
-/* ── Theme hero (redesigned) + stale card ──────────────────────── */
-
-.tn-hero {
-  padding: var(--space-lg);
-  background: var(--bg-secondary);
-  border: var(--card-border-width) solid var(--border);
-  border-radius: var(--card-radius);
-  box-shadow: var(--card-shadow);
-  display: flex;
-  flex-direction: column;
-  gap: 13px;
-  margin-bottom: 20px;
-}
-.tn-hero-top { display: flex; align-items: center; gap: 9px; flex-wrap: wrap; }
-.tn-hero-eyebrow {
-  font: 500 10px var(--font-sans);
-  letter-spacing: 0.08em;
-  color: var(--fg-muted);
-}
-.tn-hero-badge {
-  font: 500 10px var(--font-sans);
-  padding: 1px 8px;
-  border-radius: var(--badge-radius);
-  background: var(--color-success-bg);
-  color: var(--color-success);
-  border: 1px solid var(--color-success);
-}
-/* The proposition is the largest text on the page on purpose. */
-.tn-hero-proposition {
-  margin: 0;
-  font: 400 21px/1.8 var(--font-serif);
-  color: var(--fg-primary);
-  max-width: 1000px;
-  text-wrap: pretty;
-}
-.tn-hero-warn {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 11px;
-  background: var(--color-warning-bg);
-  border-radius: var(--control-radius);
-  font: 400 11.5px var(--font-sans);
-  color: var(--fg-secondary);
-}
-.tn-hero-warn b { color: var(--color-warning); font-weight: 600; }
-
-.tn-hero-lines { display: flex; flex-wrap: wrap; align-items: center; gap: 7px; }
-.tn-hero-lines-label {
-  font: 400 11px var(--font-sans);
-  color: var(--fg-muted);
-  padding-right: 2px;
-}
-.tn-hero-line-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 3px 11px;
-  background: var(--bg-primary);
-  border: var(--pill-border-width) solid var(--border);
-  border-radius: var(--pill-radius);
-  font: 400 12px var(--font-serif);
-  color: var(--fg-primary);
-  cursor: pointer;
-}
-.tn-hero-line-pill:hover { background: var(--bg-tertiary); }
-.tn-hero-line-pill > i {
-  display: block;
-  width: 4px;
-  height: 12px;
-  flex: none;
-  border-radius: 1px;
-}
-.tn-hero-line-pill > i[data-band="low"] { background: var(--tension-intensity-low-bg); }
-.tn-hero-line-pill > i[data-band="mid"] { background: var(--tension-intensity-mid-bg); }
-.tn-hero-line-pill > i[data-band="high"] { background: var(--tension-intensity-high-bg); }
-
-.tn-hero-foot {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding-top: 3px;
-  flex-wrap: wrap;
-}
-.tn-hero-foot .tn-act-ghost { display: inline-flex; align-items: center; gap: 5px; }
-.tn-hero-editor { display: flex; flex-direction: column; gap: 10px; }
-.tn-hero-editor textarea { resize: vertical; line-height: 1.8; }
-
-.tn-stale-card {
-  padding: 16px 18px;
-  border: var(--card-border-width) solid var(--color-warning);
-  border-radius: var(--card-radius);
-  background: var(--color-warning-bg);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  margin-bottom: 20px;
-}
-.tn-stale-head { display: flex; align-items: center; gap: 8px; font: 600 15px var(--font-serif); }
-.tn-stale-mark {
-  width: 18px;
-  height: 18px;
-  flex: none;
-  border-radius: 50%;
-  background: var(--color-warning);
-  color: var(--bg-primary);
-  font: 600 11px/18px var(--font-sans);
-  text-align: center;
-}
-.tn-stale-body {
-  margin: 0;
-  font: 400 13.5px/1.8 var(--font-serif);
-  color: var(--fg-secondary);
-  text-wrap: pretty;
-}
-/* The superseded proposition is shown greyed and inset: readable, but clearly
-   no longer the page's claim. */
-.tn-stale-old {
-  padding: 13px 15px;
-  background: var(--bg-primary);
-  border-radius: var(--card-radius);
-  font: 400 14.5px/1.85 var(--font-serif);
-  color: var(--fg-muted);
-  text-wrap: pretty;
-}
-
-/* ── Chapter grid ──────────────────────────────────────────────── */
-
-.tn-grid-card {
-  padding: var(--space-lg);
-  border: var(--card-border-width) solid var(--border);
-  border-radius: var(--card-radius);
-  background: var(--bg-primary);
-  box-shadow: var(--card-shadow);
-  margin-bottom: 18px;
-}
-.tn-grid-head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 16px;
-  flex-wrap: wrap;
-}
-.tn-grid-title-wrap { display: flex; align-items: baseline; gap: 10px; }
-.tn-grid-title { font: 600 16px var(--font-serif); }
-.tn-grid-meta { font: 400 11.5px var(--font-sans); color: var(--fg-muted); }
-.tn-grid-legend { display: flex; align-items: center; gap: 13px; }
-.tn-grid-legend-label { font: 400 11px var(--font-sans); color: var(--fg-muted); }
-.tn-legend-item {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  font: 400 11px var(--font-sans);
-  color: var(--fg-secondary);
-}
-.tn-legend-item > i { display: block; width: 9px; }
-.tn-legend-item > i[data-band="low"] {
-  background: var(--tension-intensity-low-bg);
-  border: 1px solid var(--tension-intensity-low-edge);
-}
-.tn-legend-item > i[data-band="mid"] { background: var(--tension-intensity-mid-bg); }
-.tn-legend-item > i[data-band="high"] { background: var(--tension-intensity-high-bg); }
-.tn-grid-legend-note {
-  font: 400 11px var(--font-sans);
-  color: var(--fg-muted);
-  padding-left: 7px;
-  border-left: 1px solid var(--border);
-}
-
-/* Wide books scroll the grid rather than the page. The column widths are consumed
-   by TensionChapterGrid's inline gridTemplateColumns; --tn-grid-cell-w is the floor
-   that makes the scroll actually happen instead of the columns collapsing. */
-.tn-grid {
-  display: grid;
-  align-items: stretch;
-  overflow-x: auto;
-  --tn-grid-label-w: 320px;
-  --tn-grid-cell-w: 28px;
-}
-.tn-grid-rowgroup { display: contents; }
-.tn-grid-corner {
-  font: 500 10px var(--font-sans);
-  letter-spacing: 0.07em;
-  color: var(--fg-muted);
-  padding-bottom: 8px;
-  position: sticky;
-  left: 0;
-  z-index: 1;
-  background: var(--bg-primary);
-  border-right: 1px solid var(--border);
-}
-.tn-grid-colhead {
-  text-align: center;
-  font: 500 11px var(--font-sans);
-  color: var(--fg-secondary);
-  padding-bottom: 8px;
-  border-left: 1px solid var(--border);
-}
-
-.tn-grid-rowlabel {
-  text-align: left;
-  background: var(--bg-primary);
-  border: none;
-  border-bottom: 1px solid var(--border);
-  border-left: 3px solid transparent;
-  border-right: 1px solid var(--border);
-  padding: 10px 12px 10px 9px;
-  cursor: pointer;
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  /* Frozen while the chapter columns scroll under it — without this the row label
-     scrolls away and the bars belong to no identifiable tension line. */
-  position: sticky;
-  left: 0;
-  z-index: 1;
-}
-.tn-grid-rowgroup[data-open="true"] .tn-grid-rowlabel,
-.tn-grid-rowgroup[data-open="true"] .tn-grid-cell { background: var(--bg-secondary); }
-.tn-grid-rowgroup[data-open="true"] .tn-grid-rowlabel { border-left-color: var(--accent); }
-.tn-grid-poles { font: 400 14px/1.45 var(--font-serif); color: var(--fg-primary); text-wrap: pretty; }
-.tn-grid-rowmeta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font: 400 11px var(--font-sans);
-  color: var(--fg-muted);
-}
-.tn-status-badge.sm { font-size: 10px; padding: 1px 7px; }
-
-.tn-grid-cell {
-  border: none;
-  border-left: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-  background: none;
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 3px;
-  padding: 0 3px 8px;
-  min-height: 46px;
-  cursor: pointer;
-}
-.tn-grid-cell > i {
-  display: block;
-  width: 9px;
-  box-sizing: border-box;
-  border-radius: 1px;
-}
-.tn-grid-cell > i[data-band="low"] {
-  background: var(--tension-intensity-low-bg);
-  border: 1px solid var(--tension-intensity-low-edge);
-}
-.tn-grid-cell > i[data-band="mid"] {
-  background: var(--tension-intensity-mid-bg);
-  border: 1px solid var(--tension-intensity-mid-edge);
-}
-.tn-grid-cell > i[data-band="high"] {
-  background: var(--tension-intensity-high-bg);
-  border: 1px solid var(--tension-intensity-high-edge);
-}
-/* Dropped TEUs are hollow and dashed: present in the book, absent from the
-   analysis. The outline reads as "missing" in the Ink theme too. */
-.tn-grid-cell > i[data-orphan="true"] {
-  background: transparent;
-  border: 1px dashed var(--color-warning);
-}
-
-.tn-grid-rowgroup.orphan .tn-grid-rowlabel,
-.tn-grid-rowgroup.orphan .tn-grid-cell {
-  border-top: 2px solid var(--border);
-  border-bottom: none;
-}
-.tn-grid-orphan-title {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  font: 600 13px var(--font-serif);
-  color: var(--fg-primary);
-}
-.tn-grid-orphan-toggle { font: 400 11px var(--font-sans); color: var(--accent); }
-.tn-grid-orphan-meta { font: 400 11px var(--font-sans); color: var(--color-warning); }
-
-.tn-orphan-list {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px solid var(--border);
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-.tn-orphan-list-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 4px; }
-.tn-orphan-list-title { font: 600 13px var(--font-serif); }
-.tn-orphan-row {
-  display: grid;
-  grid-template-columns: 50px 1fr 100px 132px;
-  align-items: center;
-  gap: 12px;
-  padding: 9px 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--card-radius);
-}
-/* A dropped TEU at 0.9 is the strongest evidence in the book going unused. */
-.tn-orphan-row[data-strong="true"] { background: var(--color-warning-bg); }
-.tn-orphan-ch { font: 600 12px var(--font-serif); }
-.tn-orphan-poles { font: 400 13.5px var(--font-serif); text-wrap: pretty; }
-.tn-orphan-intensity { display: flex; align-items: center; gap: 6px; }
-.tn-bar.sm { width: 46px; height: 5px; }
-.tn-orphan-select {
-  padding: 4px 8px;
-  font: 400 11px var(--font-sans);
-  background: var(--bg-primary);
-  color: var(--fg-primary);
-  border: 1px solid var(--accent);
-  border-radius: var(--btn-radius);
-  max-width: 100%;
-}
-
-/* ── Mode toggle + TEU inspector ───────────────────────────────── */
-
-.tn-mode-row { display: flex; align-items: center; gap: 11px; padding-bottom: 14px; }
-.tn-mode-seg {
-  display: flex;
-  gap: 2px;
-  padding: 3px;
-  background: var(--bg-tertiary);
-  border-radius: var(--control-radius);
-}
-.tn-mode-btn {
-  padding: 6px 15px;
-  font: 400 12.5px var(--font-sans);
-  background: transparent;
-  color: var(--fg-secondary);
-  border: none;
-  border-radius: calc(var(--control-radius) - 2px);
-  cursor: pointer;
-}
-.tn-mode-btn[aria-pressed="true"] {
-  background: var(--bg-primary);
-  color: var(--fg-primary);
-  font-weight: 500;
-  box-shadow: var(--shadow-sm);
-}
-.tn-mode-hint { font: 400 11.5px var(--font-sans); color: var(--fg-muted); }
-
-.tn-teu-mode { display: flex; flex-direction: column; gap: 10px; padding-bottom: 26px; }
-.tn-teu-meta { font: 400 11.5px var(--font-sans); color: var(--fg-secondary); }
-.tn-teu-filter {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 11px;
-  font: 400 12px var(--font-sans);
-  background: var(--bg-primary);
-  color: var(--fg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--control-radius);
-  cursor: pointer;
-}
-.tn-teu-filter > i {
-  display: block;
-  width: 9px;
-  height: 9px;
-  flex: none;
-  border: 1px dashed currentColor;
-  border-radius: 1px;
-}
-.tn-teu-filter[aria-pressed="true"] {
-  background: var(--color-warning-bg);
-  color: var(--color-warning);
-  border-color: var(--color-warning);
-  font-weight: 500;
-}
-
-.tn-teu-chapter {
-  border: var(--card-border-width) solid var(--border);
-  border-radius: var(--card-radius);
-  background: var(--bg-primary);
-  overflow: hidden;
-}
-.tn-teu-chapter-head {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 13px;
-  padding: 11px 15px;
-  background: none;
-  border: none;
-  cursor: pointer;
-  text-align: left;
-}
-.tn-teu-chapter-head[data-open="true"] {
-  background: var(--bg-secondary);
-  border-bottom: 1px solid var(--border);
-}
-.tn-teu-ch-label { font: 600 14px var(--font-serif); flex: 0 0 60px; }
-.tn-teu-ch-count { font: 400 11px var(--font-mono); color: var(--fg-muted); flex: 0 0 62px; }
-.tn-teu-mini { display: flex; align-items: flex-end; gap: 3px; height: 20px; flex: 0 0 auto; }
-.tn-teu-mini > i { display: block; width: 8px; box-sizing: border-box; border-radius: 1px; }
-.tn-teu-mini > i[data-band="low"] { background: var(--tension-intensity-low-bg); border: 1px solid var(--tension-intensity-low-edge); }
-.tn-teu-mini > i[data-band="mid"] { background: var(--tension-intensity-mid-bg); }
-.tn-teu-mini > i[data-band="high"] { background: var(--tension-intensity-high-bg); }
-.tn-teu-mini > i[data-orphan="true"] { background: transparent; border: 1px dashed var(--color-warning); }
-.tn-teu-ch-note { font: 400 11px var(--font-sans); color: var(--fg-muted); padding-left: 6px; }
-.tn-teu-ch-note[data-warn="true"] { color: var(--color-warning); }
-.tn-teu-ch-toggle { font: 400 11px var(--font-sans); color: var(--accent); }
-
-.tn-teu-grid {
-  padding: 13px 15px;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 11px;
-}
-.tn-teu-card {
-  padding: 12px 14px;
-  border: 1px solid var(--border);
-  border-radius: var(--card-radius);
-  background: var(--bg-primary);
-  display: flex;
-  flex-direction: column;
-  gap: 9px;
-}
-/* Dashed + recessed: this TEU exists but nothing downstream uses it. */
-.tn-teu-card[data-orphan="true"] {
-  border-style: dashed;
-  border-color: var(--color-warning);
-  background: var(--bg-secondary);
-}
-.tn-teu-card-top { display: flex; align-items: center; gap: 8px; }
-.tn-bar.md { width: 38px; height: 5px; }
-.tn-teu-source {
-  font: 400 10.5px var(--font-sans);
-  color: var(--fg-muted);
-  padding: 2px 8px;
-  border: 1px solid var(--border);
-  border-radius: var(--badge-radius);
-  max-width: 60%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.tn-teu-source[data-orphan="true"] {
-  color: var(--color-warning);
-  border-color: var(--color-warning);
-  background: var(--color-warning-bg);
-}
-.tn-teu-poles { font: 400 14px/1.5 var(--font-serif); text-wrap: pretty; }
-.tn-teu-summary {
-  margin: 0;
-  font: 400 12.5px/1.75 var(--font-serif);
-  color: var(--fg-secondary);
-  text-wrap: pretty;
-}
-.tn-teu-carriers { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; }
-.tn-teu-carrier-label {
-  font: 500 9.5px var(--font-sans);
-  letter-spacing: 0.06em;
-  color: var(--fg-muted);
-}
-.tn-teu-card-foot { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-
-/* ─────────────────────────────────────────────────────────────────────────
-   Responsive
-   The design package shipped a single 1440px board, so every breakpoint below
-   is a decision made here rather than a spec being followed. Breakpoint values
-   reuse the two already in the codebase (methodology.css 1080, timeline.css 640)
-   rather than inventing a third scale — there are no breakpoint tokens.
-   ───────────────────────────────────────────────────────────────────────── */
+/* ── Responsive ─────────────────────────────────────────────────────
+   斷點沿用專案既有的 1080（methodology.css）與 640（timeline.css）。 */
 
 @media (max-width: 1080px) {
-  /* The frozen label column costs the chapter columns their width, so it gives
-     some back before they hit --tn-grid-cell-w and the grid starts scrolling. */
   .tn-grid { --tn-grid-label-w: 200px; }
-  .tn-grid-poles { font-size: 13px; }
 
-  /* The drawer overlays rather than pushing. Docked at 432px it would leave the
-     main column under 650px, which breaks the chapter grid and the line table at
-     the same time — one panel's layout should not cost two others theirs.
-     z-index stays below the global chat launcher (50), whose footprint
-     .tn-drawer-foot already reserves padding for. */
+  /* 抽屜蓋在內容上而不是推擠：docked 會讓主欄掉到 650 以下，格點與線表同時垮。
+     z-index 低於全域聊天啟動鈕（50）。 */
   .tn-shell { position: relative; }
   .tn-drawer {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: min(432px, 100%);
-    z-index: 40;
-    box-shadow: var(--shadow-lg);
+    position: absolute; top: 0; right: 0; bottom: 0;
+    width: min(400px, 100%); z-index: 40; box-shadow: var(--shadow-lg);
   }
 
-  /* The line table's six fixed columns total 550px, leaving the poles column
-     nothing to wrap into once the viewport tightens. Chapters and evidence drop
-     to a second line under the poles; both stay on screen, since a review
-     decision needs to see how much evidence backs the line. */
-  .tn-table-head,
-  .tn-row {
-    grid-template-columns: 36px 1fr 124px 76px 152px;
-    row-gap: 3px;
-  }
-  /* Orphaned once their values move under the poles column. */
-  .tn-table-head > span:nth-child(3),
-  .tn-table-head > span:nth-child(4) { display: none; }
+  /* 線表固定欄合計太寬：章節與證據落到極點對下方第二行，兩者都保留 */
+  .tn-table-head, .tn-row { grid-template-columns: 13px minmax(0, 1fr) 152px 72px 236px; row-gap: var(--space-2); }
+  .tn-table-head > span:nth-child(3), .tn-table-head > span:nth-child(4) { display: none; }
   .tn-row > .tn-check { grid-column: 1; grid-row: 1 / span 2; align-self: start; }
   .tn-row > .tn-row-poles { grid-column: 2; grid-row: 1; }
   .tn-row > .tn-row-chapters { grid-column: 2; grid-row: 2; }
   .tn-row > .tn-row-evidence { grid-column: 3; grid-row: 2; }
   .tn-row > .tn-row-intensity { grid-column: 3; grid-row: 1; }
-  .tn-row > .tn-status-badge { grid-column: 4; grid-row: 1; }
+  .tn-row > .tn-row-status { grid-column: 4; grid-row: 1; }
   .tn-row > .tn-row-actions { grid-column: 5; grid-row: 1; }
 }
 
 @media (max-width: 640px) {
   .tn-grid { --tn-grid-label-w: 150px; }
-  .tn-grid-rowmeta { flex-wrap: wrap; gap: 4px; }
-  /* min(432px, 100%) above already collapses the drawer to full width here. */
-  .tn-page { padding: 16px 14px 64px; }
-}
-
-/* Scene line on the Step 1 card (B-068). Set apart from the body copy because
-   it carries a "not determinable" case that must not read as a stat. */
-.tn-state-scenes {
-  margin: 4px 0 0;
-  font: 400 11.5px var(--font-sans);
-  color: var(--fg-secondary);
+  .tn-page { padding: var(--space-6) var(--space-5) var(--space-8); }
+  /* 五格在這個寬度比自己的標題還窄：改直向堆疊 */
+  .tn-stepper { grid-template-columns: minmax(0, 1fr); }
+  .tn-teu-items { padding-left: var(--space-5); }
 }

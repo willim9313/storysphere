@@ -537,7 +537,8 @@
       "clearSelection": "Esc to clear",
       "sortIntensity": "Intensity ↓",
       "sortChapter": "Chapter ↑",
-      "sortCount": "Evidence ↓"
+      "sortCount": "Evidence ↓",
+      "batchFailed": "{{count}} could not be processed and stay selected; you can try again."
     },
     "drawer": {
       "title": "TensionLine Review",
@@ -560,7 +561,8 @@
       "backToText": "Back to text · Chapter {{n}}",
       "approveKey": "Approve · A",
       "editKey": "Edit labels · E",
-      "rejectKey": "Reject · X"
+      "rejectKey": "Reject · X",
+      "carrier": "Carrier"
     },
     "stage": {
       "scopeScene": "SCENE level",
@@ -623,7 +625,8 @@
       "groupErrorTitle": "TensionLine grouping failed",
       "groupErrorBody": "{{error}} The last successful result ({{count}} tension lines) is still shown below and was not overwritten.",
       "groupErrorBodyNoPrev": "{{error}}",
-      "retryGroup": "Retry grouping"
+      "retryGroup": "Retry grouping",
+      "gateHint": "Review them all →"
     },
     "theme": {
       "eyebrow": "BOOK LEVEL · TENSIONTHEME",
@@ -641,7 +644,9 @@
       "incompleteBody": "Those lines entered the synthesis as raw model output; re-synthesizing after review is recommended.",
       "supporting": "Supporting tension lines",
       "builtFrom": "From {{reviewed}} / {{total}} reviewed tension lines",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "fryeLabel": "Frye",
+      "bookerLabel": "Booker"
     },
     "grid": {
       "title": "Chapter grid",
@@ -673,7 +678,12 @@
       "someOrphan": "{{count}} ungrouped",
       "noneOrphan": "All grouped",
       "orphanBadge": "Ungrouped",
-      "noneMatch": "No matching TEUs."
+      "noneMatch": "No matching TEUs.",
+      "assign": {
+        "conflict": "This TEU is already claimed by another tension line. A TEU belongs to exactly one line; there is no \"move\" action.",
+        "zeroCost": "Writes the assignment only, no cost",
+        "failed": "Assignment failed: {{reason}}"
+      }
     },
     "mode": {
       "lines": "Tension Lines {{count}}",

@@ -35,6 +35,15 @@ export function sortLines(lines: TensionLineDetail[], sort: ReviewSort): Tension
   return out;
 }
 
+/** How the page reports a TEU → line assignment back to the rows that offer it. */
+export interface AssignApi {
+  /** The TEU whose assignment is in flight, if any. */
+  pendingTeuId: string | null;
+  /** The last failure, keyed by TEU so only that row shows it. */
+  failure: { teuId: string; kind: 'conflict' | 'other'; reason: string } | null;
+  onAssign: (teuId: string, lineId: string) => void;
+}
+
 export function countByFilter(lines: TensionLineDetail[]): Record<ReviewFilter, number> {
   const counts: Record<ReviewFilter, number> = {
     all: lines.length,

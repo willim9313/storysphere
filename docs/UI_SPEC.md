@@ -1261,263 +1261,111 @@ popover（寬 340、`--card-radius`）內五個 AND 疊加的分區（事件類�
 ### 3.8 張力分析頁 `/books/:bookId/tension`
 
 > 術語定義（TEU、TensionLine、TensionTheme 等）見 `docs/domain-glossary.md`。
+> DS v3 第 4 批（4-4）改版，依據 `15 張力分析` 決議紀錄。**B 檢視**密度（頁邊 24／區塊間距 16／卡內距 16／列 8、內容 max-w 1280、下內距 32）。樣式 `frontend/src/styles/tension.css`（`.tn-*`），全走 token；按鈕、badge、segmented、進度條、確認框用 kit（`.ss-btn*`、`.ss-badge*`、`.ss-seg`、`.ss-progress`、`ConfirmDialog`）。
 
-#### 版面結構（2026-08 翻新）
+> **以下是草稿・待設計定案**（i18n `tension.*`，zh-TW 與 en 皆有）：
+> `tension.state.gateHint`（「全部審完 →」，稿 G 區軟閘門）、`tension.drawer.carrier`（「載體」，稿 F 區）、
+> `tension.toolbar.batchFailed`（批次部分失敗提示）、`tension.teu.assign.failed`（指派非 409 失敗的說明）。
+> README §5 已裁決、**不標草稿**：`tension.theme.fryeLabel`／`bookerLabel`、`tension.teu.assign.conflict`（依計畫 Q3 只留前兩句）、
+> `tension.teu.assign.zeroCost`、`tension.rerun.title`（既有字串，一字不改）。
+> 無「原寫死字串移入 i18n」。
 
-```
-[tn-shell（height:100%）→ tn-shell-main.tn-scroll → tn-page]
-  ├─ Stepper Strip          (五段：機器步驟 ×3 + 人工關卡 ×2)
-  ├─ 主體（依管線狀態四選一）
-  │    ├─ EmptyCard         (尚無資料 → 三層說明 + 開始 Step 1)
-  │    ├─ Step1Card         (TEU 已就緒、尚未聚合 → 章節分布 + 執行 Step 2)
-  │    ├─ RunningCard       (三種進行中：組裝 / 聚合 / 合成)
-  │    └─ ErrorCard         (聚合失敗 → 保留上次結果的說明 + 重試)
-  ├─ Theme Hero             (theme 存在時；含過期專屬版面)
-  └─ hasLines 時：
-       ├─ 模式切換列         (張力線 N ⇄ TEU 逐章 M，segmented control)
-       ├─ mode=lines → 章節格點 + 審核工具列 + 審核表格
-       └─ mode=teu   → TEU Inspector（逐章展開，含未歸入標記）
-[右側 Review Drawer（mode=lines 且有選定線時）]
-[Rerun Dialog（重跑確認）]
-```
-
-CSS 入口：`frontend/src/styles/tension.css`（class prefix `.tn-*`）。
-元件入口：`frontend/src/components/tension/` —— `TensionStepperStrip` / `TensionStateCards`
-（Empty / Step1 / Running / Error 四張）/ `TensionThemeHero` / `TensionChapterGrid` /
-`TensionReviewToolbar` / `TensionLineTable` / `TensionReviewDrawer` / `TensionTEUInspector` /
-`TensionRerunDialog` / `intensity.ts` / `drawerData.ts` /
-`reviewTypes.ts` / `hooks/useTensionTask`。
-
-#### Step 1 卡片的場景行（`.tn-state-scenes`，B-068）
-
-密度長條**刻意畫 TEU 數**（理由見下方 stepper 一節與 B-068），所以場景數只能走文字。
-
-| 情況 | 呈現 |
-|---|---|
-| 全部章節都判定得出 | `場景 N 個` |
-| 部分章節判定不出 | `場景 N 個（僅 X 章可判定，另 Y 章無排版分隔符）` |
-| 整本都判定不出 | `場景無法判定——這本書的排版沒有分隔符`，**完全不出現數字** |
-
-**「判定不出」的章節不併進總數。** 場景來自原文排版的分隔符，沒有分隔符的章節整章
-不回傳分組——寫成「0 個」或「1 個」都是在斷言判準看不見的事（那章可能有五場戲）。
-逐章 tooltip 同樣分開：`場景 2` 或 `場景無法判定`。
-
-**順帶更正了一個文案衝突**：stepper 的 `teuDone` / `teuPartial` 與失敗清單原本把 TEU
-數叫「場景」（`8 / 8 場景`）。B-068 的結論正是「TEU 是節拍不是場景」，而卡片開始顯示
-真正的場景數之後，同一畫面上「場景」有了兩個意思。文案改為「個 TEU」。
-
----
-
-#### 五段 Stepper Strip（`.tn-stepper`）
-
-翻新的核心主張：**人工關卡是一等公民**。舊版三步驟 stepper 隱含「按 1、2、3 就完成」，
-但兩次人工審核才是這條管線的價值所在，因此 strip 改為五段：
-
-| # | id | kind | 內容 |
-|---|----|------|------|
-| 1 | `teu` | machine | TEU 組裝（SCENE 場景級） |
-| 2 | `review-teu` | **gate** | 檢視 N 個 TEU、標出未歸入項 |
-| 3 | `group` | machine | TensionLine 聚合（CROSS-SCENE） |
-| 4 | `review-lines` | **gate** | 逐條審核張力線（已審核 n / N） |
-| 5 | `theme` | machine | TensionTheme 合成（BOOK 全書級） |
-
-- **形狀即語意**：machine 步驟是圓形 num badge，gate 是方形——不只靠顏色區分（Ink 主題下
-  success / warning / error 會塌成同一個黑）
-- 寬度分配 `machine:1.15 / gate:0.95`，gate 不做成細分隔線，避免讀成「附屬品」。
-  這個比例**由 TSX 以 CSS 自訂屬性 `--tn-stage-flex` 交給 CSS**，不直接寫 inline
-  `flex`——inline 值會壓過下面那個斷點，只能靠 `!important` 扳回來
-- **`max-width: 640px` 改為直向堆疊**。實測：641px 時每格 100px、標題還在一行；
-  640px 以下標題開始折行，400px 折成三行，整條 strip 讀起來像五欄直排文字，
-  「TensionLine 聚合」還會疊到隔壁。堆疊後每格滿寬，標題在 360px 都維持一行。
-  **此斷點純 CSS**，與 1080px 那個抽屜斷點不同，不需要 JS 同步
-- **四個狀態旗標，dot 的字符即語意**（不靠顏色——Ink 主題下 success / warning / error
-  會塌成同一個黑）：
-
-  | 旗標 | dot 字符 | 意思 |
-  |---|---|---|
-  | `done` | `Check` ✓ | 跑完，全數產出 |
-  | `partial` | `Minus` — | **跑完了，但有缺口**（12 / 15），下游照樣解鎖 |
-  | `failed` | `AlertTriangle` ▲ | 這一段整個壞掉、什麼都沒產出 |
-  | `running` | 無 | 進行中 |
-
-  `partial` 與 `done` **同時為真**，而 dot 上 `partial` 優先——否則畫面會一邊打綠勾
-  一邊說「3 則失敗」。破折號沿用三態 checkbox 的 indeterminate 慣例：
-  「有一些但不是全部」。`partial` 不解鎖與 `failed` 不同的路徑，它只換 dot 與框色
-  （warning），因為那一段**確實**產出了其餘場景，把下游擋住反而會逼使用者重跑一次
-  完整 LLM pass（B-110 踩過的坑）。
-- 已完成的 machine 步驟 CTA 為 `↻`，點擊先開 `TensionRerunDialog`，確認後才以 `force=true`
-  送出。`force` 是必要的：後端在 `force=false` 時直接回快取並回報成功，畫面看起來執行過但
-  毫無變化。
-
-#### 四張管線狀態卡（`TensionStateCards`）
-
-主體區依管線狀態四選一，取代舊版的 OnboardingHero + 空狀態文案：
-
-| 卡片 | 觸發條件 | 要點 |
-|------|---------|------|
-| `TensionEmptyCard` | 無 TEU 無 lines | 三層聚合說明 + 「開始 Step 1」+ token 成本提示 |
-| `TensionStep1Card` | 有 TEU、無 lines | **「N 個 TEU 已就緒」**+ 章節分布 chip；明說聚合是單次 LLM 呼叫、模型可能略過部分 TEU |
-| `TensionRunningCard` | 任一步驟 running | 三種標題（組裝 / 聚合 / 合成）+ 進度；明說可離開頁面、結果會保留 |
-| `TensionErrorCard` | 聚合失敗 | 錯誤訊息 + **「上次成功的 N 條仍保留在下方、未被覆寫」** + 重試 |
-
-Step 1 跑完不再顯示「請先執行 Step 1」——舊版此處文案自相矛盾。
-
-#### Theme Hero（`.tn-hero`）
-
-- **Eyebrow 列**：`BOOK 全書級 · TENSIONTHEME` + `最新` badge（來自 `is_stale`）
-- **命題**：serif 大字，可 inline 編輯為 `<textarea>`
-- **過期態是專屬版面**（不是加一條橫條）：標題、依 `stale_reason` 分岔的說明、
-  「重新合成主題」按鈕
-- **`incompleteHead` 警示**：合成當下若有 n 條未審核，顯示「這些線仍以模型原始輸出參與
-  合成」——資料來自 `reviewed_count_at_synth`（#14i），是合成當下的快照而非即時計算
-- **支撐的張力線**：pill 列，點擊跳至對應列
-- **Footer 三顆按鈕**：核准 / 改命題 / 拒絕（→ #14j）。**設計稿未畫這三顆**，
-  2026-08-04 決定保留：砍掉現有可用功能應該是獨立決定，不是設計稿沒畫就順手拿掉。
-  程式碼中已標註這段不在 canvas 內。
-- Frye / Booker badge 設計稿亦未畫，保留在標籤列右側（`--frye-*` / `--booker-*` token）。
-  兩個 badge 皆為連往方法論頁的連結（`/methodology?framework=frye_mythos` /
-  `/methodology?framework=booker_plots`），與敘事結構頁的做法一致。
-- **TensionLine／TEU 抽取層的理論定位**：Frye/Booker 是對已聚合完成的 TensionLine 做
-  書級分類，其方法論頁條目已完整引用。再往下一層——TEU 本身「找出場景對立雙極」的
-  抽取邏輯——只在概念上受 Aristotle 衝突論／Greimas 符號方陣／Peter Brooks／Mieke Bal
-  啟發，不是任一理論的精確實作（尤其 Greimas 符號方陣是四項式結構，系統只抽兩極）。
-  **不為此開獨立方法論頁條目**，改在 Frye 與 Booker 兩個條目的 description 末段各加一句
-  誠實聲明，避免被誤讀成系統精確實作了這些理論。
-
-#### 模式切換（`.tn-mode-seg`）
-
-`hasLines` 後出現 segmented control，兩個模式常駐（不是階段性顯示）：
-
-| 模式 | 內容 |
-|------|------|
-| `張力線 N` | 章節格點 + 審核工具列 + 審核表格（審核主動線） |
-| `TEU 逐章 M` | `TensionTEUInspector`：場景級原始輸出，逐章展開，標出 M 個未被聚合歸入的 TEU |
-
-#### 章節格點（`TensionChapterGrid`）
-
-**取代舊版的 SVG 軌跡圖**。`grid-template-columns: 320px repeat(N, 1fr)`，一行一線、一格一章：
-
-- 格子色 = `intensityBucket()` → `--tension-intensity-{low|mid|high}-*`；空格＝該章無 TEU
-- 末列為**未歸入列**：聚合沒收進任何線的 TEU，附「{{list}} 整章落單」提示
-- 未歸入項可展開清單（依強度排序），逐筆下拉指派到某條張力線（→ #14d-3）——
-  這是「模型漏收」的人工補救出口，不需重跑 LLM
-
-#### 審核工具列與表格（`TensionReviewToolbar` / `TensionLineTable`）
-
-取代舊版 Summary Chip Bar + LineCard accordion：
-
-- **工具列**：狀態 chip 過濾 + 排序（強度 ↓ / 章節 ↑ / 證據數 ↓）+ 多選後的批次核准 / 批次拒絕
-- **表格 7 欄**：極點對 / 章節 / 證據 / 強度（相對）/ 狀態 / 審核
-- 點任一列開右側抽屜；不再用 accordion 就地展開
-
-#### 審核抽屜（`TensionReviewDrawer`，432px）
-
-盲審的解方——所有判斷材料集中在一處：
-
-- `審核中 · i / N` 位置指示，可用 J / K 在抽屜內連續移動
-- **A/B 不穩定警示**：`{{total}} 則 TEU 中有 {{flipped}} 則的 A/B 與多數決相反`
-  （資料來自 TEU 的 `flipped` 旗標）
-- **已人工修改警示**：顯示原始標籤與修改理由（來自 `edit` 紀錄）
-- **極點標籤編輯器**：只改標籤文字，不重跑 LLM、不消耗 token，證據歸屬與強度不變；
-  可填修改理由寫入審核紀錄。儲存後該線標記為「已修改」
-- **證據區**：逐則 TEU（章節 + 強度 + tension_description + 引文），附「回到原文 · 第 N 章」
-  深連結（走章節 scope）
-- 底部三顆按鈕標註快捷鍵：`核准 A` / `改標籤 E` / `拒絕 X`
-
-> 證據**不做同場景摺疊**、不提供逐字對照。設計稿要求的 `scene_group_id` 判準在真實資料上
-> 驗證失敗（B-069），誠實顯示「n 則」優於宣稱分組卻漏算。
-
-#### 重跑確認框（`TensionRerunDialog`）
-
-Step 2 重跑會使審核狀態遺失，因此確認框**逐項列出會失去什麼**，而非一句籠統警語：
+#### 版面結構
 
 ```
-會失去：{{n}} 條張力線、{{n}} 條已核准、{{n}} 條已改寫標籤
-會連帶過期：全書主題命題（引用了這些線）
+[tn-shell → tn-shell-main（bg-secondary、捲動）→ tn-page（B 檢視）]
+  ├─ GuidanceRibbon（共用，等第 19 稿）
+  ├─ 階段條 TensionStepperStrip（五格：圓＝計算、方＝人工關卡）
+  ├─ LlmUnconfiguredNotice（Step 1／Step 2／合成任一觸發被應用層 503 擋下時，就地一則）
+  ├─ Step 1 失敗清單（沒有 Step 1 卡時放頁面層；有則在卡底）
+  ├─ 主體（依管線狀態）
+  │    ├─ EmptyCard      無 TEU：Lucide Scale spot＋說明＋（概念缺席時）去處連結＋主鈕
+  │    ├─ RunningCard    進行中：spinner＋標題＋百分比＋ss-progress＋提示（不印後端 stage、無 ETA）
+  │    ├─ ErrorCard      Step 2 失敗：插在舊結果上方，「重試聚合」（次要＋字符）
+  │    ├─ Step1Card      有 TEU 無線：逐章長條（fg-muted 單色、上標 TEU 數、Tooltip 給連續敘事段數）
+  │    └─ SoftGate       有線無主題：未審完顯示「尚有 N 條未審核／全部審完 →」，審完才出現「合成全書主題」
+  ├─ ThemeHero（主題存在；過期時為同位置的 warning 卡＋「重新合成主題」）
+  └─ hasLines：模式 segmented（張力線 N／TEU 逐章 M）→
+       lines：章節格點卡＋審核卡（工具列／批次列／線表／鍵位列＋重新執行 Step 2）
+       teu：TEU 逐章（一張卡的 action rows）
+[右側 Review Drawer 400（lines 模式且有選定線）]
+[重跑 ConfirmDialog]
 ```
 
-#### 鍵盤快捷鍵
+元件：`components/tension/` —— `TensionStepperStrip`／`TensionStateCards`（Empty、Step1、Running、Error、SoftGate、FailureList）／`TensionThemeHero`／`TensionChapterGrid`／`TensionReviewToolbar`／`TensionLineTable`／`TensionReviewDrawer`／`TensionTEUInspector`／`TensionAssignControl`／`tensionModel.ts`（純邏輯，有 vitest）／`intensity.ts`／`drawerData.ts`／`reviewTypes.ts`／`hooks/useTensionTask`。
+`TensionRerunDialog` **已不使用**（孤兒，檔案保留，待使用者確認後刪）。
 
-`J / K` 移動　`A` 核准　`X` 拒絕　`E` 改標籤　`Space` 多選　`V` 全選　`Esc` 關閉。
-快捷鍵在 `TensionPage` 以 window `keydown` 綁定，重跑確認框開啟時或 `mode !== 'lines'` 時停用。
+#### 三條軸（花 token／寫資料／不可逆互不蘊含）
 
-#### 樣式與 token
+| 控制項 | 字符 `.ss-btn-llm` | 確認框 | 危險色 |
+|---|---|---|---|
+| 開始 Step 1、執行 Step 2、合成全書主題、重新合成、重新合成主題、重試聚合 | 是 | 否（首次執行直接送出） | 否 |
+| 重新執行 Step 2 | 是 | 是（`ConfirmDialog`） | 是（`ss-btn-danger`） |
+| 核准／修改命題／拒絕、批次核准／拒絕、改標籤、指派到張力線 | 否（零成本） | 否 | 否 |
 
-`frontend/src/styles/tension.css`（`.tn-*` prefix），**無硬編色碼、未新增 token**。
-Modal 遮罩是平的 `rgba(42,38,32,0.42)`，不用 `backdrop-filter`。Ink 主題必須可用。
+成本提示文字（`tension.state.tokenHintShort／Long`，逐字）一律純文字、不帶字符。
+
+#### 階段條
+
+五格 grid。計算格圓形記號、關卡格方形記號——形狀本身是「三步 LLM＋兩道 HITL」的編碼，**不統一**。
+鎖定（`notReady`）格改降階文字色（title／note 轉 `--fg-muted`、記號描邊轉 `--border`），**不用虛線框**。
+記號字符：`done` ✓、`partial` —（有缺口但下游照解鎖，優先於 ✓）、`failed` ▲；Ink 下靠形狀而非色相。三個尺度標籤（SCENE／CROSS-SCENE／BOOK）留在格上。
+< 640px 改直向堆疊（純 CSS）。
+
+#### 階段 0（空態）
+
+導覽條（共用）→ 階段條 → `Scale` spot（72px、`--illustration-stroke`）置於標題上方 → 標題／說明 → 概念推論缺席說明句＋連結「前往建構概覽推斷 →」（箭頭在字串外）→ 主鈕 `ss-btn-llm`＋成本提示。
+`conceptsMissing` 只在建構概覽 manifest **成功載入後**才判斷（載入中不會誤判）。
+
+#### 階段 1（Step 1 卡）
+
+標題＋場景行（B-068：「判定不出」不併進總數）→ 逐章長條（`--fg-muted` 單色；高度正比最忙的一章，上方標 TEU 數 tabular-nums；hover 以 Tooltip 給「ch{n}：{teus} 個 TEU · {runs} 段連續敘事 · 場景…」）→ 說明 → 「執行 Step 2 · 聚合」（字符）＋成本提示 → 卡底 `<details>` 失敗清單（預設收合；run-scoped 提示為既有字串，無左邊框）。
+
+#### 全書主題 Hero
+
+eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，**chip 字面不動**）→ 命題 → 合成完整性警告帶（凍結值，`null` 則不顯示）→ 支撐的張力線（前 4 條、前置強度記號）→ 四顆按鈕：**只有「重新合成」帶字符**，核准／修改命題為次要、拒絕為 ghost，皆純文字 → provenance 行（出處，與警告帶分兩處）。
+過期：同位置換成 warning 卡（四種理由共用，四選一）＋舊命題（灰）＋「重新合成主題」（次要＋字符）。
+
+#### 張力線模式
+
+- **章節格點**：標籤欄 340（凍結）；逐 TEU 迷你長條（寬 6，低 8／中 14／高 20，`--tension-intensity-*`）；**未歸入＝實線空心框（warning 描邊、不填色）**，圖例補「未歸入」；選中的線用底色＋標籤加粗。窄視窗橫捲、標籤欄 sticky。
+- **審核卡**：狀態篩選與排序都是 `ss-seg`，預設排序強度 ↓；多選後出現批次列（批次核准／批次拒絕＋「Esc 取消選取」，底色 `--bg-secondary`，不用實心 accent）。
+  批次**逐筆** PATCH（無批次端點），一筆失敗不中斷其餘；失敗的留在選取中並提示（`batchFailed`）。
+  線表欄寬 `13 / 1fr / 128 / 64 / 152 / 72 / 236`，列高 ≥48 固定、審核欄 `nowrap`、章節欄 `ellipsis` 不溢入證據欄；勾選框 13×13 圓角 2；「核准」為次要鈕。
+  < 1080px 章節與證據落到極點對下方第二行。篩到空：一行字＋ghost「顯示全部 N 條」。
+- 鍵位列逐字（J／K 移動　A 核准　X 拒絕　E 改標籤　Space 多選　V 全選　Esc 關閉）；快捷鍵在重跑確認框開啟或 `mode !== 'lines'` 時停用。
+- 「重新執行 Step 2」：`ss-btn-danger ss-btn-llm`＋左側成本提示 → `ConfirmDialog`（標題 `rerun.title`、內文 `rerun.body`、`sections`＝會失去（0 的項目不出現）／會連帶過期（有主題才有）、`costHint`、`danger`＋`spendsTokens`）。
+
+#### TEU 逐章
+
+同一張卡的 action rows（lead 章名、body 迷你長條＋狀態、trail 展開），hairline 分隔，不是每章一張卡。未歸入計數 `--color-warning`、全部已歸入 muted。保留「只看未歸入」「全部展開」。
+展開內容沿用現有 TEU 內容（API 無 TEU 標題欄位，見回饋 4-TN-2）。**指派到張力線**（`TensionAssignControl`，章節格點的未歸入清單共用）：零成本，旁註「只寫入歸屬，零成本」；有 pending（select 停用）與錯誤處理——**409 顯示專屬說明** `tension.teu.assign.conflict`（只留前兩句，見回饋 4-TN-1），其他失敗顯示伺服器原因。
+
+#### 審核抽屜（400）
+
+標題「張力線審核」顯示出來；`審核中 · i / N`、關閉；`ch … · N TEU · 強度 {高／中／低}`（**文字分級**，不顯示數值）＋狀態 badge；兩種警示（A/B 不穩定、已人工修改）；極點 A／B（含立場文字）與「載體」列（carrier 為空顯示「未指派 carrier」）；證據為 text row（serif sm／1.85、hairline、**無 hover 填色、無左邊框**），每則附章節、強度文字與「回到原文 · 第 N 章」；編輯態逐字保留零成本句；底部 核准　A／改標籤　E／拒絕　X。
+< 1080px 抽屜覆蓋在內容上（`inert` 主欄、開啟時移焦點、關閉時歸還），z-index 低於聊天啟動鈕。
+
+#### 錯誤與其他狀態
+
+- **本頁 lines／teus／theme 查詢失敗** → `PageFailure`（`failureKind` 分 page／backend；頁名取 `nav.tabs.tensionAnalysis`；「回書籍總覽」沿用 `character.error.backToBook`；技術細節收進 disclosure）。查詢留在頁面層，重試是原地 refetch，不卸載／重掛。
+  theme 的「還沒合成」是應用層 404（有 JSON body）→ 視為「沒有主題」；其他（500、無 body 的 404/502）才是錯誤。以前這些都被吞成「尚未進行張力分析」。
+- **Step 1／Step 2／合成（含重新執行、重新合成）觸發被應用層 503** → `LlmUnconfiguredNotice`，頁面其餘照常（`useTensionTask` 保留 error 物件，回傳 `llmBlocked`，向下相容）。
+- 執行中：`task.progress` 畫進度條；「正在呼叫 LLM，消耗 token。可離開頁面，完成後會保留結果。」逐字，不帶字符、無 ETA、不印後端 stage 字串。
 
 #### 已知缺口
 
-- ~~**RWD 未做**~~ **已做（2026-08-21，B-070）**：`tension.css` 檔尾新增 Responsive 區塊，
-  斷點沿用專案既有的 `1080px`（methodology.css）與 `640px`（timeline.css），未新增 breakpoint
-  token。三項待決事項的結論：
-  - **格點超過 N 章 → 橫捲。** 不做分頁或區間聚合（那會改到 `TensionChapterGrid` 的資料聚合）。
-    `.tn-grid` 本來就有 `overflow-x: auto`，失效的原因是欄寬用 `1fr`（＝`minmax(auto, 1fr)`），
-    長書的欄位會一路壓到柱子寬而永遠不觸發溢出。改為 `minmax(var(--tn-grid-cell-w), 1fr)` 補下限，
-    並把標籤欄 `position: sticky` 凍結——否則捲動後那排柱子屬於哪條張力線就無從辨認。
-    欄寬改由 `--tn-grid-label-w` / `--tn-grid-cell-w` 兩個 custom property 控制，
-    `TensionChapterGrid` 的 inline `gridTemplateColumns` 讀取它們，響應式規則因此全留在 CSS。
-  - **抽屜在窄視窗 → overlay**（`position: absolute`，`z-index: 40`，在全域聊天啟動鈕的 50 之下）。
-    不推擠：抽屜 docked 在 1080px 會讓主欄掉到 650px 以下，格點與表格會同時垮，
-    一個面板的版面不該賠上另外兩個。
-  - **表格 7 欄 → 收成 5 欄**，章節與證據數落到極點對下方第二行。六個固定欄合計 550px，
-    視窗一縮極點欄就沒有可換行的空間。兩者都保留不隱藏：審核決策需要看得到證據量。
-- **RWD 缺口是全站性的，不只張力頁**：13 份樣式表裡只有 `timeline.css`（2 個）與
-  `methodology.css`（1 個）有 `@media`，`symbols` / `narrative` / `character-analysis` /
-  `event-analysis` / `build-overview` / `search` / `settings` 全是 0。本輪只處理張力頁。
-- **審核欄按鈕在所有寬度都換行**：`152px` 的 `審核` 欄裝不下「核准／修改標籤／拒絕」，
-  三顆按鈕在 1440px 就已經是兩行（實測 44px 高）。**與 RWD 無關，是既有問題**，本輪未動。
-- **a11y**（2026-08-21，B-071 三項中的兩項已做）：
-  - **抽屜焦點**：抽屜在 1080px 以下 overlay 時，`.tn-shell-main` 掛 `inert`，開啟時焦點移入
-    抽屜、關閉時歸還原處。**刻意不是傳統 focus trap**——Tab 走完抽屜會到左側導覽列，導覽列
-    沒有被抽屜蓋住，鎖住它反而是敵意行為；`inert` 只拿掉真正被遮蔽的內容。1080px 以上抽屜
-    docked，不掛 `inert`、不搶焦點。
-  - **非視覺替代**：格子的 `aria-label` 逐個列出強度（`第 3 章 2 個 TEU，強度 高、中`），
-    裝飾用的 `<i>` 柱子全標 `aria-hidden`。分隔符用口語的「、」而非設計數字排版的間隔號「·」，
-    因為這是純語音字串。`TensionTEUInspector` 的迷你柱只標 `aria-hidden` 不加朗讀內容：
-    展開後每個 TEU 的強度本來就是可見文字，再念一次是重複。
-  - **前一版的記載有誤**：舊文寫「螢幕閱讀器取不到 `tension_description`」，但它在
-    `TensionTEUInspector.tsx:145` 與 `TensionReviewDrawer.tsx:148` 都是可見的 `<p>` 純文字。
-    真正缺的一直是強度。
-  - **未做**：Ink 主題下 success / warning / error 塌成同一個黑，已拆為 B-086（全站議題）。
-  - `1080px` 這個斷點同時寫在 `tension.css` 與 `TensionPage.tsx`（media query 無法從 CSS 讀回
-    JS），兩邊改動必須同步。
-- ~~**P0-5 失敗清單未做**~~ **已做（2026-09-12，B-072）**：strip 下方的 `.tn-teu-failures`
-  是可展開的 `<details>`，每列為「第 N 章 · 事件標題 · 例外字串」，依章排序。預設收合——
-  多數事件成功了，這是註腳不是標題。**兩個限制寫在這裡而不是留給人踩**：
-  （a）清單只存在於剛結束那次執行的 task result，**重新整理即消失**（與 B-110 同一個形狀，
-  後端沒有按書留存失敗紀錄）；面板內的 hint 文案已據實說明，不假裝它會留著。
-  （b）`reason` 是原始例外字串（`RuntimeError: …`），不是給終端使用者的翻譯文案——
-  失敗原因來自後端例外，硬要翻譯只會讓它與 log 對不起來。
-  **`summary` 的兩條規則不是裝飾，是補回被 CSS 拿掉的東西**：`display: flex` 會讓
-  summary 失去預設的 `list-item` marker，所以 `::after` 補一個 chevron（收合 ▸ /
-  展開 ▾）——否則畫面上沒有任何東西表示這一列可以展開；`:focus-visible` 則是因為
-  原生 `summary` 沒有 `tabindex` 屬性，接不到 `global.css` 的全站焦點環（見 B-114），
-  在那條修好之前這裡用同一組 token 自己畫。
-- zh-TW locale 中 `tension.onboarding.*`、`heroEyebrow`、`trajectory*` 等舊版遺留 key 尚未清除。
-
-#### 狀態流程
-
-```
-進入頁面
-  → 載入 TEU / TensionLine / TensionTheme（已有資料則跳過對應步驟）
-
-Step 1 → 人工檢視 TEU → Step 2 → 逐條審核張力線 → Step 3
-  → 每步驟完成後自動 refetch 對應資料
-  → 重跑機器步驟一律先過 TensionRerunDialog，並以 force=true 送出
-
-審核操作（TensionLine / TensionTheme / TEU 指派）
-  → 送出審核結果 → 更新對應 query cache
-```
+- 離頁後回來看不到進行中的任務（taskId 在 state、未綁書，B-128）。
+- Step 1 失敗清單只存在於剛結束那次執行的 task result，重新整理即消失（後端沒有按書留存）。
+- 「從張力線移除 TEU」沒有 API／UI（所以 409 說明只能說「沒有移動這個動作」）。
+- 導覽條仍是共用 `GuidanceRibbon`（`sg-ribbon`，含左邊框強調），等第 19 稿。
+- 鍵盤 `A`／`X` 在未開抽屜時作用於第一列（既有行為，未動）。
+- 孤兒（已不使用，保留）：`TensionRerunDialog.tsx`；i18n：`tension.drawer.notePlaceholder`、`tension.drawer.editorTitle` 仍使用中、`tension.rerun.separator`、`tension.table.selectAll／clearAll`（仍用於表頭勾選框的 aria-label）。
 
 #### API 參考
 
-見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#14a–#14b（Step 1 TEU 組裝）、#14c–#14d（Step 2
-TensionLine 聚合）、#14d-2（TEU 清單）、#14d-3（TEU 人工指派）、#14e（TensionLine 清單）、
-#14f（TensionLine 審核）、#14g–#14h（Step 3 TensionTheme 合成）、#14i（TensionTheme）、
-#14j（TensionTheme 審核）
-
-> 注意：張力分析各步驟有專用 polling endpoint（#14b / #14d / #14h），不走共用的 #8。
+見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#14a–#14b（Step 1）、#14c–#14d（Step 2）、#14d-2（TEU 清單）、#14d-3（TEU 指派）、#14e／#14f（TensionLine 清單／審核）、#14g–#14h（Step 3）、#14i／#14j（TensionTheme／審核）。
+> 張力各步驟有專用 polling endpoint（#14b / #14d / #14h），不走共用的 #8。
 
 ---
 

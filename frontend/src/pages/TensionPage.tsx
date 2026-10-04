@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { AlertTriangle } from 'lucide-react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useQuery, useQueryClient, useMutation } from '@tanstack/react-query';
 import { Trans, useTranslation } from 'react-i18next';
 import { useChatDispatch } from '@/contexts/ChatContext';
@@ -20,8 +19,12 @@ import {
   reviewTensionTheme,
 } from '@/api/tension';
 import { fetchBuildOverview } from '@/api/buildOverview';
-import { TensionRerunDialog } from '@/components/tension/TensionRerunDialog';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { LlmUnconfiguredNotice } from '@/components/ui/LlmUnconfiguredNotice';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { PageFailure } from '@/components/ui/PageFailure';
+import { ApiError } from '@/api/client';
+import { failureKind, techDetailOf } from '@/api/failureKind';
 import {
   TensionStepperStrip,
   type TensionStageSpec,
@@ -31,9 +34,13 @@ import { TensionThemeHero } from '@/components/tension/TensionThemeHero';
 import {
   TensionEmptyCard,
   TensionErrorCard,
+  TensionFailureList,
+  type TeuFailure,
   TensionRunningCard,
+  TensionSoftGate,
   TensionStep1Card,
 } from '@/components/tension/TensionStateCards';
+import { assignFailureKind, isNoTheme, runSequentially } from '@/components/tension/tensionModel';
 import { TensionChapterGrid } from '@/components/tension/TensionChapterGrid';
 import { TensionTEUInspector } from '@/components/tension/TensionTEUInspector';
 import { TensionReviewToolbar } from '@/components/tension/TensionReviewToolbar';
@@ -42,6 +49,7 @@ import { TensionReviewDrawer } from '@/components/tension/TensionReviewDrawer';
 import {
   countByFilter,
   sortLines,
+  type AssignApi,
   type ReviewFilter,
   type ReviewSort,
 } from '@/components/tension/reviewTypes';
@@ -57,13 +65,6 @@ import { qk } from '@/api/queryKeys';
  * Fields stay snake_case: this dict is built by the service and never passes
  * through an `alias_generator=to_camel` model.
  */
-interface TeuFailure {
-  event_id: string;
-  title: string;
-  chapter: number;
-  reason: string;
-}
-
 interface AnalyzeResult {
   total_events?: number;
   candidates?: number;
@@ -79,6 +80,7 @@ export default function TensionPage() {
   const { setPageContext } = useChatDispatch();
   const { data: book } = useBook(bookId);
   const { t } = useTranslation('analysis');
+  const { t: tn } = useTranslation('nav');
 
   useEffect(() => {
     if (book) setPageContext({ page: 'analysis', bookId: bookId!, bookTitle: book.title });
@@ -94,32 +96,42 @@ export default function TensionPage() {
   const [mode, setMode] = useState<'lines' | 'teu'>('lines');
   const [rerunOpen, setRerunOpen] = useState(false);
 
-  const {
-    data: lines = [],
-    isLoading: linesLoading,
-    refetch: refetchLines,
-  } = useQuery({
+  const linesQuery = useQuery({
     queryKey: qk.tension.lines(bookId),
     queryFn: () => fetchTensionLines(bookId!),
     enabled: !!bookId,
   });
+  const { data: lines = [], isLoading: linesLoading, refetch: refetchLines } = linesQuery;
 
-  const { data: teus = [] } = useQuery({
+  const teusQuery = useQuery({
     queryKey: qk.tension.teus(bookId),
     queryFn: () => fetchTEUs(bookId!),
     enabled: !!bookId,
   });
+  const { data: teus = [], isLoading: teusLoading } = teusQuery;
 
-  const {
-    data: theme,
-    isLoading: themeLoading,
-    refetch: refetchTheme,
-  } = useQuery({
+  // "No theme yet" is the app's own 404 — an answer, not a failure. Anything
+  // else (500, a bare gateway status) has to reach the error state instead of
+  // being read as "not analysed yet".
+  const themeQuery = useQuery({
     queryKey: qk.tension.theme(bookId),
-    queryFn: () => fetchTensionTheme(bookId!),
+    queryFn: async () => {
+      try {
+        return await fetchTensionTheme(bookId!);
+      } catch (err) {
+        if (isNoTheme(err)) return null;
+        throw err;
+      }
+    },
     enabled: !!bookId,
     retry: false,
   });
+  const { data: theme, isLoading: themeLoading, refetch: refetchTheme } = themeQuery;
+
+  // Only an error with nothing to show replaces the page: a failed background
+  // refetch keeps the data it already has.
+  const failedQueries = [linesQuery, teusQuery, themeQuery].filter((q) => q.isError && q.data === undefined);
+  const loadError = failedQueries[0]?.error ?? null;
 
   const analyzeOp = useTensionTask(
     fetchTensionAnalysisTask,
@@ -154,8 +166,11 @@ export default function TensionPage() {
     queryFn: () => fetchBuildOverview(bookId!),
     enabled: !!bookId,
   });
+  // Judged only once the manifest has loaded: while it is still in flight the
+  // count reads as 0 and the notice would flash up for a book that has concepts.
   const conceptsMissing =
-    (manifest?.nodes.find((n) => n.nodeId === 'kg_concept_inferred')?.counts.total ?? 0) === 0;
+    manifest != null &&
+    (manifest.nodes.find((n) => n.nodeId === 'kg_concept_inferred')?.counts.total ?? 0) === 0;
 
   // `force` has to be true to re-run a completed step: without it the backend
   // returns the cached result, reports success, and nothing changes.
@@ -236,9 +251,19 @@ export default function TensionPage() {
     onSuccess: onLineReviewed,
   });
 
+  const [assignFailure, setAssignFailure] = useState<AssignApi['failure']>(null);
   const assignMutation = useMutation({
     mutationFn: ({ teuId, lineId }: { teuId: string; lineId: string }) =>
       assignTEUToLine(teuId, bookId!, lineId),
+    onMutate: () => setAssignFailure(null),
+    // 409 (another line already owns the TEU) is a designed outcome with its
+    // own explanation; the row shows it, not a generic toast.
+    onError: (err, vars) =>
+      setAssignFailure({
+        teuId: vars.teuId,
+        kind: assignFailureKind(err),
+        reason: err instanceof ApiError ? err.detail : (err as Error).message,
+      }),
     onSuccess: () => {
       // Both queries move: the line gains a TEU and recomputed rollups, and the
       // TEU's line_id flips out of the orphan set.
@@ -264,17 +289,23 @@ export default function TensionPage() {
     );
   }, [filteredLines]);
 
-  const batchReview = useCallback(
-    async (status: 'approved' | 'rejected') => {
-      // Sequential, not Promise.all: every call rewrites the same cached
-      // `tension_lines:{doc}` blob, so concurrent writes would drop each other.
-      for (const id of selected) {
-        await reviewMutation.mutateAsync({ id, status });
-      }
-      setSelected(new Set());
-    },
-    [selected, reviewMutation],
-  );
+  const assignApi: AssignApi = {
+    pendingTeuId: assignMutation.isPending ? (assignMutation.variables?.teuId ?? null) : null,
+    failure: assignFailure,
+    onAssign: (teuId, lineId) => assignMutation.mutate({ teuId, lineId }),
+  };
+
+  const [batch, setBatch] = useState({ failed: 0, busy: false });
+  const batchReview = async (status: 'approved' | 'rejected') => {
+      setBatch({ failed: 0, busy: true });
+      // Sequential (every call rewrites the same cached blob). A failure no
+      // longer aborts the rest: the failed lines stay selected for a retry.
+      const { failed } = await runSequentially(selected, (id) =>
+        reviewMutation.mutateAsync({ id, status }),
+      );
+      setSelected(new Set(failed));
+      setBatch({ failed: failed.length, busy: false });
+  };
 
   const openLine = useMemo(
     () => filteredLines.find((l) => l.id === focusedId) ?? null,
@@ -399,7 +430,8 @@ export default function TensionPage() {
   ).length;
   const unreviewedCount = lines.length - reviewedCount;
   const orphanCount = teus.filter((teu) => teu.line_id === null).length;
-  const themeReady = hasLines && unreviewedCount === 0;
+  const approvedCount = lines.filter((l) => l.review_status === 'approved').length;
+  const editedCount = lines.filter((l) => l.review_status === 'modified').length;
 
   // Both counts. The bars stay on the TEU count: a narrative run is not a
   // scene, and drawing it as density flattened the chart to near-uniform stubs
@@ -567,225 +599,234 @@ export default function TensionPage() {
       done: hasTheme && !theme?.is_stale && !synthesizeOp.running,
       running: synthesizeOp.running,
       failed: !!synthesizeOp.error,
-      // Soft gate: the action only appears once every line has been ruled on.
-      // Nothing forbids synthesising early, but the page stops offering it.
-      ready: themeReady && !hasTheme && !synthesizeOp.running,
       notReady: !hasLines || (!hasTheme && unreviewedCount > 0),
       progress: synthesizeOp.task?.progress ?? 0,
       error: synthesizeOp.error,
-      actionLabel:
-        themeReady && !hasTheme && !synthesizeOp.running
-          ? t('tension.stage.synthesize')
-          : undefined,
-      onAction:
-        themeReady && !hasTheme && !synthesizeOp.running ? () => runStep(3, false) : undefined,
     },
   ];
 
-  // A completed step's CTA is a re-run: it costs an LLM call and overwrites the
-  // existing result, so it goes through a confirmation rather than firing on click.
+  // Any of the four triggers (Step 1, Step 2 / re-run, synthesise) refused with
+  // the app's own 503: said once, in place under the strip, page otherwise intact.
+  const llmBlocked = analyzeOp.llmBlocked || groupOp.llmBlocked || synthesizeOp.llmBlocked;
+
+  const backToBook = (
+    <Link to={`/books/${bookId}`} className="ss-btn ss-btn-md ss-btn-secondary">
+      {t('character.error.backToBook')}
+    </Link>
+  );
+
+  // The queries stay mounted at page level, so a retry refetches in place — no
+  // unmount/mount cycle that would reset an errored query to pending.
+  if (loadError) {
+    return (
+      <div className="tn-shell">
+        <div className="tn-shell-main tn-scroll">
+          <div className="tn-page">
+            <PageFailure
+              variant={failureKind(loadError)}
+              pageName={tn('tabs.tensionAnalysis')}
+              onRetry={() => failedQueries.forEach((q) => void q.refetch())}
+              secondaryAction={backToBook}
+              techDetail={techDetailOf(loadError)}
+            />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const loading = linesLoading || teusLoading || themeLoading;
+  const showStep1Card = hasTeus && !hasLines && !groupOp.running && !groupOp.error;
 
   return (
-    <div className="tn-shell" style={{ background: 'var(--bg-primary)', height: '100%' }}>
+    <div className="tn-shell">
       <div className="tn-shell-main tn-scroll" inert={drawerOverlaying}>
         <div className="tn-page">
-        <GuidanceRibbon surface="tension">
-          <strong>{t('tension.guide.prefix')}</strong>{' '}
-          <Trans i18nKey="tension.guide.body" ns="analysis" components={{ strong: <strong /> }} />
-        </GuidanceRibbon>
+          <GuidanceRibbon surface="tension">
+            <strong>{t('tension.guide.prefix')}</strong>{' '}
+            <Trans i18nKey="tension.guide.body" ns="analysis" components={{ strong: <strong /> }} />
+          </GuidanceRibbon>
 
-        <TensionStepperStrip stages={stages} />
+          <TensionStepperStrip stages={stages} />
 
-        {/* A bare "12 / 15" leaves the reader to guess which three are missing
-            and why. Collapsed by default — the run succeeded for most events,
-            so this is a footnote, not the headline. */}
-        {teuFailures.length > 0 && (
-          <details className="tn-teu-failures">
-            <summary>
-              <AlertTriangle size={12} aria-hidden="true" />
-              {t('tension.failures.summary', { count: teuFailures.length })}
-            </summary>
-            <ul>
-              {teuFailures.map((f) => (
-                <li key={f.event_id}>
-                  <span className="tn-teu-failure-where">
-                    {t('tension.failures.chapter', { chapter: f.chapter })}
-                  </span>
-                  <span className="tn-teu-failure-title">{f.title}</span>
-                  <code className="tn-teu-failure-reason">{f.reason}</code>
-                </li>
-              ))}
-            </ul>
-            <p className="tn-teu-failure-hint">{t('tension.failures.hint')}</p>
-          </details>
-        )}
+          {llmBlocked && <LlmUnconfiguredNotice />}
 
-        {linesLoading || themeLoading ? <LoadingSpinner /> : null}
+          {/* With a Step 1 card the list sits at its foot; without one (lines
+              already exist) it is a page-level footnote. */}
+          {!showStep1Card && <TensionFailureList failures={teuFailures} />}
 
-        {!linesLoading && !themeLoading && !hasTeus && !analyzeOp.running && (
-          <TensionEmptyCard
-            onStart={() => runStep(1, false)}
-            bookId={bookId!}
-            conceptsMissing={conceptsMissing}
-          />
-        )}
+          {loading ? <LoadingSpinner /> : null}
 
-        {analyzeOp.running && (
-          <TensionRunningCard
-            title={t('tension.state.analyzeRunningTitle')}
-            progress={analyzeOp.task?.progress ?? 0}
-            stage={analyzeOp.task?.stage ?? null}
-          />
-        )}
-
-        {/* The error card is inserted above the previous result rather than
-            replacing it: a failed re-run leaves the last good grouping intact,
-            and hiding it would suggest the work was lost. */}
-        {groupOp.error && (
-          <TensionErrorCard
-            title={t('tension.state.groupErrorTitle')}
-            message={
-              hasLines
-                ? t('tension.state.groupErrorBody', { error: groupOp.error, count: lines.length })
-                : t('tension.state.groupErrorBodyNoPrev', { error: groupOp.error })
-            }
-            retryLabel={t('tension.state.retryGroup')}
-            onRetry={() => runStep(2, true)}
-            meta={lineProvenance}
-          />
-        )}
-
-        {groupOp.running && (
-          <TensionRunningCard
-            title={t('tension.state.groupRunningTitle')}
-            progress={groupOp.task?.progress ?? 0}
-            stage={groupOp.task?.stage ?? null}
-          />
-        )}
-
-        {hasTeus && !hasLines && !groupOp.running && !groupOp.error && (
-          <TensionStep1Card
-            teuCount={teus.length}
-            runCount={runTotal}
-            sceneSummary={sceneSummary}
-            chapterCounts={teuChapterCounts}
-            onGroup={() => runStep(2, false)}
-          />
-        )}
-
-        {synthesizeOp.running && (
-          <TensionRunningCard
-            title={t('tension.state.themeRunningTitle')}
-            progress={synthesizeOp.task?.progress ?? 0}
-            stage={synthesizeOp.task?.stage ?? null}
-          />
-        )}
-
-        {theme && (
-          <TensionThemeHero
-            theme={theme}
-            lines={lines}
-            onResynthesize={() => runStep(3, true)}
-            onOpenLine={(id) => setFocusedId(id)}
-            onApprove={() => themeReviewMutation.mutate({ status: 'approved' })}
-            onReject={() => themeReviewMutation.mutate({ status: 'rejected' })}
-            onModify={(prop) => themeReviewMutation.mutate({ status: 'modified', proposition: prop })}
-            pending={themeReviewMutation.isPending}
-          />
-        )}
-
-        {hasLines && (
-          <>
-            <div className="tn-mode-row">
-              <div className="tn-mode-seg" role="group">
-                <button
-                  type="button"
-                  className="tn-mode-btn"
-                  aria-pressed={mode === 'lines'}
-                  onClick={() => setMode('lines')}
-                >
-                  {t('tension.mode.lines', { count: lines.length })}
-                </button>
-                <button
-                  type="button"
-                  className="tn-mode-btn"
-                  aria-pressed={mode === 'teu'}
-                  onClick={() => setMode('teu')}
-                >
-                  {t('tension.mode.teu', { count: teus.length })}
-                </button>
-              </div>
-              <span className="tn-mode-hint">
-                {mode === 'lines'
-                  ? t('tension.mode.hintLines')
-                  : t('tension.mode.hintTeu', { count: orphanCount })}
-              </span>
-            </div>
-
-            {mode === 'teu' ? (
-              <TensionTEUInspector
-                teus={teus}
-                lines={lines}
-                onAssign={(teuId, lineId) => assignMutation.mutate({ teuId, lineId })}
-                onOpenChapter={openChapter}
-              />
-            ) : (
-              <>
-            <TensionChapterGrid
-              lines={lines}
-              teus={teus}
-              openId={focusedId}
-              onOpen={(id) => setFocusedId((prev) => (prev === id ? null : id))}
-              onAssign={(teuId, lineId) => assignMutation.mutate({ teuId, lineId })}
+          {!loading && !hasTeus && !analyzeOp.running && (
+            <TensionEmptyCard
+              onStart={() => runStep(1, false)}
+              bookId={bookId!}
+              conceptsMissing={conceptsMissing}
             />
+          )}
 
-            <section>
-              <TensionReviewToolbar
-                counts={filterCounts}
-                filter={statusFilter}
-                onFilterChange={setStatusFilter}
-                sort={sort}
-                onSortChange={setSort}
-                selectedCount={selected.size}
-                allSelected={
-                  filteredLines.length > 0 && filteredLines.every((l) => selected.has(l.id))
-                }
-                onToggleAll={toggleAll}
-                onBatchApprove={() => batchReview('approved')}
-                onBatchReject={() => batchReview('rejected')}
-                onClearSelection={() => setSelected(new Set())}
-              />
+          {analyzeOp.running && (
+            <TensionRunningCard
+              title={t('tension.state.analyzeRunningTitle')}
+              progress={analyzeOp.task?.progress ?? 0}
+            />
+          )}
 
-              <TensionLineTable
-                rows={filteredLines}
-                allIntensities={allIntensities}
-                totalCount={lines.length}
-                selected={selected}
-                openId={focusedId}
-                cursorId={focusedId}
-                onOpen={(id) => setFocusedId((prev) => (prev === id ? null : id))}
-                onToggleSelect={toggleSelect}
-                onToggleAll={toggleAll}
-                onReview={(id, status) => reviewMutation.mutate({ id, status })}
-                onEditLabels={(id) => {
-                  setFocusedId(id);
-                  setEditing(true);
-                }}
-                onShowAll={() => setStatusFilter('all')}
-              />
+          {/* Inserted above the previous result rather than replacing it: a
+              failed re-run leaves the last good grouping intact. */}
+          {groupOp.error && (
+            <TensionErrorCard
+              title={t('tension.state.groupErrorTitle')}
+              message={
+                hasLines
+                  ? t('tension.state.groupErrorBody', { error: groupOp.error, count: lines.length })
+                  : t('tension.state.groupErrorBodyNoPrev', { error: groupOp.error })
+              }
+              retryLabel={t('tension.state.retryGroup')}
+              onRetry={() => runStep(2, true)}
+              meta={lineProvenance}
+            />
+          )}
 
-              <div className="tn-shortcuts">
-                <span>{t('tension.table.shortcuts')}</span>
-                <span className="tn-toolbar-spacer" />
-                <button type="button" className="tn-act-ghost" onClick={() => setRerunOpen(true)}>
-                  {t('tension.rerun.trigger')}
-                </button>
+          {groupOp.running && (
+            <TensionRunningCard
+              title={t('tension.state.groupRunningTitle')}
+              progress={groupOp.task?.progress ?? 0}
+            />
+          )}
+
+          {showStep1Card && (
+            <TensionStep1Card
+              teuCount={teus.length}
+              runCount={runTotal}
+              sceneSummary={sceneSummary}
+              chapterCounts={teuChapterCounts}
+              failures={teuFailures}
+              onGroup={() => runStep(2, false)}
+            />
+          )}
+
+          {synthesizeOp.running && (
+            <TensionRunningCard
+              title={t('tension.state.themeRunningTitle')}
+              progress={synthesizeOp.task?.progress ?? 0}
+            />
+          )}
+
+          {hasLines && !hasTheme && !synthesizeOp.running && (
+            <TensionSoftGate unreviewed={unreviewedCount} onSynthesize={() => runStep(3, false)} />
+          )}
+
+          {theme && (
+            <TensionThemeHero
+              theme={theme}
+              lines={lines}
+              onResynthesize={() => runStep(3, true)}
+              onOpenLine={(id) => setFocusedId(id)}
+              onApprove={() => themeReviewMutation.mutate({ status: 'approved' })}
+              onReject={() => themeReviewMutation.mutate({ status: 'rejected' })}
+              onModify={(prop) => themeReviewMutation.mutate({ status: 'modified', proposition: prop })}
+              pending={themeReviewMutation.isPending}
+            />
+          )}
+
+          {hasLines && (
+            <>
+              <div className="tn-mode-row">
+                <div className="ss-seg tn-mode-seg" role="group">
+                  <button
+                    type="button"
+                    className={`ss-seg-item${mode === 'lines' ? ' active' : ''}`}
+                    aria-pressed={mode === 'lines'}
+                    onClick={() => setMode('lines')}
+                  >
+                    {t('tension.mode.lines', { count: lines.length })}
+                  </button>
+                  <button
+                    type="button"
+                    className={`ss-seg-item${mode === 'teu' ? ' active' : ''}`}
+                    aria-pressed={mode === 'teu'}
+                    onClick={() => setMode('teu')}
+                  >
+                    {t('tension.mode.teu', { count: teus.length })}
+                  </button>
+                </div>
+                <span className="tn-hint">
+                  {mode === 'lines'
+                    ? t('tension.mode.hintLines')
+                    : t('tension.mode.hintTeu', { count: orphanCount })}
+                </span>
               </div>
-            </section>
-              </>
-            )}
-          </>
-        )}
+
+              {mode === 'teu' ? (
+                <TensionTEUInspector
+                  teus={teus}
+                  lines={lines}
+                  assign={assignApi}
+                  onOpenChapter={openChapter}
+                />
+              ) : (
+                <>
+                  <TensionChapterGrid
+                    lines={lines}
+                    teus={teus}
+                    openId={focusedId}
+                    onOpen={(id) => setFocusedId((prev) => (prev === id ? null : id))}
+                    assign={assignApi}
+                  />
+
+                  <section className="tn-card tn-review">
+                    <TensionReviewToolbar
+                      counts={filterCounts}
+                      filter={statusFilter}
+                      onFilterChange={setStatusFilter}
+                      sort={sort}
+                      onSortChange={setSort}
+                      selectedCount={selected.size}
+                      batchFailed={batch.failed}
+                      batchBusy={batch.busy}
+                      onBatchApprove={() => void batchReview('approved')}
+                      onBatchReject={() => void batchReview('rejected')}
+                      onClearSelection={() => {
+                        setSelected(new Set());
+                        setBatch({ failed: 0, busy: false });
+                      }}
+                    />
+
+                    <TensionLineTable
+                      rows={filteredLines}
+                      allIntensities={allIntensities}
+                      totalCount={lines.length}
+                      selected={selected}
+                      openId={focusedId}
+                      onOpen={(id) => setFocusedId((prev) => (prev === id ? null : id))}
+                      onToggleSelect={toggleSelect}
+                      onToggleAll={toggleAll}
+                      onReview={(id, status) => reviewMutation.mutate({ id, status })}
+                      onEditLabels={(id) => {
+                        setFocusedId(id);
+                        setEditing(true);
+                      }}
+                      onShowAll={() => setStatusFilter('all')}
+                    />
+
+                    <div className="tn-shortcuts">
+                      <span className="tn-meta-mono">{t('tension.table.shortcuts')}</span>
+                      <span className="tn-spacer" />
+                      <span className="tn-hint">{t('tension.state.tokenHintShort')}</span>
+                      <button
+                        type="button"
+                        className="ss-btn ss-btn-sm ss-btn-danger ss-btn-llm"
+                        onClick={() => setRerunOpen(true)}
+                      >
+                        {t('tension.rerun.trigger')}
+                      </button>
+                    </div>
+                  </section>
+                </>
+              )}
+            </>
+          )}
         </div>
       </div>
 
@@ -794,13 +835,12 @@ export default function TensionPage() {
           ref={drawerRef}
           line={openLine}
           position={{ index: openIndex + 1, total: filteredLines.length }}
+          lineIntensities={allIntensities}
           teuIntensities={teuIntensities}
           editing={editing}
           onStartEdit={() => setEditing(true)}
           onCancelEdit={() => setEditing(false)}
-          onSaveLabels={(a, b, note) =>
-            saveLabelsMutation.mutate({ id: openLine.id, a, b, note })
-          }
+          onSaveLabels={(a, b, note) => saveLabelsMutation.mutate({ id: openLine.id, a, b, note })}
           onReview={(status) => reviewMutation.mutate({ id: openLine.id, status })}
           onClose={() => {
             setEditing(false);
@@ -810,12 +850,30 @@ export default function TensionPage() {
         />
       )}
 
-      <TensionRerunDialog
+      {/* Re-running Step 2 mints new line ids, so every approval and rewritten
+          label is lost: the dialog itemises that. Zero counts do not appear. */}
+      <ConfirmDialog
         open={rerunOpen}
-        totalLines={lines.length}
-        approvedCount={lines.filter((l) => l.review_status === 'approved').length}
-        editedCount={lines.filter((l) => l.review_status === 'modified').length}
-        themeAffected={hasTheme}
+        title={t('tension.rerun.title')}
+        message={t('tension.rerun.body')}
+        sections={[
+          {
+            title: t('tension.rerun.willLose'),
+            items: [
+              ...(lines.length > 0 ? [t('tension.rerun.lossLines', { count: lines.length })] : []),
+              ...(approvedCount > 0 ? [t('tension.rerun.lossApproved', { count: approvedCount })] : []),
+              ...(editedCount > 0 ? [t('tension.rerun.lossEdited', { count: editedCount })] : []),
+            ],
+          },
+          {
+            title: t('tension.rerun.willStale'),
+            items: hasTheme ? [t('tension.rerun.willStaleBody')] : [],
+          },
+        ]}
+        costHint={t('tension.state.tokenHintShort')}
+        confirmLabel={t('tension.rerun.confirm')}
+        spendsTokens
+        danger
         onConfirm={() => {
           setRerunOpen(false);
           setFocusedId(null);
