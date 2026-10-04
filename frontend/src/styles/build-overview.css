@@ -100,7 +100,7 @@
   flex-direction: column;
   gap: var(--space-3);
 }
-.bo-bar { display: flex; gap: 2px; height: 10px; border-radius: 5px; overflow: hidden; }
+.bo-bar { display: flex; gap: var(--space-1); height: 10px; border-radius: 5px; overflow: hidden; }
 .bo-bar-seg { border: var(--line-weight) solid; border-radius: 5px; }
 .bo-legend {
   display: flex;
@@ -332,7 +332,7 @@
 
 /* 章節分佈（只有五個節點會渲染） */
 .bo-distbox { display: flex; flex-direction: column; gap: var(--space-3); }
-.bo-dist { display: flex; align-items: flex-end; gap: 3px; height: 48px; }
+.bo-dist { display: flex; align-items: flex-end; gap: var(--space-1); height: 48px; }
 .bo-dist > .ss-tooltip-anchor { flex: 1; align-self: stretch; align-items: flex-end; }
 .bo-dist-bar {
   display: block;
@@ -362,7 +362,7 @@
   line-height: 1.6;
   color: var(--fg-secondary);
 }
-.bo-note-icon { flex-shrink: 0; margin-top: 1px; color: var(--fg-muted); }
+.bo-note-icon { flex-shrink: 0; margin-top: var(--space-1); color: var(--fg-muted); }
 
 /* 動作區的幾種盒子 */
 .bo-action { display: flex; flex-direction: column; gap: var(--space-3); }
@@ -393,7 +393,7 @@
   background: var(--color-warning-bg);
 }
 .bo-box.is-hazard .bo-box-text { line-height: 1.7; }
-.bo-box-icon { flex-shrink: 0; margin-top: 2px; }
+.bo-box-icon { flex-shrink: 0; margin-top: var(--space-1); }
 .bo-box.is-running { flex-direction: row; align-items: center; background: var(--color-info-bg); }
 .bo-box-spin { flex-shrink: 0; color: var(--color-info); }
 .bo-box.is-fail { background: var(--color-error-bg); border-color: var(--color-error); }
@@ -477,7 +477,7 @@
 .bo-concept-name { font-family: var(--font-serif); font-size: var(--font-size-base); font-weight: 700; }
 .bo-concept-conf {
   flex-shrink: 0;
-  padding: 1px var(--space-4);
+  padding: var(--space-1) var(--space-4);
   border: var(--line-weight) solid var(--border);
   border-radius: var(--badge-radius);
   font-family: var(--font-mono);
