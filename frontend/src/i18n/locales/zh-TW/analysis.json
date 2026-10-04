@@ -810,7 +810,15 @@
       "legendTitle": "章節 × 故事時序",
       "legendDesc": "每個點是一筆事件：橫軸是它在書中的章節，縱軸是它在故事裡實際發生的位置。貼著 45° 線＝作者照故事順序講；偏離越遠＝敘述順序與故事順序差越多。",
       "legendFoot": "同章事件在欄內橫向散開以避免重疊，散開位置不帶意義。",
-      "unrankedBand": "↵ 未排序事件 {{n}}"
+      "unrankedBand": "↵ 未排序事件 {{n}}",
+      "cellsLegend": "每格事件數",
+      "legendFourPlus": "4 以上",
+      "scaleNote": "色階是絕對件數，不隨書重新縮放",
+      "unsortedNote": "排不進故事時序，不畫進矩陣",
+      "cellTitle": "第 {{ch}} 章 · 故事時序 {{from}}–{{to}}% · {{n}} 件",
+      "emptyHint": "點一格，列出落在該章、該時序分段的事件。",
+      "selectedTitle": "選取的格",
+      "clearSelection": "清除選取"
     },
     "viewTabs": "視圖切換",
     "keyHint": "← → 切換事件 · Esc 關閉",
@@ -987,7 +995,11 @@
       "label": "對照故事時序",
       "zeroCost": "零成本 · 只換畫法，不呼叫 LLM",
       "blockedTitle": "對照故事時序目前不可開啟",
-      "blockedHint": "用右側的「首次計算…」算出後即可對照"
+      "blockedHint": "用右側的「首次計算…」算出後即可對照",
+      "mode": {
+        "stave": "偏離譜面",
+        "matrix": "密度矩陣"
+      }
     }
   },
   "unravelingLoadError": "無法載入建構概覽資料",

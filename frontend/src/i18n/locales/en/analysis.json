@@ -810,7 +810,15 @@
       "legendTitle": "Chapter × story order",
       "legendDesc": "Each dot is an event: X is the chapter it appears in, Y is where it actually happens in the story. On the 45° line = told in story order; the further off, the greater the divergence.",
       "legendFoot": "Same-chapter events are spread sideways to avoid overlap; the spread carries no meaning.",
-      "unrankedBand": "↵ Unranked events {{n}}"
+      "unrankedBand": "↵ Unranked events {{n}}",
+      "cellsLegend": "Events per cell",
+      "legendFourPlus": "4 or more",
+      "scaleNote": "The scale is absolute counts; it is not rescaled per book",
+      "unsortedNote": "Cannot be placed in story order; not drawn in the matrix",
+      "cellTitle": "Chapter {{ch}} · story order {{from}}–{{to}}% · {{n}} events",
+      "emptyHint": "Click a cell to list the events in that chapter and story-order band.",
+      "selectedTitle": "Selected cell",
+      "clearSelection": "Clear selection"
     },
     "viewTabs": "View",
     "keyHint": "← → switch event · Esc close",
@@ -987,7 +995,11 @@
       "label": "Compare with story order",
       "zeroCost": "Zero cost · redraws only, no LLM call",
       "blockedTitle": "Comparison with story order is not available yet",
-      "blockedHint": "Compute it with “Compute for the first time…” on the right, then compare"
+      "blockedHint": "Compute it with “Compute for the first time…” on the right, then compare",
+      "mode": {
+        "stave": "Deviation stave",
+        "matrix": "Density matrix"
+      }
     }
   },
   "unravelingLoadError": "Failed to load build overview data",

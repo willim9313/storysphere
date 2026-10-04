@@ -1982,3 +1982,216 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* ── 密度矩陣（5-5）─────────────────────────────────────────
+   章 × rank 十分位的件數格。格色走 --symbol-density-* 四階（1/2/3/4+，絕對件數），
+   格內寫數字；對角格加粗框；選取格用實線外框（不用左緣／inset 強調）。 */
+.tl-compare-seg {
+  margin-top: var(--space-2);
+}
+.tl-mx {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+}
+.tl-mx-scroll {
+  overflow-x: auto;
+}
+.tl-mx-grid {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.tl-mx-ylabel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tl-mx-ylabel span {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  color: var(--fg-secondary);
+}
+.tl-mx-ylabel-tick {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: var(--space-3);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-muted);
+}
+.tl-mx-xtick {
+  padding-top: var(--space-2);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-muted);
+}
+.tl-mx-cell {
+  /* 固定列高，不用正方形：B 檢視 1232 寬下 10 章的正方格會讓矩陣高過 1100px，
+     一屏看不完對角線。欄仍隨寬度等分（見 5-TL-5）。 */
+  height: calc(var(--space-8) + var(--space-6));
+  padding: 0;
+  border: var(--line-weight) solid var(--border);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--fg-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.tl-mx-cell:disabled {
+  cursor: default;
+}
+.tl-mx-cell.is-diagonal {
+  border: 2px solid var(--fg-primary);
+}
+.tl-mx-cell.is-selected {
+  outline: 2px solid var(--fg-primary);
+  outline-offset: 1px;
+}
+.tl-mx-cell:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.tl-mx-cell.is-step-1,
+.tl-mx-swatch.is-step-1 { background: var(--symbol-density-low); }
+.tl-mx-cell.is-step-2,
+.tl-mx-swatch.is-step-2 { background: var(--symbol-density-mid); }
+.tl-mx-cell.is-step-3,
+.tl-mx-swatch.is-step-3 { background: var(--symbol-density-high); }
+.tl-mx-cell.is-step-4,
+.tl-mx-swatch.is-step-4 { background: var(--symbol-density-peak); }
+.tl-mx-cell.is-step-3,
+.tl-mx-cell.is-step-4 {
+  color: var(--accent-fg);
+}
+.tl-mx-axis,
+.tl-mx-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+}
+.tl-mx-axis {
+  justify-content: space-between;
+  padding-left: 88px;
+}
+.tl-mx-legend {
+  gap: var(--space-6);
+}
+.tl-mx-diag-key,
+.tl-mx-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.tl-mx-diag-swatch,
+.tl-mx-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+}
+.tl-mx-diag-swatch {
+  border: 2px solid var(--fg-primary);
+}
+.tl-mx-swatch {
+  border: var(--line-weight) solid var(--border);
+}
+.tl-mx-note {
+  color: var(--fg-muted);
+}
+.tl-mx-unranked {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+}
+.tl-mx-sel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-top: var(--space-5);
+  border-top: var(--line-weight) var(--border-style) var(--border);
+}
+.tl-mx-sel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+}
+.tl-mx-sel-title {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+/* 動作列（components-rows）：圓點 24 · 標題 · 中繼 · 12 尾欄 */
+.tl-mx-event {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto 12px;
+  gap: var(--space-4);
+  align-items: center;
+  width: 100%;
+  padding: var(--space-4) var(--space-5);
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+  color: var(--fg-primary);
+  text-align: left;
+  cursor: pointer;
+}
+.tl-mx-event:hover {
+  background: var(--bg-secondary);
+}
+.tl-mx-event.is-selected {
+  background: var(--bg-secondary);
+  font-weight: 700;
+  color: var(--accent);
+}
+.tl-mx-event.is-dim {
+  opacity: 0.45;
+}
+.tl-mx-event-title {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: inherit;
+}
+.tl-mx-event-meta {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+.tl-mx-dot {
+  justify-self: center;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--narrative-unknown-border);
+}
+/* Ink 下三色只差灰階：除了色，再用形狀分——當下＝實心圓、回敘＝空心圈、預敘＝實心方。 */
+.tl-mx-dot.is-present { background: var(--narrative-present-border); }
+.tl-mx-dot.is-flashback {
+  background: transparent;
+  box-sizing: border-box;
+  border: 2px solid var(--narrative-flashback-border);
+}
+.tl-mx-dot.is-flashforward {
+  background: var(--narrative-flashforward-border);
+  border-radius: 2px;
+}
+.tl-mx-dot.is-parallel { background: var(--narrative-parallel-border); }

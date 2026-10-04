@@ -58,6 +58,7 @@ import {
 import { FilterSheet } from '@/components/timeline/FilterSheet';
 import { TimelineStave } from '@/components/timeline/TimelineStave';
 import { ChapterCardBand } from '@/components/timeline/ChapterCardBand';
+import { DensityMatrix } from '@/components/timeline/DensityMatrix';
 import { CharacterLanes } from '@/components/timeline/CharacterLanes';
 import { EventDetailPanel } from '@/components/timeline/EventDetailPanel';
 import {
@@ -123,6 +124,8 @@ export default function TimelinePage() {
   const [confirm, setConfirm] = useState<'story' | 'displacement' | null>(null);
   /** The user's wish; whether it can be honoured is `compareState`. */
   const [wantsCompare, setWantsCompare] = useState(false);
+  /** How an open comparison is drawn. Local like the switch — not in the URL. */
+  const [compareView, setCompareView] = useState<'stave' | 'matrix'>('stave');
   const [computeTaskId, setComputeTaskId] = useState<string | null>(null);
   const [displacementTaskId, setDisplacementTaskId] = useState<string | null>(null);
   const [skippedNotice, setSkippedNotice] = useState(false);
@@ -718,6 +721,21 @@ export default function TimelinePage() {
                   <span className="tl-switch-label">{t('timeline.compare.label')}</span>
                 </button>
                 <span className="tl-compare-note">{t('timeline.compare.zeroCost')}</span>
+                {comparing && (
+                  <div className="ss-seg tl-compare-seg" role="group" aria-label={t('timeline.compare.label')}>
+                    {(['stave', 'matrix'] as const).map((v) => (
+                      <button
+                        type="button"
+                        key={v}
+                        className={`ss-seg-item${compareView === v ? ' active' : ''}`}
+                        aria-pressed={compareView === v}
+                        onClick={() => setCompareView(v)}
+                      >
+                        {t(`timeline.compare.mode.${v}`)}
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -785,6 +803,14 @@ export default function TimelinePage() {
                   {t('timeline.clearAll')}
                 </button>
               </div>
+            ) : comparing && compareView === 'matrix' ? (
+              <DensityMatrix
+                data={visible}
+                chapters={chapters}
+                dimmedIds={dimmedIds}
+                selectedEventId={selectedEventId}
+                onSelectEvent={selectEvent}
+              />
             ) : (
               <>
                 {comparing && (
