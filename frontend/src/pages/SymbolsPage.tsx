@@ -8,6 +8,7 @@ import { useChatDispatch } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { EmptyState } from '@/components/ui/EmptyState';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { LlmUnconfiguredNotice } from '@/components/ui/LlmUnconfiguredNotice';
 import { PageFailure } from '@/components/ui/PageFailure';
 import { ApiError } from '@/api/client';
@@ -227,6 +228,7 @@ export default function SymbolsPage() {
       queryKey: ['entities', id],
       queryFn: () => fetchEntityById(id),
       staleTime: Infinity,
+      retry: false,
     })),
   });
 
@@ -235,6 +237,7 @@ export default function SymbolsPage() {
       queryKey: ['events', bookId, id],
       queryFn: () => fetchEventDetail(bookId!, id),
       staleTime: Infinity,
+      retry: false,
     })),
   });
 
@@ -243,6 +246,8 @@ export default function SymbolsPage() {
     return {
       id,
       name: characterQueries[i]?.data?.name ?? id,
+      // An id that did not resolve is shown shortened in a dashed chip, not dropped.
+      resolved: characterQueries[i]?.data?.name != null,
       hint: count != null && count > 0
         ? t('symbol.interpretation.linkedCharHint', { count })
         : undefined,
@@ -254,6 +259,7 @@ export default function SymbolsPage() {
     return {
       id,
       name: ev?.title ?? id,
+      resolved: ev?.title != null,
       hint: ev?.chapter != null ? t('symbol.interpretation.linkedEventHint', { chapter: ev.chapter }) : undefined,
     };
   });
@@ -285,23 +291,24 @@ export default function SymbolsPage() {
     void interpretationTask.trigger(selectedId, { bookId, forceRefresh: force });
   };
 
-  const handleRegenerate = () => {
-    if (globalThis.window === undefined) {
-      handleGenerate(true);
-      return;
-    }
-    if (globalThis.window.confirm(t('symbol.interpretation.regenerateConfirm'))) {
-      handleGenerate(true);
-    }
-  };
+  // Regenerating spends tokens and overwrites the interpretation and its review
+  // state, so it goes through a loss-list confirmation (DS v3 · 11 補稿 B).
+  const [regenOpen, setRegenOpen] = useState(false);
+  const handleRegenerate = () => setRegenOpen(true);
 
   // ── HITL review ──────────────────────────────────────────────
   const reviewMutation = useMutation({
-    mutationFn: (vars: { status: 'approved' | 'modified' | 'rejected'; theme?: string; polarity?: Polarity }) =>
+    mutationFn: (vars: {
+      status: 'approved' | 'modified' | 'rejected';
+      theme?: string;
+      evidenceSummary?: string;
+      polarity?: Polarity;
+    }) =>
       reviewSymbolInterpretation(selectedId!, {
         bookId: bookId!,
         reviewStatus: vars.status,
         theme: vars.theme,
+        evidenceSummary: vars.evidenceSummary,
         polarity: vars.polarity,
       }),
     onSuccess: refetchInterpretation,
@@ -311,8 +318,8 @@ export default function SymbolsPage() {
 
   const handleApprove = () => reviewMutation.mutate({ status: 'approved' });
   const handleReject = () => reviewMutation.mutate({ status: 'rejected' });
-  const handleSubmitModify = (theme: string, polarity: Polarity) =>
-    reviewMutation.mutate({ status: 'modified', theme, polarity });
+  const handleSubmitModify = (theme: string, evidenceSummary: string | undefined, polarity: Polarity) =>
+    reviewMutation.mutateAsync({ status: 'modified', theme, evidenceSummary, polarity });
 
   // ── Computed ─────────────────────────────────────────────────
   const selected = entities.find((e) => e.id === selectedId) ?? null;
@@ -336,6 +343,8 @@ export default function SymbolsPage() {
         key={interpretation.id ?? interpretation.imagery_id}
         entity={selected!}
         interpretation={interpretation}
+        // 詮釋與阻擋並存：舊詮釋照常顯示，阻擋改成區塊頂端一條警示列。
+        block={selectedSignals?.block ?? null}
         // 後端算的排除數，不是前端自己從 chapter_roles 推的（B-101）：這句
         // 話講的是「LLM 沒看到幾筆」，而那個答案只有排除的那一方知道。
         frontCount={selectedSignals?.item.excluded_front_matter_count ?? 0}
@@ -360,6 +369,29 @@ export default function SymbolsPage() {
       />
     ) : null;
   }
+
+  const regenDialog = (
+    <ConfirmDialog
+      open={regenOpen}
+      title={t('symbol.regen.title', { term: selected?.term ?? '' })}
+      message={t('symbol.interpretation.regenerateConfirm')}
+      items={[
+        t('symbol.regen.loss.content'),
+        t('symbol.regen.loss.status', {
+          status: t(`symbol.review.${interpretation?.review_status ?? 'pending'}`),
+        }),
+      ]}
+      costHint={t('tension.state.tokenHintShort')}
+      confirmLabel={t('symbol.interpretation.regenerate')}
+      spendsTokens
+      danger
+      onConfirm={() => {
+        setRegenOpen(false);
+        handleGenerate(true);
+      }}
+      onCancel={() => setRegenOpen(false)}
+    />
+  );
 
   const pageName = tn('tabs.symbolImagery');
   const backToBook = (
@@ -457,6 +489,7 @@ export default function SymbolsPage() {
             // Nothing to compare a symbol against itself, so the row is dropped
             // rather than drawn twice.
             pinned={pinnedSignals?.id === selectedSignals.id ? null : pinnedSignals}
+            onClearPin={() => setPinned(null)}
           />
         )}
 
@@ -542,6 +575,7 @@ export default function SymbolsPage() {
           {showLlmNotice && <LlmUnconfiguredNotice />}
           {triggerBanner}
           {detailBody}
+          {regenDialog}
         </div>
       </main>
     </div>
@@ -560,12 +594,22 @@ function ChapterCard({
   signals,
   axis,
   pinned,
-}: Readonly<{ signals: SymbolSignals; axis: ChapterAxis; pinned: SymbolSignals | null }>) {
+  onClearPin,
+}: Readonly<{
+  signals: SymbolSignals;
+  axis: ChapterAxis;
+  pinned: SymbolSignals | null;
+  onClearPin: () => void;
+}>) {
   const { t } = useTranslation('analysis');
   const { firstBodyChapter: first, peakBodyChapters: peaks, front } = signals.distribution;
   // One source for the bar scale: the caption states it and the legend derives its
   // steps from it, so neither can drift from what the chart drew.
-  const scale = barScale(signals.item.chapter_distribution ?? {}, axis);
+  // With a symbol pinned, both rows share one max so their heights compare directly.
+  const scale = Math.max(
+    barScale(signals.item.chapter_distribution ?? {}, axis),
+    pinned ? barScale(pinned.item.chapter_distribution ?? {}, axis) : 0,
+  );
 
   const meta = [];
   if (first !== null) meta.push(t('symbol.firstSeenBody', { chapter: first }));
@@ -583,6 +627,17 @@ function ChapterCard({
       <div className="sym-card-head">
         <h3 className="sym-card-title">{t('symbol.chapterDist')}</h3>
         <span className="sym-card-meta">{meta.join(' · ')}</span>
+        {pinned !== null && (
+          // Inside the chart card, so the lower row is read as part of this chart.
+          <span className="sym-dist-pin-head">
+            <span className="sym-dist-pin-label">
+              {t('symbol.pin.clearOther', { term: pinned.term })}
+            </span>
+            <button type="button" className="ss-btn ss-btn-sm ss-btn-ghost" onClick={onClearPin}>
+              {t('symbol.pin.clearSelf')}
+            </button>
+          </span>
+        )}
       </div>
       <div className="sym-card-body" style={{ overflowX: 'auto' }}>
         <ChapterDistChart signals={signals} axis={axis} scale={scale} pinned={pinned} />

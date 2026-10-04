@@ -785,6 +785,293 @@
   margin-right: auto;
 }
 
+/* ── Generated interpretation (DS v3 · 5-4, 11 補稿 A／C) ─────
+   A card on --bg-primary like the CTA it replaces (same slot). B 檢視 spacing:
+   card 16, blocks 12–16. No left-edge accents anywhere; the block and rejected
+   rows are filled bars. */
+.sym-interp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  padding: var(--space-6);
+  background: var(--bg-primary);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
+}
+.sym-interp-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+}
+.sym-interp-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  color: var(--fg-secondary);
+}
+.sym-interp-tag {
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--fg-primary);
+  text-decoration: none;
+}
+.sym-interp-tag:hover {
+  color: var(--accent);
+}
+.sym-interp-prov {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+.sym-interp-block,
+.sym-interp-rejected {
+  display: flex;
+  gap: var(--space-4);
+  align-items: flex-start;
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-md);
+  font-size: var(--font-size-2xs);
+  line-height: 1.6;
+}
+.sym-interp-rejected {
+  background: var(--bg-secondary);
+  color: var(--fg-secondary);
+}
+.sym-interp-rejected strong {
+  font-weight: 600;
+  color: var(--fg-primary);
+  white-space: nowrap;
+}
+/* Warning bar: the outline carries it in Ink, where every status hue is the same. */
+.sym-interp-block {
+  align-items: center;
+  justify-content: space-between;
+  background: var(--color-warning-bg);
+  border: var(--line-weight) var(--border-style) var(--status-partial-border);
+}
+.sym-interp-block-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.sym-interp-block-title {
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+.sym-interp-block-desc {
+  color: var(--fg-secondary);
+}
+.sym-interp-block-hint {
+  color: var(--fg-muted);
+}
+.sym-interp-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+.sym-interp-body.is-rejected {
+  opacity: 0.6;
+}
+.sym-interp-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.sym-interp-label {
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  letter-spacing: 0.06em;
+}
+.sym-interp-theme {
+  margin: 0;
+  max-width: 62ch;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-lg);
+  line-height: 1.6;
+  color: var(--fg-primary);
+  text-wrap: pretty;
+}
+.sym-interp-evidence {
+  margin: 0;
+  max-width: 72ch;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-sm);
+  line-height: 1.85;
+  color: var(--fg-primary);
+  text-wrap: pretty;
+}
+.sym-interp-edit {
+  width: 100%;
+  font-family: var(--font-serif);
+  line-height: 1.6;
+  color: var(--fg-primary);
+  background: var(--input-bg);
+  border: var(--input-border-width) solid var(--border);
+  border-radius: var(--input-radius);
+  padding: var(--space-4) var(--space-5);
+  resize: vertical;
+}
+.sym-interp-edit.is-theme {
+  font-size: var(--font-size-lg);
+}
+.sym-interp-edit.is-evidence {
+  font-size: var(--font-size-sm);
+  line-height: 1.85;
+}
+.sym-interp-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--space-7);
+}
+.sym-interp-pol {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: fit-content;
+  padding: var(--space-2) var(--space-5);
+  border: var(--pill-border-width) solid;
+  border-radius: var(--pill-radius);
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.sym-interp-pol-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+}
+.sym-interp-polsel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.sym-interp-polopt {
+  padding: var(--space-2) var(--space-5);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+  background: transparent;
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--pill-radius);
+  cursor: pointer;
+}
+.sym-interp-polopt.is-selected {
+  background: var(--bg-secondary);
+  color: var(--accent);
+  font-weight: 700;
+  border-color: var(--accent);
+}
+.sym-interp-conf {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  font-size: var(--font-size-2xs);
+}
+.sym-interp-conf-dots {
+  font-family: var(--font-mono);
+  letter-spacing: 2px;
+  color: var(--accent);
+}
+.sym-interp-conf-name {
+  font-weight: 600;
+}
+.sym-interp-conf-num {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-secondary);
+}
+.sym-interp-conf-range {
+  color: var(--fg-muted);
+}
+.sym-interp-links {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-6);
+}
+@media (max-width: 720px) {
+  .sym-interp-links {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+.sym-interp-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+/* A button wearing the kit's pill: reset only what a <button> adds. */
+.sym-interp-pill {
+  margin: 0;
+  cursor: pointer;
+}
+.sym-interp-pill:hover {
+  text-decoration: underline;
+}
+.sym-interp-unresolved {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  padding: var(--space-2) var(--space-4);
+  border: var(--line-weight) dashed var(--border);
+  border-radius: var(--pill-radius);
+}
+.sym-interp-events {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+.sym-interp-event {
+  display: flex;
+  gap: var(--space-4);
+  align-items: baseline;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--accent);
+  background: none;
+  border: 0;
+  text-align: left;
+  cursor: pointer;
+}
+.sym-interp-event:hover {
+  text-decoration: underline;
+}
+.sym-interp-event-ch {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+.sym-interp-empty {
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+.sym-interp-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-5);
+  flex-wrap: wrap;
+  padding-top: var(--space-5);
+  border-top: var(--line-weight) var(--border-style) var(--border);
+}
+.sym-interp-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+.sym-interp-cost {
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+
 /* ── Interpretation CTA (four tiers) ─────────────────────────
    One frame, one button size for every tier: they differ only in the button
    variant and the sentence beside it. A smaller box for 「證據不足」 would read as
@@ -2294,7 +2581,17 @@
   padding-top: 3px;
 }
 .sym-dist-plot.is-pin {
-  height: 40px;
+  /* Same bar ceiling as the plot above (no peak-marker line), so heights compare. */
+  height: 76px;
+}
+.sym-dist-pin-head {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.sym-dist-pin-label {
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
 }
 .sym-dist-pin-note {
   font-family: var(--font-sans);
