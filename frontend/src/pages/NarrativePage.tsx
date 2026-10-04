@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Trans, useTranslation } from 'react-i18next';
 import { AlertTriangle, Compass } from 'lucide-react';
 import { ApiError } from '@/api/client';
+import { failureKind, techDetailOf } from '@/api/failureKind';
 import { useBook } from '@/hooks/useBook';
 import { useChatDispatch } from '@/contexts/ChatContext';
 import { useTensionTask } from '@/components/tension/hooks/useTensionTask';
@@ -22,16 +23,21 @@ import {
   refineNarrative,
   reviewNarrativeStructure,
   triggerHeroJourney,
+  type NarrativeReviewStatus,
 } from '@/api/narrative';
 import { STAGE_ORDER, getStageTheory, padStages } from '@/components/narrative/heroJourney';
 import { HeroJourneySection } from '@/components/narrative/HeroJourneySection';
 import { PlotSpine } from '@/components/narrative/PlotSpine';
 import { UnclassifiedBlock } from '@/components/narrative/UnclassifiedBlock';
 import { CrossEvidence } from '@/components/narrative/CrossEvidence';
+import { displacementCounts, splitAffects, summaryGate } from '@/components/narrative/narrativeModel';
+import { staleStepKey } from '@/components/timeline/timelineModel';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import type { EventInfo } from '@/components/narrative/StageDetail';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { GuidanceRibbon } from '@/components/ui/GuidanceRibbon';
+import { LlmUnconfiguredNotice } from '@/components/ui/LlmUnconfiguredNotice';
+import { PageFailure } from '@/components/ui/PageFailure';
 import '@/styles/narrative.css';
 import { qk } from '@/api/queryKeys';
 
@@ -43,19 +49,17 @@ function PrereqRow({
   hint,
   cta,
   to,
-}: {
+}: Readonly<{
   ready: boolean;
   name: string;
   count: string;
   hint: string;
   cta: string;
   to: string;
-}) {
+}>) {
   return (
     <div className="nl-prereq-row">
-      <span className="nl-prereq-mark" style={{ color: ready ? 'var(--color-success)' : 'var(--fg-muted)' }}>
-        {ready ? '●' : '○'}
-      </span>
+      <span className={ready ? 'nl-prereq-mark is-ready' : 'nl-prereq-mark'}>{ready ? '●' : '○'}</span>
       <span className="nl-prereq-name">{name}</span>
       <span className="nl-prereq-count">{count}</span>
       <span className="nl-prereq-hint">{hint}</span>
@@ -69,10 +73,14 @@ function PrereqRow({
   );
 }
 
+// 404 here means "not analyzed yet" — an empty state, not a failure.
+const isNotFound = (err: unknown) => err instanceof ApiError && err.status === 404;
+
 export default function NarrativePage() {
   const queryClient = useQueryClient();
   const { bookId } = useParams<{ bookId: string }>();
   const { i18n, t } = useTranslation('analysis');
+  const { t: tr } = useTranslation('reader');
   const { setPageContext } = useChatDispatch();
   const { data: book } = useBook(bookId);
 
@@ -107,29 +115,19 @@ export default function NarrativePage() {
     t('narrative.errors.heroFailed'),
   );
 
-  const handleTrigger = (force = false) =>
-    heroJourneyOp.trigger(
-      () => triggerHeroJourney(bookId!, book?.language ?? 'en', force),
-      t('narrative.errors.triggerHero'),
-    );
-
   // Both write narrative_weight back to the KG, so both invalidate the same
   // queries the page reads.
   const invalidateNarrative = () => {
     queryClient.invalidateQueries({ queryKey: ['narrative', bookId] });
     queryClient.invalidateQueries({ queryKey: qk.analysis.events(bookId) });
   };
-  const classifyOp = useTensionTask(
-    fetchClassifyTask,
-    invalidateNarrative,
-    t('narrative.errors.classifyFailed'),
-  );
-  const refineOp = useTensionTask(
-    fetchRefineTask,
-    invalidateNarrative,
-    t('narrative.errors.refineFailed'),
-  );
+  const classifyOp = useTensionTask(fetchClassifyTask, invalidateNarrative, t('narrative.errors.classifyFailed'));
+  const refineOp = useTensionTask(fetchRefineTask, invalidateNarrative, t('narrative.errors.refineFailed'));
   const [pendingAction, setPendingAction] = useState<'classify' | 'refine' | null>(null);
+  // The fourth kind of failure, specific to this page: the server refused to
+  // reclassify (409). Kept apart from `classifyOp.error` because that hook
+  // flattens every failure to a string and loses the status.
+  const [classifyRefused, setClassifyRefused] = useState<string | null>(null);
 
   const structure = structureQuery.data;
   // Padded to the canonical 12 — so `stages.length` no longer says whether an
@@ -154,9 +152,9 @@ export default function NarrativePage() {
     return map;
   }, [kernelSpineQuery.data, eventsQuery.data]);
 
+  // Pressing a lit button again sends `pending` (resolved by nextReviewStatus).
   const reviewMutation = useMutation({
-    mutationFn: (status: 'approved' | 'rejected') =>
-      reviewNarrativeStructure(structure!.document_id, status),
+    mutationFn: (status: NarrativeReviewStatus) => reviewNarrativeStructure(structure!.document_id, status),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['narrative', bookId] }),
   });
 
@@ -164,15 +162,36 @@ export default function NarrativePage() {
   const hasHeroJourney = (structure?.hero_journey_stages?.length ?? 0) > 0;
   const loading = structureQuery.isLoading || kernelSpineQuery.isLoading;
 
+  // This page's own queries failing. 404 is "not analyzed yet" and stays an
+  // empty state. BookLayout already owns the book fetch failing.
+  const pageError =
+    (structureQuery.isError && !isNotFound(structureQuery.error) ? structureQuery.error : null) ??
+    (kernelSpineQuery.isError && !isNotFound(kernelSpineQuery.error) ? kernelSpineQuery.error : null);
+  const retryPage = () => {
+    if (structureQuery.isError) void structureQuery.refetch();
+    if (kernelSpineQuery.isError) void kernelSpineQuery.refetch();
+  };
+
   // Chapter summaries are what map_hero_journey actually reads: without them the
-  // task reports success and writes zero stages. Only the empty state needs the
-  // per-chapter detail, so this stays off the path where an analysis exists.
-  // Same query key as useChapters — a reader-page visit already warmed it.
+  // task reports success and writes zero stages. The gate guards every path that
+  // starts an analysis (first run, re-run, the stale band), so the list is
+  // fetched whether or not an analysis already exists. Same query key as
+  // useChapters — a reader-page visit already warmed it.
   const chaptersQuery = useQuery({
     queryKey: qk.chapters(bookId),
     queryFn: () => fetchChapters(bookId!),
-    enabled: !!bookId && !structureQuery.isLoading && !hasHeroJourney,
+    enabled: !!bookId && !structureQuery.isLoading,
   });
+  const gate = summaryGate(chaptersQuery.data, chapterCount);
+  const blockedReason = gate.blocked ? t('narrative.empty.blockedReason', { n: gate.missing }) : null;
+
+  const handleTrigger = (force = false) => {
+    if (gate.blocked) return;
+    void heroJourneyOp.trigger(
+      () => triggerHeroJourney(bookId!, book?.language ?? 'en', force),
+      t('narrative.errors.triggerHero'),
+    );
+  };
 
   // ③ cross-evidence reads what the other analysis pages already produced.
   // Gated on there being an arc to cross-reference, so books without one pay
@@ -203,27 +222,12 @@ export default function NarrativePage() {
     return out;
   }, [teuQuery.data]);
 
-  const prereq = useMemo(() => {
-    const chapters = chaptersQuery.data;
-    const summaryTotal = chapters?.length ?? chapterCount;
-    const summaryDone = chapters?.filter((c) => c.summary?.trim()).length ?? 0;
-    const ev = eventsQuery.data;
-    const eventTotal = ev ? ev.analyzed.length + ev.unanalyzed.length : 0;
-    return {
-      summaryDone,
-      summaryTotal,
-      summaryMissing: Math.max(0, summaryTotal - summaryDone),
-      summaryReady: summaryTotal > 0 && summaryDone === summaryTotal,
-      eventDone: ev?.analyzed.length ?? 0,
-      eventTotal,
-      eventReady: eventTotal > 0 && ev!.analyzed.length === eventTotal,
-      known: !!chapters,
-    };
-  }, [chaptersQuery.data, chapterCount, eventsQuery.data]);
+  const displacement = useMemo(() => displacementCounts(timelineQuery.data?.events ?? []), [timelineQuery.data]);
 
-  // Blocked only on the hard prerequisite; event analysis affects representative
-  // events but never whether stages can be produced.
-  const triggerBlocked = prereq.known && !prereq.summaryReady;
+  const ev = eventsQuery.data;
+  const eventTotal = ev ? ev.analyzed.length + ev.unanalyzed.length : 0;
+  const eventDone = ev?.analyzed.length ?? 0;
+  const eventReady = eventTotal > 0 && eventDone === eventTotal;
 
   const sourceLabel = structure
     ? {
@@ -233,35 +237,28 @@ export default function NarrativePage() {
       }[structure.classification_source]
     : '';
   const kernelCount = structure?.kernel_event_ids?.length ?? 0;
+  const satelliteCount = structure?.satellite_event_ids?.length ?? 0;
+  const unclassifiedIds = structure?.unclassified_event_ids ?? [];
   // One entry per kernel event, so repeats within a chapter carry the density.
-  const kernelChapters = useMemo(
-    () => (kernelSpineQuery.data ?? []).map((e) => e.chapter),
-    [kernelSpineQuery.data],
-  );
-  // Where the kernel events stop — a stage past this point resolves to none,
-  // and the detail panel says so rather than showing a bare empty list.
-  const lastKernelChapter = kernelChapters.length ? Math.max(...kernelChapters) : 0;
-  const eventCount = (structure?.kernel_event_ids?.length ?? 0)
-    + (structure?.satellite_event_ids?.length ?? 0)
-    + (structure?.unclassified_event_ids?.length ?? 0);
-  const mappedStages = useMemo(
-    () => stages.filter((s) => s.chapter_range.length > 0).length,
-    [stages],
-  );
+  const kernelChapters = useMemo(() => (kernelSpineQuery.data ?? []).map((e) => e.chapter), [kernelSpineQuery.data]);
+  const eventCount = kernelCount + satelliteCount + unclassifiedIds.length;
+  const mappedStages = useMemo(() => stages.filter((s) => s.chapter_range.length > 0).length, [stages]);
 
   // Table of contents: what is on this page, in what order, and how far each
   // one has got — so the fold stops hiding the second half of the page.
+  let heroStatus = t('narrative.index.notAnalyzed');
+  if (hasHeroJourney) {
+    heroStatus = t('narrative.index.mappedStatus', { mapped: mappedStages, total: STAGE_ORDER.length });
+  } else if (heroJourneyOp.running) {
+    heroStatus = t('narrative.index.running');
+  }
   const indexCards = [
     {
       n: 1,
       role: t('narrative.index.role1'),
       title: t('narrative.index.title1'),
       answers: t('narrative.index.answers1'),
-      status: hasHeroJourney
-        ? t('narrative.index.mappedStatus', { mapped: mappedStages, total: STAGE_ORDER.length })
-        : heroJourneyOp.running
-          ? t('narrative.index.running')
-          : t('narrative.index.notAnalyzed'),
+      status: heroStatus,
       href: '#nl-hero',
     },
     {
@@ -276,8 +273,7 @@ export default function NarrativePage() {
   if (hasHeroJourney) {
     // Only listed once the section it points at exists — a table-of-contents
     // entry for nothing is worse than no entry.
-    const crossDone =
-      (timelineQuery.data?.temporalAnalyzed ? 1 : 0) + ((teuQuery.data?.length ?? 0) > 0 ? 1 : 0);
+    const crossDone = (timelineQuery.data?.temporalAnalyzed ? 1 : 0) + ((teuQuery.data?.length ?? 0) > 0 ? 1 : 0);
     indexCards.push({
       n: 3,
       role: t('narrative.index.role3'),
@@ -288,14 +284,14 @@ export default function NarrativePage() {
     });
   }
 
-  const unclassifiedIds = structure?.unclassified_event_ids ?? [];
   // The book's language, not the UI's — this used to read i18n.language, which
   // made an English UI request English analysis of a Chinese book.
   const lang = book?.language ?? 'en';
 
   const runClassify = () => {
     setPendingAction(null);
-    classifyOp.trigger(async () => {
+    setClassifyRefused(null);
+    void classifyOp.trigger(async () => {
       try {
         return await classifyNarrative(bookId!);
       } catch (err) {
@@ -303,13 +299,12 @@ export default function NarrativePage() {
         // holds every number the server counted — so say it in the user's
         // language rather than surfacing the server's English string.
         if (err instanceof ApiError && err.status === 409) {
-          throw new ApiError(
-            409,
-            t('narrative.errors.classifyRefused', {
-              total: eventCount,
-              classified: kernelCount + (structure?.satellite_event_ids?.length ?? 0),
-            }),
-          );
+          const message = t('narrative.errors.classifyRefused', {
+            total: eventCount,
+            classified: kernelCount + satelliteCount,
+          });
+          setClassifyRefused(message);
+          throw new ApiError(409, message);
         }
         throw err;
       }
@@ -317,7 +312,7 @@ export default function NarrativePage() {
   };
   const runRefine = () => {
     setPendingAction(null);
-    refineOp.trigger(
+    void refineOp.trigger(
       () => refineNarrative(bookId!, unclassifiedIds, lang),
       t('narrative.errors.refineTrigger'),
     );
@@ -326,8 +321,8 @@ export default function NarrativePage() {
   const unclassifiedBlock = structure ? (
     <UnclassifiedBlock
       count={unclassifiedIds.length}
-      eepDone={prereq.eventDone}
-      eepTotal={prereq.eventTotal || eventCount}
+      eepDone={eventDone}
+      eepTotal={eventTotal || eventCount}
       bookId={bookId!}
       onClassify={() => setPendingAction('classify')}
       onRefine={() => setPendingAction('refine')}
@@ -335,36 +330,29 @@ export default function NarrativePage() {
       refineRunning={refineOp.running}
       progress={(classifyOp.running ? classifyOp.task?.progress : refineOp.task?.progress) ?? 0}
       error={classifyOp.error ?? refineOp.error}
+      refusedMessage={classifyRefused}
+      llmBlocked={refineOp.llmBlocked}
     />
   ) : null;
 
+  // Which pipeline step overtook the analysis, named the way the reader page
+  // names it — never the raw step id.
+  const staleKey = staleStepKey(structure?.stale_reason);
+  const staleStep = staleKey ? tr(`rerun.steps.${staleKey}`) : (structure?.stale_reason ?? '');
   const staleBanner = structure?.is_stale ? (
     <div className="nl-stale" role="status">
       <AlertTriangle size={16} />
-      <div>
+      <div className="nl-stale-text">
         <strong>{t('narrative.stale.title')}</strong>
-        {t('narrative.stale.body', { step: structure.stale_reason ?? '' })}
+        {t('narrative.stale.body', { step: staleStep })}
       </div>
       {hasHeroJourney && (
+        // The same action as the card's own button, behind the same gate.
         <button
           type="button"
+          className="ss-btn ss-btn-sm ss-btn-ghost ss-btn-llm nl-stale-act"
           onClick={() => handleTrigger(true)}
-          disabled={heroJourneyOp.running}
-          style={{
-            marginLeft: 'auto',
-            flexShrink: 0,
-            alignSelf: 'center',
-            cursor: heroJourneyOp.running ? 'wait' : 'pointer',
-            background: 'none',
-            border: 'none',
-            padding: 0,
-            fontFamily: 'inherit',
-            fontSize: 'var(--font-size-sm)',
-            fontWeight: 600,
-            color: 'inherit',
-            textDecoration: 'underline',
-            whiteSpace: 'nowrap',
-          }}
+          disabled={heroJourneyOp.running || gate.blocked}
         >
           {heroJourneyOp.running ? t('narrative.rerunning') : t('narrative.rerunArrow')}
         </button>
@@ -372,35 +360,61 @@ export default function NarrativePage() {
     </div>
   ) : null;
 
+  const lastClassifyDetail = structure
+    ? splitAffects(
+        t('narrative.unclassified.classifyAffects', {
+          total: eventCount,
+          kernel: kernelCount,
+          satellite: satelliteCount,
+          unclassified: unclassifiedIds.length,
+        }),
+      )
+    : { title: '', item: '' };
+  const refineDetail = splitAffects(t('narrative.unclassified.refineAffects', { n: unclassifiedIds.length }));
+
+  const backToBook = (
+    <Link to={`/books/${bookId}`} className="ss-btn ss-btn-md ss-btn-secondary">
+      {t('character.error.backToBook')}
+    </Link>
+  );
+
   return (
     <div className="nl-scroll">
       <div className="nl-page">
         {!loading && (
-          <>
-            <header className="nl-head">
-              <div className="nl-head-line">
-                <h1 className="nl-head-title">{t('narrative.pageTitle')}</h1>
-                <p className="nl-head-lead">{t('narrative.pageLead')}</p>
+          <header className="nl-head">
+            <div className="nl-head-line">
+              <h1 className="nl-head-title">{t('narrative.pageTitle')}</h1>
+              <p className="nl-head-lead">{t('narrative.pageLead')}</p>
+            </div>
+            {book && structure && (
+              <div className="nl-head-meta">
+                {t('narrative.bookMeta', {
+                  title: book.title,
+                  chapters: chapterCount,
+                  events: eventCount,
+                  source: sourceLabel,
+                })}
               </div>
-              {book && structure && (
-                <div className="nl-head-meta">
-                  {t('narrative.bookMeta', {
-                    title: book.title,
-                    chapters: chapterCount,
-                    events: eventCount,
-                    source: sourceLabel,
-                  })}
-                </div>
-              )}
-            </header>
+            )}
+          </header>
+        )}
 
+        {!loading && pageError && (
+          <PageFailure
+            variant={failureKind(pageError)}
+            pageName={t('narrative.pageTitle')}
+            onRetry={retryPage}
+            secondaryAction={backToBook}
+            techDetail={techDetailOf(pageError)}
+          />
+        )}
+
+        {!loading && !pageError && (
+          <>
             <GuidanceRibbon surface="narrative">
               <strong>{t('narrative.guide.prefix')}</strong>{' '}
-              <Trans
-                i18nKey="narrative.guide.body"
-                ns="analysis"
-                components={{ strong: <strong /> }}
-              />
+              <Trans i18nKey="narrative.guide.body" ns="analysis" components={{ strong: <strong /> }} />
             </GuidanceRibbon>
 
             <nav className="nl-index">
@@ -419,11 +433,12 @@ export default function NarrativePage() {
           </>
         )}
 
-        {loading ? (
-          <LoadingSpinner />
-        ) : hasHeroJourney && structure ? (
+        {loading && <LoadingSpinner />}
+
+        {!loading && !pageError && hasHeroJourney && structure && (
           <>
             {staleBanner}
+            {heroJourneyOp.llmBlocked && <LlmUnconfiguredNotice />}
             {heroJourneyOp.error && <div className="nl-empty-error">{heroJourneyOp.error}</div>}
             <HeroJourneySection
               stages={stages}
@@ -435,12 +450,18 @@ export default function NarrativePage() {
               reviewPending={reviewMutation.isPending}
               onRerun={() => handleTrigger(true)}
               rerunning={heroJourneyOp.running}
+              progress={heroJourneyOp.task?.progress ?? 0}
+              rerunBlockedReason={blockedReason}
               kernelChapters={kernelChapters}
-              lastKernelChapter={lastKernelChapter}
               bookId={bookId!}
             />
             <div id="nl-spine">
-              <PlotSpine structure={structure} kernelEvents={kernelSpineQuery.data ?? []} bookId={bookId!} chapterCount={chapterCount}>
+              <PlotSpine
+                structure={structure}
+                kernelEvents={kernelSpineQuery.data ?? []}
+                bookId={bookId!}
+                chapterCount={chapterCount}
+              >
                 {unclassifiedBlock}
               </PlotSpine>
             </div>
@@ -452,13 +473,16 @@ export default function NarrativePage() {
               teuCount={teuQuery.data?.length ?? 0}
               temporalAnalyzed={timelineQuery.data?.temporalAnalyzed ?? false}
               temporalStructure={timelineQuery.data?.temporalStructure ?? null}
+              displacement={displacement}
               temporalCoverage={temporalCoverageQuery.data?.coverage ?? null}
               temporalSufficient={temporalCoverageQuery.data?.coverage_sufficient ?? false}
               chapterCount={chapterCount}
               bookId={bookId!}
             />
           </>
-        ) : (
+        )}
+
+        {!loading && !pageError && !hasHeroJourney && (
           <div className="nl-empty">
             {staleBanner}
             <div className="nl-empty-icon">
@@ -471,48 +495,50 @@ export default function NarrativePage() {
             <div className="nl-prereq">
               <div className="nl-prereq-head">{t('narrative.empty.prereqTitle')}</div>
               <PrereqRow
-                ready={prereq.summaryReady}
+                ready={gate.ready}
                 name={t('narrative.empty.prereqSummary')}
-                count={t('narrative.empty.summaryCount', { done: prereq.summaryDone, total: prereq.summaryTotal })}
-                hint={
-                  prereq.summaryReady
-                    ? t('narrative.empty.summaryHintOk')
-                    : t('narrative.empty.summaryHintMissing', { n: prereq.summaryMissing })
-                }
+                count={t('narrative.empty.summaryCount', { done: gate.done, total: gate.total })}
+                hint={gate.ready ? t('narrative.empty.summaryHintOk') : t('narrative.empty.summaryHintMissing', { n: gate.missing })}
                 cta={t('narrative.empty.ctaSummary')}
                 to={`/books/${bookId}/unraveling`}
               />
               <PrereqRow
-                ready={prereq.eventReady}
+                ready={eventReady}
                 name={t('narrative.empty.prereqEvents')}
-                count={t('narrative.empty.eventCount', { done: prereq.eventDone, total: prereq.eventTotal })}
+                count={t('narrative.empty.eventCount', { done: eventDone, total: eventTotal })}
                 hint={t('narrative.empty.eventHint')}
                 cta={t('narrative.empty.ctaEvents')}
                 to={`/books/${bookId}/events`}
               />
             </div>
 
+            {heroJourneyOp.llmBlocked && <LlmUnconfiguredNotice />}
             {heroJourneyOp.error && <div className="nl-empty-error">{heroJourneyOp.error}</div>}
             <div className="nl-trigger-row">
               <button
                 type="button"
-                className={triggerBlocked ? 'nl-trigger-btn is-blocked' : 'nl-trigger-btn'}
+                className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm"
                 onClick={() => handleTrigger()}
-                disabled={heroJourneyOp.running || triggerBlocked}
+                disabled={heroJourneyOp.running || gate.blocked}
               >
                 {heroJourneyOp.running
                   ? t('narrative.empty.running', { progress: heroJourneyOp.task?.progress ?? 0 })
                   : t('narrative.empty.trigger')}
               </button>
-              {triggerBlocked && !heroJourneyOp.running && (
-                <span className="nl-trigger-reason">
-                  {t('narrative.empty.blockedReason', { n: prereq.summaryMissing })}
-                </span>
+              {gate.blocked && !heroJourneyOp.running ? (
+                <span className="nl-trigger-reason">{blockedReason}</span>
+              ) : (
+                <span className="nl-trigger-reason">{t('tension.state.tokenHintShort')}</span>
               )}
             </div>
             {structure && (
-              <div id="nl-spine" style={{ width: '100%', maxWidth: 1100, marginTop: 28 }}>
-                <PlotSpine structure={structure} kernelEvents={kernelSpineQuery.data ?? []} bookId={bookId!} chapterCount={chapterCount}>
+              <div id="nl-spine" className="nl-empty-spine">
+                <PlotSpine
+                  structure={structure}
+                  kernelEvents={kernelSpineQuery.data ?? []}
+                  bookId={bookId!}
+                  chapterCount={chapterCount}
+                >
                   {unclassifiedBlock}
                 </PlotSpine>
               </div>
@@ -526,6 +552,8 @@ export default function NarrativePage() {
         title={t('narrative.unclassified.classifyConfirmTitle')}
         message={t('narrative.unclassified.classifyConfirmBody', { n: unclassifiedIds.length })}
         confirmLabel={t('narrative.unclassified.classify')}
+        costHint={t('narrative.unclassified.classifyCost')}
+        sections={[{ title: lastClassifyDetail.title, items: lastClassifyDetail.item ? [lastClassifyDetail.item] : [] }]}
         onConfirm={runClassify}
         onCancel={() => setPendingAction(null)}
       />
@@ -535,6 +563,8 @@ export default function NarrativePage() {
         message={t('narrative.unclassified.refineConfirmBody', { n: unclassifiedIds.length })}
         confirmLabel={t('narrative.unclassified.refineConfirm')}
         spendsTokens
+        costHint={t('tension.state.tokenHintShort')}
+        sections={[{ title: refineDetail.title, items: refineDetail.item ? [refineDetail.item] : [] }]}
         onConfirm={runRefine}
         onCancel={() => setPendingAction(null)}
       />
