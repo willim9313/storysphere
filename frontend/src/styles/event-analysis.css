@@ -105,7 +105,7 @@
 .ea-row.selected { background: var(--bg-secondary); }
 .ea-row.selected .ea-row-name { font-weight: 700; }
 /* 無狀態點的列（未分析、非執行中）：本文併入點欄 */
-.ea-row.pending:not(.is-generating) .ea-row-body { grid-column: span 2; }
+.ea-row.pending:not(.is-generating):not(.is-failed) .ea-row-body { grid-column: span 2; }
 .ea-row-body { min-width: 0; display: flex; flex-direction: column; gap: var(--space-1); }
 .ea-row-name {
   font-size: var(--font-size-xs); font-weight: 500;
@@ -171,6 +171,8 @@
   background: var(--color-success);
 }
 .ea-row-dot.partial { background: transparent; border: 2px solid var(--color-warning); }
+/* 批次失敗：菱形實心。Ink 下四個 status 色同為墨色，靠形狀（圓／空心環／菱形）區分。 */
+.ea-row-dot.failed { background: var(--color-error); border-radius: 1px; transform: rotate(45deg) scale(0.85); }
 .ea-row-dot.running {
   background: var(--accent);
   animation: ea-pulse 1.6s ease-in-out infinite;
@@ -657,15 +659,6 @@
 .ea-row-wrap { display: flex; align-items: center; }
 .ea-row-wrap > .ea-row { flex: 1; min-width: 0; }
 .ea-row-check { flex: none; margin-left: var(--space-5); accent-color: var(--accent); cursor: pointer; }
-.ea-batch-subset { display: flex; flex-direction: column; gap: var(--space-3); margin-top: var(--space-4); }
-.ea-batch-subset-row { display: flex; gap: var(--space-3); }
-.ea-batch-subset-row > .ss-tooltip-anchor { flex: 1; min-width: 0; }
-.ea-batch-subset-row .ss-btn { width: 100%; }
-.ea-batch-subset > .ss-btn { width: 100%; }
-.ea-batch-subset > .ss-btn.is-active { background: var(--bg-tertiary); font-weight: 700; }
-.ea-batch-main { width: 100%; }
-.ea-batch-pct > .ss-tooltip-anchor { flex: 1; min-width: 0; }
-.ea-batch-pct > .ss-tooltip-anchor > .stage { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
 /* ─── 對比抽屜（H）760 ─── */
 .ea-compare-backdrop { position: fixed; inset: 0; z-index: 30; background: rgb(0 0 0 / 12%); }

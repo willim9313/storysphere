@@ -159,6 +159,19 @@
   background: var(--color-success);
 }
 .ca-row-dot.partial { background: transparent; border: 2px solid var(--color-warning); }
+/* 批次失敗：菱形實心。Ink 下四個 status 色同為墨色，靠形狀（圓／空心環／菱形）區分。 */
+.ca-row-dot.failed { background: var(--color-error); border-radius: 1px; transform: rotate(45deg) scale(0.85); }
+.ca-row.pending.is-failed .ca-row-body { grid-column: span 1; }
+/* 「只看失敗」chip（與事件頁 .ea-chip 同一套呈現：選中＝底色＋加粗） */
+.ca-fail-row { padding: var(--space-4) var(--space-5); border-bottom: var(--line-weight) var(--border-style) var(--border); }
+.ca-fail-chip {
+  padding: var(--space-2) var(--space-4);
+  border: var(--line-weight) var(--border-style) var(--border); border-radius: var(--radius-sm);
+  background: var(--bg-primary); color: var(--fg-secondary);
+  font-family: var(--font-sans); font-size: var(--font-size-2xs); cursor: pointer;
+}
+.ca-fail-chip:hover:not(.active) { background: var(--bg-secondary); }
+.ca-fail-chip.active { background: var(--bg-tertiary); color: var(--fg-primary); font-weight: 600; }
 .ca-item-dot {
   display: inline-block; width: 8px; height: 8px; border-radius: 50%;
   background: var(--color-success); flex-shrink: 0; align-self: center;
