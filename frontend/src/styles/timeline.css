@@ -2031,8 +2031,9 @@
   color: var(--fg-muted);
 }
 .tl-mx-cell {
-  aspect-ratio: 1 / 1;
-  min-height: 28px;
+  /* 固定列高，不用正方形：B 檢視 1232 寬下 10 章的正方格會讓矩陣高過 1100px，
+     一屏看不完對角線。欄仍隨寬度等分（見 5-TL-5）。 */
+  height: calc(var(--space-8) + var(--space-6));
   padding: 0;
   border: var(--line-weight) solid var(--border);
   border-radius: 2px;
