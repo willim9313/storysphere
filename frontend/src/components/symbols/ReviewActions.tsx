@@ -1,6 +1,6 @@
-import { Check, Pencil, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { SymbolReviewStatus } from '@/api/symbols';
+import { reviewDisabled } from './interpretationModel';
 
 interface Props {
   status: SymbolReviewStatus;
@@ -10,43 +10,40 @@ interface Props {
   onReject: () => void;
 }
 
+/**
+ * Review is free: no glyph, no confirmation. The backend has no state machine, so
+ * every state can move to every other; only the button equal to the current state
+ * is disabled. 修訂 stays enabled — it reopens the editor, and saving it sets 已修訂.
+ */
 export function ReviewActions({ status, pending, onApprove, onModify, onReject }: Props) {
   const { t } = useTranslation('analysis');
-
-  const btn = (active: boolean, bg: string, fg: string, edge: string): React.CSSProperties => ({
-    background: active ? bg : 'transparent',
-    color: active ? fg : 'var(--fg-secondary)',
-    borderColor: edge,
-  });
+  const off = reviewDisabled(status);
 
   return (
-    <div style={{ display: 'inline-flex', gap: 8 }}>
+    <div className="sym-interp-actions">
       <button
         type="button"
-        className={'sym-review-btn' + (status === 'approved' ? ' is-active' : '')}
-        style={btn(status === 'approved', 'var(--color-success-bg)', 'var(--color-success)', 'var(--color-success)')}
+        className="ss-btn ss-btn-sm ss-btn-secondary"
         onClick={onApprove}
-        disabled={pending}
+        disabled={pending || off.approve}
       >
-        <Check size={13} strokeWidth={2.5} /> {t('symbol.review.approve')}
+        {t('symbol.review.approve')}
       </button>
       <button
         type="button"
-        className={'sym-review-btn' + (status === 'modified' ? ' is-active' : '')}
-        style={btn(status === 'modified', 'var(--color-info-bg)', 'var(--color-info)', 'var(--color-info)')}
+        className="ss-btn ss-btn-sm ss-btn-secondary"
         onClick={onModify}
         disabled={pending}
       >
-        <Pencil size={13} strokeWidth={2.25} /> {t('symbol.review.modify')}
+        {t('symbol.review.modify')}
       </button>
       <button
         type="button"
-        className={'sym-review-btn' + (status === 'rejected' ? ' is-active' : '')}
-        style={btn(status === 'rejected', 'var(--color-error-bg)', 'var(--color-error)', 'var(--color-error)')}
+        className="ss-btn ss-btn-sm ss-btn-ghost"
         onClick={onReject}
-        disabled={pending}
+        disabled={pending || off.reject}
       >
-        <X size={13} strokeWidth={2.5} /> {t('symbol.review.reject')}
+        {t('symbol.review.reject')}
       </button>
     </div>
   );

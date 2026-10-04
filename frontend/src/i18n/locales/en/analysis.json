@@ -1255,7 +1255,19 @@
         "blockedEmptyDesc": "The LLM provider returned empty content and gave no reason. Re-sending the same evidence will most likely get the same result. Worth retrying once a different provider is configured.",
         "blockedButton": "Try again",
         "blockedHint": "Retrying re-sends the same evidence; expect the same refusal unless the provider has changed"
-      }
+      },
+      "field": {
+        "theme": "Theme",
+        "polarity": "Polarity",
+        "confidence": "Confidence",
+        "evidence": "Evidence summary"
+      },
+      "linkedCharactersN": "Linked characters · {{count}}",
+      "linkedEventsN": "Linked events · {{count}}",
+      "rejectedNote": "The content is kept for comparison; to replace it, press “Regenerate”.",
+      "saveEdit": "Save revision",
+      "editZeroCost": "Text only — does not call the LLM",
+      "blockedKept": "The last regeneration was refused. The earlier interpretation below is unchanged, and so is its review status."
     },
     "generating": {
       "eyebrow": "Interpreting symbol",
@@ -1574,6 +1586,13 @@
           "title": "Prerequisites are met but it is still empty",
           "desc": "Build it by hand from the Symbols node in the Build Overview. This calls the LLM and spends tokens."
         }
+      }
+    },
+    "regen": {
+      "title": "Regenerate the interpretation of “{{term}}”?",
+      "loss": {
+        "content": "The current theme, evidence summary and links",
+        "status": "Review status: {{status}}"
       }
     }
   },

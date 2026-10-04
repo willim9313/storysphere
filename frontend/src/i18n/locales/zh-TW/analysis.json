@@ -1255,7 +1255,19 @@
         "blockedEmptyDesc": "LLM 供應商回傳空內容,且未說明原因。重送同一份證據多半會得到同樣的結果。換一家供應商後可再試。",
         "blockedButton": "再試一次",
         "blockedHint": "重試會重新送出同一份證據;除非已換供應商,否則預期仍會被拒"
-      }
+      },
+      "field": {
+        "theme": "主題",
+        "polarity": "極性",
+        "confidence": "信心",
+        "evidence": "證據摘要"
+      },
+      "linkedCharactersN": "連結角色 · {{count}}",
+      "linkedEventsN": "連結事件 · {{count}}",
+      "rejectedNote": "內容保留供對照；要換一份，按「重新生成」。",
+      "saveEdit": "儲存修訂",
+      "editZeroCost": "只改文字，不呼叫 LLM",
+      "blockedKept": "上一次重新生成被拒，下方仍是先前的詮釋，審核狀態未變。"
     },
     "generating": {
       "eyebrow": "LLM 詮釋進行中",
@@ -1574,6 +1586,13 @@
           "title": "前置齊了仍是空的",
           "desc": "可從建構概覽的象徵節點手動建立。會呼叫 LLM，消耗 token。"
         }
+      }
+    },
+    "regen": {
+      "title": "重新生成「{{term}}」的詮釋？",
+      "loss": {
+        "content": "目前的主題、證據摘要與連結",
+        "status": "審核狀態：{{status}}"
       }
     }
   },

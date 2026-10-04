@@ -1406,6 +1406,11 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 > `list.trustBelowFloor`、`list.groupMeta`、`error.blockedInline`、`cluster.empty`、`filterEmpty.clear`、
 > `empty.steps.{1,2,3}.{title,desc}`（三步改寫）、`occ.jump`（「跳到原文」）、`generating.cancelFailed`、
 > `overview.batch.confirmTitle`（ConfirmDialog 標題，稿上無）。
+> **5-4 新字串（E 區九組，2026-10-04 裁決通過，非草稿）**，放在既有 `symbol.*`（稿上的 `symbols.interp.*` 是示意名）：
+> `interpretation.field.{theme,polarity,confidence,evidence}`（主題／極性／信心／證據摘要）、`interpretation.linkedCharactersN`／`linkedEventsN`（連結角色 · {n}／連結事件 · {n}）、
+> `interpretation.rejectedNote`（只留後句）、`interpretation.saveEdit`（儲存修訂）、`interpretation.editZeroCost`（只改文字，不呼叫 LLM）、`interpretation.blockedKept`、
+> `regen.title`、`regen.loss.content`、`regen.loss.status`。稿的 `symbols.pin.cancel`「取消並看」與既有 `pin.clearSelf` 同字，用既有、不新增；「LLM 詮釋」用既有 `interpretation.tag`。
+> 因此既有 `interpretation.evidence`（證據綜述）、`confidence`（模型信心）、`confidenceNote`、`linkedCharacters`、`linkedEvents`、`review.label`、`review.save` 已無呼叫端（孤兒，保留未刪）。
 > 已裁決：`generating.stageRunning`「進行中」；供應商阻擋標題「LLM供應商拒絕意象相關文本內容」並刪去內文兩句冗句；
 > `generating.footerNote` 拿掉「預計 ~12 秒」（保留「每 2 秒輪詢狀態」）。此三處是已裁決的例外，不是改既有字串的通則。
 
@@ -1439,10 +1444,19 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 
 1. 麵包屑「← 全書意象地圖 / {意象}」＋「釘選以便並看」（`?symbol=&pin=`）；標題列＋異體。
 2. **行為摘要六格，3＋3**：角色依附（含「唯一進入排序的共現訊號」註記與自我匹配過濾說明，後者只在 `self_match_count > 0` 時出現）／分布形狀／事件依附｜意象結盟／登場退場／證據可信度。寬度不足時降為 2 欄、1 欄。
-3. **詮釋區**（不做：已生成詮釋 InterpretationHero 的改版、四種審核狀態、「重新生成」，沿用現況）：
+3. **詮釋區**（三選一：CTA／生成中／已生成）：
    - **CTA 四階**（`InterpretationCta`）：同框同按鈕尺寸，只靠按鈕變體（recommended＝primary，其餘 secondary）與一句話區分；全部 `.ss-btn-llm`；框頭無字符；error 階（供應商阻擋）框用 `--color-error`＋警示圖示，附 `blockedHint` 與 `error.blockedInline`。`blocked` 判定優先於 load 門檻；按鈕保持可點。
    - **生成中**（`InterpretationGenerating`）：五段 stage，三態「完成／進行中／等待」；前三格共用同一 sepState；整體進度取後端打點值；不給 ETA；「每 2 秒輪詢狀態」；**取消**呼叫 `POST /tasks/{id}/cancel`，成功後才關遮罩，失敗留遮罩並顯示 `generating.cancelFailed`。
+   - **已生成詮釋**（`InterpretationHero`，DS v3 第 5 批 5-4，依 11 補稿 A／B／C 區；位置在行為摘要之下、章節分布之上）：`--bg-primary` 卡（`.sym-interp`，`--card-*`、內距 `--space-6`、區塊間距 `--space-6`），無左緣強調。
+     - **區塊頭**：12px 行內 `.ss-llm-glyph`（標示內容為 LLM 生成，不是按鈕）＋「LLM 詮釋」（連到 `/methodology?framework=sep_methodology`）＋審核 badge（`ReviewBadge`）＋被阻擋時的 `BlockBadge`；右側 mono provenance＝API 實值 `assembled_by · assembled_at`（`YYYY-MM-DD HH:mm`）。
+     - **欄位**：主題（serif lg／1.6）→ 極性 chip（`--polarity-*`＋圓點，Ink 靠填色）與信心（●●●／●●○／●○○＋層級名＋數值 `0.00`＋固定區間「（0.55 – 0.79）」；層級與區間取 `frameworks:tier.*`，分數→層級界線 0.80／0.55 與方法論頁 `TierLegend` 一致，邏輯在 `interpretationModel.confidenceTier`；`TierLegend` 是方法論頁私有元件，這裡以文字圓點頁內實作、未抽共用）→ 證據摘要（serif sm／1.85）→ 連結角色 · {n}（`.ss-pill-character` 可點）／連結事件 · {n}（「第 N 章」mono＋標題，可點）。id 解析不到名稱者以 mono 虛線 chip 顯示截短 id（`truncateId`），不丟掉、不可點、Tooltip 顯示完整 id。
+     - **審核**：通過／修訂／駁回皆零成本——無字符、無確認框；與當前狀態同值的那顆 disabled（通過、駁回；修訂永遠可按，因為它是重開編輯框）。後端三值任意互轉，但 PATCH 不能回到「待審」。修訂就地開編輯框：主題、證據摘要、極性（`--input-*` 輸入框；選中極性＝`--bg-secondary` 底＋accent 粗體）；「儲存修訂」＋「取消」＋「只改文字，不呼叫 LLM」；PATCH 成功才關編輯框（失敗保留草稿，錯誤列顯示 `symbol.error.reviewFailed`），儲存後狀態變已修訂。證據摘要草稿留空＝不送欄位（維持原值，不是清空）。
+     - **已駁回**：內容降 0.6 透明（編輯中不降），區塊頂端加灰條「已駁回」＋`rejectedNote`（只有後句，前句經查證不屬實，見 feedback 5-SY-1）。
+     - **重新生成**：`ss-btn-danger ss-btn-llm`，成本提示「會呼叫 LLM，消耗 token」（既有 `tension.state.tokenHintShort`）在按鈕左側；`window.confirm` 已換成 `ConfirmDialog`（損失清單版）：標題「重新生成「{term}」的詮釋？」、內文既有 `regenerateConfirm`、清單「目前的主題、證據摘要與連結」「審核狀態：{status}」、`costHint`、`danger`＋`spendsTokens`。503 → `LlmUnconfiguredNotice`（既有）。
+     - **詮釋與阻擋並存**（C 區）：有 `interpretation` 又有 `interpretation_block` 時，舊詮釋照常顯示，區塊頂端加 warning 列（`--color-warning-bg`＋`--status-partial-border` 外框，Ink 靠外框）：標題沿用阻擋標題、說明句 `blockedKept`、既有 `blockedHint`、「再試一次」（`ss-btn-secondary ss-btn-llm`）。「再試一次」開同一個重新生成確認框並以 `force_refresh` 重送——不帶 force 時後端會命中快取直接回舊詮釋，等於沒重試；它也會覆蓋審核狀態，所以走確認框。
+     - `frontMatterWarning`、行內錯誤列維持原樣，位於欄位之下、動作列之上。
 4. 章節分布卡、共現網絡卡（三欄：角色依附／場景與物件／結盟意象）、出現紀錄卡（可跳的那筆有「跳到原文」文字鈕；不可跳的標「不可跳」＋Tooltip）。
+   **並看展開態**（5-4，D 區）：釘選後在章節分布卡內展開下排（卡標頭右側「並看中：{term}」＋ghost「取消並看」，零成本；釘選與選取共用 query string）；兩排共用同一 max（`barScale` 取兩者較大），**同一個像素上限（72px）**，高度可直接互比；上排絕對次數色階、下排並看意象的類型色；次數 0 畫 1px `--border` 基線（上下兩排皆然），不留白洞；並看註逐字（`symbol.pin.note`）。
 
 #### 失敗與空態（錯誤四分，{頁名}＝符號意象）
 

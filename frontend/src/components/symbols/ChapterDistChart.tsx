@@ -8,13 +8,12 @@ import {
   type ChapterAxis,
   type ChapterAxisSlot,
 } from './chapterAxis';
+import { barHeight } from './interpretationModel';
 import { segmentLabel } from './symbolPhrases';
 import type { SymbolSignals } from './symbolSignals';
 
 /** Tallest a bar can draw, in px. */
 const MAX_BAR_H = 72;
-/** The pinned symbol's row, drawn shorter so the open symbol stays the subject. */
-const PIN_BAR_H = 36;
 /** An occupied chapter is never invisible, however small its share. */
 const MIN_BAR_H = 3;
 
@@ -72,11 +71,9 @@ export function ChapterDistChart({ signals, axis, scale, pinned }: Readonly<Prop
                   <span
                     className="sym-dist-bar"
                     style={{
-                      height:
-                        count > 0
-                          ? `${Math.max(MIN_BAR_H, (count / scale) * MAX_BAR_H)}px`
-                          : '2px',
-                      background: count > 0 ? densityStep(count) : 'var(--bg-tertiary)',
+                      // Zero is a 1px baseline, not a hole that reads as missing data.
+                      height: `${barHeight(count, scale, MAX_BAR_H, MIN_BAR_H)}px`,
+                      background: count > 0 ? densityStep(count) : 'var(--border)',
                       // A dashed edge marks a bar that sits outside the story: kept
                       // visible, but excluded from shape and first appearance.
                       border: count > 0 && !isBody ? '1px dashed var(--fg-muted)' : undefined,
@@ -111,15 +108,14 @@ export function ChapterDistChart({ signals, axis, scale, pinned }: Readonly<Prop
                       <span
                         className="sym-dist-bar"
                         style={{
-                          height:
-                            count > 0
-                              ? `${Math.max(MIN_BAR_H, (count / scale) * PIN_BAR_H)}px`
-                              : '2px',
+                          // Same scale and same px ceiling as the row above, so the
+                          // two rows can be compared by height.
+                          height: `${barHeight(count, scale, MAX_BAR_H, MIN_BAR_H)}px`,
                           // The pinned row is drawn in its own type colour rather than
                           // the shared density scale: two rows of the same browns would
                           // read as one chart with a gap in it.
                           background:
-                            count > 0 ? typeStyle(pinned.imageryType).dot : 'var(--bg-tertiary)',
+                            count > 0 ? typeStyle(pinned.imageryType).dot : 'var(--border)',
                           opacity: isBody ? undefined : 0.45,
                         }}
                       />
