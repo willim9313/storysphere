@@ -6,6 +6,7 @@
     "groupOther": "Other",
     "appearance": "Appearance",
     "language": "Language",
+    "guidance": "Researcher guidance",
     "llm": "LLM",
     "env": "Environment",
     "shortcuts": "Shortcuts",
@@ -164,5 +165,12 @@
       "imagery": "Imagery",
       "ingestion": "Ingestion"
     }
+  },
+  "guidance": {
+    "title": "Researcher guidance",
+    "hint": "Show the researcher guidance you dismissed at the top of each page again. Block notes and field provenance can never be dismissed and are not affected.",
+    "reset": "Reset all guidance",
+    "count": "{{n}} dismissed",
+    "countNone": "No guidance is dismissed right now"
   }
 }

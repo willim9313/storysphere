@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { useLocation } from 'react-router-dom';
 import {
-  Palette, Languages, Cpu, Server, Info, Keyboard,
+  Palette, Languages, Compass, Cpu, Server, Info, Keyboard,
   FlaskConical, Check, ArrowRight, ArrowLeft, AlertTriangle,
   HardDrive, Loader2, CircleCheck, CircleX, RefreshCw,
 } from 'lucide-react';
@@ -18,20 +18,21 @@ import {
   deployBadges, gapLayer, isUnsetValue, kgMigrationGate, splitFeatureIds,
   type DeployMode, type KgBackend,
 } from '@/components/settings/settingsModel';
+import { resetAllGuidance, useDismissedCount } from '@/components/ui/guidanceStore';
 import '@/styles/settings.css';
 
 // ── Nav model ───────────────────────────────────────────────
 
-type PanelId = 'appearance' | 'language' | 'llm' | 'env' | 'shortcuts' | 'experimental' | 'about';
+type PanelId = 'appearance' | 'language' | 'guidance' | 'llm' | 'env' | 'shortcuts' | 'experimental' | 'about';
 type BadgeKind = 'dev' | 'merged' | 'planned';
 
-// 研究者導覽（A2）延到第 19 稿，nav 與面板一起做——這裡不放空項（見 DS_V3_DESIGN_FEEDBACK 2-ST-3）。
 const NAV_GROUPS: { labelKey: string; items: { id: PanelId; labelKey: string; badge?: BadgeKind }[] }[] = [
   {
     labelKey: 'nav.groupPrefs',
     items: [
       { id: 'appearance', labelKey: 'nav.appearance' },
       { id: 'language', labelKey: 'nav.language', badge: 'merged' },
+      { id: 'guidance', labelKey: 'nav.guidance' },
     ],
   },
   {
@@ -60,6 +61,7 @@ const BADGE_KEY: Record<BadgeKind, string> = {
 const NAV_ICONS: Record<PanelId, React.ReactNode> = {
   appearance: <Palette size={15} />,
   language: <Languages size={15} />,
+  guidance: <Compass size={15} />,
   llm: <Cpu size={15} />,
   env: <Server size={15} />,
   shortcuts: <Keyboard size={15} />,
@@ -224,6 +226,34 @@ function AppearancePanel() {
           })}
         </div>
       </StSection>
+    </div>
+  );
+}
+
+// ── Guidance panel ───────────────────────────────────────────
+
+/** Reset is zero-cost and reversible (dismiss again), so: no glyph, no confirm,
+ *  no toast — the count flipping to "none" and the button disabling is the feedback. */
+function GuidancePanel() {
+  const { t } = useTranslation('settings');
+  const n = useDismissedCount();
+
+  return (
+    <div className="st-panel">
+      <PanelHead title={t('guidance.title')} sub={t('guidance.hint')} />
+      <div className="st-guidance-row">
+        <button
+          type="button"
+          className="ss-btn ss-btn-sm ss-btn-secondary"
+          disabled={n === 0}
+          onClick={resetAllGuidance}
+        >
+          {t('guidance.reset')}
+        </button>
+        <span className="st-guidance-count" aria-live="polite">
+          {n === 0 ? t('guidance.countNone') : t('guidance.count', { n })}
+        </span>
+      </div>
     </div>
   );
 }
@@ -766,6 +796,7 @@ export default function SettingsPage() {
     switch (active) {
       case 'appearance':   return <AppearancePanel />;
       case 'language':     return <LanguagePanel />;
+      case 'guidance':     return <GuidancePanel />;
       case 'llm':          return <LlmPanel />;
       case 'env':          return <EnvPanel />;
       case 'shortcuts':    return <PlannedPanel kind="shortcuts" />;

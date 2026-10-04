@@ -378,10 +378,6 @@
 .sym-detail-inner > * {
   flex-shrink: 0;
 }
-/* The ribbon carries its own bottom margin; the column gap already spaces it. */
-.sym-detail-inner > .sg-ribbon {
-  margin-bottom: 0;
-}
 .sym-detail-head {
   display: flex;
   flex-direction: column;

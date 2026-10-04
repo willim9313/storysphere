@@ -410,7 +410,7 @@ Handoff `redesign_v3_handoff_batch_2.zip`（`design_handoff_02_system/`）。下
 |---|------|------|
 | 2-ST-1 | 矛盾 · 能力落差的功能 id 與後端不符 | 待同步 |
 | 2-ST-2 | 矛盾 · Neo4j 連線欄位名與「即時生效」旗標 | 待同步 |
-| 2-ST-3 | 遺漏 · 研究者導覽 nav 項延到第 19 稿 | 待同步 |
+| 2-ST-3 | 遺漏 · 研究者導覽 nav 項延到第 19 稿 | 已落地（第 5 批 5-1） |
 | 2-ST-4 | 矛盾 · 分析輸出語言兩顆鈕的文字 | 待同步 |
 | 2-ST-5 | 遺漏 · Standard 預覽態的 Qdrant 提示句與 Neo4j 欄位的顯示條件 | 待同步 |
 | 2-ST-6 | 矛盾 · 規劃中面板的說明句與既有字串不同 | 待同步 |
@@ -444,6 +444,7 @@ Handoff `redesign_v3_handoff_batch_2.zip`（`design_handoff_02_system/`）。下
 - **出處**：04 A2 區（偏好設定第三項「研究者導覽」＋面板）；README §1.8「nav 先預留第三項的位置，面板等 19 定案再補」。
 - **目前處置**（2026-10-02 裁決）：本批 nav **不畫**這一項——只有導覽項沒有面板等於死路。第 19 稿定案時 nav 項與面板一起做（後續必做）。
 - **請設計端**：第 19 稿交付時一併附 A2 的定案字串。
+- **後續（第 5 批 5-1，2026-10-04）**：已落地——第 19 稿決議紀錄通過四條 `settings.guidance.*`，nav 項與面板一起做完，見 UI_SPEC §3.13。
 
 #### 2-ST-4 分析輸出語言兩顆鈕的文字
 
@@ -1427,6 +1428,8 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 |---|------|------|
 | 5-GD-1 | 遺漏 · 影響頁漏列時間軸與知識圖譜 | 待同步 |
 | 5-GD-2 | 遺漏 · 非書籍路由目前沒有導覽條 | 待同步 |
+| 5-GD-3 | 遺漏 · 圖譜頁的導覽條位置（滿版 bleed 會蓋住工具列） | 待同步 |
+| 5-GD-4 | 遺漏 · kit `.ss-guidance` 沒有關閉鈕樣式 | 待同步 |
 
 #### 5-GD-1 影響頁漏列時間軸與知識圖譜
 
@@ -1441,6 +1444,20 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 - **問題**：書庫、搜尋、方法論、Token 用量、上傳、設定目前都沒有 `GuidanceRibbon`，這條規則沒有落點；非書籍頁也沒有共用標題列元件。
 - **目前處置**：本批不做；日後非書籍頁加導覽條時再補。
 - **請設計端**：知悉；若要在非書籍頁加導覽條，另出稿。
+
+#### 5-GD-3 圖譜頁的導覽條位置
+
+- **出處**：`ss-kit.css` `.ss-guidance` 註解「Workbench pages (graph) may sit it full-bleed」；稿上沒有圖譜頁的畫面。
+- **問題**：圖譜頁導覽條浮在畫布內；滿版 `.ss-guidance-bleed` 會橫跨整個寬度並蓋住鏡頭工具列。
+- **目前處置**：維持浮動卡片 `.ss-guidance.is-float`（頁面層定位，工具列之下、max-w 430），沒用 bleed。
+- **請設計端**：確認圖譜頁導覽條要浮卡還是貼在工具列下方的滿版帶。
+
+#### 5-GD-4 kit `.ss-guidance` 沒有關閉鈕樣式
+
+- **出處**：`ss-kit.css` `.ss-guidance` 註解結構 `<p>…</p><close button>`，但無對應 class。
+- **問題**：關閉鈕尺寸、色沒有規格。
+- **目前處置**：頁面層 `guidance.css` 的 `.ss-guidance .gd-close`（16px 高、muted、hover primary，lucide `X` 14）。
+- **請設計端**：補關閉鈕規格進 kit。
 
 ### 敘事結構 `/books/:bookId/narrative`
 

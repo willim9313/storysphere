@@ -205,6 +205,7 @@
 
 .rd-next { display: flex; align-items: center; justify-content: flex-end; padding-top: var(--space-4); }
 .rd-landing { height: 100%; overflow-y: auto; padding: var(--space-7); }
+.rd-landing > .ss-guidance { margin-bottom: var(--space-7); }
 .rd-landing-prompt { margin: 0; font-size: var(--font-size-sm); color: var(--fg-muted); text-align: center; }
 
 .rd-fab-wrap { position: fixed; display: flex; }

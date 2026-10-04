@@ -6,6 +6,7 @@
     "groupOther": "其他",
     "appearance": "外觀與主題",
     "language": "語言",
+    "guidance": "研究者導覽",
     "llm": "LLM 設定",
     "env": "環境設定",
     "shortcuts": "快捷鍵",
@@ -164,5 +165,12 @@
       "imagery": "意象",
       "ingestion": "匯入"
     }
+  },
+  "guidance": {
+    "title": "研究者導覽",
+    "hint": "重新顯示各頁頂端已關閉的研究者導覽。區塊說明與欄位出處不可關閉，不受影響。",
+    "reset": "重設所有導覽",
+    "count": "已關閉 {{n}} 條",
+    "countNone": "目前沒有已關閉的導覽"
   }
 }
