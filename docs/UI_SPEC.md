@@ -1221,7 +1221,8 @@ popover（寬 340、`--card-radius`）內五個 AND 疊加的分區（事件類�
 | on | 有 rank、已開 | accent 描邊與軌；現行偏離畫法；headline／meta／`stave.legend` 出現 |
 
 開關旁固定「零成本 · 只換畫法，不呼叫 LLM」。說明卡**取代**原本的 prompt 卡（同一個動作不畫兩次）。
-矩陣密度版延後（稿未畫），不是第三個 tab。
+矩陣不是第三個 tab：開關**on** 時，開關下方多一組零成本 `.ss-seg`「偏離譜面（預設）｜密度矩陣」（5-5，見 3.7.11）。
+off／disabled 時分段切換不出現。分段狀態與開關一樣是頁面 local state，**不寫 URL**。
 
 #### 3.7.4 分析動作面板（工具列右段）
 
@@ -1259,6 +1260,38 @@ popover（寬 340、`--card-radius`）內五個 AND 疊加的分區（事件類�
 - **圖例兩軸分開**：「實心＝已分析｜虛線＝尚未分析」一行；「底部「未排序」帶＝排不進故事時序（與尚未分析是兩回事）」另一行。
 - **章節卡片帶**一次只顯示一章；已分析事件出卡片，未分析的收進右側 196px 清單（含明確的「展開其餘 N 筆」，不可靜默截斷）。
   整章未分析時：說明「Ch.N 的 n 筆事件都只有標題…」＋「事件分析在事件分析頁執行。」，**無按鈕**。
+
+#### 3.7.11 密度矩陣（5-5，12 補稿）
+
+> 稿：`design/12 時間軸 矩陣密度版 補稿.dc.html`；計畫 Q6；設計回饋 `DS_V3_DESIGN_FEEDBACK.md` 5-TL-*。
+> 元件 `components/timeline/DensityMatrix.tsx`；純邏輯 `matrixModel.ts`（vitest）。舊散點 `MatrixCanvas` 未回收、仍是孤兒。
+
+「對照故事時序」開啟後、分段選到「密度矩陣」時，**取代**譜面＋圖例＋章節卡片帶（headline／meta 也不出現）；角色軌跡疊加層照舊。
+兩種畫法讀同一份 `chronologicalRank`，**不打新請求**；選取格是元件 local state，離開矩陣即清掉。
+
+```
+[網格：24 垂直軸標 │ 64 rank 區間標 │ N 欄章（minmax(22px,1fr)）× 10 列]   上列＝91–100%
+[章號列]
+[敘事順序 (Sjuzhet) →                                  ▢ 完全按故事順序敘事]
+[↵ 未排序事件 n                          排不進故事時序，不畫進矩陣]   ← bg-secondary 帶
+[每格事件數  ▢1 ▢2 ▢3 ▢4 以上   色階是絕對件數，不隨書重新縮放]
+────────────────────────────────────────────
+[選取格標題                                              清除選取]
+[● 事件標題                                  Ch.N · rank xx%    ]  ← 動作列（24／1fr／auto／12）
+```
+
+- **軸**：橫軸＝章（欄是全書有事件的章，不隨篩選變動）、縱軸＝rank 十分位 `min(9, floor(rank×10))`（rank = 1.0 落在 91–100%）。
+- **格色**：`--symbol-density-low/mid/high/peak` ↔ 1／2／3／4+ 件，**絕對件數、不隨書縮放**；新 step 函式 `matrixModel.densityStep`，
+  符號熱圖的兩階規則不動。**格內寫數字**（數字是唯一量值來源；3、4+ 用 `--accent-fg` 字色）；0 不寫、不填色、`disabled`。Ink 為灰階＋數字。
+- **對角格**：2px `--fg-primary` 實線框。欄數不是 10 時，以「欄中心位置的十分位 ＝ 列」判定（`isDiagonal`），欄多於列時對角線是一條多格寬的帶。
+- **不在矩陣上寫「倒敘 n 筆」**：那是「識別倒敘與預敘」（花 token）的結論；這裡只是兩個排名的幾何差。
+- **點格＝篩選**（零成本）：選取格 2px 實線外框（outline，不是左緣／inset 強調）；再點同一格或「清除選取」取消。
+  未選時標題「選取的格」＋空提示。列出該格事件，點事件＝開既有事件詳情面板。
+- **列的圓點**：色＝前端由偏離量推導的敘事模式 `datum.mode`（`--narrative-*-border`，與詳情面板一致，**不用**後端 `narrative_mode`，見 5-TL-1）。
+  Ink 下三色只差灰階，故再加形狀：當下＝實心圓、回敘＝空心圈、預敘＝實心方；`aria-label` 為模式名。
+- **篩選**：「只顯示符合項」時不符合的事件不計入格數；「淡化其餘」時仍計數、列表中不符合者淡化。
+- **未排序帶**：`rank === null` 的事件只計數、不進格。沒有未排序事件時帶不出現（與舊矩陣一致）。
+- 事件列的中繼文字 `Ch.N · rank xx%` 為資料格式（等寬字、不進 i18n，與章節卡的 `Ch.N` 同）。
 
 #### 3.7.7 角色軌跡（疊加層）
 
@@ -1308,12 +1341,23 @@ popover（寬 340、`--card-radius`）內五個 AND 疊加的分區（事件類�
 
 **已裁決，不標草稿**（README §1.2／§5）：`base.subtitle`（逐字副標）、`compare.blockedHint`「用右側的「首次計算…」算出後即可對照」。
 
+**這 7 句**（12 補稿，**2026-10-04 裁決通過**，不標草稿；i18n `analysis:timeline.*`，zh-TW 與 en 都已補）：
+`compare.mode.stave`「偏離譜面」、`compare.mode.matrix`「密度矩陣」、`matrix.cellsLegend`「每格事件數」（稿上 key 名是 `matrix.legendTitle`，
+與既有「章節 × 故事時序」撞名，改用新 key，見 5-TL-2）、`matrix.scaleNote`「色階是絕對件數，不隨書重新縮放」、
+`matrix.unsortedNote`「排不進故事時序，不畫進矩陣」、`matrix.cellTitle`「第 {{ch}} 章 · 故事時序 {{from}}–{{to}}% · {{n}} 件」、
+`matrix.emptyHint`「點一格，列出落在該章、該時序分段的事件。」。
+
+**這 3 句是草稿・待設計定案**（稿上出現、補稿字串表與 README §5 都沒列；i18n `analysis:timeline.matrix.*`，見 5-TL-3）：
+`legendFourPlus`「4 以上」、`selectedTitle`「選取的格」、`clearSelection`「清除選取」（與 `unraveling.toolbar.clearSelection` 同字、時間軸專用 key）。
+
 **既有字串重用**（未新增）：失敗頁名 `nav:tabs.timeline`、「回書籍總覽」`analysis:character.error.backToBook`、被跳過卡 `toast.displacementSkipped*`、
 「關閉」`closePanel`、步驟名 `reader:rerun.steps.*`、中線圖例 `stave.legend`。
 
 #### 孤兒（保留未刪，待使用者確認）
 
-`StoryOrderView`、`MatrixCanvas` 兩個元件；i18n `noRanked.story／matrix`、`storyOrderPrompt.*`、`loadingBy.story／matrix`、`tabs.*`、`modeSub.*`、
+`StoryOrderView`、`MatrixCanvas` 兩個元件（5-5 另寫 `DensityMatrix`，沒有回收 `MatrixCanvas`）；
+舊散點矩陣專用 i18n：`matrix.legendTitle／legendDesc／legendFoot`、`loadingBy.matrix`、`noRanked.matrix`、`tabs.matrix`、`modeSub.matrix`（`matrix.xAxisLabel／yAxisLabel／diagonalLabel／unrankedBand` 現由 `DensityMatrix` 使用）；
+i18n `noRanked.story／matrix`、`storyOrderPrompt.*`、`loadingBy.story／matrix`、`tabs.*`、`modeSub.*`、
 `coverage.label／count／running／action／actionRunning`、`confirm.eventsTitle／eventsBody`、`toast.eventsDone／eventsFailed`、`band.analyzeChapter`；
 `timeline.css` 內對應的 `.tl-tabs*`、`.tl-prompt*`、`.tl-story*`、`.tl-matrix*`、`.tl-btn*`（部分元件已換用 kit）。
 
@@ -1331,7 +1375,6 @@ popover（寬 340、`--card-radius`）內五個 AND 疊加的分區（事件類�
 #### 已知缺口
 
 - **RWD 未做**：固定 1440 基準；右段動作面板最小寬 420，窄於約 1230 時換行到左段下方（見 4-TL-8）。
-- 矩陣密度版延後（稿未畫）。
 - 譜面與軌跡的點仍用原生 `title`（見 4-TL-9）。
 
 ### 3.8 張力分析頁 `/books/:bookId/tension`
