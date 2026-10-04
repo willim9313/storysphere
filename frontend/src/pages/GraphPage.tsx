@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
-import { Plus, Minus, X, Loader, Shapes } from 'lucide-react';
+import { Link, useParams, useSearchParams } from 'react-router-dom';
+import { Plus, Minus, X, Loader, Shapes, ChevronUp } from 'lucide-react';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Trans, useTranslation } from 'react-i18next';
 import { useChatDispatch } from '@/contexts/ChatContext';
@@ -32,10 +32,20 @@ import { ClusterOverviewPanel, type FactionSettings } from '@/components/graph/C
 import { FactionCanvas, layoutFactions } from '@/components/graph/FactionCanvas';
 import { EntityComparePanel } from '@/components/graph/EntityComparePanel';
 import { InferredEdgePanel } from '@/components/graph/InferredEdgePanel';
+import { GraphRightRail } from '@/components/graph/GraphRightRail';
+import {
+  SECONDARY_PANEL_WIDTH,
+  activeSecondaryPanel,
+  railWidth,
+  resolveRailPanel,
+  type SecondaryPanel,
+} from '@/components/graph/graphPanelModel';
 import { PairModeOverlay, type PairSubMode } from '@/components/graph/PairModeOverlay';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
-import { ErrorMessage } from '@/components/ui/ErrorMessage';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { PageFailure } from '@/components/ui/PageFailure';
 import { MarkdownRenderer } from '@/components/ui/MarkdownRenderer';
+import { failureKind, techDetailOf } from '@/api/failureKind';
 import { fetchEntityAnalysis, fetchEventAnalyses } from '@/api/analysis';
 import { fetchEntityChunks } from '@/api/chunks';
 import { fetchChapters } from '@/api/chapters';
@@ -45,11 +55,13 @@ import { runInference, fetchInferredRelations, fetchGraphData } from '@/api/grap
 import { pairEvolution, shortestPath, isInsufficientChange } from '@/lib/graphPair';
 import type { EntityType, GraphNode, GraphData, EntityChunkItem } from '@/api/types';
 import { qk } from '@/api/queryKeys';
+import '@/styles/graph.css';
 
 const readCssVar = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
 const ALL_TYPES = new Set<string>(['character', 'location', 'concept', 'event', 'organization', 'object', 'other']);
 const MULTI_SELECT_CAP = 2;
+const ZOOM_STEP = 1.25;
 
 // Matches the abbreviated --graph-{key}-* token keys (see tokens.css / same
 // map in LegendCard.tsx) used to color the orphan drawer's pill dots.
@@ -63,19 +75,14 @@ const ORPHAN_TYPE_KEY: Record<string, string> = {
   other: 'other',
 };
 
-type RightPanel = 'analysis' | 'paragraphs' | null;
-
-const RIGHT_PANEL_WIDTH: Record<NonNullable<RightPanel>, number> = {
-  analysis: 360,
-  paragraphs: 400,
-};
-
 export default function GraphPage() {
   const { bookId } = useParams<{ bookId: string }>();
   const [searchParams] = useSearchParams();
   const { setPageContext } = useChatDispatch();
   const { data: book } = useBook(bookId);
   const { t, t: tStats } = useTranslation('graph');
+  const { t: tAnalysis } = useTranslation('analysis');
+  const { t: tNav } = useTranslation('nav');
   const queryClient = useQueryClient();
   const { theme } = useTheme();
 
@@ -99,7 +106,7 @@ export default function GraphPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
   const [visibleTypes, setVisibleTypes] = useState<Set<string>>(new Set(ALL_TYPES));
-  const [rightPanel, setRightPanel] = useState<RightPanel>(null);
+  const [rightPanel, setRightPanel] = useState<SecondaryPanel | null>(null);
   const [unknownEntityIds, setUnknownEntityIds] = useState<Set<string>>(new Set());
   const [misbeliefEventIds, setMisbeliefEventIds] = useState<Set<string>>(new Set());
   const [bookmarkedIds, setBookmarkedIds] = useLocalStorage<string[]>(
@@ -108,6 +115,7 @@ export default function GraphPage() {
   );
   const [viewportSnap, setViewportSnap] = useState<ViewportSnapshot | null>(null);
   const [orphanOpen, setOrphanOpen] = useState(false);
+  const [forceConfirmOpen, setForceConfirmOpen] = useState(false);
 
   // Phase 5: entity-pair mode (F1 evolution / F2 path tracing) — exclusive
   // overlay driven from the existing multi-select compare panel.
@@ -120,7 +128,7 @@ export default function GraphPage() {
 
   const canvasRef = useRef<GraphCanvasHandle>(null);
 
-  const { data, isLoading, error } = useGraphData(bookId, timelineState ?? undefined, showInferred);
+  const { data, isLoading, error, refetch } = useGraphData(bookId, timelineState ?? undefined, showInferred);
 
   const { data: chapters } = useQuery({
     queryKey: qk.chapters(bookId),
@@ -188,7 +196,8 @@ export default function GraphPage() {
   });
 
   // Destructive rerun: bypasses skip list, resets every record (incl. past
-  // adopt/reject decisions) back to PENDING. Gated behind confirm().
+  // adopt/reject decisions) back to PENDING. Gated behind a ConfirmDialog
+  // (danger, no cost glyph — it is irreversible but spends no tokens).
   const forceRerunMutation = useMutation({
     mutationFn: () => runInference(bookId!, true),
     onSuccess: () => {
@@ -198,10 +207,7 @@ export default function GraphPage() {
     },
   });
 
-  const handleForceRerun = useCallback(() => {
-    const ok = globalThis.confirm(t('v1.inferred.review.rerunForceConfirm'));
-    if (ok) forceRerunMutation.mutate();
-  }, [forceRerunMutation, t]);
+  const handleForceRerun = useCallback(() => setForceConfirmOpen(true), []);
 
   // Toolbar's three-state inference control (brief §4: idle / running /
   // ready-with-records). `pendingCount`'s query key intentionally matches
@@ -552,7 +558,27 @@ export default function GraphPage() {
   }, [selectedNode, setPageContext]);
 
   if (isLoading) return <LoadingSpinner />;
-  if (error) return <ErrorMessage message={error.message} />;
+  if (error) {
+    // Title bar / sidebar stay (this is the route's content area); only the page
+    // body is replaced. `failureKind` splits the app's own JSON error from a bare
+    // proxy status. Retry refetches this page's own query — nothing here remounts
+    // the page, so an errored (data-less) query is not reset in a loop.
+    return (
+      <div className="kg-failure">
+        <PageFailure
+          variant={failureKind(error)}
+          pageName={tNav('tabs.knowledgeGraph')}
+          onRetry={() => void refetch()}
+          secondaryAction={
+            <Link to={`/books/${bookId}`} className="ss-btn ss-btn-md ss-btn-secondary">
+              {tAnalysis('character.error.backToBook')}
+            </Link>
+          }
+          techDetail={techDetailOf(error)}
+        />
+      </div>
+    );
+  }
 
   const nodeCount = data?.nodes.length ?? 0;
   const edgeCount = data?.edges.length ?? 0;
@@ -560,463 +586,397 @@ export default function GraphPage() {
   // No nodes yet → show an onboarding guide instead of a blank canvas.
   if (nodeCount === 0) return <GraphOnboardingHero />;
 
-  // Decide right panel rendering
-  const showCompare = !!compareNodes;
-  const showInferredReview = !showCompare && (inferredReviewOpen || !!selectedInferredId);
-  const showClusterOverview =
-    !showCompare &&
-    !showInferredReview &&
-    (clusterMode === 'type' || clusterMode === 'community') &&
-    !selectedNode;
-  const showEntityDetail = !showCompare && !showInferredReview && !showClusterOverview && !!selectedNode;
-  const rightOpen = showCompare || showInferredReview || showClusterOverview || showEntityDetail || !!rightPanel;
-  const rightPanelExtraWidth = rightPanel ? RIGHT_PANEL_WIDTH[rightPanel] : 0;
-  // Shared right-anchor for the bottom-right widget column (mini-map / stats / zoom).
-  const bottomRightAnchor = rightOpen ? 16 + 280 + rightPanelExtraWidth : 16;
-
+  // Right rail: one main panel (priority chain), plus at most one secondary
+  // panel beside it — and only when the main one is the entity / event detail.
   const isCommunityMode = clusterMode === 'community';
+  const resolvedRail = resolveRailPanel({
+    compareReady: !!compareNodes,
+    inferredReviewOpen: inferredReviewOpen || !!selectedInferredId,
+    aggregateLens: clusterMode !== 'node',
+    hasSelectedNode: !!selectedNode,
+  });
+  // A cluster overview with nothing to draw yet (community analysis still
+  // loading) leaves the rail closed instead of anchoring the widgets to air.
+  const railMain = resolvedRail === 'cluster' && !clusteredGraph ? null : resolvedRail;
+  const secondaryPanel = selectedNode ? activeSecondaryPanel(railMain, rightPanel) : null;
+  const secondaryWidth = secondaryPanel ? SECONDARY_PANEL_WIDTH[secondaryPanel] : 0;
+  // Shared right anchor for the bottom-right widget column (stats / mini-map / zoom):
+  // reads the width the rail actually occupies instead of a hard-coded number.
+  const bottomRightAnchor = `calc(${railWidth(railMain, secondaryPanel)}px + var(--space-5))`;
+
+  let railName = '';
+  if (railMain === 'compare') railName = t('v1.compare.title');
+  else if (railMain === 'inferred') railName = t('panel.chainInferred');
+  else if (railMain === 'cluster') railName = t('v1.cluster.overview');
+  else if (railMain === 'entity') {
+    railName = selectedNode?.type === 'event' ? t('panel.chainEvent') : t('panel.chainEntity');
+  }
+
   const pairModeActive = !!pairState;
 
   return (
-    <div className="relative h-full w-full">
-      {isCommunityMode && factionData ? (
-        <FactionCanvas
-          analysis={factionData}
-          graphNodes={data?.nodes ?? []}
-          drillInFactionId={clusterDrillIn}
-          onSuperNodeClick={(factionId) => setClusterDrillIn(factionId)}
-          onMemberClick={(id) => {
-            setSelectedNodeId(id);
-            setClusterMode('node');
-            setClusterDrillIn(null);
-          }}
-          onExitDrillIn={() => setClusterDrillIn(null)}
-        />
-      ) : (
-        <GraphCanvas
-          ref={canvasRef}
-          elements={filteredElements}
-          onNodeTap={handleNodeTap}
-          onEdgeTap={handleEdgeTap}
-          selectedNodeId={selectedNodeId}
-          selectedNodeIds={selectedNodeIds}
-          animationMode={animationMode}
-          extraStylesheet={[...relationEdgeStylesheet, ...epistemicStylesheet, ...misbeliefStylesheet]}
-          onViewportChange={handleViewportChange}
-        />
-      )}
-
+    <div className="kg-page">
       {/* Phase 5 exclusive mode: while entity-pair mode is active, the toolbar,
-          lenses, mini-map/stats, and right-side panels below are all
+          lenses, legend, mini-map/stats, and right-side panels are all
           suspended (not rendered) rather than mutated — their own state is
           untouched, so exiting pair mode restores them for free. */}
       {!pairModeActive && (
-        <>
-      {/* Toolbar (top-left) */}
-      <GraphToolbar
-        searchQuery={searchQuery}
-        onSearchChange={(q) => {
-          setSearchQuery(q);
-          setSearchOpen(q.length > 0);
-        }}
-        onSearchFocus={() => searchQuery.length > 0 && setSearchOpen(true)}
-        onReset={handleReset}
-        visibleTypes={visibleTypes}
-        onTypeToggle={handleTypeToggle}
-        clusterMode={clusterMode}
-        onClusterModeChange={(m) => {
-          setClusterMode(m);
-          setClusterDrillIn(null);
-          setSelectedNodeId(null);
-          setSelectedNodeIds([]);
-        }}
-        inferenceState={inferenceState}
-        pendingCount={pendingCount}
-        decidedCount={decidedCount}
-        showInferred={showInferred}
-        onShowInferredChange={setShowInferred}
-        onRunInference={() => inferMutation.mutate()}
-        onSafeRerun={() => inferMutation.mutate()}
-        onForceRerun={handleForceRerun}
-        onOpenReview={() => setInferredReviewOpen(true)}
-        chapterCount={chapters?.length ?? 0}
-        nodeCount={data?.nodes.length ?? 0}
-      />
-
-      {/* Search dropdown (Scenario D) */}
-      <SearchDropdown
-        query={searchQuery}
-        entities={data?.nodes ?? []}
-        chapters={chapters ?? []}
-        open={searchOpen}
-        onClose={() => setSearchOpen(false)}
-        onSelectEntity={(id) => {
-          setSelectedNodeId(id);
-          setSelectedNodeIds([]);
-          setSearchOpen(false);
-          setSearchQuery('');
-        }}
-        onSelectChapter={() => {
-          setSearchOpen(false);
-        }}
-      />
-
-
-      <GuidanceRibbon surface="graph" float>
-        <strong>{t('guide.prefix')}</strong>{' '}
-        <Trans i18nKey="guide.body" ns="graph" components={{ strong: <strong /> }} />
-      </GuidanceRibbon>
-
-      {/* Orphan drawer (top-right) — shifts left when right panel is open */}
-      {clusterMode === 'node' && orphans.length > 0 && (
-        <div
-          className="absolute z-10 flex flex-col items-end"
-          style={{
-            top: 16,
-            right: bottomRightAnchor,
-            transition: 'right var(--transition-normal, 250ms) ease',
+        <GraphToolbar
+          searchQuery={searchQuery}
+          onSearchChange={(q) => {
+            setSearchQuery(q);
+            setSearchOpen(q.length > 0);
           }}
-        >
-          <OrphanDrawer orphans={orphans} open={orphanOpen} onToggle={() => setOrphanOpen((v) => !v)} />
-        </div>
-      )}
-
-      {/* Legend bar (bottom, just right of the LensCard) — design-canvas layout */}
-      <div className="absolute z-10" style={{ bottom: 16, left: 348 }}>
-        <LegendCard clusterMode={clusterMode} />
-      </div>
-
-      {/* Lens card (bottom-left) — consolidates timeline / epistemic / bookmarks */}
-      {bookId && (
-        <LensCard
-          bookId={bookId}
-          nodes={data?.nodes ?? []}
-          bookmarkedIds={bookmarkedIds}
-          onBookmarkRemove={handleBookmarkRemove}
-          onBookmarkClick={(id) => {
-            setSelectedNodeId(id);
-            setSelectedNodeIds([]);
-            // Aggregate views (type/community) have no individual node to
-            // select — clicking a bookmark there switches back to the
-            // individual view first, same as drilling into a faction member.
-            setClusterMode('node');
-            setClusterDrillIn(null);
-          }}
-          onTimelineChange={setTimelineState}
-          onUnknownEntityIds={setUnknownEntityIds}
-          onMisbeliefEventIds={setMisbeliefEventIds}
-          totalChapters={chapters?.length ?? 0}
-          clusterMode={clusterMode}
-          onBackToIndividual={() => {
-            setClusterMode('node');
-            setClusterDrillIn(null);
-          }}
-          deepLinkChapter={deepLinkChapter}
-        />
-      )}
-
-      {/* Mini-map (bottom-right) — same slot for all modes */}
-      {isCommunityMode && factionData ? (
-        <div
-          className="absolute z-10"
-          style={{
-            bottom: 16,
-            right: bottomRightAnchor,
-            transition: 'right var(--transition-normal, 250ms) ease',
-          }}
-        >
-          <MiniMap
-            nodes={factionMiniMapNodes}
-            edges={factionMiniMapEdges}
-            viewport={null}
-            onRecenter={() => {}}
-          />
-        </div>
-      ) : (
-        viewportSnap && (
-          <div
-            className="absolute z-10"
-            style={{
-              bottom: 16,
-              right: bottomRightAnchor,
-              transition: 'right var(--transition-normal, 250ms) ease',
-            }}
-          >
-            <MiniMap
-              nodes={viewportSnap.nodes}
-              edges={viewportSnap.edges}
-              viewport={viewportSnap.viewport}
-              onRecenter={(gx, gy) => canvasRef.current?.centerOn(gx, gy)}
-              onPanByGraph={(dx, dy) => canvasRef.current?.panByGraph(dx, dy)}
+          onSearchFocus={() => searchQuery.length > 0 && setSearchOpen(true)}
+          searchDropdown={
+            <SearchDropdown
+              query={searchQuery}
+              entities={data?.nodes ?? []}
+              chapters={chapters ?? []}
+              open={searchOpen}
+              onClose={() => setSearchOpen(false)}
+              onSelectEntity={(id) => {
+                setSelectedNodeId(id);
+                setSelectedNodeIds([]);
+                setSearchOpen(false);
+                setSearchQuery('');
+              }}
+              onSelectChapter={() => {
+                setSearchOpen(false);
+              }}
             />
-          </div>
-        )
-      )}
-
-      {/* Stats — card just above the mini-map (same slot for all modes) */}
-      <div
-        className="absolute z-10 flex items-center"
-        style={{
-          bottom: 144,
-          right: bottomRightAnchor,
-          gap: 8,
-          padding: '4px 10px',
-          fontSize: 'var(--font-size-2xs)',
-          color: 'var(--fg-muted)',
-          backgroundColor: 'var(--bg-primary)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-md)',
-          boxShadow: 'var(--shadow-sm)',
-          transition: 'right var(--transition-normal, 250ms) ease',
-        }}
-      >
-        {isCommunityMode && factionData ? (
-          <>
-            <span>
-              <strong style={{ color: 'var(--fg-primary)', fontWeight: 600 }}>
-                {factionData.factions?.length ?? 0}
-              </strong>{' '}
-              {tStats('statsFactionLabel')}
-            </span>
-            <span style={{ opacity: 0.4 }}>·</span>
-            <span>
-              <strong style={{ color: 'var(--fg-primary)', fontWeight: 600 }}>
-                {factionData.relations?.length ?? 0}
-              </strong>{' '}
-              {tStats('statsAggregatedEdgeLabel')}
-            </span>
-            <span style={{ opacity: 0.4 }}>·</span>
-            <span>
-              <strong style={{ color: 'var(--fg-primary)', fontWeight: 600 }}>
-                {nodeCount}
-              </strong>{' '}
-              {tStats('statsUnderlyingNodeLabel')}
-            </span>
-          </>
-        ) : (
-          <>
-            <span>
-              <strong style={{ color: 'var(--fg-primary)', fontWeight: 600 }}>{nodeCount}</strong>{' '}
-              {tStats('statsNodeLabel')}
-            </span>
-            <span style={{ opacity: 0.4 }}>·</span>
-            <span>
-              <strong style={{ color: 'var(--fg-primary)', fontWeight: 600 }}>{edgeCount}</strong>{' '}
-              {tStats('statsEdgeLabel')}
-            </span>
-            {inferredCount > 0 && (
-              <>
-                <span style={{ opacity: 0.4 }}>·</span>
-                <span style={{ color: 'var(--accent)' }}>
-                  {tStats('statsInferred', { n: inferredCount })}
-                </span>
-              </>
-            )}
-          </>
-        )}
-      </div>
-
-      {/* Zoom controls (above stats) */}
-      <div
-        className="absolute z-10 flex flex-col"
-        style={{
-          bottom: 176,
-          right: bottomRightAnchor,
-          transition: 'right var(--transition-normal, 250ms) ease',
-        }}
-      >
-        <button
-          className="flex items-center justify-center"
-          style={{
-            width: 26,
-            height: 26,
-            backgroundColor: 'var(--bg-primary)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-md) var(--radius-md) 0 0',
-            color: 'var(--fg-secondary)',
-          }}
-          aria-label="Zoom in"
-        >
-          <Plus size={12} />
-        </button>
-        <button
-          className="flex items-center justify-center"
-          style={{
-            width: 26,
-            height: 26,
-            backgroundColor: 'var(--bg-primary)',
-            border: '1px solid var(--border)',
-            borderTop: 'none',
-            borderRadius: '0 0 var(--radius-md) var(--radius-md)',
-            color: 'var(--fg-secondary)',
-          }}
-          aria-label="Zoom out"
-        >
-          <Minus size={12} />
-        </button>
-      </div>
-
-      {/* Right-side panels — priority: compare > inferred review > cluster overview > entity */}
-      {showCompare && compareNodes && bookId && (
-        <EntityComparePanel
-          bookId={bookId}
-          a={compareNodes[0]}
-          b={compareNodes[1]}
-          onClose={() => setSelectedNodeIds([])}
-          onEnterPairMode={() =>
-            setPairState({
-              a: compareNodes[0],
-              b: compareNodes[1],
-              subMode: 'evo',
-              step: Math.max(pairTotalChapters, 1),
-            })
           }
+          onReset={handleReset}
+          visibleTypes={visibleTypes}
+          onTypeToggle={handleTypeToggle}
+          clusterMode={clusterMode}
+          onClusterModeChange={(m) => {
+            setClusterMode(m);
+            setClusterDrillIn(null);
+            setSelectedNodeId(null);
+            setSelectedNodeIds([]);
+          }}
+          inferenceState={inferenceState}
+          pendingCount={pendingCount}
+          decidedCount={decidedCount}
+          showInferred={showInferred}
+          onShowInferredChange={setShowInferred}
+          onRunInference={() => inferMutation.mutate()}
+          onSafeRerun={() => inferMutation.mutate()}
+          onForceRerun={handleForceRerun}
+          onOpenReview={() => setInferredReviewOpen(true)}
+          chapterCount={chapters?.length ?? 0}
+          nodeCount={data?.nodes.length ?? 0}
         />
       )}
 
-      {showInferredReview && bookId && (
-        <InferredEdgePanel
-          bookId={bookId}
-          focusInferredId={selectedInferredId}
-          onClose={() => {
-            setInferredReviewOpen(false);
-            setSelectedInferredId(null);
-          }}
-        />
-      )}
-
-      {showClusterOverview && clusteredGraph && bookId && (
-        <div
-          className="absolute top-0 right-0 h-full z-20"
-          style={{
-            width: 280,
-            backgroundColor: 'var(--bg-primary)',
-            borderLeft: '1px solid var(--border)',
-          }}
-        >
-          <ClusterOverviewPanel
-            clustered={clusteredGraph}
+      <div className="kg-stage">
+        {isCommunityMode && factionData ? (
+          <FactionCanvas
+            analysis={factionData}
             graphNodes={data?.nodes ?? []}
-            drillInType={clusterDrillIn}
-            factionAnalysis={isCommunityMode ? factionData ?? null : null}
-            factionSettings={isCommunityMode ? factionDraft : undefined}
-            onFactionSettingsChange={isCommunityMode ? setFactionDraft : undefined}
-            onFactionRecompute={
-              isCommunityMode ? () => setFactionApplied(factionDraft) : undefined
-            }
-            isRecomputing={isCommunityMode && isFactionFetching}
-            onClose={() => {
-              setClusterMode('node');
-              setClusterDrillIn(null);
-            }}
-            onDrillIn={(type) => setClusterDrillIn(type)}
-            onExitDrillIn={() => setClusterDrillIn(null)}
-            onMemberSelect={(id) => {
+            drillInFactionId={clusterDrillIn}
+            onSuperNodeClick={(factionId) => setClusterDrillIn(factionId)}
+            onMemberClick={(id) => {
               setSelectedNodeId(id);
               setClusterMode('node');
               setClusterDrillIn(null);
             }}
+            onExitDrillIn={() => setClusterDrillIn(null)}
           />
-        </div>
-      )}
+        ) : (
+          <GraphCanvas
+            ref={canvasRef}
+            elements={filteredElements}
+            onNodeTap={handleNodeTap}
+            onEdgeTap={handleEdgeTap}
+            selectedNodeId={selectedNodeId}
+            selectedNodeIds={selectedNodeIds}
+            animationMode={animationMode}
+            extraStylesheet={[...relationEdgeStylesheet, ...epistemicStylesheet, ...misbeliefStylesheet]}
+            onViewportChange={handleViewportChange}
+          />
+        )}
 
-      {showEntityDetail && selectedNode && bookId && (
-        <div
-          className="absolute top-0 h-full z-20"
-          style={{
-            right: rightPanelExtraWidth,
-            transition: 'right var(--transition-normal, 250ms) ease',
-          }}
-        >
-          {selectedNode.type === 'event' ? (
-            <EventDetailPanel
-              key={selectedNode.id}
-              node={selectedNode}
-              bookId={bookId}
-              onClose={() => {
-                setSelectedNodeId(null);
-                setRightPanel(null);
-              }}
-              onShowAnalysis={() => setRightPanel('analysis')}
-            />
-          ) : (
-            <EntityDetailPanel
-              key={selectedNode.id}
-              node={selectedNode}
-              bookId={bookId}
-              relationCount={selectedRelationCount}
-              isBookmarked={bookmarkedIds.includes(selectedNode.id)}
-              onBookmarkToggle={() =>
-                bookmarkedIds.includes(selectedNode.id)
-                  ? handleBookmarkRemove(selectedNode.id)
-                  : handleBookmarkAdd(selectedNode.id)
-              }
-              onAddToCompare={handleAddToCompare}
-              isComparePending={compareArmed}
-              onClose={() => {
-                setSelectedNodeId(null);
-                setCompareArmed(false);
-                setRightPanel(null);
-              }}
-              onShowAnalysis={() => setRightPanel('analysis')}
-              onShowParagraphs={() => setRightPanel('paragraphs')}
-            />
-          )}
-        </div>
-      )}
+        {!pairModeActive && (
+          <>
+            {/* Floating ribbon: positioned inside the stage, so it always sits
+                right under the (variable-height) toolbar. */}
+            <GuidanceRibbon surface="graph" float>
+              <strong>{t('guide.prefix')}</strong>{' '}
+              <Trans i18nKey="guide.body" ns="graph" components={{ strong: <strong /> }} />
+            </GuidanceRibbon>
 
-      {/* Secondary detail layer (analysis / paragraphs) */}
-      {rightPanel && selectedNode && bookId && (
-        <div
-          className="absolute top-0 right-0 h-full z-20"
-          style={{
-            width: RIGHT_PANEL_WIDTH[rightPanel],
-            backgroundColor: 'var(--bg-primary)',
-            borderLeft: '1px solid var(--border)',
-          }}
-        >
-          {rightPanel === 'analysis' ? (
-            <AnalysisPanel
-              bookId={bookId}
-              node={selectedNode}
-              onClose={() => setRightPanel(null)}
-            />
-          ) : (
-            <ParagraphsPanel
-              bookId={bookId}
-              node={selectedNode}
-              onClose={() => setRightPanel(null)}
-            />
-          )}
-        </div>
-      )}
-        </>
-      )}
+            {/* Bottom-left: orphan drawer above the Lens card — one shared bottom
+                edge, the drawer opens upward. */}
+            <div className="kg-bl">
+              {clusterMode === 'node' && orphans.length > 0 && (
+                <OrphanDrawer orphans={orphans} open={orphanOpen} onToggle={() => setOrphanOpen((v) => !v)} />
+              )}
+              {bookId && (
+                <LensCard
+                  bookId={bookId}
+                  nodes={data?.nodes ?? []}
+                  bookmarkedIds={bookmarkedIds}
+                  onBookmarkRemove={handleBookmarkRemove}
+                  onBookmarkClick={(id) => {
+                    setSelectedNodeId(id);
+                    setSelectedNodeIds([]);
+                    // Aggregate views (type/community) have no individual node to
+                    // select — clicking a bookmark there switches back to the
+                    // individual view first, same as drilling into a faction member.
+                    setClusterMode('node');
+                    setClusterDrillIn(null);
+                  }}
+                  onTimelineChange={setTimelineState}
+                  onUnknownEntityIds={setUnknownEntityIds}
+                  onMisbeliefEventIds={setMisbeliefEventIds}
+                  totalChapters={chapters?.length ?? 0}
+                  clusterMode={clusterMode}
+                  onBackToIndividual={() => {
+                    setClusterMode('node');
+                    setClusterDrillIn(null);
+                  }}
+                  deepLinkChapter={deepLinkChapter}
+                />
+              )}
+            </div>
 
-      {/* Phase 5: entity-pair mode overlay (F1 evolution / F2 path tracing) */}
-      {pairState && (
-        <PairModeOverlay
-          a={pairState.a}
-          b={pairState.b}
-          subMode={pairState.subMode}
-          onSubModeChange={(subMode) => setPairState((prev) => (prev ? { ...prev, subMode } : prev))}
-          onExit={() => setPairState(null)}
-          totalChapters={pairTotalChapters}
-          step={pairState.step}
-          onStepChange={(step) => setPairState((prev) => (prev ? { ...prev, step } : prev))}
-          steps={pairSteps}
-          nodeById={pairNodeById}
-          path={pairPath}
-          insufficientChange={pairInsufficientChange}
-        />
-      )}
+            {/* Bottom-right: stats / mini-map / zoom share one right anchor that
+                follows the rail's real width. */}
+            <div className="kg-br" style={{ right: bottomRightAnchor }}>
+              <div className="kg-stats">
+                {isCommunityMode && factionData ? (
+                  <>
+                    <span>
+                      <strong>{factionData.factions?.length ?? 0}</strong> {tStats('statsFactionLabel')}
+                    </span>
+                    <span className="kg-stats-sep">·</span>
+                    <span>
+                      <strong>{factionData.relations?.length ?? 0}</strong> {tStats('statsAggregatedEdgeLabel')}
+                    </span>
+                    <span className="kg-stats-sep">·</span>
+                    <span>
+                      <strong>{nodeCount}</strong> {tStats('statsUnderlyingNodeLabel')}
+                    </span>
+                  </>
+                ) : (
+                  <>
+                    <span>
+                      <strong>{nodeCount}</strong> {tStats('statsNodeLabel')}
+                    </span>
+                    <span className="kg-stats-sep">·</span>
+                    <span>
+                      <strong>{edgeCount}</strong> {tStats('statsEdgeLabel')}
+                    </span>
+                    {inferredCount > 0 && (
+                      <>
+                        <span className="kg-stats-sep">·</span>
+                        <span className="kg-stats-inferred">{tStats('statsInferred', { n: inferredCount })}</span>
+                      </>
+                    )}
+                  </>
+                )}
+              </div>
+
+              {isCommunityMode && factionData ? (
+                <MiniMap
+                  nodes={factionMiniMapNodes}
+                  edges={factionMiniMapEdges}
+                  viewport={null}
+                  onRecenter={() => {}}
+                />
+              ) : (
+                viewportSnap && (
+                  <MiniMap
+                    nodes={viewportSnap.nodes}
+                    edges={viewportSnap.edges}
+                    viewport={viewportSnap.viewport}
+                    onRecenter={(gx, gy) => canvasRef.current?.centerOn(gx, gy)}
+                    onPanByGraph={(dx, dy) => canvasRef.current?.panByGraph(dx, dy)}
+                  />
+                )
+              )}
+
+              {/* Zoom drives cytoscape; the readout is its real zoom level. The
+                  community lens is a fixed SVG with no zoom, so no strip there. */}
+              {!isCommunityMode && (
+                <div className="kg-zoom">
+                  <button
+                    type="button"
+                    className="kg-zoom-btn"
+                    aria-label="Zoom out"
+                    onClick={() => canvasRef.current?.zoomBy(1 / ZOOM_STEP)}
+                  >
+                    <Minus size={12} />
+                  </button>
+                  <span className="kg-zoom-read">{Math.round((viewportSnap?.zoom ?? 1) * 100)}%</span>
+                  <button
+                    type="button"
+                    className="kg-zoom-btn"
+                    aria-label="Zoom in"
+                    onClick={() => canvasRef.current?.zoomBy(ZOOM_STEP)}
+                  >
+                    <Plus size={12} />
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Right rail — priority: compare > inferred review > cluster overview > entity.
+                One shared container names whichever panel is showing. */}
+            {railMain && bookId && (
+              <GraphRightRail panel={railMain} name={railName} rightOffset={secondaryWidth}>
+                {railMain === 'compare' && compareNodes && (
+                  <EntityComparePanel
+                    bookId={bookId}
+                    a={compareNodes[0]}
+                    b={compareNodes[1]}
+                    onClose={() => setSelectedNodeIds([])}
+                    onEnterPairMode={() =>
+                      setPairState({
+                        a: compareNodes[0],
+                        b: compareNodes[1],
+                        subMode: 'evo',
+                        step: Math.max(pairTotalChapters, 1),
+                      })
+                    }
+                  />
+                )}
+
+                {railMain === 'inferred' && (
+                  <InferredEdgePanel
+                    bookId={bookId}
+                    focusInferredId={selectedInferredId}
+                    onClose={() => {
+                      setInferredReviewOpen(false);
+                      setSelectedInferredId(null);
+                    }}
+                  />
+                )}
+
+                {railMain === 'cluster' && clusteredGraph && (
+                  <ClusterOverviewPanel
+                    clustered={clusteredGraph}
+                    graphNodes={data?.nodes ?? []}
+                    drillInType={clusterDrillIn}
+                    factionAnalysis={isCommunityMode ? factionData ?? null : null}
+                    factionSettings={isCommunityMode ? factionDraft : undefined}
+                    onFactionSettingsChange={isCommunityMode ? setFactionDraft : undefined}
+                    onFactionRecompute={
+                      isCommunityMode ? () => setFactionApplied(factionDraft) : undefined
+                    }
+                    isRecomputing={isCommunityMode && isFactionFetching}
+                    onClose={() => {
+                      setClusterMode('node');
+                      setClusterDrillIn(null);
+                    }}
+                    onDrillIn={(type) => setClusterDrillIn(type)}
+                    onExitDrillIn={() => setClusterDrillIn(null)}
+                    onMemberSelect={(id) => {
+                      setSelectedNodeId(id);
+                      setClusterMode('node');
+                      setClusterDrillIn(null);
+                    }}
+                  />
+                )}
+
+                {railMain === 'entity' && selectedNode &&
+                  (selectedNode.type === 'event' ? (
+                    <EventDetailPanel
+                      key={selectedNode.id}
+                      node={selectedNode}
+                      bookId={bookId}
+                      onClose={() => {
+                        setSelectedNodeId(null);
+                        setRightPanel(null);
+                      }}
+                      onShowAnalysis={() => setRightPanel('analysis')}
+                    />
+                  ) : (
+                    <EntityDetailPanel
+                      key={selectedNode.id}
+                      node={selectedNode}
+                      bookId={bookId}
+                      relationCount={selectedRelationCount}
+                      isBookmarked={bookmarkedIds.includes(selectedNode.id)}
+                      onBookmarkToggle={() =>
+                        bookmarkedIds.includes(selectedNode.id)
+                          ? handleBookmarkRemove(selectedNode.id)
+                          : handleBookmarkAdd(selectedNode.id)
+                      }
+                      onAddToCompare={handleAddToCompare}
+                      isComparePending={compareArmed}
+                      onClose={() => {
+                        setSelectedNodeId(null);
+                        setCompareArmed(false);
+                        setRightPanel(null);
+                      }}
+                      onShowAnalysis={() => setRightPanel('analysis')}
+                      onShowParagraphs={() => setRightPanel('paragraphs')}
+                    />
+                  ))}
+              </GraphRightRail>
+            )}
+
+            {/* Secondary detail layer (analysis / paragraphs): stacked to the right
+                of the main panel, one at a time, only beside the entity / event panel. */}
+            {secondaryPanel && selectedNode && bookId && (
+              <div className="kg-secondary" style={{ width: secondaryWidth }}>
+                {secondaryPanel === 'analysis' ? (
+                  <AnalysisPanel bookId={bookId} node={selectedNode} onClose={() => setRightPanel(null)} />
+                ) : (
+                  <ParagraphsPanel bookId={bookId} node={selectedNode} onClose={() => setRightPanel(null)} />
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* Phase 5: entity-pair mode overlay (F1 evolution / F2 path tracing) */}
+        {pairState && (
+          <PairModeOverlay
+            a={pairState.a}
+            b={pairState.b}
+            subMode={pairState.subMode}
+            onSubModeChange={(subMode) => setPairState((prev) => (prev ? { ...prev, subMode } : prev))}
+            onExit={() => setPairState(null)}
+            totalChapters={pairTotalChapters}
+            step={pairState.step}
+            onStepChange={(step) => setPairState((prev) => (prev ? { ...prev, step } : prev))}
+            steps={pairSteps}
+            nodeById={pairNodeById}
+            path={pairPath}
+            insufficientChange={pairInsufficientChange}
+          />
+        )}
+      </div>
+
+      {/* Legend band: flush against the canvas's bottom edge, follows the lens. */}
+      {!pairModeActive && <LegendCard clusterMode={clusterMode} />}
+
+      {/* 強制重跑推論 — irreversible but free: danger styling, NO cost glyph.
+          The body keeps the original wording verbatim (including 「重跡」). */}
+      <ConfirmDialog
+        open={forceConfirmOpen}
+        title={t('inference.forceRerunTitle')}
+        message={t('v1.inferred.review.rerunForceConfirm')}
+        confirmLabel={t('v1.inferred.toolbar.menu.forceRerun')}
+        danger
+        onConfirm={() => {
+          setForceConfirmOpen(false);
+          forceRerunMutation.mutate();
+        }}
+        onCancel={() => setForceConfirmOpen(false)}
+      />
     </div>
   );
 }
 
 // "未連結實體" drawer — degree-0 entities are hidden from the canvas (see
 // `connectedElements` above); this surfaces them as a small popover instead
-// of a floating grid next to the graph (brief §3-3).
+// of a floating grid next to the graph (brief §3-3). Lives in the bottom-left
+// stack and opens upward, sharing the Lens card's bottom edge.
 function OrphanDrawer({
   orphans,
   open,
@@ -1028,84 +988,31 @@ function OrphanDrawer({
 }) {
   const { t } = useTranslation('graph');
   return (
-    <div className="relative">
+    <div className="kg-orphan">
       <button
+        type="button"
         onClick={onToggle}
-        className="flex items-center"
-        style={{
-          gap: 6,
-          padding: '6px 11px',
-          backgroundColor: 'var(--bg-primary)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-md)',
-          boxShadow: 'var(--shadow-sm)',
-          fontSize: 'var(--font-size-2xs)',
-          color: 'var(--fg-primary)',
-        }}
+        aria-expanded={open}
+        className="ss-btn ss-btn-sm ss-btn-secondary"
       >
-        <Shapes size={14} style={{ color: 'var(--fg-secondary)' }} />
+        <Shapes size={13} />
         <span>{t('v1.orphan.button')}</span>
-        <span
-          className="tabular-nums"
-          style={{
-            padding: '0 6px',
-            borderRadius: 'var(--pill-radius, 999px)',
-            backgroundColor: 'var(--bg-tertiary)',
-            color: 'var(--fg-secondary)',
-          }}
-        >
-          {orphans.length}
-        </span>
+        <span className="kg-orphan-count">{orphans.length}</span>
+        <ChevronUp size={12} style={open ? { transform: 'rotate(180deg)' } : undefined} />
       </button>
       {open && (
-        <div
-          className="absolute"
-          style={{
-            top: '100%',
-            right: 0,
-            marginTop: 6,
-            width: 230,
-            padding: 12,
-            backgroundColor: 'var(--bg-primary)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-md)',
-            boxShadow: 'var(--shadow-md, var(--shadow-sm))',
-            zIndex: 20,
-          }}
-        >
-          <div
-            style={{
-              fontSize: 'var(--font-size-2xs)',
-              color: 'var(--fg-muted)',
-              lineHeight: 1.5,
-              marginBottom: 8,
-            }}
-          >
-            {t('v1.orphan.description')}
-          </div>
-          <div className="flex flex-col" style={{ gap: 5, maxHeight: 220, overflowY: 'auto' }}>
+        <div className="kg-orphan-pop">
+          <div className="kg-orphan-desc">{t('v1.orphan.description')}</div>
+          <div className="kg-orphan-list">
             {orphans.map((o) => {
               const dotKey = ORPHAN_TYPE_KEY[o.type] ?? 'other';
               return (
-                <span
-                  key={o.id}
-                  className="inline-flex items-center self-start"
-                  style={{
-                    gap: 5,
-                    padding: '3px 9px',
-                    borderRadius: 'var(--pill-radius, 999px)',
-                    border: '1px solid var(--border)',
-                    fontSize: 'var(--font-size-2xs)',
-                    color: 'var(--fg-secondary)',
-                  }}
-                >
+                <span key={o.id} className="kg-orphan-item">
                   <span
-                    className="inline-block rounded-full flex-shrink-0"
+                    className="kg-orphan-dot"
                     style={{
-                      width: 8,
-                      height: 8,
                       backgroundColor: `var(--graph-${dotKey}-fill)`,
-                      border: `1px solid var(--graph-${dotKey}-stroke)`,
+                      border: `var(--line-weight) solid var(--graph-${dotKey}-stroke)`,
                     }}
                   />
                   {o.name}
@@ -1168,30 +1075,32 @@ function AnalysisPanel({ bookId, node, onClose }: { bookId: string; node: GraphN
   }
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div
-        className="flex items-center justify-between p-3 flex-shrink-0"
-        style={{ borderBottom: '1px solid var(--border)' }}
-      >
-        <h3 className="text-sm font-semibold" style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}>
-          {isEvent ? t('analysisPanel.eventTitle', { name: node.name }) : t('analysisPanel.entityTitle', { name: node.name })}
-        </h3>
-        <button onClick={onClose} style={{ color: 'var(--fg-muted)' }}>
-          <X size={16} />
+    <div className="kg-panel">
+      <div className="kg-panel-head" style={{ alignItems: 'flex-start' }}>
+        <div className="flex flex-col" style={{ gap: 'var(--space-1)', minWidth: 0 }}>
+          <h3 className="kg-panel-title">
+            {isEvent ? t('analysisPanel.eventTitle', { name: node.name }) : t('analysisPanel.entityTitle', { name: node.name })}
+          </h3>
+          {entityAnalysis?.generatedAt && (
+            <span className="kg-panel-sub">
+              {t('entity.generated', { date: new Date(entityAnalysis.generatedAt).toLocaleDateString() })}
+            </span>
+          )}
+        </div>
+        <button type="button" onClick={onClose} className="kg-icon-btn" aria-label="Close">
+          <X size={14} />
         </button>
       </div>
-      <div className="flex-1 overflow-y-auto p-4">
+      <div className="kg-panel-body">
         {isLoading ? (
-          <div className="flex items-center gap-2">
-            <Loader size={12} className="animate-spin" style={{ color: 'var(--fg-muted)' }} />
-            <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>{t('analysisPanel.loading')}</span>
+          <div className="kg-inline-load">
+            <Loader size={12} className="animate-spin" />
+            <span>{t('analysisPanel.loading')}</span>
           </div>
         ) : content ? (
           <MarkdownRenderer content={content} compact />
         ) : (
-          <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>
-            {isEvent ? t('analysisPanel.noEventAnalysis') : t('analysisPanel.noEntityAnalysis')}
-          </p>
+          <p className="kg-note">{isEvent ? t('analysisPanel.noEventAnalysis') : t('analysisPanel.noEntityAnalysis')}</p>
         )}
       </div>
     </div>
@@ -1220,53 +1129,50 @@ function ParagraphsPanel({ bookId, node, onClose }: { bookId: string; node: Grap
   }, [data]);
 
   return (
-    <div className="flex flex-col h-full overflow-hidden">
-      <div
-        className="flex items-center justify-between p-3 flex-shrink-0"
-        style={{ borderBottom: '1px solid var(--border)' }}
-      >
-        <h3 className="text-sm font-semibold" style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}>
-          {t('paragraphsPanel.title', { name: node.name })}
-        </h3>
-        <button onClick={onClose} style={{ color: 'var(--fg-muted)' }}>
-          <X size={16} />
+    <div className="kg-panel">
+      <div className="kg-panel-head" style={{ alignItems: 'flex-start' }}>
+        <div className="flex flex-col" style={{ gap: 'var(--space-1)', minWidth: 0 }}>
+          <h3 className="kg-panel-title">{t('paragraphsPanel.title', { name: node.name })}</h3>
+          {data && data.total > 0 && (
+            <span className="kg-panel-sub">{t('paragraphsPanel.total', { count: data.total })}</span>
+          )}
+        </div>
+        <button type="button" onClick={onClose} className="kg-icon-btn" aria-label="Close">
+          <X size={14} />
         </button>
       </div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+      <div className="kg-panel-body">
         {isLoading ? (
-          <div className="flex items-center gap-2">
-            <Loader size={12} className="animate-spin" style={{ color: 'var(--fg-muted)' }} />
-            <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>{t('paragraphsPanel.loading')}</span>
+          <div className="kg-inline-load">
+            <Loader size={12} className="animate-spin" />
+            <span>{t('paragraphsPanel.loading')}</span>
           </div>
         ) : data && data.total > 0 ? (
-          <>
-            <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>
-              {t('paragraphsPanel.total', { count: data.total })}
-            </p>
-            {grouped.map(([chapterNum, group]) => (
-              <div key={chapterNum}>
-                <h4
-                  className="text-xs font-semibold mb-2 sticky top-0 py-1"
-                  style={{ color: 'var(--fg-secondary)', backgroundColor: 'var(--bg-primary)' }}
+          grouped.map(([chapterNum, group]) => (
+            <div key={chapterNum} className="kg-chunk" style={{ gap: 'var(--space-3)' }}>
+              <span className="kg-label" style={{ color: 'var(--fg-secondary)' }}>
+                {group.title || t('paragraphsPanel.chapterTitle', { chapter: chapterNum })}
+              </span>
+              {group.chunks.map((chunk) => (
+                <div
+                  key={chunk.id}
+                  className="kg-serif"
+                  style={{
+                    fontSize: 'var(--font-size-2xs)',
+                    lineHeight: 1.8,
+                    padding: 'var(--space-3) var(--space-4)',
+                    backgroundColor: 'var(--bg-secondary)',
+                    borderRadius: 'var(--radius-sm)',
+                    color: 'var(--fg-primary)',
+                  }}
                 >
-                  {group.title || t('paragraphsPanel.chapterTitle', { chapter: chapterNum })}
-                </h4>
-                <div className="space-y-2">
-                  {group.chunks.map((chunk) => (
-                    <div
-                      key={chunk.id}
-                      className="text-xs leading-relaxed p-2 rounded"
-                      style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--fg-primary)' }}
-                    >
-                      <SegmentRenderer segments={chunk.segments} />
-                    </div>
-                  ))}
+                  <SegmentRenderer segments={chunk.segments} />
                 </div>
-              </div>
-            ))}
-          </>
+              ))}
+            </div>
+          ))
         ) : (
-          <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>{t('paragraphsPanel.noData')}</p>
+          <p className="kg-note">{t('paragraphsPanel.noData')}</p>
         )}
       </div>
     </div>

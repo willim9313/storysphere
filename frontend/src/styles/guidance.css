@@ -64,14 +64,15 @@
 /* Canvas pages have no document flow to sit in — the knowledge graph is a
    full-bleed viewport whose overlays are absolutely positioned.
    Capped in width so it never becomes the thing covering the graph it is
-   explaining, and pushed below the lens toolbar (個別 / 類型 / 社群, which
-   occupies y 52–127 and is drawn by a child component, so it does not show up
-   in a grep of the page file). The first version used top:16px and buried that
-   toolbar — a page's primary control must never be what the help text hides. */
+   explaining. The lens toolbar (個別 / 類型 / 社群) is a flush bar ABOVE the
+   canvas stage, and this ribbon is positioned inside the stage — so it sits just
+   under the toolbar whatever height the toolbar wraps to, instead of a hard-coded
+   offset (it used to be top:140px, tuned to a two-row floating toolbar). A page's
+   primary control must never be what the help text hides. */
 .sg-ribbon.sg-ribbon-float {
   position: absolute;
-  top: 140px;
-  left: 16px;
+  top: var(--space-5);
+  left: var(--space-5);
   z-index: 10;
   max-width: 430px;
   margin-bottom: 0;

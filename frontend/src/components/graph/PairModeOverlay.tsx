@@ -169,7 +169,7 @@ export function PairModeOverlay({
         }`}
       </style>
 
-      {/* Top-center card: title + evo/path toggle + exit */}
+      {/* Top-center card: title + evo/path toggle */}
       <div
         className="absolute flex items-center"
         style={{
@@ -226,16 +226,15 @@ export function PairModeOverlay({
             );
           })}
         </div>
-
-        <button
-          onClick={onExit}
-          className="inline-flex items-center"
-          style={{ gap: 4, fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}
-        >
-          <X size={13} />
-          {t('v1.pair.exit')}
-        </button>
       </div>
+
+      {/* Exit — fixed top-right. This mode covers the graph page's own controls
+          (and its entry gesture, a multi-select, can't be driven synthetically),
+          so the way out has to be a visible control, not something you must know. */}
+      <button type="button" onClick={onExit} className="ss-btn ss-btn-sm ss-btn-secondary kg-pair-exit">
+        <X size={12} />
+        {t('v1.pair.exit')}
+      </button>
 
       {/* Main visualization */}
       <div className="absolute inset-0 flex items-center justify-center">{mainContent}</div>
