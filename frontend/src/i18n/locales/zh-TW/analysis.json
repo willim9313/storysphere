@@ -1649,7 +1649,9 @@
     "review": {
       "pending": "系統生成 · 未審閱",
       "approved": "已核可",
-      "rejected": "標記為不適用"
+      "rejected": "標記為不適用",
+      "withdrawApproved": "再按一次撤銷核可，回到「系統生成 · 未審閱」",
+      "withdrawRejected": "再按一次撤銷，回到「系統生成 · 未審閱」"
     },
     "approve": "核可",
     "markNA": "標記不適用",
@@ -1719,7 +1721,10 @@
       "classifyConfirmTitle": "依 EEP 重新分類？",
       "classifyConfirmBody": "會依現有的事件分析（EEP）快取重算全書的核心／衛星分類，不呼叫 LLM、不消耗 token。快取已全數遺失時系統會拒絕執行，避免把既有分類抹成未分類。",
       "refineConfirmTitle": "用 LLM 精煉 {{n}} 件未分類事件？",
-      "refineConfirmBody": "會對這 {{n}} 件事件各發一次 LLM 請求逐筆判斷核心／衛星，會消耗 token，件數越多越久。判定結果會覆寫這些事件目前的權重。"
+      "refineConfirmBody": "會對這 {{n}} 件事件各發一次 LLM 請求逐筆判斷核心／衛星，會消耗 token，件數越多越久。判定結果會覆寫這些事件目前的權重。",
+      "classifyCost": "零成本 · 寫入資料",
+      "classifyAffects": "將被刪除／覆寫：全書 {{total}} 個事件的核心／衛星權重（目前：核心 {{kernel}} · 衛星 {{satellite}} · 未分類 {{unclassified}}）",
+      "refineAffects": "將被刪除／覆寫：這 {{n}} 件事件目前的權重"
     },
     "cross": {
       "title": "疊在同一條章節軸上",
@@ -1793,6 +1798,7 @@
     "guide": {
       "prefix": "研究者導覽：",
       "body": "本頁分三塊——<strong>敘事結構</strong>看整本書是什麼形狀，<strong>英雄旅程</strong>對照 Campbell 的 12 階段，<strong>事件骨幹</strong>看哪些核心事件撐起那個弧。<strong>這三塊讀的是章節摘要，不是原文</strong>；摘要沒備齊時分析會回報成功卻產出 0 個階段，所以先看下方的前置條件。"
-    }
+    },
+    "repEventsNoneGap": "這個階段落在第 {{ch}} 章，但這些章節沒有核心事件可展示——沒有可展示的事件不代表階段不成立。"
   }
 }

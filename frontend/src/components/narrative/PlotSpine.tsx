@@ -2,7 +2,6 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { ArrowRight, Sparkles } from 'lucide-react';
 import type { KernelSpineEvent, NarrativeStructure } from '@/api/narrative';
 import { ReviewBadge } from './atoms';
 
@@ -15,7 +14,7 @@ interface PlotSpineProps {
   children?: React.ReactNode;
 }
 
-export function PlotSpine({ structure, kernelEvents, bookId, chapterCount = 0, children }: PlotSpineProps) {
+export function PlotSpine({ structure, kernelEvents, bookId, chapterCount = 0, children }: Readonly<PlotSpineProps>) {
   const { t } = useTranslation('analysis');
   const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -51,32 +50,21 @@ export function PlotSpine({ structure, kernelEvents, bookId, chapterCount = 0, c
 
   return (
     <section className="nl-card">
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-            <h2 style={{ margin: 0, fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-2xl)', fontWeight: 700, color: 'var(--fg-primary)', letterSpacing: '-0.01em' }}>
-              {t('narrative.spine.title')}
-            </h2>
-            {/* The framework name doubles as the way out to its full
-                description, so the terms need no explaining here. */}
+      <div className="nl-hj-head">
+        <div className="nl-hj-title">
+          <div className="nl-hj-title-line">
+            <h2 className="nl-h2">{t('narrative.spine.title')}</h2>
+            {/* The framework name doubles as the way out to its full description. */}
             <Link className="nl-term-link" to="/methodology?framework=chatman">
               {t('narrative.spine.subtitle')}
             </Link>
           </div>
-          <p style={{ margin: '4px 0 0', fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)', color: 'var(--fg-secondary)', textWrap: 'pretty' }}>
-            {t('narrative.spine.lead')}
-          </p>
+          <p className="nl-lead">{t('narrative.spine.lead')}</p>
         </div>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexShrink: 0 }}>
-          <span style={{
-            display: 'inline-flex', alignItems: 'center', gap: 5,
-            fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', fontWeight: 600,
-            padding: '3px 10px', borderRadius: 20,
-            background: 'var(--bg-tertiary)', color: 'var(--fg-secondary)',
-            borderWidth: 'var(--border-width)', borderStyle: 'var(--border-style)', borderColor: 'var(--border)',
-          }}>
-            <Sparkles size={11} /> {srcLabel}
+        <div className="nl-hj-actions">
+          <span className="ss-badge nl-badge-quiet">
+            {structure.classification_source === 'llm_classified' && <span className="ss-llm-glyph" />}
+            {srcLabel}
           </span>
           <ReviewBadge status={structure.review_status} />
         </div>
@@ -89,20 +77,22 @@ export function PlotSpine({ structure, kernelEvents, bookId, chapterCount = 0, c
           <span className="nl-ratio-n">{counts.kernel}</span>
           <span className="nl-ratio-of">{t('narrative.spine.kernelOfTotal', { total })}</span>
         </div>
-        <div style={{ flex: '1 1 300px', minWidth: 220 }}>
+        <div className="nl-ratio-main">
           <div className="nl-ratio-bar">
-            <div style={{ width: `${pct(counts.kernel)}%`, background: 'var(--accent)' }} />
+            <span className="nl-ratio-seg is-kernel" style={{ width: `${pct(counts.kernel)}%` }} />
             {counts.satellite > 0 && (
-              <div style={{ width: `${pct(counts.satellite)}%`, background: 'color-mix(in oklab, var(--accent) 34%, var(--bg-primary))' }} />
+              <span className="nl-ratio-seg is-satellite" style={{ width: `${pct(counts.satellite)}%` }} />
             )}
-            <div style={{ width: `${pct(counts.unclassified)}%`, background: 'var(--bg-tertiary)' }} />
+            <span className="nl-ratio-seg is-unclassified" style={{ width: `${pct(counts.unclassified)}%` }} />
           </div>
           <div className="nl-ratio-legend">
             <span>{t('narrative.spine.barKernel', { n: counts.kernel })}</span>
+            {/* "衛星 0 · 本書未出現此分類" and a bare "衛星 0" are different
+                statements; only the first says the book has no such class. */}
             {counts.satellite > 0 ? (
               <span>{t('narrative.spine.barSatellite', { n: counts.satellite })}</span>
             ) : (
-              <span style={{ color: 'var(--fg-muted)' }}>{t('narrative.spine.barSatelliteNone')}</span>
+              <span className="is-muted">{t('narrative.spine.barSatelliteNone')}</span>
             )}
             <span>{t('narrative.spine.barUnclassified', { n: counts.unclassified })}</span>
           </div>
@@ -112,13 +102,10 @@ export function PlotSpine({ structure, kernelEvents, bookId, chapterCount = 0, c
       {/* Every kernel event, under the chapter it belongs to. */}
       <div className="nl-chgrid">
         {chapters.map((c) => (
-          <div key={c.ch} style={{ minWidth: 0 }}>
-            <div
-              className="nl-chgrid-head"
-              style={{ borderBottomColor: c.events.length ? 'var(--accent)' : 'var(--border)' }}
-            >
+          <div key={c.ch} className="nl-chgrid-col-wrap">
+            <div className={c.events.length ? 'nl-chgrid-head has-events' : 'nl-chgrid-head'}>
               <span className="nl-chgrid-ch">{t('narrative.spine.chapterUnit', { ch: c.ch })}</span>
-              <span className="nl-chgrid-count" style={{ color: c.events.length ? 'var(--accent)' : 'var(--fg-muted)' }}>
+              <span className={c.events.length ? 'nl-chgrid-count has-events' : 'nl-chgrid-count'}>
                 {c.events.length || '—'}
               </span>
             </div>
@@ -127,7 +114,8 @@ export function PlotSpine({ structure, kernelEvents, bookId, chapterCount = 0, c
                 <button
                   key={ev.id}
                   type="button"
-                  className={selectedId === ev.id ? 'nl-ev is-active' : 'nl-ev'}
+                  className={selectedId === ev.id ? 'nl-ev is-selected' : 'nl-ev'}
+                  aria-pressed={selectedId === ev.id}
                   onClick={() => setSelectedId(ev.id)}
                 >
                   {ev.title}
@@ -143,13 +131,12 @@ export function PlotSpine({ structure, kernelEvents, bookId, chapterCount = 0, c
       <div className="nl-evbox">
         {selected ? (
           <>
-            <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-              <span style={{ fontFamily: 'var(--font-mono)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}>
-                {t('narrative.spine.chapterUnit', { ch: selected.chapter })} · {t(`timeline.eventTypes.${selected.event_type}`, { defaultValue: selected.event_type })}
+            <div className="nl-evbox-head">
+              <span className="nl-evbox-meta">
+                {t('narrative.spine.chapterUnit', { ch: selected.chapter })} ·{' '}
+                {t(`timeline.eventTypes.${selected.event_type}`, { defaultValue: selected.event_type })}
               </span>
-              <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-lg)', fontWeight: 600, color: 'var(--fg-primary)' }}>
-                {selected.title}
-              </span>
+              <span className="nl-evbox-title">{selected.title}</span>
               <button
                 type="button"
                 className="nl-evbox-link"
@@ -161,21 +148,20 @@ export function PlotSpine({ structure, kernelEvents, bookId, chapterCount = 0, c
             <p className="nl-evbox-sig">{selected.significance || selected.description || '—'}</p>
           </>
         ) : (
-          <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)' }}>
-            {t('narrative.spine.evHint')}
-          </span>
+          <span className="nl-evbox-hint">{t('narrative.spine.evHint')}</span>
         )}
       </div>
 
       {children}
 
-      {/* Jump link */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, flexWrap: 'wrap', borderTop: 'var(--border-width) var(--border-style) var(--border)', paddingTop: 14 }}>
-        <span style={{ fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}>
-          {t('narrative.spine.footnote')}
-        </span>
-        <button type="button" onClick={() => navigate(`/books/${bookId}/events`)} className="nl-jump-btn">
-          {t('narrative.spine.jump')} <ArrowRight size={14} />
+      <div className="nl-spine-foot">
+        <span className="nl-spine-foot-t">{t('narrative.spine.footnote')}</span>
+        <button
+          type="button"
+          onClick={() => navigate(`/books/${bookId}/events`)}
+          className="ss-btn ss-btn-md ss-btn-secondary"
+        >
+          {t('narrative.spine.jump')} →
         </button>
       </div>
     </section>

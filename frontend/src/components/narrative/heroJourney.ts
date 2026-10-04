@@ -4,6 +4,7 @@
 import type { TFunction } from 'i18next';
 import { getFrameworks } from '@/data/frameworksData';
 import type { HeroJourneyStage } from '@/api/narrative';
+import { formatChapterRuns } from './narrativeModel';
 
 export type Phase = 'departure' | 'initiation' | 'return';
 export type StageState = 'filled' | 'low' | 'absent';
@@ -18,10 +19,10 @@ export const LAYOUT_IDS: LayoutId[] = ['band', 'track', 'columns', 'ring'];
 
 // Localized chapter-range label, e.g. "第 18–20 章" / "Ch. 18–20".
 export function formatChapters(range: number[] | undefined, t: TFunction): string {
-  if (!range || range.length === 0) return t('narrative.noChapters');
-  const a = range[0];
-  const b = range[range.length - 1];
-  return t('narrative.chapterLabel', { range: a === b ? `${a}` : `${a}–${b}` });
+  // The list is discrete (1, 2, 5, 8) — never collapse it to first–last.
+  const runs = formatChapterRuns(range);
+  if (!runs) return t('narrative.noChapters');
+  return t('narrative.chapterLabel', { range: runs });
 }
 
 // Vogler's 12 stages, in canonical order.
