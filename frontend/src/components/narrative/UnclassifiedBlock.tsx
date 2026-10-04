@@ -1,12 +1,17 @@
 // Unclassified events — what is missing, why it matters, and what can be done.
 //
-// Deliberately diverges from the design canvas, which made this block read-only
-// on the grounds that judging an event needs its source passages. Reclassifying
-// from the EEP cache needs no passages at all, and refinement is a per-event LLM
-// call — both belong where the consequence is visible, which is here.
+// Deliberately diverges from the older design canvas, which made this block
+// read-only. Reclassifying from the EEP cache needs no passages at all, and
+// refinement is a per-event LLM call — both belong where the consequence is
+// visible, which is here.
+//
+// The two buttons sit on different axes: reclassify writes data (confirm dialog,
+// no glyph, no danger colour — it costs nothing and is re-runnable); refine
+// spends tokens (glyph + confirm dialog). A 409 has exactly one way out — the
+// event analysis page — and deliberately no "run anyway".
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
-import { RefreshCw, Sparkles } from 'lucide-react';
+import { LlmUnconfiguredNotice } from '@/components/ui/LlmUnconfiguredNotice';
 
 interface UnclassifiedBlockProps {
   count: number;
@@ -19,6 +24,10 @@ interface UnclassifiedBlockProps {
   refineRunning: boolean;
   progress: number;
   error: string | null;
+  /** The server refused with 409; the localized reason, counts included. */
+  refusedMessage: string | null;
+  /** The refine trigger was answered with the app's own 503 (no LLM provider). */
+  llmBlocked: boolean;
 }
 
 export function UnclassifiedBlock({
@@ -32,10 +41,13 @@ export function UnclassifiedBlock({
   refineRunning,
   progress,
   error,
-}: UnclassifiedBlockProps) {
+  refusedMessage,
+  llmBlocked,
+}: Readonly<UnclassifiedBlockProps>) {
   const { t } = useTranslation('analysis');
   if (count === 0) return null;
   const busy = classifyRunning || refineRunning;
+  const eventsPath = `/books/${bookId}/events`;
 
   const facts = [
     { k: t('narrative.unclassified.whyLabel'), v: t('narrative.unclassified.whyBody', { done: eepDone, total: eepTotal }) },
@@ -57,19 +69,38 @@ export function UnclassifiedBlock({
           </div>
         ))}
       </div>
-      {error && <div className="nl-unclass-error">{error}</div>}
+      {refusedMessage && (
+        <div className="nl-unclass-error" role="alert">
+          <span>{refusedMessage}</span>
+          <Link className="nl-unclass-jump" to={eventsPath}>
+            {t('narrative.unclassified.jump')}
+          </Link>
+        </div>
+      )}
+      {!refusedMessage && error && (
+        <div className="nl-unclass-error" role="alert">
+          {error}
+        </div>
+      )}
+      {llmBlocked && <LlmUnconfiguredNotice />}
       <div className="nl-unclass-actions">
-        <button type="button" className="nl-jump-btn" onClick={onClassify} disabled={busy}>
-          <RefreshCw size={13} />
-          {classifyRunning ? t('narrative.unclassified.running', { progress }) : t('narrative.unclassified.classify')}
-        </button>
-        <button type="button" className="nl-jump-btn" onClick={onRefine} disabled={busy}>
-          <Sparkles size={13} />
-          {refineRunning ? t('narrative.unclassified.running', { progress }) : t('narrative.unclassified.refine', { n: count })}
-        </button>
-        <Link className="nl-unclass-jump" to={`/books/${bookId}/events`}>
-          {t('narrative.unclassified.jump')}
-        </Link>
+        <div className="nl-unclass-act">
+          <button type="button" className="ss-btn ss-btn-md ss-btn-secondary" onClick={onClassify} disabled={busy}>
+            {classifyRunning ? t('narrative.unclassified.running', { progress }) : t('narrative.unclassified.classify')}
+          </button>
+          <span className="nl-unclass-hint">{t('narrative.unclassified.classifyCost')}</span>
+        </div>
+        <div className="nl-unclass-act">
+          <button type="button" className="ss-btn ss-btn-md ss-btn-secondary ss-btn-llm" onClick={onRefine} disabled={busy}>
+            {refineRunning ? t('narrative.unclassified.running', { progress }) : t('narrative.unclassified.refine', { n: count })}
+          </button>
+          <span className="nl-unclass-hint">{t('tension.state.tokenHintShort')}</span>
+        </div>
+        {!refusedMessage && (
+          <Link className="nl-unclass-jump" to={eventsPath}>
+            {t('narrative.unclassified.jump')}
+          </Link>
+        )}
       </div>
     </div>
   );

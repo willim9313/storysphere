@@ -1,5 +1,7 @@
-/* Narrative Structure page — Hero's Journey + Plot Spine.
- * All colors via CSS tokens (see DESIGN_TOKENS.md); no hard-coded hues. */
+/* Narrative Structure page — Hero's Journey + Event Spine + cross-evidence.
+ * B 檢視（24／16／12／8、max-w 1280、下內距 32）。All colours via CSS tokens
+ * (see DESIGN_TOKENS.md); spacing only --space-1…8. Selection is a fill plus
+ * weight/accent text — never an inset or left edge. */
 
 .nl-scroll {
   background: var(--bg-primary);
@@ -15,10 +17,10 @@
 .nl-page {
   max-width: 1280px;
   margin: 0 auto;
-  padding: 24px 28px 80px;
+  padding: var(--space-7) var(--space-6) var(--space-8);
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: var(--space-7);
   min-height: 100%;
 }
 
@@ -26,7 +28,7 @@
 .nl-head-line {
   display: flex;
   align-items: baseline;
-  gap: 14px;
+  gap: var(--space-6);
   flex-wrap: wrap;
 }
 .nl-head-title {
@@ -44,27 +46,40 @@
   color: var(--fg-secondary);
 }
 .nl-head-meta {
-  margin-top: 4px;
+  margin-top: var(--space-3);
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   color: var(--fg-muted);
 }
 
-/* Index cards — the page's table of contents. The numbers establish reading
-   order; the anchors declare that there is more below the fold. */
+/* Shared headings. */
+.nl-h2 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--fg-primary);
+}
+.nl-lead {
+  margin: var(--space-3) 0 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+
+/* Index cards — the page's table of contents. */
 .nl-index {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 14px;
+  gap: var(--space-6);
 }
 .nl-index-card {
   display: block;
-  padding: 14px;
+  padding: var(--space-6);
   background: var(--bg-primary);
-  border-width: var(--border-width);
-  border-style: var(--border-style);
-  border-color: var(--border);
-  border-radius: var(--radius-lg);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
   color: inherit;
   text-decoration: none;
   transition: background-color var(--transition-fast);
@@ -75,7 +90,7 @@
 .nl-index-top {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
 }
 .nl-index-n {
   display: inline-flex;
@@ -86,10 +101,16 @@
   flex-shrink: 0;
   border-radius: 50%;
   background: var(--accent);
-  color: var(--bg-primary);
-  font-family: var(--font-mono);
+  color: var(--accent-fg);
+  font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.nl-index-n-ghost {
+  background: transparent;
+  color: var(--fg-primary);
+  border: var(--line-weight) var(--border-style) var(--fg-primary);
 }
 .nl-index-role {
   font-family: var(--font-sans);
@@ -100,11 +121,9 @@
 }
 .nl-index-status {
   margin-left: auto;
-  padding: 2px 8px;
-  border-radius: 20px;
-  border-width: var(--border-width);
-  border-style: var(--border-style);
-  border-color: var(--border);
+  padding: 0 var(--space-4);
+  border-radius: var(--badge-radius);
+  border: var(--line-weight) var(--border-style) var(--border);
   background: var(--bg-secondary);
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
@@ -112,777 +131,138 @@
   white-space: nowrap;
 }
 .nl-index-title {
-  margin-top: 6px;
+  margin-top: var(--space-4);
   font-family: var(--font-serif);
   font-size: var(--font-size-lg);
   font-weight: 600;
   color: var(--fg-primary);
 }
 .nl-index-answers {
-  margin-top: 2px;
+  margin-top: var(--space-1);
   font-family: var(--font-sans);
   font-size: var(--font-size-xs);
   color: var(--fg-secondary);
   text-wrap: pretty;
 }
 
-/* Section cards — shared shell for hero journey + plot spine. */
+/* Section cards — shared shell for hero journey, event spine, cross-evidence. */
 .nl-card {
   display: flex;
   flex-direction: column;
-  gap: 18px;
-  padding: 26px;
+  gap: var(--space-6);
+  padding: var(--space-6);
   background: var(--bg-primary);
-  border-width: var(--border-width);
-  border-style: var(--border-style);
-  border-color: var(--border);
-  border-radius: var(--radius-lg);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
 }
-/* Index-card anchors land inside .nl-scroll; keep the heading clear of the top. */
 #nl-hero,
-#nl-spine {
-  scroll-margin-top: 16px;
+#nl-spine,
+#nl-cross {
+  scroll-margin-top: var(--space-6);
 }
 
 /* Framework name as its own way out to the methodology page. */
 .nl-term-link {
   font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-2xs);
   color: var(--fg-muted);
   text-decoration: none;
-  border-bottom: 1px dotted var(--fg-muted);
+  border-bottom: var(--line-weight) dotted var(--fg-muted);
 }
 .nl-term-link:hover {
   color: var(--accent);
   border-bottom-color: var(--accent);
 }
 
-/* View switcher — each option says what it is for, on the control itself. */
-.nl-views {
-  display: flex;
-  gap: 10px;
-  flex-wrap: wrap;
+/* Badges that kit does not carry: quiet (neutral) and hollow (not yet / absent). */
+.nl-badge-quiet {
+  background: var(--bg-secondary);
+  color: var(--fg-secondary);
 }
-.nl-view {
-  flex: 1 1 0;
-  min-width: 150px;
-  text-align: left;
-  cursor: pointer;
-  padding: 9px 12px;
-  border-radius: var(--radius-md);
-  border-width: var(--border-width);
-  border-style: var(--border-style);
-  border-color: var(--border);
-  background: var(--bg-primary);
-  color: var(--fg-primary);
-  font-family: var(--font-sans);
-  transition:
-    background-color var(--transition-fast),
-    border-color var(--transition-fast),
-    color var(--transition-fast);
-}
-.nl-view.is-active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--bg-primary);
-}
-.nl-view-name {
-  display: block;
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-}
-.nl-view-hint {
-  display: block;
-  margin-top: 1px;
-  font-size: var(--font-size-2xs);
-  opacity: 0.75;
+.nl-badge-absent {
+  background: transparent;
+  border: var(--line-weight) dashed var(--fg-muted);
+  color: var(--fg-secondary);
 }
 
-/* Chapter-alignment band — the axis is the whole book, always. */
-.nl-band-head {
-  text-align: right;
-  padding-right: 4px;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
+/* Section header — title block left, actions right. */
+.nl-hj-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-6);
+  flex-wrap: wrap;
 }
-.nl-band-cols {
-  display: grid;
-  gap: 2px;
-}
-.nl-band-tick {
-  text-align: center;
-  font-family: var(--font-mono);
-  font-size: var(--font-size-2xs);
-  padding-bottom: 2px;
+.nl-hj-title {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
   min-width: 0;
 }
-.nl-band-overlap {
-  font-size: 9px;
-  letter-spacing: 0.04em;
-  color: var(--fg-muted);
-}
-.nl-band-label {
+.nl-hj-title-line {
   display: flex;
-  align-items: center;
-  justify-content: flex-end;
-  gap: 6px;
-  text-align: right;
-  cursor: pointer;
-  padding: 5px 6px;
-  border-radius: var(--radius-sm);
-  border: var(--border-width) var(--border-style) transparent;
-  background: transparent;
-  font: inherit;
-  transition: background-color var(--transition-fast);
+  align-items: baseline;
+  gap: var(--space-5);
+  flex-wrap: wrap;
 }
-.nl-band-label:hover {
-  background: var(--bg-secondary);
-}
-.nl-band-label.is-active {
-  background: var(--bg-tertiary);
-}
-.nl-band-rev {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-2xs);
-  color: var(--accent);
-}
-.nl-band-n {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-}
-.nl-band-name {
-  font-family: var(--font-serif);
-  font-size: var(--font-size-sm);
-  line-height: 1.3;
-  text-wrap: pretty;
-}
-.nl-band-lane {
-  position: relative;
-  height: 26px;
-  border-radius: var(--radius-sm);
-  border-width: var(--border-width);
-  border-style: var(--border-style);
-  background: var(--bg-primary);
-  overflow: hidden;
-}
-.nl-band-bar {
-  position: absolute;
-  top: 3px;
-  bottom: 3px;
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  padding: 0 7px;
-  border: none;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  font-family: var(--font-mono);
-  font-size: var(--font-size-2xs);
-  color: var(--bg-primary);
-  white-space: nowrap;
-  overflow: hidden;
-}
-.nl-band-absent {
-  position: absolute;
-  inset: 3px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px dashed var(--fg-muted);
-  border-radius: var(--radius-sm);
-  background: var(--bg-secondary);
+.nl-hj-cov {
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
   color: var(--fg-secondary);
+  font-variant-numeric: tabular-nums;
 }
-.nl-band-note {
-  margin: 10px 0 0;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  color: var(--fg-muted);
-  text-wrap: pretty;
-}
-
-/* Band view — viz and detail side by side; the detail follows the scroll. */
-.nl-band-split {
-  display: flex;
-  gap: 20px;
-  align-items: flex-start;
-  flex-wrap: wrap;
-}
-.nl-band-aside {
-  flex: 1 1 300px;
-  max-width: 340px;
-  align-self: stretch;
-  position: sticky;
-  top: 16px;
-  padding: 16px;
-  background: var(--bg-secondary);
-  border-width: var(--border-width);
-  border-style: var(--border-style);
-  border-color: var(--border);
-  border-radius: var(--radius-lg);
-}
-
-/* Stage detail panel. */
-.nl-sd-phase {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
+.nl-hj-cov b {
+  color: var(--accent);
   font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--accent);
 }
-.nl-sd-label {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--fg-muted);
-}
-.nl-sd-extra {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-}
-.nl-sd-note {
-  margin: 0;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  line-height: 1.55;
-  color: var(--fg-secondary);
-  text-wrap: pretty;
-}
-.nl-sd-shared {
-  padding: 6px 8px;
-  border-left: 2px solid var(--border);
-  background: var(--bg-primary);
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  color: var(--fg-secondary);
-  text-wrap: pretty;
-}
-.nl-sd-empty {
-  padding: 8px;
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-sm);
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  color: var(--fg-secondary);
-  text-wrap: pretty;
-}
-.nl-sd-ev {
-  display: block;
-  padding: 7px 9px;
-  background: var(--bg-primary);
-  border-width: var(--border-width);
-  border-style: var(--border-style);
-  border-color: var(--border);
-  border-radius: var(--radius-sm);
-  color: inherit;
-  text-decoration: none;
-  transition: background-color var(--transition-fast), border-color var(--transition-fast);
-}
-a.nl-sd-ev:hover {
-  background: var(--bg-tertiary);
-  border-color: var(--accent);
-}
-.nl-sd-ev-sig {
-  margin-top: 2px;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  line-height: 1.5;
-  color: var(--fg-secondary);
-  text-wrap: pretty;
-}
-.nl-sd-theory {
-  padding-top: 12px;
-  border-top: var(--border-width) var(--border-style) var(--border);
-}
-.nl-sd-theory > summary {
-  cursor: pointer;
-  list-style: none;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  color: var(--fg-secondary);
-}
-.nl-sd-theory > summary::-webkit-details-marker {
-  display: none;
-}
-.nl-sd-theory > p {
-  margin-top: 8px;
-}
-.nl-sd-method {
-  display: inline-block;
-  margin-top: 8px;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  color: var(--accent);
-}
-
-/* Confidence — value, threshold, and what the rest of the book scored. */
-.nl-conf-row,
-.nl-conf-scale {
-  display: flex;
-  justify-content: space-between;
-  font-family: var(--font-mono);
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-}
-.nl-conf-scale {
-  font-size: 9px;
-  margin-top: 3px;
-}
-.nl-conf-bar {
-  position: relative;
-  height: 8px;
-  margin-top: 4px;
-  background: var(--bg-tertiary);
-  border-radius: 4px;
-}
-.nl-conf-fill {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  border-radius: 4px;
-}
-.nl-conf-tick {
-  position: absolute;
-  left: 60%;
-  top: -3px;
-  bottom: -3px;
-  width: 1px;
-  background: var(--fg-primary);
-}
-.nl-conf-state {
+.nl-hj-actions {
   display: flex;
   align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
-  margin-top: 7px;
-}
-.nl-conf-chip {
-  padding: 2px 8px;
-  border-radius: 20px;
-  border-width: var(--border-width);
-  background: var(--bg-primary);
-  font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
-}
-.nl-conf-peer {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-}
-
-/* Kernel / satellite proportion. */
-.nl-ratio {
-  display: flex;
-  align-items: center;
-  gap: 20px;
+  gap: var(--space-4);
   flex-wrap: wrap;
 }
-.nl-ratio-lead {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-}
-.nl-ratio-n {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-2xl);
-  font-weight: 600;
+/* Pressed = the book is in that review state. A fill and weight, no colour dependence. */
+.nl-review-btn[aria-pressed='true'] {
+  background: var(--bg-tertiary);
   color: var(--accent);
-  line-height: 1;
-}
-.nl-ratio-of {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  color: var(--fg-secondary);
-}
-.nl-ratio-bar {
-  display: flex;
-  height: 14px;
-  border-radius: 3px;
-  overflow: hidden;
-  border-width: var(--border-width);
-  border-style: var(--border-style);
-  border-color: var(--border);
-}
-.nl-ratio-legend {
-  display: flex;
-  gap: 16px;
-  margin-top: 5px;
-  flex-wrap: wrap;
-  font-family: var(--font-mono);
-  font-size: var(--font-size-2xs);
-  color: var(--fg-secondary);
+  font-weight: 700;
 }
 
-/* Kernel events under the chapter they belong to. Columns wrap rather than
-   compress: a long book gets more rows, never unreadable titles. */
-.nl-chgrid {
+/* View switcher — .ss-seg stretched to four equal two-line items. */
+.nl-seg {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(106px, 1fr));
-  gap: 10px 8px;
-  align-items: start;
-}
-.nl-chgrid-head {
-  display: flex;
-  align-items: baseline;
-  gap: 5px;
-  padding-bottom: 5px;
-  border-bottom: 2px solid var(--border);
-}
-.nl-chgrid-ch {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-xs);
-  color: var(--fg-secondary);
-  white-space: nowrap;
-}
-.nl-chgrid-count {
-  margin-left: auto;
-  font-family: var(--font-mono);
-  font-size: var(--font-size-2xs);
-}
-.nl-chgrid-col {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: 6px;
-}
-.nl-ev {
-  width: 100%;
-  text-align: left;
-  cursor: pointer;
-  padding: 6px 7px;
-  border-radius: var(--radius-sm);
-  border-width: var(--border-width);
-  border-style: var(--border-style);
-  border-color: var(--border);
-  background: var(--bg-secondary);
-  color: var(--fg-primary);
-  font-family: var(--font-serif);
-  font-size: var(--font-size-xs);
-  line-height: 1.4;
-  text-wrap: pretty;
-  transition:
-    background-color var(--transition-fast),
-    border-color var(--transition-fast),
-    color var(--transition-fast);
-}
-.nl-ev:hover {
-  border-color: var(--accent);
-}
-.nl-ev.is-active {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--bg-primary);
-}
-.nl-ev-empty {
-  padding: 6px;
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-sm);
-  font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-  text-align: center;
-}
-.nl-evbox {
-  padding: 14px;
-  min-height: 74px;
-  background: var(--bg-secondary);
-  border-width: var(--border-width);
-  border-style: var(--border-style);
-  border-color: var(--border);
-  border-radius: var(--radius-md);
-}
-.nl-evbox-link {
-  margin-left: auto;
-  cursor: pointer;
-  background: none;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-1);
+  padding: var(--space-1);
   border: none;
-  padding: 0;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  color: var(--accent);
-  white-space: nowrap;
+  border-radius: var(--control-radius);
 }
-.nl-evbox-sig {
-  margin: 5px 0 0;
-  font-family: var(--font-serif);
-  font-size: var(--font-size-sm);
-  line-height: 1.6;
-  color: var(--fg-secondary);
-  text-wrap: pretty;
-}
-
-/* ③ Cross-evidence — several analyses on one chapter axis. */
-#nl-cross {
-  scroll-margin-top: 16px;
-}
-.nl-index-n-ghost {
-  background: transparent;
-  color: var(--fg-primary);
-  border: 1px solid var(--fg-primary);
-}
-.nl-cross-row {
-  display: grid;
-  grid-template-columns: 150px minmax(0, 1fr);
-  gap: 10px;
-  align-items: center;
-  margin-bottom: 6px;
-}
-.nl-cross-label {
-  text-align: right;
-  padding-right: 4px;
-}
-.nl-cross-label-t {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  color: var(--fg-primary);
-}
-.nl-cross-label-s {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-}
-.nl-cross-cells {
-  display: grid;
-  gap: 3px;
-  align-items: end;
-  height: 30px;
-}
-.nl-cross-ruler {
-  display: grid;
-  gap: 3px;
-  padding-top: 4px;
-  border-top: var(--border-width) var(--border-style) var(--border);
-  font-family: var(--font-mono);
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-  text-align: center;
-}
-.nl-cross-note {
-  display: flex;
-  gap: 10px;
-  align-items: flex-start;
-  margin-top: 14px;
-  padding: 10px 14px;
-  background: var(--bg-secondary);
-  border-width: var(--border-width);
-  border-style: var(--border-style);
-  border-color: var(--border);
-  border-radius: var(--radius-md);
-}
-.nl-cross-note-mark {
-  font-family: var(--font-mono);
-  color: var(--fg-muted);
-}
-.nl-cross-note p {
-  margin: 0;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-sm);
-  line-height: 1.6;
-  color: var(--fg-secondary);
-  text-wrap: pretty;
-}
-.nl-cross-split {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 16px;
-  padding-top: 18px;
-  border-top: var(--border-width) var(--border-style) var(--border);
-}
-.nl-cross-right {
-  border-left: var(--border-width) var(--border-style) var(--border);
-  padding-left: 16px;
-}
-.nl-cross-head {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  flex-wrap: wrap;
-}
-.nl-cross-head h3 {
-  margin: 0;
-  font-family: var(--font-serif);
-  font-size: var(--font-size-lg);
-  font-weight: 600;
-  color: var(--fg-primary);
-}
-.nl-cross-sub {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-}
-.nl-cross-badge {
-  margin-left: auto;
-  padding: 2px 8px;
-  border-radius: 20px;
-  border: var(--border-width) var(--border-style) var(--border);
-  background: var(--bg-secondary);
-  font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
-  color: var(--fg-secondary);
-  white-space: nowrap;
-}
-.nl-cross-badge.is-pending {
-  border-style: dashed;
-  border-color: var(--fg-muted);
-  color: var(--fg-muted);
-}
-.nl-cross-ghost {
-  display: grid;
-  gap: 3px;
-  margin-top: 10px;
-}
-.nl-cross-ghost > div {
-  height: 24px;
-  border: 1px dashed var(--border);
-  border-radius: 2px;
-  background: var(--bg-secondary);
-}
-.nl-cross-body {
-  margin: 10px 0 0;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  line-height: 1.6;
-  color: var(--fg-secondary);
-  text-wrap: pretty;
-}
-.nl-cross-meta {
-  margin-top: 6px;
-  font-family: var(--font-mono);
-  font-size: var(--font-size-xs);
-  color: var(--fg-muted);
-}
-.nl-cross-link {
-  display: inline-block;
-  margin-top: 10px;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  color: var(--accent);
-}
-.nl-cross-peaks {
+.nl-seg-item {
   display: flex;
   flex-direction: column;
-  gap: 6px;
-  margin-top: 10px;
+  align-items: flex-start;
+  gap: var(--space-1);
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--control-radius);
+  text-align: left;
 }
-.nl-cross-peak {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  font-family: var(--font-sans);
+.nl-seg-name {
   font-size: var(--font-size-xs);
 }
-.nl-cross-peak-ch {
-  font-family: var(--font-mono);
-  color: var(--fg-muted);
-  width: 62px;
-  flex-shrink: 0;
-}
-.nl-cross-peak-v {
-  font-family: var(--font-mono);
-  color: var(--accent);
-}
-.nl-cross-peak-note {
-  color: var(--fg-secondary);
-  text-wrap: pretty;
-}
-
-/* Unclassified events — the part of the book this page cannot show. */
-.nl-unclass {
-  border-width: var(--border-width);
-  border-style: var(--border-style);
-  border-color: var(--border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
-}
-.nl-unclass-head {
-  display: flex;
-  align-items: baseline;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 10px 14px;
-  background: var(--bg-secondary);
-  border-bottom: var(--border-width) var(--border-style) var(--border);
-}
-.nl-unclass-n {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-xl);
-  color: var(--fg-primary);
-  line-height: 1;
-}
-.nl-unclass-title {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--fg-primary);
-}
-.nl-unclass-facts {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-}
-.nl-unclass-fact {
-  padding: 14px;
-  border-right: var(--border-width) var(--border-style) var(--border);
-}
-.nl-unclass-fact:last-child {
-  border-right: none;
-}
-.nl-unclass-fact-k {
-  font-family: var(--font-sans);
+.nl-seg-hint {
   font-size: var(--font-size-2xs);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
+  font-weight: 400;
   color: var(--fg-muted);
-}
-.nl-unclass-fact-v {
-  margin-top: 5px;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  line-height: 1.55;
-  color: var(--fg-secondary);
-  text-wrap: pretty;
-}
-.nl-unclass-error {
-  padding: 10px 14px;
-  border-top: var(--border-width) var(--border-style) var(--border);
-  background: var(--color-warning-bg);
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  line-height: 1.55;
-  color: var(--color-warning);
-  text-wrap: pretty;
-}
-.nl-unclass-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  flex-wrap: wrap;
-  padding: 10px 14px;
-  border-top: var(--border-width) var(--border-style) var(--border);
-}
-.nl-unclass-jump {
-  margin-left: auto;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  white-space: nowrap;
-  color: var(--accent);
 }
 
 /* Absent-stage reading — states what a gap means, and how many there are. */
 .nl-absent-note {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding: 10px 14px;
-  border: var(--border-width) dashed var(--fg-muted);
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
+  border: var(--line-weight) dashed var(--fg-muted);
   border-radius: var(--radius-md);
   background: var(--bg-secondary);
 }
@@ -893,7 +273,7 @@ a.nl-sd-ev:hover {
   display: flex;
   align-items: center;
   justify-content: center;
-  border: 1px dashed var(--fg-muted);
+  border: var(--line-weight) dashed var(--fg-muted);
   border-radius: var(--radius-sm);
   color: var(--fg-muted);
   font-family: var(--font-mono);
@@ -911,26 +291,1255 @@ a.nl-sd-ev:hover {
   text-wrap: pretty;
 }
 
-/* Jump-to-events button (plot spine). */
-.nl-jump-btn {
+/* Chart + detail. The card has no height cap; the detail column is sticky so it
+   follows the scroll (track: below the chart, full width). */
+.nl-hj-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: var(--space-7);
+  align-items: start;
+}
+.nl-hj-body.is-ring {
+  grid-template-columns: 460px minmax(0, 1fr);
+}
+.nl-hj-body.is-track {
+  grid-template-columns: minmax(0, 1fr);
+}
+.nl-hj-viz {
+  min-width: 0;
+}
+.nl-detail {
+  position: sticky;
+  top: 16px;
+  min-width: 0;
+  padding: var(--space-6);
+  background: var(--bg-secondary);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
+}
+@media (max-width: 1100px) {
+  .nl-hj-body,
+  .nl-hj-body.is-ring {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .nl-detail {
+    position: static;
+  }
+}
+
+/* Stage detail panel. */
+.nl-sd {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.nl-sd-top {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+.nl-sd-spacer {
+  flex: 1;
+}
+.nl-sd-phase {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+  color: var(--accent);
+}
+.nl-sd-chapters {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+.nl-sd-name {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  line-height: 1.3;
+  color: var(--fg-primary);
+}
+.nl-sd-sec {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.nl-sd-sec-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+.nl-sd-label {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  letter-spacing: 0.04em;
+}
+.nl-sd-extra {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+.nl-sd-note {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.7;
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+.nl-sd-body {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-sm);
+  line-height: 1.8;
+  color: var(--fg-primary);
+  text-wrap: pretty;
+}
+.nl-sd-body.is-muted {
+  color: var(--fg-muted);
+}
+/* The shared-range note: a tinted block, no edge accent. */
+.nl-sd-shared {
+  padding: var(--space-4) var(--space-5);
+  border-radius: var(--radius-sm);
+  background: var(--bg-tertiary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.7;
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+.nl-sd-empty {
+  padding: var(--space-4) var(--space-5);
+  border: var(--line-weight) dashed var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.7;
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+.nl-sd-evs {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.nl-sd-evs.is-wide {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.nl-sd-ev {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  background: var(--bg-primary);
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--radius-md);
+  color: inherit;
+  text-decoration: none;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+a.nl-sd-ev:hover {
+  background: var(--bg-tertiary);
+  border-color: var(--accent);
+}
+.nl-sd-ev-top {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+.nl-sd-ev-ch {
+  flex-shrink: 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+.nl-sd-ev-title {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+.nl-sd-ev-sig {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.7;
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+/* Theory — always open. */
+.nl-sd-theory {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding-top: var(--space-5);
+  border-top: var(--line-weight) var(--border-style) var(--border);
+}
+.nl-sd-method {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--accent);
+}
+
+/* Confidence — value, threshold, and what the rest of the book scored. */
+.nl-conf {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+.nl-conf-none {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--fg-muted);
+}
+.nl-conf-row {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+.nl-conf-val {
+  color: var(--fg-primary);
+  font-variant-numeric: tabular-nums;
+}
+.nl-conf-bar {
+  position: relative;
+  height: 6px;
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+}
+.nl-conf-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  background: var(--accent);
+  border-radius: 3px;
+}
+/* Below the threshold the fill steps down to the light density colour. */
+.nl-conf-fill.is-low {
+  background: var(--symbol-density-low);
+  box-shadow: 0 0 0 var(--line-weight) var(--symbol-density-high);
+}
+.nl-conf-tick {
+  position: absolute;
+  left: 60%;
+  top: -4px;
+  width: 2px;
+  height: 14px;
+  background: var(--fg-primary);
+}
+.nl-conf-scale {
+  position: relative;
+  height: 14px;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+.nl-conf-s0 {
+  position: absolute;
+  left: 0;
+}
+.nl-conf-s6 {
+  position: absolute;
+  left: 60%;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+.nl-conf-s1 {
+  position: absolute;
+  right: 0;
+}
+.nl-conf-state {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+.nl-conf-chip {
+  padding: 0 var(--space-4);
+  border-radius: var(--badge-radius);
+  border: var(--line-weight) var(--border-style) var(--accent);
+  color: var(--accent);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+}
+.nl-conf-chip.is-low {
+  border-style: dashed;
+  border-color: var(--color-warning);
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
+.nl-conf-peer {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Legend and stage dots — three states by shape as well as colour. */
+.nl-legend {
+  display: flex;
+  align-items: center;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+}
+.nl-legend-k {
+  color: var(--fg-muted);
+}
+.nl-legend-i {
   display: inline-flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-3);
+}
+.nl-dot-sw {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+.nl-dot-sw.is-filled {
+  background: var(--symbol-density-high);
+}
+.nl-dot-sw.is-low {
+  background: var(--symbol-density-low);
+  border: var(--line-weight) var(--border-style) var(--symbol-density-high);
+}
+.nl-dot-sw.is-absent {
+  background: transparent;
+  border: var(--line-weight) dashed var(--fg-muted);
+}
+.nl-dot {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  padding: 0;
+  border-radius: 50%;
+  border: var(--line-weight) var(--border-style) transparent;
   cursor: pointer;
   font-family: var(--font-sans);
   font-size: var(--font-size-xs);
   font-weight: 600;
-  padding: 8px 15px;
-  border-radius: var(--radius-md);
-  border-width: var(--border-width);
-  border-style: var(--border-style);
-  border-color: var(--border);
-  background: var(--bg-primary);
+  font-variant-numeric: tabular-nums;
+}
+.nl-dot.is-filled {
+  background: var(--symbol-density-high);
+  color: var(--accent-fg);
+}
+.nl-dot.is-low {
+  background: var(--symbol-density-low);
+  border-color: var(--symbol-density-high);
   color: var(--fg-primary);
+}
+.nl-dot.is-absent {
+  background: transparent;
+  border: var(--line-weight) dashed var(--fg-muted);
+  color: var(--fg-muted);
+}
+.nl-dot.is-selected {
+  outline: 3px solid var(--timeline-selected-ring);
+  outline-offset: 2px;
+}
+
+/* Chapter-alignment band — the axis is the whole book, always. */
+.nl-band {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.nl-band-grid {
+  display: grid;
+  align-items: center;
+}
+.nl-band-headrow {
+  align-items: end;
+  padding-bottom: var(--space-3);
+}
+.nl-band-head {
+  padding-right: var(--space-6);
+  text-align: right;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+.nl-band-tick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.nl-band-tick-n {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-muted);
+}
+.nl-band-tick-n.is-shared {
+  color: var(--fg-primary);
+  font-weight: 600;
+}
+.nl-band-tick-tag {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--accent);
+}
+.nl-band-label {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-3);
+  min-width: 0;
+  margin-right: var(--space-4);
+  padding: var(--space-2) var(--space-4);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  font: inherit;
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
   transition: background-color var(--transition-fast);
 }
-.nl-jump-btn:hover {
+.nl-band-label:hover {
+  background: var(--bg-secondary);
+}
+.nl-band-label.is-selected {
   background: var(--bg-tertiary);
+}
+.nl-band-rev {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--accent);
+}
+.nl-band-n {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+.nl-band-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-serif);
+  color: var(--fg-primary);
+}
+.nl-band-label.is-selected .nl-band-name {
+  font-weight: 700;
+}
+.nl-band-name.is-absent {
+  color: var(--fg-muted);
+}
+.nl-band-lane {
+  display: grid;
+  align-items: center;
+  height: 26px;
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  cursor: pointer;
+}
+.nl-band-lane.is-selected {
+  border-color: var(--accent);
+}
+.nl-band-lane > * {
+  grid-row: 1;
+}
+/* Per-chapter backing cells; a shared chapter (3+ stages) is tinted darker. */
+.nl-band-cell {
+  align-self: stretch;
+  border-right: var(--line-weight) var(--border-style) var(--border);
+}
+.nl-band-cell:last-of-type {
+  border-right: none;
+}
+.nl-band-cell.is-shared {
+  background: var(--bg-tertiary);
+}
+.nl-band-join {
+  align-self: center;
+  height: 2px;
+  margin: 0 var(--space-5);
+  background: var(--accent);
+  opacity: 0.5;
+}
+.nl-band-run {
+  align-self: center;
+  height: 18px;
+  margin: 0 var(--space-1);
+  min-width: 0;
+}
+.nl-band-run > .ss-tooltip-anchor {
+  display: flex;
+  width: 100%;
+  height: 100%;
+}
+.nl-band-bar {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding-left: var(--space-3);
+  border-radius: 2px;
+  background: var(--accent);
+  color: var(--accent-fg);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  overflow: hidden;
+}
+/* Low confidence: light fill + outline, so it differs from filled without hue. */
+.nl-band-bar.is-low {
+  background: var(--symbol-density-low);
+  box-shadow: inset 0 0 0 var(--line-weight) var(--symbol-density-high);
+  color: var(--fg-primary);
+}
+.nl-band-absent {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  align-self: stretch;
+  margin: var(--space-1);
+  border: var(--line-weight) dashed var(--fg-muted);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+}
+.nl-band-densityrow {
+  align-items: end;
+  height: 26px;
+  margin-top: var(--space-4);
+}
+.nl-band-densityrow > .ss-tooltip-anchor {
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+  padding: 0 var(--space-1);
+}
+.nl-band-dens {
+  display: block;
+  width: 100%;
+  background: var(--accent);
+  opacity: 0.85;
+}
+.nl-band-dens.is-empty {
+  height: 5px;
+  background: transparent;
+  border: var(--line-weight) dashed var(--border);
+  opacity: 1;
+}
+.nl-band-note {
+  margin: var(--space-4) 0 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.7;
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+
+/* Horizontal track — twelve equal columns, names may take two lines. */
+.nl-track {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+.nl-track-phases {
+  display: grid;
+  column-gap: var(--space-4);
+}
+.nl-track-phase {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+}
+.nl-track-phase-t {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+  color: var(--accent);
+}
+.nl-track-phase-l {
+  align-self: stretch;
+  height: 2px;
+  background: var(--bg-tertiary);
+}
+.nl-track-dots {
+  position: relative;
+  display: grid;
+  column-gap: var(--space-4);
+}
+.nl-track-line {
+  position: absolute;
+  left: 4%;
+  right: 4%;
+  top: 19px;
+  height: 2px;
+  background: var(--bg-tertiary);
+}
+.nl-track-col {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+  text-align: center;
+}
+.nl-track-name {
+  min-height: 2.8em;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-xs);
+  line-height: 1.4;
+  color: var(--fg-primary);
+  text-wrap: balance;
+}
+.nl-track-name.is-selected {
+  font-weight: 700;
+  color: var(--accent);
+}
+.nl-track-ch {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Three-phase columns — the stage name owns its line. */
+.nl-cols-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.nl-cols {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-5);
+  align-items: start;
+}
+.nl-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.nl-col-head {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+}
+.nl-col-head-t {
+  font-weight: 600;
+  color: var(--accent);
+}
+.nl-col-head-n {
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+.nl-col-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  background: var(--bg-primary);
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+.nl-col-card.is-selected {
+  background: var(--bg-secondary);
+  border-color: var(--accent);
+}
+.nl-col-line1 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+.nl-col-name {
+  min-width: 0;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  line-height: 1.4;
+  color: var(--fg-primary);
+}
+.nl-col-line2 {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding-left: calc(26px + var(--space-4));
+}
+.nl-col-ch {
+  flex: 1;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Ring — navigation only; the centre holds just the selected stage's name. */
+.nl-ring-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+.nl-ring {
+  position: relative;
+  margin: 0 auto;
+  max-width: 100%;
+}
+.nl-ring-orbit {
+  position: absolute;
+  border-radius: 50%;
+  border: var(--line-weight) dotted var(--fg-muted);
+}
+.nl-ring-node {
+  position: absolute;
+}
+.nl-ring-center {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-2);
+  width: 180px;
+  text-align: center;
+}
+.nl-ring-center-k {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.nl-ring-center-n {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--fg-primary);
+}
+.nl-ring-phase {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+  color: var(--accent);
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+/* Kernel / satellite proportion. */
+.nl-ratio {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-7);
+  flex-wrap: wrap;
+}
+.nl-ratio-lead {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+}
+.nl-ratio-n {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
+  color: var(--accent);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.nl-ratio-of {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+}
+.nl-ratio-main {
+  flex: 1 1 300px;
+  min-width: 220px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.nl-ratio-bar {
+  display: flex;
+  height: 8px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--bg-tertiary);
+}
+.nl-ratio-seg {
+  display: block;
+  height: 100%;
+}
+.nl-ratio-seg.is-kernel {
+  background: var(--accent);
+}
+.nl-ratio-seg.is-satellite {
+  background: var(--symbol-density-mid);
+}
+.nl-ratio-seg.is-unclassified {
+  background: var(--bg-tertiary);
+}
+.nl-ratio-legend {
+  display: flex;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Kernel events under the chapter they belong to. Columns wrap rather than
+   compress: a long book gets more rows, never unreadable titles. */
+.nl-chgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(106px, 1fr));
+  gap: var(--space-6) var(--space-4);
+  align-items: start;
+}
+.nl-chgrid-col-wrap {
+  min-width: 0;
+}
+.nl-chgrid-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: var(--space-2);
+  border-bottom: var(--line-weight) var(--border-style) var(--border);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+}
+.nl-chgrid-head.has-events {
+  border-bottom-color: var(--accent);
+}
+.nl-chgrid-ch {
+  color: var(--fg-secondary);
+  white-space: nowrap;
+}
+.nl-chgrid-count {
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+.nl-chgrid-count.has-events {
+  color: var(--accent);
+}
+.nl-chgrid-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-top: var(--space-3);
+}
+.nl-ev {
+  width: 100%;
+  padding: var(--space-3) var(--space-4);
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--bg-secondary);
+  color: var(--fg-primary);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-2xs);
+  line-height: 1.5;
+  text-wrap: pretty;
+  transition: background-color var(--transition-fast), border-color var(--transition-fast);
+}
+.nl-ev:hover {
+  border-color: var(--accent);
+}
+.nl-ev.is-selected {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-fg);
+}
+.nl-ev-empty {
+  padding: var(--space-3);
+  border: var(--line-weight) dashed var(--border);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  text-align: center;
+}
+.nl-evbox {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  min-height: 74px;
+  padding: var(--space-5) var(--space-6);
+  background: var(--bg-secondary);
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--radius-md);
+}
+.nl-evbox-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+.nl-evbox-meta {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+.nl-evbox-title {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--fg-primary);
+}
+.nl-evbox-link {
+  margin-left: auto;
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--accent);
+  white-space: nowrap;
+}
+.nl-evbox-sig {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.7;
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+.nl-evbox-hint {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--fg-muted);
+}
+.nl-spine-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  padding-top: var(--space-5);
+  border-top: var(--line-weight) var(--border-style) var(--border);
+}
+.nl-spine-foot-t {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+
+/* ③ Cross-evidence — several analyses on one chapter axis. */
+.nl-cross-head0 {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.nl-cross-head0 .nl-lead {
+  margin: 0;
+}
+.nl-cross-axis {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+.nl-cross-row {
+  display: grid;
+  grid-template-columns: 150px minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: end;
+}
+.nl-cross-label {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  padding-right: var(--space-4);
+}
+.nl-cross-label-t {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--fg-primary);
+}
+.nl-cross-label-s {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+.nl-cross-cells {
+  display: grid;
+  gap: var(--space-2);
+  align-items: end;
+  height: 30px;
+}
+.nl-cross-cells > .ss-tooltip-anchor {
+  display: flex;
+  align-items: flex-end;
+  height: 100%;
+}
+.nl-cross-cell {
+  display: block;
+  width: 100%;
+  border-radius: 1px;
+}
+.nl-cross-cell.is-stages,
+.nl-cross-cell.is-tension {
+  background: var(--accent);
+}
+.nl-cross-cell.is-kernel {
+  background: var(--symbol-density-mid);
+}
+/* No data on that chapter: a dashed hairline, not a fake bump. */
+.nl-cross-cell.is-empty {
+  height: 3px;
+  background: transparent;
+  border: var(--line-weight) dashed var(--border);
+}
+.nl-cross-ruler {
+  display: grid;
+  gap: var(--space-2);
+  padding-top: var(--space-3);
+  border-top: var(--line-weight) var(--border-style) var(--border);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.nl-cross-note {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-6);
+  background: var(--bg-secondary);
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--radius-md);
+}
+.nl-cross-note-mark {
+  font-family: var(--font-sans);
+  color: var(--fg-muted);
+}
+.nl-cross-note p {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  line-height: 1.6;
+  color: var(--fg-primary);
+  text-wrap: pretty;
+}
+.nl-cross-split {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: var(--space-7);
+  padding-top: var(--space-6);
+  border-top: var(--line-weight) var(--border-style) var(--border);
+}
+.nl-cross-col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-width: 0;
+}
+.nl-cross-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+.nl-cross-head h3 {
+  margin: 0;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-lg);
+  font-weight: 700;
+  color: var(--fg-primary);
+}
+.nl-cross-head .ss-badge {
+  margin-left: auto;
+}
+.nl-cross-sub {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+.nl-cross-ghost {
+  display: grid;
+  gap: var(--space-2);
+}
+.nl-cross-ghost > span {
+  height: 22px;
+  border: var(--line-weight) dashed var(--border);
+  border-radius: 2px;
+}
+.nl-cross-body {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  line-height: 1.7;
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+.nl-cross-meta {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+}
+.nl-cross-link {
+  align-self: flex-start;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--accent);
+}
+.nl-cross-peaks {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+}
+.nl-cross-peak {
+  display: grid;
+  grid-template-columns: 48px 36px minmax(0, 1fr);
+  gap: var(--space-4);
+  align-items: baseline;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+}
+.nl-cross-peak-ch {
+  color: var(--fg-muted);
+}
+.nl-cross-peak-v {
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+.nl-cross-peak-note {
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+
+/* Unclassified events — the part of the book this page cannot show. */
+.nl-unclass {
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+.nl-unclass-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding: var(--space-4) var(--space-6);
+  background: var(--bg-secondary);
+  border-bottom: var(--line-weight) var(--border-style) var(--border);
+}
+.nl-unclass-n {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  color: var(--fg-primary);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.nl-unclass-title {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+.nl-unclass-facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+.nl-unclass-fact {
+  padding: var(--space-6);
+  border-right: var(--line-weight) var(--border-style) var(--border);
+}
+.nl-unclass-fact:last-child {
+  border-right: none;
+}
+.nl-unclass-fact-k {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--fg-muted);
+}
+.nl-unclass-fact-v {
+  margin-top: var(--space-3);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  line-height: 1.6;
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+/* The server's refusal: a tinted block with its one way out, no edge accent. */
+.nl-unclass-error {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  padding: var(--space-5) var(--space-6);
+  border-top: var(--line-weight) var(--border-style) var(--border);
+  background: var(--color-warning-bg);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  line-height: 1.6;
+  color: var(--color-warning);
+  text-wrap: pretty;
+}
+.nl-unclass-actions {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  padding: var(--space-5) var(--space-6);
+  border-top: var(--line-weight) var(--border-style) var(--border);
+}
+.nl-unclass-act {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+.nl-unclass-hint {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+.nl-unclass-jump {
+  margin-left: auto;
+  align-self: center;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  white-space: nowrap;
+  color: var(--accent);
+}
+.nl-unclass .ss-state {
+  margin: var(--space-5) var(--space-6) 0;
 }
 
 /* Empty / onboarding state. */
@@ -939,13 +1548,16 @@ a.nl-sd-ev:hover {
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: 10px;
-  padding: 72px 24px;
+  gap: var(--space-4);
+  padding: var(--space-8) var(--space-7);
+}
+.nl-empty > .nl-stale {
+  align-self: stretch;
+  text-align: left;
 }
 .nl-empty-icon {
   color: var(--accent);
   opacity: 0.55;
-  margin-bottom: 6px;
 }
 .nl-empty-title {
   font-family: var(--font-serif);
@@ -954,16 +1566,21 @@ a.nl-sd-ev:hover {
   color: var(--fg-primary);
 }
 .nl-empty-msg {
+  max-width: 52ch;
   font-family: var(--font-sans);
   font-size: var(--font-size-sm);
-  color: var(--fg-muted);
-  max-width: 52ch;
   line-height: 1.6;
+  color: var(--fg-muted);
 }
 .nl-empty-error {
   font-family: var(--font-sans);
   font-size: var(--font-size-xs);
   color: var(--color-error);
+}
+.nl-empty-spine {
+  width: 100%;
+  margin-top: var(--space-7);
+  text-align: left;
 }
 
 /* Prerequisite checklist — map_hero_journey reads chapter summaries, so without
@@ -971,39 +1588,39 @@ a.nl-sd-ev:hover {
 .nl-prereq {
   width: 100%;
   max-width: 720px;
-  margin-top: 8px;
   text-align: left;
-  border-width: var(--border-width);
-  border-style: var(--border-style);
-  border-color: var(--border);
+  border: var(--line-weight) var(--border-style) var(--border);
   border-radius: var(--radius-md);
   overflow: hidden;
 }
 .nl-prereq-head {
-  padding: 7px 14px;
+  padding: var(--space-3) var(--space-6);
   background: var(--bg-secondary);
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--fg-muted);
-  border-bottom: var(--border-width) var(--border-style) var(--border);
+  border-bottom: var(--line-weight) var(--border-style) var(--border);
 }
 .nl-prereq-row {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 9px 14px;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-6);
   font-family: var(--font-sans);
   font-size: var(--font-size-sm);
 }
 .nl-prereq-row + .nl-prereq-row {
-  border-top: var(--border-width) var(--border-style) var(--border);
+  border-top: var(--line-weight) var(--border-style) var(--border);
 }
 .nl-prereq-mark {
-  font-family: var(--font-mono);
   width: 12px;
   flex-shrink: 0;
+  color: var(--fg-muted);
+}
+.nl-prereq-mark.is-ready {
+  color: var(--color-success);
 }
 .nl-prereq-name {
   font-weight: 600;
@@ -1011,10 +1628,10 @@ a.nl-sd-ev:hover {
   white-space: nowrap;
 }
 .nl-prereq-count {
-  font-family: var(--font-mono);
   font-size: var(--font-size-xs);
   color: var(--fg-secondary);
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 .nl-prereq-hint {
   margin-left: auto;
@@ -1029,62 +1646,46 @@ a.nl-sd-ev:hover {
 .nl-trigger-row {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: var(--space-6);
   flex-wrap: wrap;
   justify-content: center;
+  margin-top: var(--space-4);
 }
 .nl-trigger-reason {
   font-family: var(--font-sans);
   font-size: var(--font-size-xs);
   color: var(--fg-muted);
 }
-.nl-trigger-btn {
-  margin-top: 14px;
-  cursor: pointer;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  padding: 9px 20px;
-  border-radius: var(--radius-md);
-  border: none;
-  background: var(--accent);
-  color: var(--bg-primary);
-  transition: opacity var(--transition-fast);
-}
-.nl-trigger-btn:disabled {
-  opacity: 0.6;
-  cursor: wait;
-}
-/* Disabled because a prerequisite is missing, not because a run is in flight. */
-.nl-trigger-btn.is-blocked:disabled {
-  cursor: not-allowed;
-  background: var(--bg-tertiary);
-  color: var(--fg-muted);
-}
 
-/* Stale banner — a pipeline step re-ran after this analysis was cached.
-   Carries a re-run link of its own: the trigger button only exists in the empty
-   state, so without it the warning has no reachable remedy. */
+/* Stale banner — a pipeline step re-ran after this analysis was cached. It sits
+   above the hero-journey card and carries the same gated re-run action. */
 .nl-stale {
   display: flex;
   align-items: flex-start;
-  gap: 10px;
-  padding: 12px 14px;
+  gap: var(--space-5);
+  padding: var(--space-5) var(--space-6);
   border-radius: var(--radius-md);
   background: var(--color-warning-bg);
   color: var(--color-warning);
   font-family: var(--font-sans);
   font-size: var(--font-size-sm);
-  line-height: 1.55;
+  line-height: 1.6;
 }
-
 .nl-stale svg {
   flex-shrink: 0;
-  margin-top: 2px;
+  margin-top: var(--space-2);
 }
-
 .nl-stale strong {
   display: block;
   font-weight: 600;
-  margin-bottom: 2px;
+  margin-bottom: var(--space-1);
+}
+.nl-stale-text {
+  min-width: 0;
+}
+.nl-stale-act {
+  margin-left: auto;
+  flex-shrink: 0;
+  align-self: center;
+  white-space: nowrap;
 }

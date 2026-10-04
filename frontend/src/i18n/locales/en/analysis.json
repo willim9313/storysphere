@@ -1630,7 +1630,9 @@
     "review": {
       "pending": "System-generated · unreviewed",
       "approved": "Approved",
-      "rejected": "Marked not applicable"
+      "rejected": "Marked not applicable",
+      "withdrawApproved": "Press again to withdraw approval and return to \"System-generated · unreviewed\"",
+      "withdrawRejected": "Press again to withdraw and return to \"System-generated · unreviewed\""
     },
     "approve": "Approve",
     "markNA": "Mark N/A",
@@ -1700,7 +1702,10 @@
       "classifyConfirmTitle": "Reclassify from EEP?",
       "classifyConfirmBody": "Recomputes kernel/satellite for the whole book from the existing event-analysis (EEP) cache. No LLM call, no token cost. If every cache entry is gone the server refuses, so existing classifications cannot be wiped.",
       "refineConfirmTitle": "Refine {{n}} unclassified events with the LLM?",
-      "refineConfirmBody": "Sends one LLM request per event to judge kernel vs satellite. This spends tokens, and takes longer the more events there are. The verdicts overwrite these events\\u2019 current weights."
+      "refineConfirmBody": "Sends one LLM request per event to judge kernel vs satellite. This spends tokens, and takes longer the more events there are. The verdicts overwrite these events\\u2019 current weights.",
+      "classifyCost": "Zero cost · writes data",
+      "classifyAffects": "Will be deleted / overwritten: kernel/satellite weights of all {{total}} events (now: kernel {{kernel}} · satellite {{satellite}} · unclassified {{unclassified}})",
+      "refineAffects": "Will be deleted / overwritten: the current weights of these {{n}} events"
     },
     "cross": {
       "title": "Laid on one chapter axis",
@@ -1774,6 +1779,7 @@
     "guide": {
       "prefix": "Researcher guide:",
       "body": "Three sections: <strong>narrative structure</strong> for the shape of the book, <strong>hero's journey</strong> against Campbell's twelve stages, and <strong>event spine</strong> for which kernel events hold that arc up. <strong>All three read chapter summaries, not the source text</strong> — with summaries missing, the analysis reports success and produces zero stages, so check the prerequisites below first."
-    }
+    },
+    "repEventsNoneGap": "This stage sits in chapter {{ch}}, but those chapters have no kernel events to show — having no events to show does not invalidate the stage."
   }
 }

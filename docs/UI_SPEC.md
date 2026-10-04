@@ -1897,154 +1897,130 @@ en 對應：Previewing／Requirement not met: Standard mode · KG backend set to
 
 ### 3.14 敘事結構頁 `/books/:bookId/narrative`
 
-張力（3.8）、符號（3.9）之外的第三條平行分析線。i18n namespace 為 `analysis.json` 的 `narrative.*`。頁面為單欄垂直捲動，分兩個 section：上方英雄旅程主視圖（佔大部分），下方情節骨幹摘要次區塊。
+張力（3.8）、符號（3.9）之外的第三條平行分析線。i18n namespace 為 `analysis.json` 的 `narrative.*`。**DS v3 第 5 批（5-3）改版**，依 16 決議紀錄（2026-09-26 定案、2026-10-04 補登）與 16 提案 v2。
+分級 **B 檢視**（24／16／12／8、max-w 1280、下內距 32），書籍 chrome。三塊依序：敘事結構（索引卡＋頁首）、英雄旅程（Campbell 12 階段）、事件骨幹（Chatman kernel／satellite），外加最下層的交叉證據。三塊讀的是**章節摘要，不是原文**。
 
 #### 版面結構
 
 ```
 [頁首 — 頁名 + 一句定位 + 書級 meta]
+[研究者導覽條 — GuidanceRibbon surface="narrative"，字串逐字]
 [索引卡 — ① 詮釋・英雄旅程 / ② 統計・事件骨幹 / ③ 旁證・其他結構線索]
-[過期橫條 — 僅 is_stale=true 時出現]
-[英雄旅程區塊 — 主視圖：標題列 + HITL + 視圖切換器 + 缺席說明 + 選定佈局]
-[事件骨幹 — 比例條 + 逐章事件欄 + 選定事件 + 未分類事件區塊 + 跳轉]
-[其他結構線索 — 三層章節軸 + 判讀 + 時序／張力兩欄]
+[過期橫條 — is_stale 時，疊在英雄旅程卡上方]
+[英雄旅程卡 — 標題列 + 書級審核 + 分段切換 + 缺席說明 + 圖｜階段詳情（sticky）]
+[事件骨幹卡 — 比例列 + 逐章核心事件 + 選定事件 + 未分類區塊 + 跳轉]
+[交叉證據卡 — 三列同軸 + 時序結構／張力兩欄]
 ```
 
-③ 只在已有英雄旅程結果時渲染（索引卡與區塊同進退）。沒有敘事弧時沒有東西可以互相
-對照，而目錄項先於它指向的內容存在就是一條死連結。
+③ 只在已有英雄旅程結果時渲染（`hasHeroJourney` gate 不動，三張既有票之一）。索引卡 3 與交叉證據同進退。
 
-#### 頁首與索引卡（`.nl-head` / `.nl-index`）
+#### 頁首、導覽條、索引卡
 
-- **頁首**：h1「敘事結構」+ 同列副標「這本書的結構是什麼形狀」（回答「這頁在答什麼」），
-  下方 mono meta 列：`書名 · N 章 · M 事件 · 分類來源`。
-- **索引卡**：本頁的目錄。每張帶**序號圓點 + 角色標籤（詮釋／統計）+ 右側即時狀態徽章**，
-  標題下一行說明這塊在回答什麼。序號建立閱讀順序；卡片本身是錨點連結
-  （`#nl-hero` / `#nl-spine`），使摺線下的內容在首屏就被宣告存在。
-  空狀態同樣渲染，① 的狀態徽章顯示「尚未分析」。
+- 頁首：h1「敘事結構」＋副標「這本書的結構是什麼形狀」＋ mono meta `書名 · N 章 · M 事件 · 分類來源`。
+- 導覽條字串逐字（`narrative.guide.*`），表面由 `GuidanceRibbon` 管。
+- 索引卡（`.nl-index`）：序號圓點＋角色標籤＋右側狀態徽章，卡片是錨點連結（`#nl-hero`／`#nl-spine`／`#nl-cross`）。
 
-> 序號索引卡目前僅本頁使用。其他分析頁若要沿用，應先抽為通用元件再登錄於第 4 節。
+#### 英雄旅程卡（`HeroJourneySection`，`#nl-hero`）
 
-#### 過期橫條（`.nl-stale`，`role="status"`）
+- **標題列**：「英雄旅程」h2＋框架連結（方法論頁）＋「已映射 N ／ 12 階段」。右側：狀態 badge（`ReviewBadge`）、**重新分析**（`.ss-btn-sm .ss-btn-secondary .ss-btn-llm`，無圖示）、**核可**（secondary）、**標記不適用**（ghost），後兩者無圖示。
+- **書級審核三值**（系統生成 · 未審閱／已核可／標記為不適用，沒有「已修改」，不套 15 頁逐條審核工具列）。核可與標記不適用是 `aria-pressed` 切換鈕：**再按一次亮著的鈕＝回到未審閱**（`PATCH …/review` 送 `pending`，計畫 Q5；邏輯在 `nextReviewStatus`）。亮著態＝`--bg-tertiary` 底＋粗體＋accent 字；亮著時 Tooltip 說明撤銷。
+- **重新分析的閘門**：與空態按鈕同一道摘要閘門（`summaryGate`）；缺章時 disabled，Tooltip 顯示「缺 N 章摘要，補齊後才會有可映射的內容」。分析中按鈕就地換成「分析中… {progress}%」（`progress` 是後端寫死的 10／20／90，照實顯示，不承諾 ETA）。
+- **版面切換**：`.ss-seg`（`.nl-seg` 撐成四等分），每顆兩行＝名稱＋副標（`narrative.layout.*`／`narrative.viewHint.*`，spec §6 不可丟失）。`role="radiogroup"`／`radio`。一次只顯示一種，每種＝圖＋圖例＋階段詳情。預設章節對位帶。選取的階段在切換版面時保留（狀態在 `HeroJourneySection`）。
+- **缺席說明**（`.nl-absent-note`）：虛線框，只在有未識別階段時出現。
+- **圖＋詳情**（`.nl-hj-body`）：卡不限高；詳情欄 `.nl-detail` `position: sticky; top: 16px`。對位帶、三相位分欄在右側（欄寬 380），圓環右側（圓環欄 460），**水平軌跡在下方全寬**（代表事件兩欄）。視窗 ≤ 1100 時單欄、詳情不 sticky。
 
-僅在 #21k 回傳 `is_stale=true` 時出現，置於索引卡之下（空狀態也顯示，因為重跑
-後結構可能已被判定過期但尚未重新分析）。用 `--color-warning-bg` / `--color-warning`
-（既有 token，未新增），內含 AlertTriangle + 標題 + 以 `stale_reason` 帶入步驟名的說明。
+**章節對位帶（`LayoutBand`）**
 
-右側帶「重新分析 →」連結（僅在已有分析結果時出現）。原規格訂為「只做提示，不放操作
-按鈕」，但分析觸發鈕只存在於空狀態，有結果時橫條等於報警而不給滅火器；改為橫條與
-卡片標題列各有一個入口，兩者呼叫同一個 `triggerHeroJourney(force=true)`。
+- 軸長固定為全書章數，空章留白。階段只畫在**實際章節**上：`chapter_range` 先 `normalizeChapters`（排序＋去重），連續段 `chapterRuns` 各畫一個色塊，段間 2px 細線（`opacity .5`）相連；遇見導師 1、2、5、8 ＝ 三塊，不畫成 1–8。
+- 「共用」（3 個以上階段落在同一章，`sharedChapters`）標在章節刻度上（`共用` 字樣＋刻度數字加粗），該欄在每條泳道內底色加深（`--bg-tertiary`）。「共用」說明文字沒有任何左邊框強調。
+- ↰（章節逆序）＝起點早於前一階段起點（取實際最小章），Tooltip 說明。
+- 寬度守衛取 ResizeObserver 量出的實際欄寬：<18px 章號每 5 章一次並收起「共用」字樣、<9px 每 10 章；色塊 <34px 時不印章號。
+- 未識別＝整列虛框、不填色（四種版面都保留同一個虛線記號）；低信心＝淺階填色＋實線外框（Ink 下不靠色相）。下方一列核心事件密度共用同一條軸。
 
-#### 英雄旅程主視圖（`HeroJourneySection`，錨點 `#nl-hero`）
+**水平軌跡**：12 等寬欄、三條相位線；階段名允許兩行（`text-wrap: balance`、`min-height: 2.8em`）。**三相位分欄**：階段名獨佔一行，章節與識別狀態 badge 移到第二行。**圓環**：只當導覽；圓心只留「相位 · 序號」與選取中的階段名，詳情移到右側。圓環尺寸是固定像素座標（半徑 170、節點 40），不隨視窗縮放。章號用無襯線＋等寬數字（`tabular-nums`）。
 
-- **標題列**：「英雄旅程」h2（serif）+ 副標（Campbell · Vogler 12 階段），副標為連往
-  `/methodology?framework=hero_journey` 的連結——術語解釋留在方法論頁，本頁不重述。
-  下方為「已映射 N／12 階段」。右側為**書級** HITL：重新分析 / 核可 / 標記不適用 按鈕
-  + ReviewBadge（走 #21l）。
-- **視圖切換器**（`.nl-views`）：四顆等寬按鈕，各含**視圖名 + 一行「這個視圖適合看什麼」**。
-  不用 tooltip：第一次使用的人不會去 hover 一個他還不知道有差別的東西。順序與預設值
-  由 `LAYOUT_IDS` 決定，**預設為章節對位帶**（真實資料下唯一能同時看出對位、重疊與逆序的視圖）。
-  - **A 章節對位帶（`LayoutBand`）**：甘特式條帶（x 軸＝章節），一眼可見階段重疊與缺席。
-    三個以上階段落在同一章時，欄位標「共用」且軌道內上底色；起點早於前一階段者在編號前
-    掛 ↰（章節逆序）。下方一列核心事件密度共用同一條軸，讓「階段講到第 10 章、kernel
-    事件止於第 9 章」這種落差自明。軸長固定為全書章數，空章留白不截斷。
-    **寬度守衛一律取自 ResizeObserver 量出的實際寬度，不用章數門檻**（書庫樣本只有 7 章與
-    10 章兩本，以章數寫死等於猜測）：每欄 <18px 時章號每 5 章標一次並收起「共用」標籤、
-    <9px 時每 10 章一次；帶寬 <34px 時帶內章號不渲染（範圍仍可由 title 與詳情面板取得）。
-  - **B 水平軌跡（`LayoutTrack`）**：departure→initiation→return 三相位橫向流，12 階段 disc + 底部詳情抽屜。
-  - **C 三相位分欄（`LayoutColumns`）**：三欄堆疊階段列 + 右側固定詳情面板（360px）。
-  - **D 圓環循環（`LayoutRing`）**：Campbell 環形 monomyth，中心顯示選定階段詳情，虛線分隔平凡／特殊世界。
-- **缺席說明（`.nl-absent-note`）**：切換器與視圖之間的虛線框，內含「未識別 · N」與
-  「缺席的階段是有意義的敘事選擇，而非未完成」。此句原為標題列的灰字註腳，與裝飾同權重；
-  移到此處後緊鄰它所描述的視覺符號，且帶上實際缺席數。無缺席時整塊不渲染。
-- **三態視覺語言**（一眼可區分，不用進度條語意）：
-  - `filled`（conf ≥ 0.6）：accent 填色，深淺隨 confidence 加深。
-  - `low`（0 < conf < 0.6）：警示三角（`--color-warning`）+ 虛線邊框。
-  - `absent`（chapter_range 空）：虛線空殼顯示「—」，不留空白。
-    後端會略過無證據的階段，前端以 `padStages()` 依 `STAGE_ORDER` 補回，故 12 列恆存。
-- **階段詳情（`StageDetail`）**：相位 + 章節 + 階段名 + 狀態徽章 + 信心區塊 + 系統詮釋 notes
-  + 代表性 Kernel 事件 + 摺疊的理論描述／敘事功能（理論文案取自 `frameworksData.ts`
-  hero_journey，localized，展開後帶方法論頁連結）。
-  在**章節對位帶視圖中為右側 sticky 側欄**（`.nl-band-aside`，最大 340px，`top: 16px`）：
-  12 條軌道加密度列之後，面板放在下方等於點了軌道就把答案捲出畫面。其餘三個視圖維持
-  原有的抽屜／面板位置。
-- **信心區塊（`ConfidenceMeter`）**：0.6 刻度線（`stageState` 的 filled/low 分界）+
-  `0 / 系統門檻 0.6 / 1.0` 標尺 + 高於／低於門檻徽章 + **全書其他階段的分數範圍**。
-  裸數值沒有基準，同書比較範圍才讓「0.90」有意義。
-  下方說明文案分兩支：低於門檻的階段數為 0 時改寫（否則恆顯示「本書有 0 個」）。
-- **代表事件**：卡片形式（章號 + 標題 + significance），整張可點，深連結至
-  `/books/:bookId/events?event=<id>`。另有三種即時計算的說明，皆不得寫死：
-  - 多個階段共用同一段 `chapter_range` 時，說明代表事件為何相同（階段是章節級、事件在
-    章節內，本就不是一對一）。
-  - 階段有章節但事件為空 → 指出全書 kernel 事件止於第幾章（取自實際骨幹最大章號）。
-  - 階段本身缺席 → 說明缺席是結構特徵而非分析失敗。
-- **Legend**：filled / low / absent 三態圖例（短標籤；缺席的解讀在上述缺席說明框）。
+**階段三態**（Ink 下四個 status 色都是 `#151515`，所以另有形狀／文字載體）：已識別＝實心點＋✓；低信心＝淺階填色＋外框＋△；未識別＝虛線空心＋○。
 
-#### 空狀態（`.nl-empty`）
+#### 階段詳情（`StageDetail`）
 
-不只說「點擊下方按鈕開始分析」，而是列出**前置條件檢查表**（`.nl-prereq`）：
+相位 · 章節（離散列表，例如 `第 1–2、5、8 章`）＋狀態 badge → 階段名 → **信心**（量表、門檻 0.6 刻度、「高於系統門檻」／「低於門檻 · 待確認」、`全書 min–max`）→ **但書**（`narrative.confNote*`，逐字：信心是模型對「章節摘要證據有多強」的自評，不是這個階段成立的機率）→ 系統詮釋 → 代表性 Kernel 事件（上限 4）→ **理論定義（Campbell / Vogler）**＋敘事功能＋`narrative.methodLink`，**常開、無 `<details>`**。低於 0.6 的階段仍顯示並標待確認（量表填色改淺階、chip 虛線）。
 
-- **章節摘要**（`done / total 章`）：`map_hero_journey` 的實際前置。缺少時分析會回報成功
-  但寫入 0 個階段，因此缺摘要時觸發鈕 disabled 並在旁說明原因，該列連往建構概覽頁。
-- **事件分析（EEP）**（`done / total 件`）：非必要，但影響代表事件。連往事件分析頁。
+**代表事件為空**（同一位置擇一，`repEmptyReason`）：
 
-已滿足的列不顯示前往連結。摘要完成度取自 `GET /books/{id}/chapters` 的 `summary` 欄位，
-查詢僅在沒有分析結果時啟用。
+| 情況 | 句子 |
+|---|---|
+| 階段未識別 | `narrative.repEventsNoneAbsent`（摘要中找不到證據） |
+| 階段第一個實際章節在全書最後一個核心事件章之後 | `narrative.repEventsNoneRange`（止於第 N 章） |
+| 與其他階段共用同一組實際章節 | `narrative.repEventsShared` |
+| 其餘（範圍在核心事件內但該段沒有 kernel；或全書沒有核心事件） | `narrative.repEventsNoneGap`（**草稿**，見下） |
 
-#### 事件骨幹（`PlotSpine`，錨點 `#nl-spine`）
+有事件且共用範圍時，共用說明照舊顯示在清單上方。**修正的既有 bug**：(1) 範圍在核心事件內但該段無 kernel 時不再說「止於第 N 章」；(2) 以 id 為主（`resolveRepEvents`）取事件，原先用過濾後的索引回取 `representative_event_ids[i]`，解析失敗一筆後所有後續連結錯位。
 
-- 標題列「事件骨幹」+ 副標 `Chatman kernel / satellite` + 一行說明；右側分類來源 chip
-  （啟發式／LLM／人工驗證）+ ReviewBadge。副標為連往 `/methodology?framework=chatman` 的
-  連結（與英雄旅程區塊的做法一致，術語解釋留在方法論頁，本頁不重述）。
-- **比例條**：kernel 數為主體，右側為條與圖例。**satellite 為 0 時不佔寬度**，改在圖例
-  註明「衛星 0 · 本書未出現此分類」——兩本測試書的 satellite 皆為 0，保留零寬區段只會
-  在條的右側留下無法解釋的空隙。
-- **逐章事件欄**（`.nl-chgrid`）：每章一欄，欄頭為章號 + 該章 kernel 事件數（無事件時為
-  `—` 且底線改用 `--border`），欄內逐筆列出**事件標題**，無事件的章顯示虛線「無核心事件」。
-  欄以 `repeat(auto-fill, minmax(106px, 1fr))` 換行而非壓縮：長篇只是多幾列，標題不會被壓到
-  不可讀。章數取 `book.chapterCount` 與事件最大章號的較大者，空章不省略。
-  - 取代原本的「上下交錯標籤時間線 + 同章多事件 pill 清單」。原設計預設每章至多一個
-    kernel 事件，真實資料每章 2–7 件，導致整條軌道只顯示「N 件事件」而一個標題都看不到。
-- **選定事件方塊**（`.nl-evbox`）：章號 · 事件類型 + 標題 + significance，右上角
-  「在事件分析頁開啟 →」深連結至 `/books/:bookId/events?event=<id>`。未選時顯示提示。
-- **未分類事件區塊**（`UnclassifiedBlock`，未分類數為 0 時整塊不渲染）：數量 + 三欄
-  「為什麼／影響什麼／可以怎麼做」+ 兩個動作 + 前往事件分析頁。
-  - **依 EEP 重新分類**（#21a）：讀既有 EEP 快取重算，不呼叫 LLM。
-  - **LLM 精煉未分類（N 件）**（#21c）：逐筆判斷，**會消耗 token**，筆數寫在按鈕上。
-    一律傳明確的 `event_ids`（未分類事件），不用後端「全部 satellite」的預設——書庫
-    沒有任何一本有 satellite 事件，該預設是 no-op。
-  - 兩者都先過 `ConfirmDialog`，對話框說明會發生什麼、是否耗 token。
-  - #21a 回 409 時在區塊內以 warning 色顯示。**訊息由前端本地化重組**（頁面已持有
-    總事件數與已分類數），不直接顯示後端的英文 detail——狀態碼是契約，字串不是。
-  > 此處**刻意偏離設計稿**：canvas 主張本頁不提供分類動作、只做唯讀狀態告知
-  > （含「狀態告知 · 此頁不進行分類」徽章），理由是分類判斷需要原文段落。經確認後
-  > 仍加上動作：依 EEP 重算完全不需要原文，而精煉的後果就顯示在這一頁上。徽章與
-  > 原三欄文案因此不再適用，已改寫。
-- 底部「前往事件分析頁」跳轉（Kernel/Satellite 細節在事件分析頁）。
+#### 事件骨幹（`PlotSpine`，`#nl-spine`）
 
-#### 其他結構線索（`CrossEvidence`，錨點 `#nl-cross`）
+標題列「事件骨幹」＋ `Chatman kernel / satellite`（方法論連結）＋ lead；右側來源 badge（LLM 分類帶 `.ss-llm-glyph` 字符，因為那是 LLM 成本的記號）＋審核 badge。比例列：`核心 N`／`衛星 N` 或 `衛星 0 · 本書未出現此分類`（與 `衛星 0` 是兩回事，衛星為 0 時比例條不佔寬）／`未分類 N`。逐章核心事件欄（`repeat(auto-fill, minmax(106px, 1fr))`，空章顯示「無核心事件」），選取事件顯示意義與深連結。選取態＝`--accent` 底、accent-fg 字。
 
-把本頁兩塊的結果與其他分析頁的結果疊在**同一條章節軸**上，回答「哪幾章多層一起隆起、
-哪幾章只有其中一層」。全部複用既有端點，無新增 API。
+**未分類區塊**（`UnclassifiedBlock`，數量 0 時不渲染）：三段說明（為什麼／影響什麼／可以怎麼做）＋兩顆按鈕，三條軸互不蘊含：
 
-- **三層軸**：階段覆蓋（每章被幾個階段涵蓋）／核心事件（每章幾件）／張力峰值
-  （每章最高 TEU 強度），下接章號尺規。三層共用同一組欄，因此落差可直接對讀。
-- **判讀句**：**必須即時計算**——找出各層同時到頂的章，以及有張力／階段卻沒有核心
-  事件的章，並指出事件分類實際止於第幾章。不得沿用設計稿的示範句（設計稿寫第 9 章，
-  實測本書峰值在第 7 章）。
-- **時序結構**（Genette）：讀 `fetchTimeline` 的 `temporalAnalyzed` / `temporalStructure`
-  與 `fetchTemporalCoverage`。未分析時顯示虛線佔位與「跑完會顯示什麼」，並列出實際
-  覆蓋率；**是否足夠一律取後端的 `coverage_sufficient`，不在前端複寫門檻數字**
-  （設計稿寫「需 ≥60%」，那是後端常數，抄過來會漂移）。深連結至時間軸頁。副標
-  `Genette · 敘述順序 vs 故事順序` 為連往 `/methodology?framework=genette_temporal_order`
-  的連結，與英雄旅程、事件骨幹兩處的做法一致。
-- **張力**：讀 `fetchTEUs`，列出強度最高的三章，各章標出涵蓋它的階段與核心事件數。
-  深連結至張力分析頁。
+| 控制項 | 字符 | 確認框 | 危險色 |
+|---|---|---|---|
+| 依 EEP 重新分類 | 無 | **有**（寫資料） | 無 |
+| LLM 精煉未分類（N 件） | `.ss-btn-llm` | 有 | 無 |
 
-三個查詢皆以「已有英雄旅程結果」為啟用條件，沒有敘事弧的書一個請求都不會發。
+- 重新分類按鈕旁提示「零成本 · 寫入資料」，精煉旁提示「會呼叫 LLM，消耗 token」（`tension.state.tokenHintShort`，成本提示文字本身不帶字符）。
+- 確認框（`ConfirmDialog`）：重新分類 `costHint`＝`classifyCost`，`sections`＝`classifyAffects`（以 `splitAffects` 拆成「將被刪除／覆寫」標題與一個項目；內文用既有 `classifyConfirmBody`）；精煉 `spendsTokens`、`costHint`＝`tokenHintShort`、`sections`＝`refineAffects`。稿上「將被標記為過期」段目前沒有下游產物清單可列，**空段不渲染**（`visibleSections`）。
+- **409**（第四種失敗）：照現況文案（`narrative.errors.classifyRefused`，**標待修、歸 i18n 線**——B-096 後 409 的真實理由是「這次執行不會改變任何東西」，不是「會抹成未分類」），框內唯一出口「前往事件分析頁 →」，**不設 force 鈕**。
+- 精煉的 503（未設定 LLM provider）→ 就地 `LlmUnconfiguredNotice`。
+
+#### 交叉證據（`CrossEvidence`，`#nl-cross`）
+
+三列同軸（階段覆蓋／核心事件／張力峰值＋章號尺規），照真實資料畫、不補假的隆起；無資料的章是虛線細線。「階段覆蓋」同樣只算實際章節（遇見導師 1、2、5、8 不覆蓋 3、4）。判讀句即時計算。下方兩欄：
+
+- **時序結構**（Genette）：未分析＝虛線佔位＋說明＋覆蓋率（`coverage_sufficient` 取後端，不複寫門檻）＋「在時間軸頁補齊並執行 →」；已分析＝判定句（線性／部分線性／非線性）＋倒敘／預敘筆數（timeline `temporalDisplacement.type` 計數，字串沿用 `timeline.action.displacementDone`）。
+- **張力**：強度最高三章，各標涵蓋它的階段與核心事件數。
+
+三個查詢（TEU、timeline、temporal coverage）仍以 `hasHeroJourney` 為啟用條件。
+
+#### 空態、閘門、分析中、過期
+
+- **空態**（英雄旅程未產生）：羅盤圖＋標題＋說明＋**前置條件列**（章節摘要、事件分析 EEP；在按鈕之前）＋「開始英雄旅程分析」（`.ss-btn-primary .ss-btn-llm`）＋成本提示；**事件骨幹仍渲染在下方**。
+- **摘要缺章硬閘門**（`summaryGate`）：disabled＋「缺 N 章摘要，補齊後才會有可映射的內容」。**三條路徑共用同一道閘門**：空態按鈕、卡片標題列的重新分析、過期帶的「重新分析 →」。章節清單查詢不再因「已有分析」而停用（現況繞過閘門）。
+- **過期帶**（`.nl-stale`）：疊在英雄旅程卡上方（空態也顯示，但無按鈕）。`{step}` 用 `timelineModel.staleStepKey` 對到 reader 的步驟名（章節摘要／特徵萃取／知識圖譜／符號探索），不插原始 id；「重新分析 →」是 `.ss-btn-ghost .ss-btn-llm`，與卡內同一動作、同一道閘門。5-0 後重跑章節摘要也會使本頁過期。
+
+#### 錯誤四分
+
+| 種類 | 觸發 | 呈現 |
+|---|---|---|
+| 單頁失敗 | 本頁自己的 `structure`／`kernel-spine` 查詢失敗（非 404，有應用層 JSON body） | `PageFailure`（`page`；頁名＝`narrative.pageTitle`；次要動作「回書籍總覽」＝既有 `analysis:character.error.backToBook`；`techDetail`）。頁首保留，其餘內容被取代 |
+| 後端失敗 | 同上但無 body（裸 502/503/504、fetch 被拒） | `PageFailure`（`backend`） |
+| 應用層 503 | 開始／重新分析、LLM 精煉的 503（未設定 provider） | `LlmUnconfiguredNotice` 就地，頁面其餘照常 |
+| 本頁獨有 | `POST /narrative/classify` 的 409 | 見上，唯一出口前往事件分析頁 |
+
+404（尚未分析）仍是空態。取書失敗由 `BookLayout` 負責。錯誤分支只在頁面元件內切換、查詢不卸載，不會觸發 react-query 重設迴圈。
+
+> 次要查詢（事件列表、TEU、timeline、temporal coverage）失敗不阻擋本頁，只是對應區塊沒有資料（沿用既有行為）。
+
+#### 狀態示例（本書不會出現，由 vitest 覆蓋模型層）
+
+未識別（虛線記號，四種版面都有）、低信心（淺階量表＋待確認 chip）、章節逆序 ↰、不連續章節（`chapterRuns`、`stagesPerChapter`、`reversedStageIds`、`stagesSharingRange`、`repEmptyReason`、`nextReviewStatus`、`summaryGate`、`splitAffects`、`displacementCounts` 皆在 `narrativeModel.test.ts`）。
+
+#### 字串
+
+- 2026-10-04 裁決通過（非草稿）：`narrative.unclassified.classifyCost`／`classifyAffects`／`refineAffects`。
+- **這 3 句是草稿・待設計定案**（i18n `narrative.*`）：
+  1. `review.withdrawApproved`：「再按一次撤銷核可，回到「系統生成 · 未審閱」」
+  2. `review.withdrawRejected`：「再按一次撤銷，回到「系統生成 · 未審閱」」
+  3. `repEventsNoneGap`：「這個階段落在第 {{ch}} 章，但這些章節沒有核心事件可展示——沒有可展示的事件不代表階段不成立。」
+- 其餘皆為既有字串一字不改；跨命名空間沿用：`tension.state.tokenHintShort`（成本提示）、`timeline.action.displacementDone`（倒敘預敘筆數）、`reader:rerun.steps.*`（過期步驟名）、`character.error.backToBook`。無「原寫死字串移入 i18n」。
+- 前置於本批的既有問題（不在 5-3 修）：en `narrative.unclassified.refineConfirmBody` 含字面 `\\u2019`（5-NR-10）。
+
+#### 孤兒（因結構改動保留，待使用者決定）
+
+`heroJourney.ts` 的 `fillPct`／`discFill`／`discText`／`phaseWash`（舊填色邏輯，已無呼叫端）；i18n `narrative.ring.knownWorld`／`specialWorld`（圓環區帶已移除，5-NR-3）。舊 `.nl-view*`、`.nl-band-split`、`.nl-trigger-btn` 等 CSS 與 `StageDisc` 元件已隨改寫一併替換（皆為本頁私有）。
 
 #### API 參考
 
-見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#21e（觸發英雄旅程）、#21f（polling）、#21k（取 NarrativeStructure）、#21j（kernel-spine）、#21l（HITL 書級審核）、#21a／#21b（分類）、#21c／#21d（LLM 精煉）、#21g（時序覆蓋率）。另讀時間軸與張力頁既有端點（`fetchTimeline`、`fetchTEUs`）。封裝於 `frontend/src/api/narrative.ts`。
+見 [`docs/API_CONTRACT.md`](API_CONTRACT.md)：#21e（觸發英雄旅程，未設定 provider 回 503）、#21f（polling）、#21k（取 NarrativeStructure，含 `is_stale`／`stale_reason`）、#21j（kernel-spine）、#21l（書級審核，開放 `pending`）、#21a／#21b（分類）、#21c／#21d（LLM 精煉，503）、#21g（時序覆蓋率）。另讀章節清單（摘要閘門）、時間軸與張力頁既有端點（`fetchTimeline`、`fetchTEUs`）。封裝於 `frontend/src/api/narrative.ts`。純邏輯在 `frontend/src/components/narrative/narrativeModel.ts`。
 
 ---
 

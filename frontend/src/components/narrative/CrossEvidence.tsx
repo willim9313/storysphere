@@ -1,11 +1,14 @@
 // ③ Cross-evidence — the two blocks above, plus what the other analysis pages
-// found, laid on one chapter axis. Everything here reuses existing endpoints.
+// found, laid on one chapter axis. Everything here reuses existing endpoints,
+// and draws only what the data has: an empty chapter is an empty cell.
 import { useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { HeroJourneyStage, KernelSpineEvent } from '@/api/narrative';
+import { Tooltip } from '@/components/ui/Tooltip';
 import type { StageTheory } from './heroJourney';
 import { stageOrdinal } from './heroJourney';
+import { normalizeChapters } from './narrativeModel';
 
 interface CrossEvidenceProps {
   stages: HeroJourneyStage[];
@@ -16,6 +19,8 @@ interface CrossEvidenceProps {
   teuCount: number;
   temporalAnalyzed: boolean;
   temporalStructure: string | null;
+  /** Analepsis / prolepsis verdict counts from the timeline payload. */
+  displacement: { analepsis: number; prolepsis: number };
   temporalCoverage: number | null;
   temporalSufficient: boolean;
   chapterCount: number;
@@ -23,6 +28,13 @@ interface CrossEvidenceProps {
 }
 
 const PEAK_ROWS = 3;
+
+interface Row {
+  ch: number;
+  covering: HeroJourneyStage[];
+  kernels: KernelSpineEvent[];
+  tension: number;
+}
 
 export function CrossEvidence({
   stages,
@@ -32,24 +44,27 @@ export function CrossEvidence({
   teuCount,
   temporalAnalyzed,
   temporalStructure,
+  displacement,
   temporalCoverage,
   temporalSufficient,
   chapterCount,
   bookId,
-}: CrossEvidenceProps) {
+}: Readonly<CrossEvidenceProps>) {
   const { t } = useTranslation('analysis');
 
   const { chapters, maxStages, maxKernel, lastKernelChapter } = useMemo(() => {
     const maxSeen = kernelEvents.reduce((m, e) => Math.max(m, e.chapter), 0);
     const n = Math.max(chapterCount, maxSeen, ...Object.keys(tensionByChapter).map(Number), 1);
-    const rows = Array.from({ length: n }, (_, i) => {
+    // Only the chapters a stage really has — 1、2、5、8 does not cover 3 or 4.
+    const sets = stages.map((s) => ({ s, ch: new Set(normalizeChapters(s.chapter_range)) }));
+    const rows: Row[] = Array.from({ length: n }, (_, i) => {
       const ch = i + 1;
-      const covering = stages.filter((s) => {
-        const r = s.chapter_range;
-        return r.length > 0 && r[0] <= ch && r[r.length - 1] >= ch;
-      });
-      const kernels = kernelEvents.filter((e) => e.chapter === ch);
-      return { ch, covering, kernels, tension: tensionByChapter[ch] ?? 0 };
+      return {
+        ch,
+        covering: sets.filter((x) => x.ch.has(ch)).map((x) => x.s),
+        kernels: kernelEvents.filter((e) => e.chapter === ch),
+        tension: tensionByChapter[ch] ?? 0,
+      };
     });
     return {
       chapters: rows,
@@ -64,18 +79,16 @@ export function CrossEvidence({
   // Read off the axis rather than asserting anything: the chapter where all
   // three layers are present at once, and one that carries only some of them.
   const reading = useMemo(() => {
-    const complete = [...chapters]
+    const complete = chapters
       .filter((c) => c.covering.length > 0 && c.kernels.length > 0 && c.tension > 0)
       .sort((a, b) => b.tension - a.tension)[0];
-    const gap = chapters.find(
-      (c) => c.kernels.length === 0 && (c.tension > 0 || c.covering.length > 0),
-    );
+    const gap = chapters.find((c) => c.kernels.length === 0 && (c.tension > 0 || c.covering.length > 0));
     return { complete, gap };
   }, [chapters]);
 
   const peaks = useMemo(
     () =>
-      [...chapters]
+      chapters
         .filter((c) => c.tension > 0)
         .sort((a, b) => b.tension - a.tension || a.ch - b.ch)
         .slice(0, PEAK_ROWS),
@@ -87,74 +100,65 @@ export function CrossEvidence({
       key: 'stages',
       label: t('narrative.cross.rowStages'),
       sub: t('narrative.cross.rowStagesSub', { n: maxStages }),
-      value: (c: (typeof chapters)[number]) => c.covering.length / maxStages,
-      raw: (c: (typeof chapters)[number]) => c.covering.length,
-      color: 'var(--accent)',
+      value: (c: Row) => c.covering.length / maxStages,
+      raw: (c: Row) => String(c.covering.length),
     },
     {
       key: 'kernel',
       label: t('narrative.cross.rowKernel'),
       sub: t('narrative.cross.rowKernelSub', { n: kernelEvents.length }),
-      value: (c: (typeof chapters)[number]) => c.kernels.length / maxKernel,
-      raw: (c: (typeof chapters)[number]) => c.kernels.length,
-      color: 'var(--symbol-density-mid)',
+      value: (c: Row) => c.kernels.length / maxKernel,
+      raw: (c: Row) => String(c.kernels.length),
     },
     {
       key: 'tension',
       label: t('narrative.cross.rowTension'),
       sub: t('narrative.cross.rowTensionSub'),
-      value: (c: (typeof chapters)[number]) => c.tension,
-      raw: (c: (typeof chapters)[number]) => c.tension.toFixed(2),
-      color: 'var(--tension-intensity-high-bg)',
+      value: (c: Row) => c.tension,
+      raw: (c: Row) => c.tension.toFixed(2),
     },
   ];
 
+  const colStyle = { gridTemplateColumns: `repeat(${chapters.length}, minmax(0, 1fr))` };
+
   return (
     <section className="nl-card" id="nl-cross">
-      <div>
-        <div className="nl-index-top" style={{ maxWidth: 240 }}>
+      <div className="nl-cross-head0">
+        <div className="nl-index-top">
           <span className="nl-index-n nl-index-n-ghost">3</span>
           <span className="nl-index-role">{t('narrative.index.role3')}</span>
         </div>
-        <h2 style={{ margin: '6px 0 0', fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-2xl)', fontWeight: 700, color: 'var(--fg-primary)' }}>
-          {t('narrative.cross.title')}
-        </h2>
-        <p style={{ margin: '4px 0 0', fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-xs)', color: 'var(--fg-secondary)', textWrap: 'pretty' }}>
-          {t('narrative.cross.lead')}
-        </p>
+        <h2 className="nl-h2">{t('narrative.cross.title')}</h2>
+        <p className="nl-lead">{t('narrative.cross.lead')}</p>
       </div>
 
-      <div>
+      <div className="nl-cross-axis">
         {rows.map((row) => (
           <div key={row.key} className="nl-cross-row">
             <div className="nl-cross-label">
-              <div className="nl-cross-label-t">{row.label}</div>
-              <div className="nl-cross-label-s">{row.sub}</div>
+              <span className="nl-cross-label-t">{row.label}</span>
+              <span className="nl-cross-label-s">{row.sub}</span>
             </div>
-            <div className="nl-cross-cells" style={{ gridTemplateColumns: `repeat(${chapters.length}, 1fr)` }}>
+            <div className="nl-cross-cells" style={colStyle}>
               {chapters.map((c) => {
                 const v = row.value(c);
                 return (
-                  <div
-                    key={c.ch}
-                    title={`${t('narrative.spine.chapterUnit', { ch: c.ch })} · ${row.raw(c)}`}
-                    style={{
-                      height: v > 0 ? `${Math.max(10, Math.round(v * 100))}%` : 3,
-                      background: v > 0 ? row.color : 'transparent',
-                      border: `1px ${v > 0 ? 'solid' : 'dashed'} var(--border)`,
-                      borderRadius: 2,
-                    }}
-                  />
+                  <Tooltip key={c.ch} label={`${t('narrative.spine.chapterUnit', { ch: c.ch })} · ${row.raw(c)}`}>
+                    <span
+                      className={`nl-cross-cell is-${row.key}${v > 0 ? '' : ' is-empty'}`}
+                      style={v > 0 ? { height: `${Math.max(10, Math.round(v * 100))}%` } : undefined}
+                    />
+                  </Tooltip>
                 );
               })}
             </div>
           </div>
         ))}
         <div className="nl-cross-row">
-          <div />
-          <div className="nl-cross-ruler" style={{ gridTemplateColumns: `repeat(${chapters.length}, 1fr)` }}>
+          <span />
+          <div className="nl-cross-ruler" style={colStyle}>
             {chapters.map((c) => (
-              <div key={c.ch}>{c.ch}</div>
+              <span key={c.ch}>{c.ch}</span>
             ))}
           </div>
         </div>
@@ -169,42 +173,38 @@ export function CrossEvidence({
                 stages: reading.complete.covering.map((s) => stageOrdinal(s.stage_id)).join('、'),
                 kernels: reading.complete.kernels.length,
               })}
-              {reading.gap
-                ? ' ' +
-                  t('narrative.cross.noteGap', {
-                    ch: reading.gap.ch,
-                    last: lastKernelChapter,
-                  })
-                : ''}
+              {reading.gap ? ' ' + t('narrative.cross.noteGap', { ch: reading.gap.ch, last: lastKernelChapter }) : ''}
             </p>
           </div>
         )}
       </div>
 
       <div className="nl-cross-split">
-        <div>
+        <div className="nl-cross-col">
           <div className="nl-cross-head">
             <h3>{t('narrative.cross.temporalTitle')}</h3>
-            {/* The framework name doubles as the way out to its full
-                description, so the terms need no explaining here. */}
+            {/* The framework name doubles as the way out to its full description. */}
             <Link className="nl-cross-sub nl-term-link" to="/methodology?framework=genette_temporal_order">
               {t('narrative.cross.temporalSub')}
             </Link>
-            <span className={temporalAnalyzed ? 'nl-cross-badge' : 'nl-cross-badge is-pending'}>
+            <span className={temporalAnalyzed ? 'ss-badge nl-badge-quiet' : 'ss-badge nl-badge-absent'}>
               {temporalAnalyzed ? t('narrative.cross.analyzed') : t('narrative.cross.notAnalyzed')}
             </span>
           </div>
           {temporalAnalyzed && temporalStructure ? (
-            <p className="nl-cross-body">
-              {t('narrative.cross.temporalResult', {
-                structure: t(`narrative.cross.structure.${temporalStructure}`, { defaultValue: temporalStructure }),
-              })}
-            </p>
+            <>
+              <p className="nl-cross-body">
+                {t('narrative.cross.temporalResult', {
+                  structure: t(`narrative.cross.structure.${temporalStructure}`, { defaultValue: temporalStructure }),
+                })}
+              </p>
+              <div className="nl-cross-meta">{t('timeline.action.displacementDone', displacement)}</div>
+            </>
           ) : (
             <>
-              <div className="nl-cross-ghost" style={{ gridTemplateColumns: `repeat(${chapters.length}, 1fr)` }}>
+              <div className="nl-cross-ghost" style={colStyle}>
                 {chapters.map((c) => (
-                  <div key={c.ch} />
+                  <span key={c.ch} />
                 ))}
               </div>
               <p className="nl-cross-body">{t('narrative.cross.temporalPending')}</p>
@@ -217,19 +217,19 @@ export function CrossEvidence({
                 : t('narrative.cross.coverageLow', { pct: Math.round(temporalCoverage * 100) })}
             </div>
           )}
-          <Link className="nl-cross-link" to={`/books/${bookId}/timeline`}>
-            {t('narrative.cross.temporalLink')}
-          </Link>
+          {!temporalAnalyzed && (
+            <Link className="nl-cross-link" to={`/books/${bookId}/timeline`}>
+              {t('narrative.cross.temporalLink')}
+            </Link>
+          )}
         </div>
 
-        <div className="nl-cross-right">
+        <div className="nl-cross-col">
           <div className="nl-cross-head">
             <h3>{t('narrative.cross.tensionTitle')}</h3>
             <span className="nl-cross-sub">{t('narrative.cross.tensionSub')}</span>
-            <span className={teuCount > 0 ? 'nl-cross-badge' : 'nl-cross-badge is-pending'}>
-              {teuCount > 0
-                ? t('narrative.cross.teuCount', { n: teuCount })
-                : t('narrative.cross.notAnalyzed')}
+            <span className={teuCount > 0 ? 'ss-badge nl-badge-quiet' : 'ss-badge nl-badge-absent'}>
+              {teuCount > 0 ? t('narrative.cross.teuCount', { n: teuCount }) : t('narrative.cross.notAnalyzed')}
             </span>
           </div>
           {peaks.length > 0 ? (
