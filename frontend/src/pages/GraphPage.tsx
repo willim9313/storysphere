@@ -1,6 +1,6 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import { Plus, Minus, X, Loader, Shapes, ChevronUp } from 'lucide-react';
+import { Plus, Minus, X, Loader, ChevronDown } from 'lucide-react';
 import { useQuery, useQueries, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Trans, useTranslation } from 'react-i18next';
 import { useChatDispatch } from '@/contexts/ChatContext';
@@ -34,6 +34,7 @@ import { EntityComparePanel } from '@/components/graph/EntityComparePanel';
 import { InferredEdgePanel } from '@/components/graph/InferredEdgePanel';
 import { GraphRightRail } from '@/components/graph/GraphRightRail';
 import {
+  MAIN_PANEL_WIDTH,
   SECONDARY_PANEL_WIDTH,
   activeSecondaryPanel,
   railWidth,
@@ -826,7 +827,7 @@ export default function GraphPage() {
             {/* Right rail — priority: compare > inferred review > cluster overview > entity.
                 One shared container names whichever panel is showing. */}
             {railMain && bookId && (
-              <GraphRightRail panel={railMain} name={railName} rightOffset={secondaryWidth}>
+              <GraphRightRail panel={railMain} name={railName}>
                 {railMain === 'compare' && compareNodes && (
                   <EntityComparePanel
                     bookId={bookId}
@@ -919,10 +920,10 @@ export default function GraphPage() {
               </GraphRightRail>
             )}
 
-            {/* Secondary detail layer (analysis / paragraphs): stacked to the right
-                of the main panel, one at a time, only beside the entity / event panel. */}
+            {/* Secondary detail layer (analysis / paragraphs): stacked to the left
+                of the main panel (main stays pinned right), one at a time, only beside the entity / event panel. */}
             {secondaryPanel && selectedNode && bookId && (
-              <div className="kg-secondary" style={{ width: secondaryWidth }}>
+              <div className="kg-secondary" style={{ width: secondaryWidth, right: MAIN_PANEL_WIDTH }}>
                 {secondaryPanel === 'analysis' ? (
                   <AnalysisPanel bookId={bookId} node={selectedNode} onClose={() => setRightPanel(null)} />
                 ) : (
@@ -995,10 +996,8 @@ function OrphanDrawer({
         aria-expanded={open}
         className="ss-btn ss-btn-sm ss-btn-secondary"
       >
-        <Shapes size={13} />
-        <span>{t('v1.orphan.button')}</span>
-        <span className="kg-orphan-count">{orphans.length}</span>
-        <ChevronUp size={12} style={open ? { transform: 'rotate(180deg)' } : undefined} />
+        <span>{t('v1.orphan.button')} {orphans.length}</span>
+        <ChevronDown size={12} style={open ? { transform: 'rotate(180deg)' } : undefined} />
       </button>
       {open && (
         <div className="kg-orphan-pop">

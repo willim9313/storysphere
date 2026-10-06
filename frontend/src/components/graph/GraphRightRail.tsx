@@ -7,8 +7,6 @@ interface GraphRightRailProps {
   readonly panel: RailPanel;
   /** The panel's name for the 「目前顯示 · {name}」 line. */
   readonly name: string;
-  /** Width already taken to the right by a secondary panel (analysis / paragraphs). */
-  readonly rightOffset?: number;
   readonly children: ReactNode;
 }
 
@@ -22,10 +20,10 @@ interface GraphRightRailProps {
  * Read-out only: clicking it switches nothing (the priority is decided by
  * selection state, see `resolveRailPanel`).
  */
-export function GraphRightRail({ panel, name, rightOffset = 0, children }: GraphRightRailProps) {
+export function GraphRightRail({ panel, name, children }: GraphRightRailProps) {
   const { t } = useTranslation('graph');
   return (
-    <aside className="kg-rail" style={{ width: MAIN_PANEL_WIDTH, right: rightOffset }}>
+    <aside className="kg-rail" style={{ width: MAIN_PANEL_WIDTH }}>
       <div className="kg-rail-chain">
         <span className="kg-rail-chain-text">{t('panel.current', { name })}</span>
         <span className="kg-rail-dots" aria-hidden="true">

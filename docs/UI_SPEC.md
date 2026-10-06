@@ -975,17 +975,19 @@ partial 時附「部分分析」徽章。其下為研究者導覽 ribbon。
 - **工具列一列**（控制項高 32、型別 chip 高 22）：鏡頭 segmented 每格帶 11px 副標；搜尋；重設視圖；7 顆型別 chip（唯一開關，`aria-pressed`）；推論鈕＋其下常駐「無 token 成本」。放不下時整列換行、不裁切；推論群靠右（popover／選單向左展開）。
 - **圖例帶**：帶頭「目前鏡頭 · {mode}」；型別列 7 類全列（含 0；社群整列不出現）；四色只在個別鏡頭，類型鏡頭不渲染關係色，社群只有「敵對（虛線）」；右端「型別開關在上方工具列」（社群不顯示）。整條不可點。右內距讓出浮動聊天鈕。
 - **群集概觀**：「此檢視範圍」「怎麼分的」兩卡在社群面板**頂端**常駐；列尾無「⋯更多」；無派系／非角色宣告保留；進階群集設定四項（偵測算法只顯示現值 `greedy_modularity`，後端不收參數），重新運算零成本、不掛字符、旁註「零成本」。
-- **右欄**：共用 `GraphRightRail`（主面板統一 320），頂端 11px「目前顯示 · {name}」＋四點（純標示、不可點）。優先鏈 compare > inferred > cluster > entity（`resolveRailPanel`）。次級面板（深度分析 360、相關段落 400）疊在主面板右側、一次一個，**只在實體／事件面板為主面板時存在**（修掉與審查面板重疊）。右下角 stats／迷你地圖／縮放讀實際欄寬定位（修掉寫死 280）。
+- **右欄**：共用 `GraphRightRail`（主面板統一 320），頂端 11px「目前顯示 · {name}」＋四點（純標示、不可點）。優先鏈 compare > inferred > cluster > entity（`resolveRailPanel`）。次級面板（深度分析 360、相關段落 400）**往左疊**在主面板左側（主面板固定貼右、保持 320 不關閉；使用者 2026-10 裁決照稿 14 D 區／README §3.4）、一次一個，**只在實體／事件面板為主面板時存在**（修掉與審查面板重疊）。右下角 stats／迷你地圖／縮放讀實際欄寬定位（修掉寫死 280）。
 - **事件面板**：參與者只渲染 `<型別> <名稱>` chip；location 死碼刪除。**比較面板**：三欄表＋「建議推斷關係」顯示 `type · 共同鄰居 N 個 · Adamic-Adar x`；採用不再送 `relationType`（修 422）。「展開全部 N 段」用既有「查看相關段落 →」。
 - **推論**：執行中只有轉圈＋「推論中…」、無進度條；採用／否決零成本不掛字符；重跑選單安全＝一般列、強制＝危險色＋警示符號；強制重跑改 `ConfirmDialog danger`（無字符），內文沿用原稿（原稿錯字「重跡」已依 FINAL_RULINGS #9 改為「重跑」）。
-- **Lens 卡**：故事模式不可用改為**可見文字**（`v1.lens.storyModeLocked`）；Lens 卡與未連結實體抽屜同在左下堆疊、同一條底邊，抽屜往上展開。
+- **Lens 卡**：故事模式不可用改為**可見文字**（`v1.lens.storyModeLocked`）；Lens 卡與未連結實體抽屜同在左下堆疊、同一條底邊，抽屜往上展開。**收合態 272／展開態 296**：分頁列右端 chevron 切換；預設收合、**不記憶**（見 FEEDBACK 4-KG-R1）；收合態＝分頁＋閱讀／故事 segmented＋「逐章成長播放（F3）」＋細滑桿＋全域註記；點分頁即展開。控制項走 DS v3：純文字底線分頁（active `--fg-primary` 600＋accent 底線）、`.ss-seg`、26×15 switch（`.kg-switch-*`）、書籤＝型別色 `.ss-pill`＋✕、分類可見性在底部 border-top 之後；聚合鏡頭下的認知視角分頁說明盒下方有一行時間軸註記。
 - **字符**：全頁只有「生成深度分析 →」「覆蓋重生成」與「分類可見性」掛 `.ss-btn-llm`；深度分析 503 → `LlmUnconfiguredNotice`（就地）。執行推論不掛。
 - **縮放**：± 接 cytoscape zoom（`GraphCanvasHandle.zoomBy`），讀數取 `ViewportSnapshot.zoom`；社群鏡頭（固定 SVG）不顯示縮放條。
 - **實體對模式**：排他覆蓋照舊；退出鈕固定右上，用既有 `v1.pair.exit`「退出」（稿的 `graph.pair.exit` 不用）；不加 Esc；進入手勢不改。
 - **頁面狀態**：空＝onboarding hero（按鈕走 `ss-btn`）；載入 spinner；失敗＝`PageFailure`＋`failureKind`（page／backend 兩變體，「回書籍總覽」＋技術細節），重試只 refetch 本頁查詢。
 
-**這 N 句是草稿・待設計定案**（graph ns，共 18 句，zh-TW／en 兩套）：
-`mode.subtitle.node／type／community`（單一實體怎麼連／按 7 類分群後長怎樣／演算法自動聚出哪些派系）、`legend.currentLens`、`legend.typeToggleHint`、`panel.current`、`inference.noTokenCostInline`（以上 README §5 的 6 條）；另 `panel.chainInferred`（推斷關係審查）、`panel.chainEntity`（實體詳情）、`panel.chainEvent`（事件詳情）、`inference.forceRerunTitle`（強制重跑推論）、`v1.cluster.settings.zeroCost`（零成本）。**原寫死字串移入 i18n（逐字）**：`v1.cluster.communityRowCount`（{{n}} 個 · {{composition}}）、`v1.cluster.cohesion`（凝聚 {{score}}）、`v1.cluster.compositionAbbr.*`（角／地／概／事／組／物／他）、`v1.cluster.rel.cooperation／rivalry`（合作／敵對 {{score}}）。
+**FINAL_RULINGS 已通過、非草稿**：`mode.subtitle.node／type／community`（單一實體怎麼連／按 7 類分群後長怎樣／演算法自動聚出哪些派系）、`legend.currentLens`、`legend.typeToggleHint`、`panel.current`、`inference.noTokenCostInline`（README §5 的 6 條）。
+
+**以下是草稿・待設計定案**（graph ns，工程端自加，zh-TW／en 兩套）：
+`v1.cluster.overviewIn`（群集概觀 · {{lens}}，對應稿 C 區面板標題後綴）、`v1.lens.expand／collapse`（Lens 卡 chevron 的 aria-label）；另 `panel.chainInferred`（推斷關係審查）、`panel.chainEntity`（實體詳情）、`panel.chainEvent`（事件詳情）、`inference.forceRerunTitle`（強制重跑推論）、`v1.cluster.settings.zeroCost`（零成本）。**原寫死字串移入 i18n（逐字）**：`v1.cluster.communityRowCount`（{{n}} 個 · {{composition}}）、`v1.cluster.cohesion`（凝聚 {{score}}）、`v1.cluster.compositionAbbr.*`（角／地／概／事／組／物／他）、`v1.cluster.rel.cooperation／rivalry`（合作／敵對 {{score}}）。
 
 
 > 2026-07 全面翻新（Phase 1~6）：本節以翻新後實作為準。設計 brief 見 `docs/plans/20260718-kg-redesign-brief.md`、實作計劃見 `docs/plans/20260718-kg-redesign-implementation.md`。前身 V1（2026-05-17，計劃 `docs/plans/20260517-kg-page-redesign-v1-impl.md`）僅供沿革參考。翻新零新增後端端點。
@@ -1387,7 +1389,7 @@ i18n `matrix.legendTitle／legendDesc／legendFoot`、`noRanked.story／matrix`�
 > **以下是草稿・待設計定案**（i18n `tension.*`，zh-TW 與 en 皆有）：
 > `tension.state.gateHint`（「全部審完 →」，稿 G 區軟閘門）、`tension.drawer.carrier`（「載體」，稿 F 區）、
 > `tension.toolbar.batchFailed`（批次部分失敗提示）、`tension.teu.assign.failed`（指派非 409 失敗的說明）。
-> README §5 已裁決、**不標草稿**：`tension.theme.fryeLabel`／`bookerLabel`、`tension.teu.assign.conflict`（依計畫 Q3 只留前兩句）、
+> README §5 已裁決、**不標草稿**：`tension.theme.fryeLabel`／`bookerLabel`、`tension.teu.assign.conflict`（依計畫 Q3 只留前兩句；第一句 `<strong>` 粗體、不顯示「（409）」）、
 > `tension.teu.assign.zeroCost`、`tension.rerun.title`（既有字串，一字不改）。
 > 無「原寫死字串移入 i18n」。
 

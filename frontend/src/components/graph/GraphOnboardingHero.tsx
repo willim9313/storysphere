@@ -1,6 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Waypoints } from 'lucide-react';
+import { Upload } from 'lucide-react';
 
 /**
  * Empty-state guide shown when a book has no graph nodes yet. Unlike the
@@ -15,13 +15,11 @@ export function GraphOnboardingHero() {
   return (
     <div className="kg-hero">
       <div className="kg-hero-card">
-        <div className="kg-hero-icon">
-          <Waypoints size={22} />
-        </div>
         <div className="kg-hero-eyebrow">{t('onboarding.eyebrow')}</div>
         <h3 className="kg-hero-title">{t('onboarding.title')}</h3>
         <p className="kg-hero-text">{t('onboarding.intro')}</p>
         <button type="button" onClick={() => navigate('/upload')} className="ss-btn ss-btn-md ss-btn-primary">
+          <Upload size={14} aria-hidden="true" />
           {t('onboarding.cta')}
         </button>
       </div>

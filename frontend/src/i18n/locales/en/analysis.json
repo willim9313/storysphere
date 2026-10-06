@@ -640,8 +640,8 @@
       "analyzeRunningTitle": "TEU Assembly · running",
       "themeRunningTitle": "TensionTheme Synthesis · running",
       "groupErrorTitle": "TensionLine grouping failed",
-      "groupErrorBody": "{{error}} The last successful result ({{count}} tension lines) is still shown below and was not overwritten.",
-      "groupErrorBodyNoPrev": "{{error}}",
+      "groupErrorBody": "<mono>{{error}}</mono> The last successful result ({{count}} tension lines) is still shown below and was not overwritten.",
+      "groupErrorBodyNoPrev": "<mono>{{error}}</mono>",
       "retryGroup": "Retry grouping",
       "gateHint": "Review them all →"
     },
@@ -699,7 +699,7 @@
       "orphanBadge": "Ungrouped",
       "noneMatch": "No matching TEUs.",
       "assign": {
-        "conflict": "This TEU is already claimed by another tension line. A TEU belongs to exactly one line; there is no \"move\" action.",
+        "conflict": "<strong>This TEU is already claimed by another tension line</strong>. A TEU belongs to exactly one line; there is no \"move\" action.",
         "zeroCost": "Writes the assignment only, no cost",
         "failed": "Assignment failed: {{reason}}"
       }

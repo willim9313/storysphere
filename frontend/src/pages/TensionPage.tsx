@@ -678,9 +678,12 @@ export default function TensionPage() {
             <TensionErrorCard
               title={t('tension.state.groupErrorTitle')}
               message={
-                hasLines
-                  ? t('tension.state.groupErrorBody', { error: groupOp.error, count: lines.length })
-                  : t('tension.state.groupErrorBodyNoPrev', { error: groupOp.error })
+                <Trans
+                  i18nKey={hasLines ? 'tension.state.groupErrorBody' : 'tension.state.groupErrorBodyNoPrev'}
+                  ns="analysis"
+                  values={{ error: groupOp.error, count: lines.length }}
+                  components={{ mono: <span className="tn-alert-mono" /> }}
+                />
               }
               retryLabel={t('tension.state.retryGroup')}
               onRetry={() => runStep(2, true)}

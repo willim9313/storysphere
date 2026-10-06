@@ -16,7 +16,7 @@ export const MAIN_PANEL_WIDTH = 320;
 
 export type SecondaryPanel = 'analysis' | 'paragraphs';
 
-/** Secondary panels stack to the right of the main one, one at a time. */
+/** Secondary panels stack to the LEFT of the main one (which stays pinned right), one at a time. */
 export const SECONDARY_PANEL_WIDTH: Record<SecondaryPanel, number> = {
   analysis: 360,
   paragraphs: 400,

@@ -640,8 +640,8 @@
       "analyzeRunningTitle": "TEU 組裝 · 進行中",
       "themeRunningTitle": "TensionTheme 合成 · 進行中",
       "groupErrorTitle": "TensionLine 聚合失敗",
-      "groupErrorBody": "{{error}} 上次成功的結果（{{count}} 條張力線）仍保留在下方，未被覆寫。",
-      "groupErrorBodyNoPrev": "{{error}}",
+      "groupErrorBody": "<mono>{{error}}</mono> 上次成功的結果（{{count}} 條張力線）仍保留在下方，未被覆寫。",
+      "groupErrorBodyNoPrev": "<mono>{{error}}</mono>",
       "retryGroup": "重試聚合",
       "gateHint": "全部審完 →"
     },
@@ -699,7 +699,7 @@
       "orphanBadge": "未歸入",
       "noneMatch": "沒有符合的 TEU。",
       "assign": {
-        "conflict": "這個 TEU 已由另一條張力線認領。一個 TEU 只屬於一條線，沒有「移動」這個動作。",
+        "conflict": "<strong>這個 TEU 已由另一條張力線認領</strong>。一個 TEU 只屬於一條線，沒有「移動」這個動作。",
         "zeroCost": "只寫入歸屬，零成本",
         "failed": "指派失敗：{{reason}}"
       }
