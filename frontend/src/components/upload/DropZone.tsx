@@ -7,10 +7,9 @@ interface DropZoneProps {
   /** Every picked / dropped file, unfiltered — the page splits valid from rejected. */
   readonly onFiles: (files: File[]) => void;
   /** The last drop had nothing usable: draw the error border. */
-  readonly invalid?: boolean;
 }
 
-export function DropZone({ onFiles, invalid = false }: DropZoneProps) {
+export function DropZone({ onFiles }: DropZoneProps) {
   const [dragging, setDragging] = useState(false);
   const { t } = useTranslation('upload');
 
@@ -30,7 +29,6 @@ export function DropZone({ onFiles, invalid = false }: DropZoneProps) {
       htmlFor="file-input"
       className="up-drop"
       data-dragging={dragging}
-      data-invalid={invalid && !dragging}
       onDragOver={(e) => {
         e.preventDefault();
         setDragging(true);

@@ -223,9 +223,9 @@ function AboutTOC({ sections, scrollerRef }: AboutTOCProps) {
   );
 }
 
-function ItemCard({ item, n }: { item: FrameworkItem; n: number }) {
+function ItemCard({ item, n, plain = false }: { item: FrameworkItem; n: number; plain?: boolean }) {
   return (
-    <div className="md-itemcard">
+    <div className={plain ? 'md-itemcard md-itemcard-plain' : 'md-itemcard'}>
       <div className="md-itemcard-top">
         <span className="md-itemcard-num">{n}</span>
         <div className="md-itemcard-id">
@@ -249,7 +249,7 @@ function ItemsGrid({ fw }: { fw: Framework }) {
     return (
       <div className="md-items">
         {fw.items.map((it, i) => (
-          <ItemCard key={it.id} item={it} n={i + 1} />
+          <ItemCard key={it.id} item={it} n={i + 1} plain />
         ))}
       </div>
     );

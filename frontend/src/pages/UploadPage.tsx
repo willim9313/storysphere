@@ -396,7 +396,7 @@ export default function UploadPage() {
               {/* A · Idle — only when nothing is queued */}
               {!active && (
                 <>
-                  <DropZone onFiles={handleFilesSelected} invalid={rejections.length > 0} />
+                  <DropZone onFiles={handleFilesSelected} />
                   {rejectionBox}
                 </>
               )}

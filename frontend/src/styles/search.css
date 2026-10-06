@@ -84,8 +84,11 @@
   color: var(--fg-primary);
 }
 
-/* 「所有書籍 ⌄」: a plain <span> label — no hover, no border. */
+/* 「所有書籍 ⌄」: 純標示（無 hover、無邊框），但有 bg-secondary 底（05 稿 searchBar()）。 */
 .srch-scope {
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--control-radius);
+  background: var(--bg-secondary);
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
@@ -94,8 +97,9 @@
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
   font-weight: 600;
-  color: var(--fg-secondary);
+  color: var(--fg-primary);
 }
+.srch-scope svg { color: var(--fg-secondary); }
 
 /* kit .ss-btn has no disabled look (feedback 1-S) */
 .srch-submit {

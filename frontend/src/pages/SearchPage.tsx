@@ -299,35 +299,17 @@ export default function SearchPage() {
 
   function renderContent() {
     if (!hasSearched) {
-      // Never show "library is empty" until the book list has actually answered.
+      // Never show the initial prompt until the book list has actually answered.
+      // (Empty library is handled before the search bar renders, see below.)
       if (booksLoading) return null;
-      if (hasBooks) {
-        return (
-          <div className="srch-initial">
-            <div className="srch-initial-icon">
-              <Search size={24} strokeWidth={1.7} />
-            </div>
-            <h1 className="srch-initial-title">{t('title')}</h1>
-            <p className="srch-initial-sub">{t('subtitle')}</p>
-          </div>
-        );
-      }
       return (
-        <EmptyState
-          weight="prerequisite"
-          icon={<Upload size={26} />}
-          title={t('empty.noBooks')}
-          description={t('empty.noBooksHint')}
-          action={
-            <button
-              type="button"
-              className="ss-btn ss-btn-md ss-btn-primary"
-              onClick={() => navigate('/upload')}
-            >
-              {t('empty.uploadNow')}
-            </button>
-          }
-        />
+        <div className="srch-initial">
+          <div className="srch-initial-icon">
+            <Search size={24} strokeWidth={1.7} />
+          </div>
+          <h1 className="srch-initial-title">{t('title')}</h1>
+          <p className="srch-initial-sub">{t('subtitle')}</p>
+        </div>
       );
     }
 
@@ -350,7 +332,7 @@ export default function SearchPage() {
           <div className="ss-state-actions">
             <button
               type="button"
-              className="ss-btn ss-btn-md ss-btn-primary"
+              className="ss-btn ss-btn-sm ss-btn-primary"
               onClick={handleRetry}
             >
               {tc('retry')}
@@ -455,6 +437,31 @@ export default function SearchPage() {
             pageName={t('title')}
             onRetry={() => void refetch()}
             techDetail={techDetailOf(booksError)}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // 書庫為空（05 稿 A 區右格）：沒有搜尋列、模式切換與分頁，只有 ready 分量的空狀態。
+  if (!booksLoading && !hasBooks) {
+    return (
+      <div className="srch-scroll">
+        <div className="srch-page">
+          <EmptyState
+            weight="ready"
+            icon={<Upload size={28} />}
+            title={t('empty.noBooks')}
+            description={t('empty.noBooksHint')}
+            action={
+              <button
+                type="button"
+                className="ss-btn ss-btn-md ss-btn-primary"
+                onClick={() => navigate('/upload')}
+              >
+                {t('empty.uploadNow')}
+              </button>
+            }
           />
         </div>
       </div>

@@ -331,7 +331,7 @@ function LlmPanel() {
       ) : (
         <>
           <StSection icon={<Cpu size={16} />} title={t('llm.sectionTitle')}>
-            <div className="st-rows">
+            <div className="st-rows st-rows-llm">
               {rows.map(([k, v]) => (
                 <div className="st-row" key={k}>
                   <span className="st-row-key">{k}</span>
@@ -477,41 +477,47 @@ function EnvPanel() {
     { key: 'neo', dir: 'neo4j_to_nx', arrow: <ArrowLeft size={15} />, label: t('env.migNeoNx'), sub: t('env.migNeoNxSub') },
   ];
 
+  const deployGrid = (
+      <div className="st-radio-grid" role="radiogroup" aria-label={t('env.deployTitle')}>
+        {deployCards.map((c) => {
+          const badges = deployBadges(c.mode, uiMode, actualDeployMode);
+          const selected = uiMode === c.mode;
+          return (
+            <button
+              key={c.mode}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              className={'st-radio-card' + (selected ? ' active' : '')}
+              onClick={() => setUiMode(c.mode)}
+            >
+              <span className="st-radio-head">
+                <span className="st-radio-dot" />
+                <span className="st-radio-name">{c.name}</span>
+                {badges.current && <span className="st-radio-cur">{t('env.currentTag')}</span>}
+                {badges.previewing && <span className="st-radio-prev">{t('env.previewTag')}</span>}
+              </span>
+              <span className="st-radio-body">
+                <span className="st-radio-desc">{c.desc}</span>
+                <span className="st-radio-spec"><b>{t('env.qdrant')}</b><span>{c.qdrant}</span></span>
+                <span className="st-radio-spec"><b>{t('env.kg')}</b><span>{c.kg}</span></span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+  );
+
   return (
     <div className="st-panel">
       <PanelHead title={t('env.title')} sub={t('env.sub')} badge="dev" />
 
       {/* Deploy mode — radio cards; 「（目前）」 and the selection frame may disagree */}
-      <StSection icon={<Server size={16} />} title={t('env.deployTitle')}>
-        <div className="st-radio-grid" role="radiogroup" aria-label={t('env.deployTitle')}>
-          {deployCards.map((c) => {
-            const badges = deployBadges(c.mode, uiMode, actualDeployMode);
-            const selected = uiMode === c.mode;
-            return (
-              <button
-                key={c.mode}
-                type="button"
-                role="radio"
-                aria-checked={selected}
-                className={'st-radio-card' + (selected ? ' active' : '')}
-                onClick={() => setUiMode(c.mode)}
-              >
-                <span className="st-radio-head">
-                  <span className="st-radio-dot" />
-                  <span className="st-radio-name">{c.name}</span>
-                  {badges.current && <span className="st-radio-cur">{t('env.currentTag')}</span>}
-                  {badges.previewing && <span className="st-radio-prev">{t('env.previewTag')}</span>}
-                </span>
-                <span className="st-radio-body">
-                  <span className="st-radio-desc">{c.desc}</span>
-                  <span className="st-radio-spec"><b>{t('env.qdrant')}</b><span>{c.qdrant}</span></span>
-                  <span className="st-radio-spec"><b>{t('env.kg')}</b><span>{c.kg}</span></span>
-                </span>
-              </button>
-            );
-          })}
-        </div>
-      </StSection>
+      {isStd ? deployGrid : (
+        <StSection icon={<Server size={16} />} title={t('env.deployTitle')}>
+          {deployGrid}
+        </StSection>
+      )}
 
       {/* Lightweight: read-only status */}
       {!isStd && kg && (
@@ -587,7 +593,7 @@ function EnvPanel() {
               <span className="st-flag live">{t('env.kgLiveFlag')}</span>
             </div>
             <div className="st-seg-wrap">
-              <div className="ss-seg st-seg" role="group" aria-label={t('env.kgBackendTitle')}>
+              <div className="ss-seg st-seg st-seg-kg" role="group" aria-label={t('env.kgBackendTitle')}>
                 <button
                   type="button"
                   className={'ss-seg-item' + (kgBackend === 'networkx' ? ' active' : '')}

@@ -18,6 +18,13 @@
 @keyframes cr-spin { to { transform: rotate(360deg); } }
 
 /* ── 麵包屑（kit .ss-booknav 沿用，分隔符改 /）── */
+/* 麵包屑（02 稿 28px 列）：2xs secondary、箭頭 accent、書名只換 serif、目前頁 primary */
+.cr-booknav { padding: 0 var(--space-7); font-size: var(--font-size-2xs); color: var(--fg-secondary); }
+.cr-booknav .ss-booknav-back { font-size: var(--font-size-2xs); color: var(--fg-secondary); }
+.cr-booknav .ss-booknav-back:hover { color: var(--accent); }
+.cr-booknav-arrow { color: var(--accent); }
+.cr-booknav .ss-booknav-title { font-size: var(--font-size-2xs); font-weight: 400; color: var(--fg-secondary); }
+.cr-booknav .ss-booknav-view { font-size: var(--font-size-2xs); color: var(--fg-primary); }
 .cr-crumb-sep { font-size: var(--font-size-2xs); color: var(--fg-muted); }
 
 /* ── 主版面 ── */
@@ -36,6 +43,8 @@
   flex-shrink: 0; display: flex; align-items: center; gap: var(--space-5);
   padding: var(--space-5) var(--space-6); border-radius: var(--card-radius);
 }
+/* AI 邊界輔助橫幅（稿 F 區）：多行時圖示對齊第一行；切分／放棄列維持置中 */
+.cr-banner-top { align-items: flex-start; }
 .cr-banner-info    { background: var(--color-info-bg); }
 .cr-banner-success { background: var(--color-success-bg); }
 .cr-banner-error   { background: var(--color-error-bg); }
