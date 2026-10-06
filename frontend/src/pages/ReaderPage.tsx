@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect, useMemo } from 'react';
 import { Link, useParams, useLocation } from 'react-router-dom';
 import { Trans, useTranslation } from 'react-i18next';
-import { Search, ChevronLeft, ChevronRight, BookOpen, ArrowUp } from 'lucide-react';
+import { Search, ChevronLeft, ChevronRight, ArrowUp } from 'lucide-react';
 import { useChatDispatch } from '@/contexts/ChatContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { RAIL, useRailOccupant } from '@/contexts/FloatRailContext';
@@ -424,21 +424,20 @@ export default function ReaderPage() {
         className="rd-col2"
         style={{ width: col2CollapsedEffective ? 36 : 224 }}
       >
-        <div className="rd-col2-collapse">
-          <Tooltip label={col2CollapsedEffective ? t('col2Expand') : t('col2Collapse')}>
-            <button
-              type="button"
-              onClick={handleCol2Toggle}
-              className="rd-icon-btn"
-              aria-label={col2CollapsedEffective ? t('col2Expand') : t('col2Collapse')}
-            >
-              {col2CollapsedEffective ? <ChevronRight size={12} /> : <ChevronLeft size={12} />}
-            </button>
-          </Tooltip>
-        </div>
-
         {!col2CollapsedEffective ? (
           <>
+            <div className="rd-col2-collapse">
+              <Tooltip label={t('col2Collapse')}>
+                <button
+                  type="button"
+                  onClick={handleCol2Toggle}
+                  className="rd-icon-btn"
+                  aria-label={t('col2Collapse')}
+                >
+                  <ChevronLeft size={12} />
+                </button>
+              </Tooltip>
+            </div>
             {/* Header — right padding leaves room for the absolute collapse button */}
             <div className="rd-col2-head">
               <div className="rd-col2-head-row">
@@ -490,10 +489,15 @@ export default function ReaderPage() {
             </div>
           </>
         ) : (
-          <div className="rd-rail-col2">
-            <BookOpen size={14} />
+          <button
+            type="button"
+            onClick={handleCol2Toggle}
+            className="rd-rail-btn"
+            aria-label={t('col2Expand')}
+          >
+            <ChevronRight size={12} />
             <span className="rd-rail-label">{t('col2Rail')}</span>
-          </div>
+          </button>
         )}
       </div>
 
