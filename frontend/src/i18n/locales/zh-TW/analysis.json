@@ -91,6 +91,7 @@
     },
     "list": {
       "searchPlaceholder": "搜尋 {{count}} 位角色",
+      "groupMeta": "{{total}} · 已析 {{analyzed}}",
       "frameworkLabel": "分析框架",
       "mentionCount": "提及 {{count}} 次",
       "createBtn": "建立",
@@ -119,6 +120,7 @@
         "cornerLead": "要角",
         "cornerTail": "背景長尾",
         "ariaLabel": "角色定位象限散點圖",
+        "median": "中位數",
         "metricsError": "角色結構重要性資料暫時無法取得，象限視圖無法呈現。",
         "bubbleDetail": "· 提及 {{mentions}} · 關係 {{degree}}",
         "legendHead": "派系 · 顏色編碼",

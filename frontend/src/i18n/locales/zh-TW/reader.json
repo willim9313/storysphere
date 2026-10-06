@@ -83,7 +83,7 @@
   },
   "entityCard": {
     "close": "關閉",
-    "totalOccurrences": "全書出現 {{count}} 段",
+    "totalOccurrences": "全書出現 <strong>{{count}}</strong> 段",
     "characterAnalysis": "角色分析",
     "viewInGraph": "在圖譜中查看",
     "loadingAppearances": "載入出現段落…",

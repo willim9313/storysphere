@@ -266,8 +266,21 @@ export function EpistemicStateSection({
                 {t('character.epistemic.misbeliefEmpty')}
               </p>
             ) : (
-              optimistic.misbeliefs.map((m) => (
+              optimistic.misbeliefs.map((m) => {
+                // The misbelief item carries only sourceEventId; the event title
+                // comes from the matching unknown event (no match → no title row).
+                const sourceEvent = (state?.unknownEvents as Record<string, unknown>[] | undefined)?.find(
+                  (ev) => String(ev.id ?? ev.eventId ?? '') === m.sourceEventId,
+                );
+                const eventTitle = sourceEvent ? getTitle(sourceEvent) : '';
+                return (
                 <div key={m.sourceEventId} className="ca-misbelief">
+                  {eventTitle && (
+                    <div className="event-title">
+                      <span className="glyph" aria-hidden="true">✕</span>
+                      {eventTitle}
+                    </div>
+                  )}
                   <div>
                     <span className="label">{t('character.epistemic.characterBelieves')}</span>
                     <span className="belief">{m.characterBelief}</span>
@@ -280,7 +293,8 @@ export function EpistemicStateSection({
                     {t('character.epistemic.confidence', { pct: Math.round(m.confidence * 100) })}
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>

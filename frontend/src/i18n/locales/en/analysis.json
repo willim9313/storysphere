@@ -91,6 +91,7 @@
     },
     "list": {
       "searchPlaceholder": "Search {{count}} characters",
+      "groupMeta": "{{total}} · {{analyzed}} analyzed",
       "frameworkLabel": "Analysis framework",
       "mentionCount": "{{count}} mentions",
       "createBtn": "Create",
@@ -119,6 +120,7 @@
         "cornerLead": "Leads",
         "cornerTail": "Background long tail",
         "ariaLabel": "Character positioning quadrant scatter plot",
+        "median": "Median",
         "metricsError": "Character structural-importance data is temporarily unavailable, so the quadrant view can't render.",
         "bubbleDetail": "· {{mentions}} mentions · {{degree}} relations",
         "legendHead": "Faction · colour coding",

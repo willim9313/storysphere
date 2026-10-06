@@ -65,14 +65,20 @@ function CompareColumn({
       <div className="ca-compare-col-head">
         <h4>{title}</h4>
       </div>
-      <div className="ca-compare-primary">{archetype.primary}</div>
+      <div className="ca-compare-row">
+        <span className="ca-compare-row-label">{t('character.primaryArchetype')}</span>
+        <span className="ca-compare-primary">{archetype.primary}</span>
+      </div>
       {archetype.secondary && (
         <div className="ca-compare-secondary">
           {t('character.compare.secondaryLabel', { name: archetype.secondary })}
         </div>
       )}
       {/* 信心度三件套在抽屜兩側都齊備：Ink 下長條會塌成單色，文字與數字是必要的冗餘。 */}
-      <ConfidenceMeter pct={pct} />
+      <div className="ca-compare-row is-center">
+        <span className="ca-compare-row-label">{t('character.confidence')}</span>
+        <ConfidenceMeter pct={pct} />
+      </div>
       <p className="ca-compare-evidence-label">{t('character.compare.evidenceLabel')}</p>
       <div className="ca-compare-evidence-list">
         {archetype.evidence.map((e, i) => (

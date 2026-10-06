@@ -193,7 +193,12 @@ export function EpistemicSidePanel({
         {currentChapterOrder !== null && (
           <p className="rd-ep-cutoff">{t('epistemicPanel.cutoff', { n: currentChapterOrder })}</p>
         )}
-        {isFetching && <p className="rd-ep-muted">{t('epistemicPanel.computing')}</p>}
+        {isFetching && (
+          <p className="rd-ep-muted rd-ep-computing" role="status">
+            <Loader size={12} className="animate-spin" aria-hidden="true" />
+            {t('epistemicPanel.computing')}
+          </p>
+        )}
         {state && !state.dataComplete && (
           <>
             <p className="rd-ep-warn">
@@ -220,10 +225,12 @@ export function EpistemicSidePanel({
             {renderGroup('known', t('epistemicPanel.known'), state.knownEvents as Record<string, unknown>[])}
             {renderGroup('unknown', t('epistemicPanel.unknown'), state.unknownEvents as Record<string, unknown>[])}
 
-            {/* Misbeliefs */}
-            {state.misbeliefs.length > 0 && (
-              <section>
-                <EventGroupHeader label={t('epistemicPanel.misbeliefs')} count={state.misbeliefs.length} />
+            {/* Misbeliefs — an empty group still shows its head (0) and （無）, like the other two (08 E 區). */}
+            <section>
+              <EventGroupHeader label={t('epistemicPanel.misbeliefs')} count={state.misbeliefs.length} />
+              {state.misbeliefs.length === 0 ? (
+                <p className="rd-ep-muted">{t('epistemicPanel.none')}</p>
+              ) : (
                 <ul className="rd-ep-list">
                   {state.misbeliefs.map((m) => {
                     const sourceEvent = (state.unknownEvents as Record<string, unknown>[]).find(
@@ -231,6 +238,8 @@ export function EpistemicSidePanel({
                     );
                     const chapterNumber = sourceEvent ? toChapterNumber(sourceEvent) : null;
                     const clickable = chapterNumber !== null && sourceEvent !== undefined;
+                    // Event title comes from the matching unknown event; no match, no title row.
+                    const eventTitle = sourceEvent ? String(sourceEvent.title ?? '') : '';
                     return (
                       <li key={m.sourceEventId}>
                         <button
@@ -239,23 +248,33 @@ export function EpistemicSidePanel({
                           disabled={!clickable}
                           className="rd-ep-item rd-ep-misbelief"
                         >
-                          <p className="is-belief">
-                            <span className="rd-ep-glyph" aria-hidden="true">{GLYPH.misbelief} </span>
-                            <b>{t('epistemicPanel.misbelief')}</b>{m.characterBelief}
-                          </p>
-                          <p className="is-truth">
-                            <b>{t('epistemicPanel.actualTruth')}</b>{m.actualTruth}
-                          </p>
-                          <p className="is-confidence">
-                            {t('epistemicPanel.confidence', { percent: Math.round(m.confidence * 100) })}
-                          </p>
+                          {eventTitle && (
+                            <p className="is-title">
+                              <span className="rd-ep-glyph" aria-hidden="true">{GLYPH.misbelief}</span>
+                              <span>{eventTitle}</span>
+                            </p>
+                          )}
+                          <div className={eventTitle ? 'rd-ep-misbelief-body' : undefined}>
+                            <p className="is-belief">
+                              {!eventTitle && (
+                                <span className="rd-ep-glyph" aria-hidden="true">{GLYPH.misbelief} </span>
+                              )}
+                              <b>{t('epistemicPanel.misbelief')}</b>{m.characterBelief}
+                            </p>
+                            <p className="is-truth">
+                              <b>{t('epistemicPanel.actualTruth')}</b>{m.actualTruth}
+                            </p>
+                            <p className="is-confidence">
+                              {t('epistemicPanel.confidence', { percent: Math.round(m.confidence * 100) })}
+                            </p>
+                          </div>
                         </button>
                       </li>
                     );
                   })}
                 </ul>
-              </section>
-            )}
+              )}
+            </section>
 
             {/* Block note (B-065, layer 2): the known/unknown split is a rule,
                 not a judgement, and the rule is short enough to state. Copied
