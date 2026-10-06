@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { fetchTasks, isCancelled, type TaskStatus } from '@/api/tasks';
+import { fetchTasks, isCancelled, isPartialDone, type TaskStatus } from '@/api/tasks';
 import { useToast, type PushToastInput } from '@/contexts/ToastContext';
 import { qk } from '@/api/queryKeys';
 
@@ -18,11 +18,6 @@ function bookIdOf(task: TaskStatus): string | undefined {
   return typeof id === 'string' && id ? id : undefined;
 }
 
-function failedStepsOf(task: TaskStatus): string[] {
-  const fs = (task.result as { failedSteps?: unknown } | null | undefined)?.failedSteps;
-  return Array.isArray(fs) ? (fs as string[]) : [];
-}
-
 /** A terminal/actionable phase we surface as a toast. `done` splits into
  *  success vs partial by whether any pipeline step failed. */
 type Phase = 'done' | 'partial' | 'awaiting_review' | 'error';
@@ -32,7 +27,7 @@ export function phaseOf(task: TaskStatus): Phase | null {
   if (isCancelled(task)) return null;
   if (task.status === 'error') return 'error';
   if (task.status === 'awaiting_review') return 'awaiting_review';
-  if (task.status === 'done') return failedStepsOf(task).length > 0 ? 'partial' : 'done';
+  if (task.status === 'done') return isPartialDone(task) ? 'partial' : 'done';
   return null;
 }
 
@@ -115,9 +110,8 @@ function buildToast(
         type: 'warning',
         title: t('notify.partialTitle', { title }),
         body: t('notify.partialBody'),
-        action: bookId
-          ? { label: t('notify.gotoLibrary'), onClick: () => navigate(`/books/${bookId}`) }
-          : undefined,
+        // 「前往書庫查看」: the library, not the book (A1 M2).
+        action: { label: t('notify.gotoLibrary'), onClick: () => navigate('/') },
       };
     case 'awaiting_review':
       return {

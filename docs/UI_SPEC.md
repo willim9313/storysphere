@@ -273,6 +273,7 @@ sessionStorage 記著、但 `GET /tasks/:id/status` 回 404 的任務（記憶�
 （`--bg-tertiary`）、右側 `ss-btn-sm ss-btn-secondary ss-btn-llm`「重跑」（失敗後「再試」，進行中「重跑中…」）。
 對映不到 rerun endpoint 的前綴只列出、不給鈕、不寫說明（符號探索有 endpoint，保留鈕，1-M）。全部補齊換成
 CircleCheck success「所有步驟皆已補齊。」。底部分隔線下固定「前往書庫查看 →」。重跑 toast 不變。
+部分完成 toast（全域）的行動鈕「前往書庫查看」導向書庫 `/`，不是書籍頁。
 
 #### F · 已完成 · 失敗
 
@@ -461,21 +462,21 @@ chevron 有自己的 hover 底（`--bg-tertiary`，展開時也是）。選中�
 | 正文欄 | 滿版 | `max-width: 760px` 置中 |
 | chunk 卡 | 完整卡框與底色 | 卡框與底色收成一條區隔細線；`#order` 掛到正文左側邊界外（左側留 `--space-8` 的溝，窄視窗也不被裁） |
 
-刻度 15／17／19px、1.6／1.85／2.15 不動，只定兩態的預設落點。模式只存在於當次 session，不持久化。專注態是 A 級的變體（間距仍 12／8／8／4），不換級。
+刻度 15／17／19px、1.6／1.85／2.15 不動；字級與行距兩態共用同一組（FINAL_RULINGS #7）。模式只存在於當次 session，不持久化。專注態是 A 級的變體（間距仍 12／8／8／4），不換級。
 
 ##### Aa 排版彈窗與 `reader:prefs`
 
-彈窗 **220px**：（該態標頭＋「此態預設 17 / 1.6」＋「目前 …」＋ **「回到此態預設」鈕——只在使用者的值 ≠ 該態預設時出現**）→ 字級 小／標準／大 → 行距 緊／標準／寬 →
+彈窗 **220px**：（「此態預設 17 / 1.6」＋「目前 …」＋ **「回到此態預設」鈕——只在使用者的值 ≠ 預設時出現**；兩態共用一組，不再有「檢視／專注」標頭，「此態」二字的措辭待設計端確認，見 DS_V3_DESIGN_FEEDBACK 第 5 批）→ 字級 小／標準／大 → 行距 緊／標準／寬 →
 紙張色溫（4 色票，**只在 Warm 渲染**；Ink 整段不渲染且忽略既存偏好，欄 3 背景固定 `--bg-primary`）→ 逐段淡入。
 
 `reader:prefs` 結構（純邏輯在 `components/reader/readerModel.ts`，有 vitest）：
 
 ```json
-{ "warmth": 1, "fade": false, "view": { "fs": 2 }, "focus": {} }
+{ "fs": 1, "lh": 0, "warmth": 1, "fade": false }
 ```
 
-`view`／`focus` 只存**使用者改過、且 ≠ 該態預設**的欄位；沒有的就是該態預設。態切換只換預設，使用者動過就以他的值為準。warmth、fade 不分態。
-**舊結構 `{fs, lh, warmth, fade}` 讀入時轉成檢視態的值**（既有使用者的偏好不消失；專注態從自己的預設開始），之後的寫入一律是新結構。
+fs、lh、warmth、fade **兩態共用一組**（FINAL_RULINGS #7），預設 17 / 1.6。專注態不再有自己的預設（19 / 1.85 作廢）。
+**舊結構讀入時**：原始平面 `{fs, lh, warmth, fade}` 原樣沿用；中間版本的分態 `{view:{…}, focus:{…}, warmth, fade}` 取 `view` 那組、丟掉 `focus`。之後的寫入一律是平面新結構。
 
 #### 實體卡 — `EntityCard`（popover）
 
@@ -721,7 +722,7 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 - **批次面板（`BatchEepPanel`）**（第 5 批 09·10 已改寫四態與收合，見下方「第 5 批 · 批次面板」，本條只留按鈕規格）：主鈕「一鍵生成全部 EEP」`ss-btn-primary ss-btn-llm`，走確認框。
   子集區在主鈕正下方**同一張卡**、不收折疊；三顆子集鈕（只生成核心 (N)／只生成本章／生成已勾選 (N)）都掛 `ss-btn-llm`、
   筆數寫在標籤裡、**直接執行不開確認框**（不對稱是設計決定）。disabled 的鈕外層掛 `Tooltip`（逐字 `batch.kernelOnlyDisabled`／`batch.chapterOnlyDisabled`）。
-  執行中整區子集隱藏、主鈕變 disabled「分析中 N/M…」＋ stage ＋ ▶ live（stage 太長時 Tooltip 顯全文）。
+  執行中整區子集隱藏、主鈕變 disabled「分析中 N/M…」（N／M＝**本次 run** 的 `subProgress`／`subTotal`，不是全書已分析數；task 尚未回報 `subTotal` 前退回全書計數）＋ stage ＋ ▶ live（stage 太長時 Tooltip 顯全文）。
   完成後面板顯示三格計數＋失敗**數**（第 5 批起不再列失敗清單），不再有「批次 EEP 分析完成」那一列（只在 toast），也沒有面板內關閉鈕（見 feedback 3-EV-7）。
 - **清單列（`EventListItems`，動作列·行內按鈕變體）**：一行格線 `24px · 1fr · 12px`，第二行固定 28px（章號、非順敘 chip、stale 小點、未分析列的「生成分析」`ss-btn-llm`）。
   狀態點與按鈕二擇一（已分析＝success 點、partial＝空心 warning 環、生成中＝accent 脈衝點）。選中＝`--bg-secondary` 底＋加粗，無邊框／inset。
@@ -974,7 +975,7 @@ partial 時附「部分分析」徽章。其下為研究者導覽 ribbon。
 - **群集概觀**：「此檢視範圍」「怎麼分的」兩卡在社群面板**頂端**常駐；列尾無「⋯更多」；無派系／非角色宣告保留；進階群集設定四項（偵測算法只顯示現值 `greedy_modularity`，後端不收參數），重新運算零成本、不掛字符、旁註「零成本」。
 - **右欄**：共用 `GraphRightRail`（主面板統一 320），頂端 11px「目前顯示 · {name}」＋四點（純標示、不可點）。優先鏈 compare > inferred > cluster > entity（`resolveRailPanel`）。次級面板（深度分析 360、相關段落 400）疊在主面板右側、一次一個，**只在實體／事件面板為主面板時存在**（修掉與審查面板重疊）。右下角 stats／迷你地圖／縮放讀實際欄寬定位（修掉寫死 280）。
 - **事件面板**：參與者只渲染 `<型別> <名稱>` chip；location 死碼刪除。**比較面板**：三欄表＋「建議推斷關係」顯示 `type · 共同鄰居 N 個 · Adamic-Adar x`；採用不再送 `relationType`（修 422）。「展開全部 N 段」用既有「查看相關段落 →」。
-- **推論**：執行中只有轉圈＋「推論中…」、無進度條；採用／否決零成本不掛字符；重跑選單安全＝一般列、強制＝危險色＋警示符號；強制重跑改 `ConfirmDialog danger`（無字符），內文逐字含「重跡」。
+- **推論**：執行中只有轉圈＋「推論中…」、無進度條；採用／否決零成本不掛字符；重跑選單安全＝一般列、強制＝危險色＋警示符號；強制重跑改 `ConfirmDialog danger`（無字符），內文沿用原稿（原稿錯字「重跡」已依 FINAL_RULINGS #9 改為「重跑」）。
 - **Lens 卡**：故事模式不可用改為**可見文字**（`v1.lens.storyModeLocked`）；Lens 卡與未連結實體抽屜同在左下堆疊、同一條底邊，抽屜往上展開。
 - **字符**：全頁只有「生成深度分析 →」「覆蓋重生成」與「分類可見性」掛 `.ss-btn-llm`；深度分析 503 → `LlmUnconfiguredNotice`（就地）。執行推論不掛。
 - **縮放**：± 接 cytoscape zoom（`GraphCanvasHandle.zoomBy`），讀數取 `ViewportSnapshot.zoom`；社群鏡頭（固定 SVG）不顯示縮放條。
@@ -2397,7 +2398,7 @@ WebSocket 連線，含訊息列表 + 輸入框。
     `--tk-{bg,border,fg,dot}` 傳入列。
   - 進行中：4px 進度條（`--bg-tertiary` 軌；Warm kind 色／Ink `--fg-primary` 填）＋mono 2xs 百分比＋stage 2xs muted ellipsis。
     **進度條不做寬度過渡**：輪詢最快 2s，補間會假裝不存在的更新頻率。無 ETA（後端沒有）。
-  - 完成：相對時間（見下「完成時間」）；`failed_parts` 非空顯示「部分完成」warning 色（Ink 加粗）。失敗：`alert` 12＋
+  - 完成：相對時間（見下「完成時間」）；`result.failedSteps`（ingestion）或 `failed_parts`（分析任務）非空顯示「部分完成」warning 色（Ink 加粗）。失敗：`alert` 12＋
     「失敗 · 前往該頁處理」（可導覽）／「失敗」，error 色（Ink 加粗）。
   - 狀態點 8px，優先序：部分完成 warning → done success → error error → awaiting_review warning → kind 色；未終態脈動 1.6s
     （`prefers-reduced-motion` 關閉）。Ink 下跑動點 `--fg-primary`、其餘語意色 token 本身已單色。

@@ -3,11 +3,10 @@ import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Tooltip } from '@/components/ui/Tooltip';
 import {
-  MODE_DEFAULTS,
+  DEFAULT_TYPOGRAPHY,
   formatTypography,
   isOverridden,
   resolveTypography,
-  type ReaderMode,
   type ReaderPrefs,
   type Step,
   type Typography,
@@ -21,19 +20,17 @@ const STEPS = [0, 1, 2] as const;
 
 /**
  * Reader toolbar "Aa" button + 220px popover: font size / line height (kept
- * per 檢視 / 專注 mode, with that mode's default and a way back to it), paper
+ * shared by 檢視 / 專注, with the default and a way back to it), paper
  * warmth (Warm only — Ink renders none of it) and the fade-in toggle. State is
  * fully controlled; ReaderPage owns `reader:prefs`.
  */
 export function TypographyPanel({
   prefs,
-  mode,
   onTypography,
   onResetTypography,
   onPrefs,
 }: {
   readonly prefs: ReaderPrefs;
-  readonly mode: ReaderMode;
   readonly onTypography: (patch: Partial<Typography>) => void;
   readonly onResetTypography: () => void;
   readonly onPrefs: (patch: Partial<Pick<ReaderPrefs, 'warmth' | 'fade'>>) => void;
@@ -52,8 +49,8 @@ export function TypographyPanel({
     return () => document.removeEventListener('mousedown', handlePointerDown);
   }, [open]);
 
-  const current = resolveTypography(prefs, mode);
-  const overridden = isOverridden(prefs, mode);
+  const current = resolveTypography(prefs);
+  const overridden = isOverridden(prefs);
 
   return (
     <div className="relative" ref={wrapperRef}>
@@ -69,10 +66,9 @@ export function TypographyPanel({
       {open && (
         <div className="rd-typo">
           <div className="rd-typo-group">
-            <span className="rd-typo-label">{mode === 'view' ? t('viewLabel') : t('focusLabel')}</span>
             <div className="rd-typo-line is-muted">
               <span>{t('typography.modeDefault')}</span>
-              <span className="rd-typo-mono">{formatTypography(MODE_DEFAULTS[mode])}</span>
+              <span className="rd-typo-mono">{formatTypography(DEFAULT_TYPOGRAPHY)}</span>
             </div>
             <div className="rd-typo-line">
               <span>{t('typography.current')}</span>

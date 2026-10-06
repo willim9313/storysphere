@@ -1,5 +1,5 @@
 import { ChevronRight, AlertTriangle } from 'lucide-react';
-import type { TaskStatus } from '@/api/tasks';
+import { isPartialDone, type TaskStatus } from '@/api/tasks';
 import { kindMeta, kindVars } from './taskKinds';
 import { taskRoute } from './taskRoute';
 
@@ -30,9 +30,8 @@ export function TaskRow({ task, onNavigate }: TaskRowProps) {
   const running = status === 'running' || status === 'awaiting_review' || status === 'pending';
   const isDone = status === 'done';
   const isError = status === 'error';
-  // A done task whose result carries failed_parts is a partial completion.
-  const failedParts = (task.result as { failed_parts?: unknown } | null | undefined)?.failed_parts;
-  const isPartial = isDone && Array.isArray(failedParts) && failedParts.length > 0;
+  // A done task with failed steps / parts is a partial completion (same rule as the toast).
+  const isPartial = isPartialDone(task);
 
   // Dot colour priority: partial → done → error → awaiting_review → kind.
   const dotTone = isPartial

@@ -671,6 +671,8 @@
       "intensitySep": ", ",
       "orphanTitle": "Not grouped into any tension line",
       "orphanCellLabel": "Chapter {{chapter}}, {{count}} ungrouped TEUs",
+      "cellLabelIntensity": "Chapter {{chapter}}, {{count}} TEUs, intensity {{intensities}}",
+      "orphanCellLabelIntensity": "Chapter {{chapter}}, {{count}} ungrouped TEUs, intensity {{intensities}}",
       "orphanMeta": "{{count}} TEU ({{pct}}%)",
       "lostChapters": "{{list}} entirely ungrouped",
       "expand": "Expand",
@@ -709,6 +711,10 @@
     }
   },
   "timeline": {
+    "coverage": {
+      "prereq": "Prerequisite: event analysis {{done}} / {{total}} events ({{pct}}%)",
+      "toEvents": "Go to event analysis →"
+    },
     "narrativeModes": {
       "present": "Present",
       "flashback": "Flashback",
@@ -1111,7 +1117,9 @@
     "openPageNotImplemented": "Not yet wired",
     "counts": {
       "chapters": "chapters",
-      "paragraphs": "chunks",
+      "paragraphs": "paragraphs",
+      "chaptersN": "{{n}} ch.",
+      "paragraphsN": "{{n}} paras",
       "generated": "generated",
       "total": "total",
       "character": "CHARACTER",

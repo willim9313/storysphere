@@ -43,6 +43,16 @@ beforeEach(() => {
  * or a finished modal close itself, and only in the app.
  */
 describe('useAsyncTask', () => {
+  it('wakes the global task list when a task is adopted', async () => {
+    const spy = vi.spyOn(queryClient, 'invalidateQueries');
+    const fetcher = vi.fn(async () => task({ status: 'running' }));
+    const { result } = renderHook(() => useAsyncTask({ fetcher, defaultError: 'x' }), { wrapper });
+
+    act(() => result.current.adopt('t1'));
+
+    await waitFor(() => expect(spy).toHaveBeenCalledWith({ queryKey: qk.tasks.list() }));
+  });
+
   it('reports done once and lets the caller clear the id', async () => {
     const fetcher = vi.fn(async () => task({ status: 'done' }));
     const onDone = vi.fn((_t: TaskStatus, ctl: { reset: () => void }) => ctl.reset());

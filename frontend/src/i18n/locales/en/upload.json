@@ -14,6 +14,7 @@
   "languageDe": "Deutsch",
   "languagePt": "Português",
   "languageRu": "Русский",
+  "titleHint": "Can be changed anytime in the library",
   "authorPlaceholder": "Leave blank to auto-detect from file metadata",
   "confirmUpload": "Confirm Upload",
   "processingSection": "Processing",
