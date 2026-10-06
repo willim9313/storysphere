@@ -88,16 +88,14 @@
 }
 .ca-search input::placeholder { color: var(--fg-muted); }
 
-/* Back to overview (selected character) */
-.ca-back-to-overview {
-  display: flex; align-items: center; gap: var(--space-3); width: 100%;
-  padding: var(--space-4) var(--space-5); border: none;
-  border-bottom: var(--line-weight) var(--border-style) var(--border);
-  background: transparent; color: var(--accent); cursor: pointer;
-  font-family: var(--font-sans); font-size: var(--font-size-2xs); font-weight: 600;
-  text-align: left;
+/* Back to overview (title bar, before the name) */
+.ca-back-link {
+  display: inline-flex; align-items: center; gap: var(--space-2); align-self: flex-start;
+  padding: 0; border: none; background: transparent; color: var(--accent); cursor: pointer;
+  font-family: var(--font-sans); font-size: var(--font-size-2xs);
 }
-.ca-back-to-overview:hover { opacity: 0.85; }
+.ca-back-link:hover { opacity: 0.85; }
+.ca-titlebar-main .ca-back-link { align-self: baseline; }
 
 /* ─── List: groups + action rows ─── */
 .ca-list {
@@ -761,6 +759,8 @@
   font-size: var(--font-size-2xs); line-height: 1.6;
   display: flex; flex-direction: column; gap: var(--space-3);
 }
+.ca-misbelief .event-title { color: var(--fg-primary); font-family: var(--font-serif); font-weight: 600; }
+.ca-misbelief .event-title .glyph { font-family: var(--font-mono); color: var(--color-error); margin-right: var(--space-3); }
 .ca-misbelief .label { font-weight: 700; margin-right: var(--space-3); font-family: var(--font-sans); }
 .ca-misbelief .belief { color: var(--fg-primary); font-family: var(--font-serif); }
 .ca-misbelief .truth-row { color: var(--fg-secondary); }
@@ -792,6 +792,9 @@
 .ca-compare-body { flex: 1; overflow-y: auto; display: flex; gap: var(--space-7); padding: var(--space-7); }
 .ca-compare-col { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4); }
 .ca-compare-col-head h4 { margin: 0; font-family: var(--font-serif); font-size: var(--font-size-base); font-weight: 700; }
+.ca-compare-row { display: flex; align-items: baseline; gap: var(--space-5); }
+.ca-compare-row.is-center { align-items: center; }
+.ca-compare-row-label { width: 60px; flex-shrink: 0; font-size: var(--font-size-2xs); color: var(--fg-muted); }
 .ca-compare-primary { font-size: var(--font-size-xs); font-weight: 600; color: var(--fg-primary); }
 .ca-compare-secondary { font-size: var(--font-size-xs); color: var(--fg-secondary); }
 .ca-compare-evidence-label {
@@ -900,6 +903,7 @@
 .ca-ov-bubble:focus-visible { outline: none; }
 .ca-ov-bubble:focus-visible circle:last-of-type { stroke: var(--accent); stroke-width: 2.5; }
 .ca-ov-median-line { stroke: var(--border); stroke-width: 1.5; stroke-dasharray: 4 4; }
+.ca-ov-median-label { fill: var(--fg-muted); font-family: var(--font-mono); font-size: var(--font-size-2xs); }
 .ca-ov-axis-label { fill: var(--fg-muted); font-family: var(--font-sans); font-size: var(--font-size-sm); font-weight: 500; }
 .ca-ov-corner-label { fill: var(--fg-muted); font-family: var(--font-sans); font-size: var(--font-size-xs); font-style: italic; opacity: 0.6; }
 .ca-ov-bubble-label { fill: var(--fg-primary); font-family: var(--font-sans); font-size: var(--font-size-sm); font-weight: 500; }

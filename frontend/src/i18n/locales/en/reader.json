@@ -83,7 +83,7 @@
   },
   "entityCard": {
     "close": "Close",
-    "totalOccurrences": "Appears in {{count}} passages",
+    "totalOccurrences": "Appears in <strong>{{count}}</strong> passages",
     "characterAnalysis": "Character Analysis",
     "viewInGraph": "View in Graph",
     "loadingAppearances": "Loading appearances…",

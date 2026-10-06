@@ -156,6 +156,13 @@ export function QuadrantView({
                 y1={cy(medY)} y2={cy(medY)}
                 className="ca-ov-median-line"
               />
+              <text
+                x={VB_W - pad.right - 4} y={cy(medY) - 6}
+                textAnchor="end"
+                className="ca-ov-median-label"
+              >
+                {t('character.overview.quadrant.median')}
+              </text>
 
               {/* axis labels */}
               <text

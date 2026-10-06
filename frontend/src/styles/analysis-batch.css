@@ -93,7 +93,7 @@
 }
 .ea-batch-pct > span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; }
 .ea-batch-pct .stage { flex: 1; font-family: var(--font-sans); }
-.ea-batch-pct .live { color: var(--accent); }
+.ea-batch-pct .live { color: var(--color-success); }
 .ea-batch-pct > .ss-tooltip-anchor { flex: 1; min-width: 0; }
 .ea-batch-pct > .ss-tooltip-anchor > .stage { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
@@ -104,7 +104,7 @@
 }
 .ea-batch-status .is-error { color: var(--color-error); }
 
-.ea-batch-main { width: 100%; }
+.ea-batch-main { align-self: flex-start; }
 
 /* 第 3 態：三格計數＋「只看失敗」 */
 .ea-batch-section {
@@ -138,6 +138,7 @@
 .ea-batch-subset-row > .ss-tooltip-anchor { flex: 1; min-width: 0; }
 .ea-batch-subset-row .ss-btn { width: 100%; }
 .ea-batch-subset > .ss-btn { width: 100%; }
+.ea-batch-subset.is-top > .ss-btn { width: auto; align-self: flex-start; }
 .ea-batch-subset > .ss-btn.is-active { background: var(--bg-tertiary); font-weight: 700; }
 
 /* ── Batch failure list (B-113) ─────────────────────────────────────

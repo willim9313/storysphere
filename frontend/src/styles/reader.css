@@ -268,6 +268,7 @@
   font-weight: 700; color: var(--fg-primary);
 }
 .rd-ecard-total { font-size: var(--font-size-2xs); color: var(--fg-secondary); }
+.rd-ecard-total strong { font-family: var(--font-mono); font-weight: 600; }
 .rd-ecard-actions { display: flex; gap: var(--space-4); flex-wrap: wrap; }
 /* 清單是主體：內容區在 60vh 上限內自己捲動，不截斷、不加漸層。 */
 .rd-ecard-body {
@@ -333,7 +334,7 @@
 .rd-ep-cutoff { margin: 0; font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-muted); }
 .rd-ep-warn { margin: 0; display: flex; align-items: center; gap: var(--space-3); font-size: var(--font-size-2xs); color: var(--color-warning); }
 .rd-ep-body { flex: 1; overflow-y: auto; padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-5); }
-.rd-ep-group-head { display: flex; align-items: center; gap: var(--space-3); margin-bottom: var(--space-3); font-size: var(--font-size-2xs); font-weight: 600; color: var(--fg-secondary); }
+.rd-ep-group-head { display: flex; align-items: center; gap: var(--space-2); margin-bottom: var(--space-3); font-size: var(--font-size-2xs); font-weight: 400; letter-spacing: 0.06em; color: var(--fg-muted); }
 .rd-ep-count { font-family: var(--font-mono); font-weight: 400; color: var(--fg-muted); }
 .rd-ep-list { display: flex; flex-direction: column; gap: var(--space-2); margin: 0; padding: 0; list-style: none; }
 .rd-ep-item {
@@ -344,8 +345,10 @@
 }
 .rd-ep-item:hover:not(:disabled) { background: var(--bg-tertiary); }
 .rd-ep-item:disabled { cursor: default; }
-.rd-ep-item.is-known { background: var(--color-success-bg); color: var(--color-success); }
-.rd-ep-item.is-unknown { background: var(--color-warning-bg); color: var(--color-warning); }
+.rd-ep-item.is-known { background: var(--color-success-bg); color: var(--fg-primary); }
+.rd-ep-item.is-unknown { background: var(--color-warning-bg); color: var(--fg-primary); }
+.rd-ep-item.is-known .rd-ep-glyph { color: var(--color-success); }
+.rd-ep-item.is-unknown .rd-ep-glyph { color: var(--color-warning); }
 /* Ink 把四個 status 色收成同色：字符（✓ ? ✕）是色相以外的載體。 */
 .rd-ep-glyph { font-family: var(--font-mono); font-size: var(--font-size-2xs); flex-shrink: 0; }
 .rd-ep-item-title { flex: 1; min-width: 0; display: flex; align-items: baseline; gap: var(--space-3); font-family: var(--font-serif); font-size: var(--font-size-2xs); line-height: 1.5; }
@@ -356,6 +359,11 @@
 }
 .rd-ep-misbelief:hover:not(:disabled) { background: var(--bg-tertiary); }
 .rd-ep-misbelief p { margin: 0; font-size: var(--font-size-2xs); line-height: 1.5; }
-.rd-ep-misbelief .is-belief { color: var(--color-error); }
-.rd-ep-misbelief .is-truth, .rd-ep-misbelief .is-confidence { color: var(--fg-muted); }
+.rd-ep-misbelief { color: var(--fg-primary); }
+.rd-ep-misbelief .rd-ep-glyph { color: var(--color-error); }
+.rd-ep-misbelief .is-title { display: flex; align-items: baseline; gap: var(--space-3); font-family: var(--font-serif); color: var(--fg-primary); }
+.rd-ep-misbelief-body { display: flex; flex-direction: column; gap: 2px; padding-left: 14px; }
+.rd-ep-misbelief .is-belief, .rd-ep-misbelief .is-truth { color: var(--fg-secondary); }
+.rd-ep-misbelief .is-confidence { font-family: var(--font-mono); color: var(--fg-muted); }
+.rd-ep-computing { display: flex; align-items: center; gap: var(--space-3); }
 .rd-ep-misbelief b { font-weight: 500; }

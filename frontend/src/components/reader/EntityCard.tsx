@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { X, Loader } from 'lucide-react';
 import { fetchEntityAnalysis } from '@/api/analysis';
@@ -87,7 +87,18 @@ export function EntityCard({ bookId, entityId, name, type, anchorRect, onClose, 
 
   const total = chunksData?.total;
   const chunks = chunksData?.chunks ?? [];
-  const archetypeLabels = analysis ? Array.from(new Set(analysis.archetypes.map((a) => a.primary))) : [];
+  // 「Jung · 照顧者」「Schmidt · 守護者」：框架前綴＋原型；Jung 用 info 色（08 D 區）。
+  const archetypeLabels = analysis
+    ? Array.from(
+        new Map(
+          analysis.archetypes.map((a) => {
+            const fw = a.framework === 'jung' ? 'Jung' : 'Schmidt';
+            const text = `${fw} · ${a.primary}`;
+            return [text, { text, info: a.framework === 'jung' }] as const;
+          }),
+        ).values(),
+      )
+    : [];
 
   return (
     <div ref={cardRef} style={style} className="rd-ecard">
@@ -105,7 +116,14 @@ export function EntityCard({ bookId, entityId, name, type, anchorRect, onClose, 
           </button>
         </div>
         {total != null && (
-          <span className="rd-ecard-total">{t('entityCard.totalOccurrences', { count: total })}</span>
+          <span className="rd-ecard-total">
+            <Trans
+              i18nKey="entityCard.totalOccurrences"
+              ns="reader"
+              values={{ count: total }}
+              components={{ strong: <strong /> }}
+            />
+          </span>
         )}
         <div className="rd-ecard-actions">
           {isCharacter && (
@@ -176,7 +194,7 @@ function AnalysisBlock({
 }: {
   readonly loading: boolean;
   readonly summary: string | undefined;
-  readonly labels: string[];
+  readonly labels: { text: string; info: boolean }[];
 }) {
   const { t } = useTranslation('reader');
   if (loading) {
@@ -194,8 +212,8 @@ function AnalysisBlock({
       {labels.length > 0 && (
         <div className="rd-chips">
           {labels.map((label) => (
-            <span key={label} className="ss-badge">
-              {label}
+            <span key={label.text} className={label.info ? 'ss-badge ss-badge-info' : 'ss-badge'}>
+              {label.text}
             </span>
           ))}
         </div>

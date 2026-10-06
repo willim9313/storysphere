@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Mic } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -6,6 +7,7 @@ import { ApiError } from '@/api/client';
 import { failureKind, isLlmUnconfigured, techDetailOf } from '@/api/failureKind';
 import { LlmUnconfiguredNotice } from '@/components/ui/LlmUnconfiguredNotice';
 import { ErrorMessage } from '@/components/ui/ErrorMessage';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { PageFailure } from '@/components/ui/PageFailure';
 import { Tooltip } from '@/components/ui/Tooltip';
@@ -22,6 +24,7 @@ interface Props {
 export function VoiceProfilingPanel({ bookId, entityId }: Readonly<Props>) {
   const { t } = useTranslation('analysis');
   const queryClient = useQueryClient();
+  const [confirmRegenerate, setConfirmRegenerate] = useState(false);
   const voiceQueryKey = qk.entity.voice(bookId, entityId);
 
   // #8: server-judged status. cached_only=true probes for an existing result
@@ -114,6 +117,18 @@ export function VoiceProfilingPanel({ bookId, entityId }: Readonly<Props>) {
         </div>
       )}
 
+      <ConfirmDialog
+        open={confirmRegenerate}
+        title={t('regenerateTitle')}
+        message={t('regenerateMessage')}
+        spendsTokens
+        onConfirm={() => {
+          setConfirmRegenerate(false);
+          regenerateMutation.mutate();
+        }}
+        onCancel={() => setConfirmRegenerate(false)}
+      />
+
       <div className="ca-voice-layout">
         {/* 量化：四格統計＋語氣堆疊長條＋句長直方圖 */}
         <section className="ca-voice-data">
@@ -130,7 +145,7 @@ export function VoiceProfilingPanel({ bookId, entityId }: Readonly<Props>) {
             <button
               type="button"
               className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
-              onClick={() => regenerateMutation.mutate()}
+              onClick={() => setConfirmRegenerate(true)}
               disabled={regenerateMutation.isPending}
             >
               {t('regenerate')}
@@ -203,8 +218,8 @@ function VoiceStats({ voice }: Readonly<{ voice: VoiceProfile }>) {
   const { t } = useTranslation('analysis');
   const stats = [
     { label: t('character.voice.avgSentenceLength'), value: voice.avgSentenceLength.toFixed(1), unit: t('character.voice.wordsUnit') },
-    { label: t('character.voice.questionRatio'), value: (voice.questionRatio * 100).toFixed(1), unit: '%' },
-    { label: t('character.voice.exclamationRatio'), value: (voice.exclamationRatio * 100).toFixed(1), unit: '%' },
+    { label: t('character.voice.questionRatio'), value: String(Math.round(voice.questionRatio * 100)), unit: '%' },
+    { label: t('character.voice.exclamationRatio'), value: String(Math.round(voice.exclamationRatio * 100)), unit: '%' },
     // 詞彙多樣性為 0 時顯示「—」，不顯示 0.00。
     { label: t('character.voice.lexicalDiversity'), value: voice.lexicalDiversity > 0 ? voice.lexicalDiversity.toFixed(2) : '—', unit: '' },
   ];
@@ -262,7 +277,7 @@ function ToneDistribution({
         {segments.map((s) => (
           <span key={s.label} className="ca-tone-legend-item">
             <span className={`ca-tone-legend-dot ${swatchClass(s.family)}`} />
-            {labelFor(s.label)} {(s.value * 100).toFixed(1)}%
+            {labelFor(s.label)} {Math.round(s.value * 100)}%
           </span>
         ))}
       </div>

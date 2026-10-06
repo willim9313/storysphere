@@ -114,7 +114,7 @@ export function BezierConnectors({
   if (!visible) return null;
 
   return (
-    <div ref={containerRef} className="flex-shrink-0" style={{ width: 34, height: '100%' }}>
+    <div ref={containerRef} className="flex-shrink-0" style={{ width: 34, height: '100%', background: 'var(--bg-secondary)' }}>
       <svg
         width={34}
         height="100%"

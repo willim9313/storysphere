@@ -414,6 +414,15 @@ export default function CharacterAnalysisPage() {
   // A batch 503 shows in the panel (BatchEepPanel) instead of up here.
   const showLlmNotice = llmBlocked;
 
+  // 「← 角色總覽」：詳情態放在標題列名字之前（09 D 區）；其他有選角的態（未分析、
+  // 生成中、失敗）沒有標題列，退回內容區頂端，免得失去回程路徑。
+  const backLink = (
+    <button type="button" className="ca-back-link" onClick={handleBackToOverview}>
+      <ArrowLeft size={12} /> {t('character.overview.backToOverview')}
+    </button>
+  );
+  const inDetail = !!(selectedEntityId && !analysisLoading && entityAnalysis && !gen.taskId);
+
   let body: React.ReactNode;
   if (selectedEntityId && analysisLoading) {
     body = <LoadingSpinner />;
@@ -423,6 +432,7 @@ export default function CharacterAnalysisPage() {
         {/* Title bar */}
         <div className="ca-titlebar">
           <div className="ca-titlebar-main">
+            {backLink}
             {selectedAnalyzed?.status === 'partial' && <span className="ca-title-dot" aria-hidden="true" />}
             <h1 className="ca-title">{entityAnalysis.entityName}</h1>
             {selectedAnalyzed && headerArchetype && (
@@ -502,7 +512,7 @@ export default function CharacterAnalysisPage() {
             subTab={overviewSubTab}
             onSubTabChange={setOverviewSubTab}
             onOpenCompare={() => setDrawerOpen('framework')}
-            onRegenerate={handleRegenerate}
+            onRegenerate={() => setConfirmRegenerate(true)}
             isRegenerating={
               triggerMutation.isPending || (!!gen.taskId && gen.task?.status !== 'done')
             }
@@ -698,12 +708,6 @@ export default function CharacterAnalysisPage() {
             </div>
           </div>
 
-          {selectedEntityId && (
-            <button type="button" className="ca-back-to-overview" onClick={handleBackToOverview}>
-              <ArrowLeft size={14} /> {t('character.overview.backToOverview')}
-            </button>
-          )}
-
           {failedIds.length > 0 && (
             <div className="ca-fail-row">
               <button
@@ -723,7 +727,10 @@ export default function CharacterAnalysisPage() {
                 <div className="ca-list-group-head">
                   <span>{t('analyzed')}</span>
                   <span className="count">
-                    {groupCount(filteredAnalyzed.length, charData?.analyzed.length ?? 0)}
+                    {t('character.list.groupMeta', {
+                      total: groupCount(filteredAnalyzed.length, charData?.analyzed.length ?? 0),
+                      analyzed: charData?.analyzed.length ?? 0,
+                    })}
                   </span>
                 </div>
                 <div className="ca-list-rows">
@@ -745,7 +752,10 @@ export default function CharacterAnalysisPage() {
                 <div className="ca-list-group-head">
                   <span>{t('notAnalyzed')}</span>
                   <span className="count">
-                    {groupCount(filteredUnanalyzed.length, charData?.unanalyzed.length ?? 0)}
+                    {t('character.list.groupMeta', {
+                      total: groupCount(filteredUnanalyzed.length, charData?.unanalyzed.length ?? 0),
+                      analyzed: 0,
+                    })}
                   </span>
                 </div>
                 <div className="ca-list-rows">
@@ -772,14 +782,17 @@ export default function CharacterAnalysisPage() {
         <div className="ca-content">
           <div className="ca-content-scroll">
             <div className="ca-content-inner">
-              <GuidanceRibbon surface="character-analysis">
-                <strong>{t('character.tip.prefix')}</strong>{' '}
-                <Trans
-                  i18nKey="character.tip.body"
-                  ns="analysis"
-                  components={{ strong: <strong /> }}
-                />
-              </GuidanceRibbon>
+              {/* 研究者導覽條只在總覽（landing）出現（09 A 區）。 */}
+              {!selectedEntityId && (
+                <GuidanceRibbon surface="character-analysis">
+                  <strong>{t('character.tip.prefix')}</strong>{' '}
+                  <Trans
+                    i18nKey="character.tip.body"
+                    ns="analysis"
+                    components={{ strong: <strong /> }}
+                  />
+                </GuidanceRibbon>
+              )}
 
               {showLlmNotice && <LlmUnconfiguredNotice />}
               {triggerError && (
@@ -796,6 +809,7 @@ export default function CharacterAnalysisPage() {
                 </div>
               )}
 
+              {selectedEntityId && !inDetail && backLink}
               {body}
             </div>
           </div>

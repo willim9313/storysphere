@@ -1,4 +1,4 @@
-import { CheckSquare, ChevronDown, ChevronRight, Play } from 'lucide-react';
+import { CheckSquare, ChevronDown, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
 import { LlmUnconfiguredNotice } from '@/components/ui/LlmUnconfiguredNotice';
@@ -205,12 +205,11 @@ export function BatchEepPanel({
           <>
             {state === 'running' ? (
               <div className="ea-batch-pct">
+                <span className="ea-batch-spinner" aria-hidden="true" />
                 <Tooltip label={stage || t(k('running'))} disabled={!stage}>
                   <span className="stage">{stage || t(k('running'))}</span>
                 </Tooltip>
-                <span className="live">
-                  <Play size={9} /> live
-                </span>
+                <span className="live">▶ live</span>
               </div>
             ) : (
               <p className="ea-batch-status">
@@ -226,7 +225,7 @@ export function BatchEepPanel({
 
             {state === 'running' ? (
               <button
-                className="ss-btn ss-btn-md ss-btn-secondary ea-batch-main"
+                className="ss-btn ss-btn-sm ss-btn-secondary ea-batch-main"
                 disabled
                 type="button"
               >
@@ -235,7 +234,7 @@ export function BatchEepPanel({
               </button>
             ) : (
               <button
-                className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm ea-batch-main"
+                className="ss-btn ss-btn-sm ss-btn-primary ss-btn-llm ea-batch-main"
                 type="button"
                 onClick={onTrigger}
                 disabled={isPending || unanalyzedCount === 0}
@@ -329,7 +328,7 @@ export function BatchEepPanel({
             )}
 
             {topSubset && state === 'pending' && (
-              <div className="ea-batch-subset">
+              <div className="ea-batch-subset is-top">
                 <button
                   type="button"
                   className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
