@@ -1,4 +1,6 @@
 import { ChevronRight, AlertTriangle } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { isPartialDone, type TaskStatus } from '@/api/tasks';
 import { kindMeta, kindVars } from './taskKinds';
 import { taskRoute } from './taskRoute';
@@ -8,20 +10,21 @@ interface TaskRowProps {
   readonly onNavigate: (path: string) => void;
 }
 
-function relTime(iso: string | null | undefined): string {
-  if (!iso) return '已完成';
+function relTime(iso: string | null | undefined, tr: TFunction): string {
+  if (!iso) return tr('taskCenter.doneUnknown');
   const t = Date.parse(iso);
-  if (Number.isNaN(t)) return '已完成';
+  if (Number.isNaN(t)) return tr('taskCenter.doneUnknown');
   const s = Math.max(0, (Date.now() - t) / 1000);
-  if (s < 60) return '剛剛完成';
+  if (s < 60) return tr('taskCenter.justNow');
   const m = Math.floor(s / 60);
-  if (m < 60) return `${m} 分鐘前完成`;
+  if (m < 60) return tr('taskCenter.minAgo', { n: m });
   const h = Math.floor(m / 60);
-  if (h < 24) return `${h} 小時前完成`;
-  return `${Math.floor(h / 24)} 天前完成`;
+  if (h < 24) return tr('taskCenter.hourAgo', { n: h });
+  return tr('taskCenter.dayAgo', { n: Math.floor(h / 24) });
 }
 
 export function TaskRow({ task, onNavigate }: TaskRowProps) {
+  const { t: tr } = useTranslation('common');
   const meta = kindMeta(task.kind);
   const route = taskRoute(task);
   const navigable = route !== null;
@@ -45,8 +48,8 @@ export function TaskRow({ task, onNavigate }: TaskRowProps) {
           : 'run';
 
   const Icon = meta.Icon;
-  const title = task.title || task.stage || '處理中';
-  const errorText = navigable ? '失敗 · 前往該頁處理' : '失敗';
+  const title = task.title || task.stage || tr('taskCenter.untitled');
+  const errorText = navigable ? tr('taskCenter.failedGoto') : tr('taskCenter.failed');
 
   return (
     <div
@@ -83,7 +86,7 @@ export function TaskRow({ task, onNavigate }: TaskRowProps) {
           <div className={`ss-task-note${isPartial ? ' ss-task-note-warn' : ''}`}>
             {/* finishedAt, not createdAt: a long run would otherwise read as finished
                 long ago the moment it lands. Rows that predate the field show 已完成. */}
-            {isPartial ? '部分完成' : relTime(task.finishedAt)}
+            {isPartial ? tr('taskCenter.partial') : relTime(task.finishedAt, tr)}
           </div>
         )}
 

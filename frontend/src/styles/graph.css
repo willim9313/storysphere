@@ -389,7 +389,7 @@
   width: 48px; height: 48px; border-radius: 50%; display: flex; align-items: center; justify-content: center;
   background: var(--bg-secondary); color: var(--accent);
 }
-.kg-hero-eyebrow { font-size: var(--font-size-2xs); color: var(--fg-muted); letter-spacing: 0.14em; text-transform: uppercase; }
+.kg-hero-eyebrow { font-size: var(--font-size-2xs); color: var(--fg-muted); letter-spacing: 0.14em; }
 .kg-hero-title { margin: 0; font-family: var(--font-serif); font-size: var(--font-size-xl); color: var(--fg-primary); }
 .kg-hero-text { margin: 0; font-size: var(--font-size-sm); line-height: 1.6; color: var(--fg-secondary); }
 

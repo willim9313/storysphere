@@ -2,6 +2,7 @@
   "cancel": "取消",
   "confirm": "確認",
   "loading": "載入中…",
+  "loadingCaption": "載入中",
   "search": "搜尋…",
   "retry": "重試",
   "triggerFailed": "觸發分析失敗，請稍後再試。",
@@ -25,5 +26,26 @@
     "techDetail": "技術細節",
     "llmUnconfigured": "尚未設定 LLM provider，無法執行 LLM 分析。",
     "llmSettings": "前往 LLM 設定 →"
+  },
+  "close": "關閉",
+  "taskCenter": {
+    "title": "任務中心",
+    "close": "關閉任務中心",
+    "loading": "載入任務中…",
+    "emptyMain": "目前沒有進行中的任務",
+    "emptySub1": "啟動分析後，這裡會即時顯示",
+    "emptySub2": "所有 LLM 任務的進度。",
+    "running": "進行中 · {{n}}",
+    "done": "已完成 · {{n}}",
+    "clear": "清除",
+    "untitled": "處理中",
+    "partial": "部分完成",
+    "doneUnknown": "已完成",
+    "justNow": "剛剛完成",
+    "minAgo": "{{n}} 分鐘前完成",
+    "hourAgo": "{{n}} 小時前完成",
+    "dayAgo": "{{n}} 天前完成",
+    "failed": "失敗",
+    "failedGoto": "失敗 · 前往該頁處理"
   }
 }

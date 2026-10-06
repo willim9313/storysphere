@@ -79,6 +79,7 @@
   border-radius: var(--input-radius);
   color: var(--fg-muted);
 }
+.ca-search:focus-within { outline: var(--focus-ring-width) solid var(--focus-ring-color); outline-offset: var(--focus-ring-offset); }
 .ca-search input {
   flex: 1; min-width: 0;
   background: transparent; border: none; outline: none;
@@ -271,24 +272,7 @@
 .ca-titlebar-actions { display: flex; align-items: center; gap: var(--space-4); flex-wrap: wrap; }
 
 /* ─── Primary tab bar — underline style ─── */
-.ca-tabs {
-  display: flex; gap: var(--space-1);
-  border-bottom: var(--line-weight) var(--border-style) var(--border);
-}
-.ca-tab {
-  position: relative;
-  display: inline-flex; align-items: center;
-  padding: var(--space-3) var(--space-5);
-  background: none; border: none;
-  font-family: var(--font-sans); font-size: var(--font-size-xs); font-weight: 500;
-  color: var(--fg-muted); cursor: pointer;
-}
-.ca-tab:hover { color: var(--fg-secondary); }
-.ca-tab.active { color: var(--fg-primary); font-weight: 600; }
-.ca-tab.active::after {
-  content: ''; position: absolute; left: 0; right: 0; bottom: -1px;
-  height: 2px; background: var(--accent);
-}
+/* 底線式主分頁：共用 .ss-utabs / .ss-utab（ss-kit.css） */
 
 /* ─── Sub-tabs (overview: 人格 / 行為 / 關係 / 弧線) ─── */
 .ca-subtabs { display: flex; gap: var(--space-1); margin-bottom: var(--space-6); }

@@ -90,6 +90,7 @@
 .cr-mark.is-nonbody { background: transparent; border: 1.5px solid var(--fg-muted); }
 .cr-block-label { font-size: var(--font-size-2xs); font-weight: 600; color: var(--fg-primary); }
 .cr-block.is-nonbody .cr-block-label { color: var(--fg-muted); }
+.cr-flag-anchor { flex-shrink: 0; }
 .cr-flag { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; background: var(--color-warning); }
 .cr-block-title {
   font-family: var(--font-serif); font-size: var(--font-size-2xs); line-height: 1.4; color: var(--fg-secondary);
@@ -99,8 +100,10 @@
 
 /* 總覽態 B′：等比、不捲動、章距 1px；列＝章號 28 | 條 | 旗標 6 */
 .cr-ov { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 1px; }
+/* Tooltip 錨點承接列高；列本身撐滿錨點 */
+.cr-ov-anchor { display: flex; flex-shrink: 0; }
 .cr-ov-row {
-  flex-shrink: 0; display: grid; grid-template-columns: 28px minmax(0, 1fr) 6px;
+  flex: 1; min-width: 0; display: grid; grid-template-columns: 28px minmax(0, 1fr) 6px;
   column-gap: var(--space-3); align-items: center;
   padding: 0; border: none; background: transparent; cursor: pointer; font: inherit;
 }
@@ -117,6 +120,7 @@
 
 /* 收合導軌 C：高度 = 14 + paraCount*8（inline）。非正文 --fg-muted（Ink 修正）；
    旗標 warning 填色＋條中央 3px 紙色缺口（靠「有無」而非色相，兩主題都讀得到） */
+.cr-rail-anchor { display: flex; flex-direction: column; flex: 0 1 auto; min-height: 0; }
 .cr-rail {
   width: 40px; box-sizing: border-box; flex: 0 1 auto; min-height: 0; overflow-y: auto;
   display: flex; flex-direction: column; gap: var(--space-3);

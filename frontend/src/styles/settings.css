@@ -210,7 +210,7 @@
 .st-field-label { font-size: var(--font-size-xs); font-weight: 600; color: var(--fg-primary); }
 .st-field-hint { font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-muted); margin: 0; }
 .st-seg { align-self: flex-start; align-items: center; }
-.st-seg .ss-seg-item { font-size: var(--font-size-xs); padding: var(--space-4) var(--space-7); }
+.st-seg .ss-seg-item { padding: var(--space-4) var(--space-7); }
 .st-seg .ss-seg-item:disabled { color: var(--fg-muted); cursor: not-allowed; }
 .st-seg-wrap { display: flex; align-items: center; gap: var(--space-5); }
 

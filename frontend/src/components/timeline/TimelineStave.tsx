@@ -12,6 +12,7 @@
  */
 
 import { useTranslation } from "react-i18next";
+import { Tooltip } from "@/components/ui/Tooltip";
 import {
   STAVE_MID,
   STAVE_ROW_HEIGHT,
@@ -126,16 +127,20 @@ export function TimelineStave({
           {/* Hit targets are separate from the SVG so each point gets a real
               focusable button with an accessible name. */}
           {row.points.map((p) => (
-            <button
-              type="button"
+            <Tooltip
               key={p.id}
-              className={`tl-stave-hit${p.id === selectedEventId ? " selected" : ""}`}
-              style={{ left: `${p.xPct}%`, top: p.yPx }}
-              onClick={() => onSelectEvent(p.datum)}
-              title={`${p.datum.title} · rank ${p.datum.chronologicalRank?.toFixed(2)}`}
+              label={`${p.datum.title} · rank ${p.datum.chronologicalRank?.toFixed(2)}`}
+              anchorClassName="tl-stave-hit-anchor"
+              anchorStyle={{ left: `${p.xPct}%`, top: p.yPx }}
             >
-              <span className="sr-only">{p.datum.title}</span>
-            </button>
+              <button
+                type="button"
+                className={`tl-stave-hit${p.id === selectedEventId ? " selected" : ""}`}
+                onClick={() => onSelectEvent(p.datum)}
+              >
+                <span className="sr-only">{p.datum.title}</span>
+              </button>
+            </Tooltip>
           ))}
 
           {/* Two sources, two voices: a judged event states what it is, a
@@ -161,18 +166,22 @@ export function TimelineStave({
               {t("timeline.stave.unranked")}
             </span>
             {row.unranked.map((u) => (
-              <button
-                type="button"
+              <Tooltip
                 key={u.id}
-                className={`tl-stave-unranked-dot${
-                  u.id === selectedEventId ? " selected" : ""
-                }${dimmedIds.has(u.id) ? " dim" : ""}`}
-                style={{ left: `${u.xPct}%` }}
-                onClick={() => onSelectEvent(u.datum)}
-                title={u.datum.title}
+                label={u.datum.title}
+                anchorClassName="tl-stave-unranked-anchor"
+                anchorStyle={{ left: `${u.xPct}%` }}
               >
-                <span className="sr-only">{u.datum.title}</span>
-              </button>
+                <button
+                  type="button"
+                  className={`tl-stave-unranked-dot${
+                    u.id === selectedEventId ? " selected" : ""
+                  }${dimmedIds.has(u.id) ? " dim" : ""}`}
+                  onClick={() => onSelectEvent(u.datum)}
+                >
+                  <span className="sr-only">{u.datum.title}</span>
+                </button>
+              </Tooltip>
             ))}
           </div>
         </div>

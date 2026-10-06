@@ -1,4 +1,5 @@
 import { createContext, useContext, type ReactNode } from 'react';
+import { Tooltip } from '@/components/ui/Tooltip';
 import type { Segment, EntityType } from '@/api/types';
 
 const markClass: Record<EntityType, string> = {
@@ -47,11 +48,10 @@ export function SegmentRenderer({ segments }: { segments: Segment[] }) {
         }
         const entity = seg.entity;
         return (
+          <Tooltip key={i} label={entity.name} anchorClassName="ss-tooltip-anchor-inline">
           <mark
-            key={i}
             className={`entity-mark ${markClass[entity.type]}`}
             style={{ fontStyle: 'normal', cursor: onEntityClick ? 'pointer' : 'default' }}
-            title={entity.name}
             onClick={
               onEntityClick
                 ? (e) =>
@@ -66,6 +66,7 @@ export function SegmentRenderer({ segments }: { segments: Segment[] }) {
           >
             {seg.text}
           </mark>
+          </Tooltip>
         );
       })}
     </span>

@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Microscope, Network, ScrollText, SquarePen, type LucideIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { MouseEvent } from 'react';
+import { Tooltip } from '@/components/ui/Tooltip';
 import type { PageContext } from '@/contexts/ChatContext';
 import { RAIL } from '@/contexts/FloatRailContext';
 import type { UseWebSocketChatReturn } from '@/hooks/useWebSocketChat';
@@ -134,15 +135,17 @@ export function ChatWindow({
           <ContextBadge pageContext={pageContext} />
         </div>
         {/* New chat button — stop drag propagation so click still works */}
-        <button
-          className="ss-chat-new"
-          onMouseDown={(e) => e.stopPropagation()}
-          onClick={handleNewChat}
-          title={t('newChat')}
-          disabled={messages.length === 0}
-        >
-          <SquarePen size={16} />
-        </button>
+        <Tooltip label={t('newChat')}>
+          <button
+            className="ss-chat-new"
+            onMouseDown={(e) => e.stopPropagation()}
+            onClick={handleNewChat}
+            aria-label={t('newChat')}
+            disabled={messages.length === 0}
+          >
+            <SquarePen size={16} />
+          </button>
+        </Tooltip>
       </div>
 
       {/* Messages */}

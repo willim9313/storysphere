@@ -13,6 +13,7 @@
 
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
+import { Tooltip } from '@/components/ui/Tooltip';
 import {
   MAX_LANES,
   buildLane,
@@ -153,23 +154,27 @@ export function CharacterLanes({
               />
             ))}
             {lane.dots.map((dot) => (
-              <button
-                type="button"
+              <Tooltip
                 key={dot.id}
-                className={[
-                  'tl-lane-dot',
-                  dot.datum.isKernel ? 'kernel' : '',
-                  dot.datum.hasAnalysis ? 'analyzed' : 'unanalyzed',
-                  dot.id === selectedEventId ? 'selected' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                style={{ left: `${dot.xPct}%` }}
-                onClick={() => onSelectEvent(dot.datum)}
-                title={dot.datum.title}
+                label={dot.datum.title}
+                anchorClassName="tl-lane-dot-anchor"
+                anchorStyle={{ left: `${dot.xPct}%` }}
               >
-                <span className="sr-only">{dot.datum.title}</span>
-              </button>
+                <button
+                  type="button"
+                  className={[
+                    'tl-lane-dot',
+                    dot.datum.isKernel ? 'kernel' : '',
+                    dot.datum.hasAnalysis ? 'analyzed' : 'unanalyzed',
+                    dot.id === selectedEventId ? 'selected' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  onClick={() => onSelectEvent(dot.datum)}
+                >
+                  <span className="sr-only">{dot.datum.title}</span>
+                </button>
+              </Tooltip>
             ))}
           </div>
           {/* Absence captions are chips under the track so they never sit on

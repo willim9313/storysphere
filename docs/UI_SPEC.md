@@ -528,7 +528,7 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 已裁決的新字串：`notFound`「找不到書籍」、`failure.backToOverview`「回書籍總覽」、`failurePageName`「這本書」（填進共用的「無法載入{頁名}」）。
 「技術細節」與 503 就地狀態沿用 `common.failure.*`。逐字移進 i18n 的既有字串：`rerun.*`（功能未完成、四步名、重新執行、執行中、執行失敗）、`classify.*`（補標 visibility、（臨時）、tooltip、分類中…、已分類 N/M 個事件、觸發失敗，請稍後再試、失敗）、`col2Rail`（章節）。
 
-原生 `title` 已全換 Tooltip（收合鈕、章節 chevron、色票、回頂部、補標鈕）。**唯一保留**：`SegmentRenderer` 行內實體 `<mark title>`——Tooltip 的 anchor 是 `inline-flex` 包裝，包進行內文字會破壞斷行；該 title 內容與可見文字相同，未動。
+原生 `title` 已全換 Tooltip（收合鈕、章節 chevron、色票、回頂部、補標鈕）。`SegmentRenderer` 行內實體 `<mark>` 也已改走 Tooltip（A1 M3）：`Tooltip` 新增 `anchorClassName`／`anchorStyle`，行內文字用 `.ss-tooltip-anchor-inline`（`display: inline`）當錨點，不破壞斷行；絕對定位的小點（時間軸 `.tl-stave-hit`／`.tl-lane-dot`／未排序點）把定位移到錨點上。
 
 #### API 參考
 

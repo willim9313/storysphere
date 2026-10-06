@@ -402,14 +402,14 @@ export function EventAnalysisDetail({
     <>
       <div className="ea-detail-head">
         {header}
-        <div className="ea-detail-tabs" role="tablist">
+        <div className="ss-utabs" role="tablist">
           {DETAIL_TABS.filter((dt) => dt.key !== 'context' || bookId).map((dt) => (
             <button
               key={dt.key}
               type="button"
               role="tab"
               aria-selected={tab === dt.key}
-              className={'ea-detail-tab' + (tab === dt.key ? ' active' : '')}
+              className={'ss-utab' + (tab === dt.key ? ' active' : '')}
               onClick={() => setTab(dt.key)}
             >
               {t(dt.labelKey)}

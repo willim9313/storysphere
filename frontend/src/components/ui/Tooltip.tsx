@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef, useState, type FocusEvent, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type CSSProperties, type FocusEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
 /** 共用 Tooltip（components-tooltip 規格卡，取代原生 title）。
@@ -20,6 +20,10 @@ interface TooltipProps {
   readonly nowrap?: boolean;
   /** true 時不顯示（例如側欄展開後標籤已直接可見）。 */
   readonly disabled?: boolean;
+  /** 錨點 span 的額外 class／style：被包的元素原本靠絕對定位或 flex 尺寸排版時，
+   *  把那些屬性移到錨點上（錨點才是排版裡的那個盒子）。 */
+  readonly anchorClassName?: string;
+  readonly anchorStyle?: CSSProperties;
   readonly children: ReactNode;
 }
 
@@ -52,6 +56,8 @@ export function Tooltip({
   placement = 'top',
   nowrap = false,
   disabled = false,
+  anchorClassName,
+  anchorStyle,
   children,
 }: TooltipProps) {
   const anchorRef = useRef<HTMLSpanElement>(null);
@@ -89,7 +95,8 @@ export function Tooltip({
   return (
     <span
       ref={anchorRef}
-      className="ss-tooltip-anchor"
+      className={anchorClassName ? `ss-tooltip-anchor ${anchorClassName}` : 'ss-tooltip-anchor'}
+      style={anchorStyle}
       onMouseEnter={onMouseEnter}
       onMouseLeave={hide}
       onFocus={onFocus}

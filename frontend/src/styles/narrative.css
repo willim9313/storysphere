@@ -116,7 +116,6 @@
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
   letter-spacing: 0.14em;
-  text-transform: uppercase;
   color: var(--fg-muted);
 }
 .nl-index-status {
@@ -1484,7 +1483,6 @@ a.nl-sd-ev:hover {
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
   letter-spacing: 0.12em;
-  text-transform: uppercase;
   color: var(--fg-muted);
 }
 .nl-unclass-fact-v {
@@ -1599,7 +1597,6 @@ a.nl-sd-ev:hover {
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
   letter-spacing: 0.12em;
-  text-transform: uppercase;
   color: var(--fg-muted);
   border-bottom: var(--line-weight) var(--border-style) var(--border);
 }
