@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Info } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { reopenGuidance, useReopenableSurfaces } from '@/components/ui/guidanceStore';
 import { BOOK_VIEWS } from './bookViews';
@@ -41,9 +41,10 @@ export function BookNav({ bookId, bookTitle }: BookNavProps) {
       {reopenable.length > 0 && (
         <button
           type="button"
-          className="ss-btn ss-btn-ghost ss-btn-sm gd-reopen"
+          className="gd-reopen"
           onClick={() => reopenGuidance(reopenable)}
         >
+          <Info size={12} aria-hidden="true" />
           {tSettings('guidance.title')}
         </button>
       )}

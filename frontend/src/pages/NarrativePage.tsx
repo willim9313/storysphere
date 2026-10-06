@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Trans, useTranslation } from 'react-i18next';
-import { AlertTriangle, Compass } from 'lucide-react';
+import { Compass } from 'lucide-react';
 import { ApiError } from '@/api/client';
 import { failureKind, techDetailOf } from '@/api/failureKind';
 import { useBook } from '@/hooks/useBook';
@@ -247,10 +247,13 @@ export default function NarrativePage() {
   // Table of contents: what is on this page, in what order, and how far each
   // one has got — so the fold stops hiding the second half of the page.
   let heroStatus = t('narrative.index.notAnalyzed');
+  let heroWarn = true;
   if (hasHeroJourney) {
     heroStatus = t('narrative.index.mappedStatus', { mapped: mappedStages, total: STAGE_ORDER.length });
+    heroWarn = false;
   } else if (heroJourneyOp.running) {
     heroStatus = t('narrative.index.running');
+    heroWarn = false;
   }
   const indexCards = [
     {
@@ -259,6 +262,7 @@ export default function NarrativePage() {
       title: t('narrative.index.title1'),
       answers: t('narrative.index.answers1'),
       status: heroStatus,
+      warn: heroWarn,
       href: '#nl-hero',
     },
     {
@@ -267,6 +271,7 @@ export default function NarrativePage() {
       title: t('narrative.index.title2'),
       answers: t('narrative.index.answers2'),
       status: t('narrative.index.kernelStatus', { n: kernelCount }),
+      warn: false,
       href: '#nl-spine',
     },
   ];
@@ -280,6 +285,7 @@ export default function NarrativePage() {
       title: t('narrative.index.title3'),
       answers: t('narrative.index.answers3'),
       status: t('narrative.index.crossStatus', { done: crossDone }),
+      warn: false,
       href: '#nl-cross',
     });
   }
@@ -339,24 +345,26 @@ export default function NarrativePage() {
   // names it — never the raw step id.
   const staleKey = staleStepKey(structure?.stale_reason);
   const staleStep = staleKey ? tr(`rerun.steps.${staleKey}`) : (structure?.stale_reason ?? '');
+  // The banner's link points at the card's own LLM button; it never starts the
+  // analysis itself (the click that spends tokens stays on the gated button).
+  const goToRerun = () => {
+    const el = document.getElementById('nl-hero-run');
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.focus({ preventScroll: true });
+    el.classList.remove('nl-flash');
+    void el.offsetWidth; // restart the animation if it is already running
+    el.classList.add('nl-flash');
+    window.setTimeout(() => el.classList.remove('nl-flash'), 1700);
+  };
   const staleBanner = structure?.is_stale ? (
     <div className="nl-stale" role="status">
-      <AlertTriangle size={16} />
-      <div className="nl-stale-text">
-        <strong>{t('narrative.stale.title')}</strong>
-        {t('narrative.stale.body', { step: staleStep })}
-      </div>
-      {hasHeroJourney && (
-        // The same action as the card's own button, behind the same gate.
-        <button
-          type="button"
-          className="ss-btn ss-btn-sm ss-btn-ghost ss-btn-llm nl-stale-act"
-          onClick={() => handleTrigger(true)}
-          disabled={heroJourneyOp.running || gate.blocked}
-        >
-          {heroJourneyOp.running ? t('narrative.rerunning') : t('narrative.rerunArrow')}
-        </button>
-      )}
+      <strong>{t('narrative.stale.title')}</strong>
+      <span>{t('narrative.stale.body', { step: staleStep })}</span>
+      <button type="button" className="nl-stale-act" onClick={goToRerun}>
+        <span className="ss-llm-glyph" aria-hidden="true" />
+        {t('narrative.rerunArrow')}
+      </button>
     </div>
   ) : null;
 
@@ -423,7 +431,7 @@ export default function NarrativePage() {
                   <div className="nl-index-top">
                     <span className="nl-index-n">{c.n}</span>
                     <span className="nl-index-role">{c.role}</span>
-                    <span className="nl-index-status">{c.status}</span>
+                    <span className={c.warn ? 'nl-index-status is-warning' : 'nl-index-status'}>{c.status}</span>
                   </div>
                   <div className="nl-index-title">{c.title}</div>
                   <div className="nl-index-answers">{c.answers}</div>
@@ -483,12 +491,13 @@ export default function NarrativePage() {
         )}
 
         {!loading && !pageError && !hasHeroJourney && (
+          <>
+          {staleBanner}
           <div className="nl-empty">
-            {staleBanner}
             <div className="nl-empty-icon">
               <Compass size={36} />
             </div>
-            <div className="nl-empty-title">{t('narrative.empty.title')}</div>
+            <h3 className="nl-empty-title">{t('narrative.empty.title')}</h3>
             <div className="nl-empty-msg">{t('narrative.empty.message')}</div>
 
             {/* Prerequisites, stated before the click rather than after it. */}
@@ -514,36 +523,46 @@ export default function NarrativePage() {
 
             {heroJourneyOp.llmBlocked && <LlmUnconfiguredNotice />}
             {heroJourneyOp.error && <div className="nl-empty-error">{heroJourneyOp.error}</div>}
-            <div className="nl-trigger-row">
-              <button
-                type="button"
-                className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm"
-                onClick={() => handleTrigger()}
-                disabled={heroJourneyOp.running || gate.blocked}
-              >
-                {heroJourneyOp.running
-                  ? t('narrative.empty.running', { progress: heroJourneyOp.task?.progress ?? 0 })
-                  : t('narrative.empty.trigger')}
-              </button>
-              {gate.blocked && !heroJourneyOp.running ? (
-                <span className="nl-trigger-reason">{blockedReason}</span>
-              ) : (
-                <span className="nl-trigger-reason">{t('tension.state.tokenHintShort')}</span>
-              )}
-            </div>
-            {structure && (
-              <div id="nl-spine" className="nl-empty-spine">
-                <PlotSpine
-                  structure={structure}
-                  kernelEvents={kernelSpineQuery.data ?? []}
-                  bookId={bookId!}
-                  chapterCount={chapterCount}
+            {heroJourneyOp.running ? (
+              <div className="nl-progress" role="status">
+                <div className="nl-progress-line">
+                  <span className="nl-progress-spin" aria-hidden="true" />
+                  {t('narrative.empty.running', { progress: heroJourneyOp.task?.progress ?? 0 })}
+                </div>
+                <div className="ss-progress">
+                  <div className="ss-progress-fill" style={{ width: `${heroJourneyOp.task?.progress ?? 0}%` }} />
+                </div>
+              </div>
+            ) : (
+              <div className="nl-trigger-row">
+                <button
+                  type="button"
+                  id="nl-hero-run"
+                  className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm"
+                  onClick={() => handleTrigger()}
+                  disabled={gate.blocked}
                 >
-                  {unclassifiedBlock}
-                </PlotSpine>
+                  {t('narrative.empty.trigger')}
+                </button>
+                <span className="nl-trigger-reason">
+                  {gate.blocked ? blockedReason : t('tension.state.tokenHintShort')}
+                </span>
               </div>
             )}
           </div>
+          {structure && (
+            <div id="nl-spine">
+              <PlotSpine
+                structure={structure}
+                kernelEvents={kernelSpineQuery.data ?? []}
+                bookId={bookId!}
+                chapterCount={chapterCount}
+              >
+                {unclassifiedBlock}
+              </PlotSpine>
+            </div>
+          )}
+          </>
         )}
       </div>
 
@@ -552,7 +571,7 @@ export default function NarrativePage() {
         title={t('narrative.unclassified.classifyConfirmTitle')}
         message={t('narrative.unclassified.classifyConfirmBody', { n: unclassifiedIds.length })}
         confirmLabel={t('narrative.unclassified.classify')}
-        costHint={t('narrative.unclassified.classifyCost')}
+        titleBadge={{ label: t('narrative.unclassified.badgeFree'), tone: 'info' }}
         sections={[{ title: lastClassifyDetail.title, items: lastClassifyDetail.item ? [lastClassifyDetail.item] : [] }]}
         onConfirm={runClassify}
         onCancel={() => setPendingAction(null)}
@@ -563,7 +582,7 @@ export default function NarrativePage() {
         message={t('narrative.unclassified.refineConfirmBody', { n: unclassifiedIds.length })}
         confirmLabel={t('narrative.unclassified.refineConfirm')}
         spendsTokens
-        costHint={t('tension.state.tokenHintShort')}
+        titleBadge={{ label: t('narrative.unclassified.badgeTokens'), tone: 'warning' }}
         sections={[{ title: refineDetail.title, items: refineDetail.item ? [refineDetail.item] : [] }]}
         onConfirm={runRefine}
         onCancel={() => setPendingAction(null)}

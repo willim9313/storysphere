@@ -4,7 +4,7 @@
  * weight/accent text — never an inset or left edge. */
 
 .nl-scroll {
-  background: var(--bg-primary);
+  background: var(--bg-secondary);
   height: 100%;
   overflow-y: auto;
 }
@@ -17,10 +17,10 @@
 .nl-page {
   max-width: 1280px;
   margin: 0 auto;
-  padding: var(--space-7) var(--space-6) var(--space-8);
+  padding: var(--space-7) var(--space-7) var(--space-8);
   display: flex;
   flex-direction: column;
-  gap: var(--space-7);
+  gap: var(--space-6);
   min-height: 100%;
 }
 
@@ -34,21 +34,20 @@
 .nl-head-title {
   margin: 0;
   font-family: var(--font-serif);
-  font-size: var(--font-size-3xl);
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  font-size: var(--font-size-2xl);
+  font-weight: 700;
   color: var(--fg-primary);
 }
 .nl-head-lead {
   margin: 0;
-  font-family: var(--font-serif);
-  font-size: var(--font-size-lg);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
   color: var(--fg-secondary);
 }
 .nl-head-meta {
-  margin-top: var(--space-3);
-  font-family: var(--font-mono);
-  font-size: var(--font-size-xs);
+  margin-top: var(--space-4);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
   color: var(--fg-muted);
 }
 
@@ -71,12 +70,12 @@
 /* Index cards — the page's table of contents. */
 .nl-index {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: var(--space-6);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-5);
 }
 .nl-index-card {
   display: block;
-  padding: var(--space-6);
+  padding: var(--space-5);
   background: var(--bg-primary);
   border: var(--card-border-width) var(--border-style) var(--border);
   border-radius: var(--card-radius);
@@ -96,15 +95,15 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   flex-shrink: 0;
   border-radius: 50%;
   background: var(--accent);
   color: var(--accent-fg);
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
-  font-weight: 700;
+  font-weight: 600;
   font-variant-numeric: tabular-nums;
 }
 .nl-index-n-ghost {
@@ -115,31 +114,34 @@
 .nl-index-role {
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
-  letter-spacing: 0.14em;
   color: var(--fg-muted);
 }
 .nl-index-status {
   margin-left: auto;
   padding: 0 var(--space-4);
   border-radius: var(--badge-radius);
-  border: var(--line-weight) var(--border-style) var(--border);
   background: var(--bg-secondary);
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
   color: var(--fg-secondary);
   white-space: nowrap;
 }
+.nl-index-status.is-warning {
+  background: var(--color-warning-bg);
+  color: var(--color-warning);
+}
 .nl-index-title {
-  margin-top: var(--space-4);
+  margin-top: var(--space-3);
   font-family: var(--font-serif);
-  font-size: var(--font-size-lg);
-  font-weight: 600;
+  font-size: var(--font-size-base);
+  font-weight: 700;
   color: var(--fg-primary);
 }
 .nl-index-answers {
-  margin-top: var(--space-1);
+  margin-top: var(--space-3);
   font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-2xs);
+  line-height: 1.7;
   color: var(--fg-secondary);
   text-wrap: pretty;
 }
@@ -172,6 +174,16 @@
 .nl-term-link:hover {
   color: var(--accent);
   border-bottom-color: var(--accent);
+}
+
+/* The hero-journey header names its framework as a plain accent link (the
+   design leaves the global `a` colour); spine / timeline subtitles stay quiet. */
+#nl-hero .nl-term-link {
+  color: var(--accent);
+  border-bottom: none;
+}
+#nl-hero .nl-term-link:hover {
+  text-decoration: underline;
 }
 
 /* Badges that kit does not carry: quiet (neutral) and hollow (not yet / absent). */
@@ -294,9 +306,12 @@
    follows the scroll (track: below the chart, full width). */
 .nl-hj-body {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 380px;
-  gap: var(--space-7);
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: var(--space-6);
   align-items: start;
+}
+.nl-hj-body.is-columns {
+  grid-template-columns: minmax(0, 1fr) 380px;
 }
 .nl-hj-body.is-ring {
   grid-template-columns: 460px minmax(0, 1fr);
@@ -318,6 +333,7 @@
 }
 @media (max-width: 1100px) {
   .nl-hj-body,
+  .nl-hj-body.is-columns,
   .nl-hj-body.is-ring {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -686,7 +702,7 @@ a.nl-sd-ev:hover {
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
   font-variant-numeric: tabular-nums;
-  color: var(--fg-muted);
+  color: var(--fg-primary);
 }
 .nl-band-tick-n.is-shared {
   color: var(--fg-primary);
@@ -768,7 +784,7 @@ a.nl-sd-ev:hover {
   border-right: none;
 }
 .nl-band-cell.is-shared {
-  background: var(--bg-tertiary);
+  background: var(--bg-secondary);
 }
 .nl-band-join {
   align-self: center;
@@ -1135,9 +1151,6 @@ a.nl-sd-ev:hover {
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
 }
-.nl-chgrid-head.has-events {
-  border-bottom-color: var(--accent);
-}
 .nl-chgrid-ch {
   color: var(--fg-secondary);
   white-space: nowrap;
@@ -1441,178 +1454,170 @@ a.nl-sd-ev:hover {
 
 /* Unclassified events — the part of the book this page cannot show. */
 .nl-unclass {
-  border: var(--line-weight) var(--border-style) var(--border);
-  border-radius: var(--radius-md);
-  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  padding: var(--space-6);
+  background: var(--bg-primary);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
 }
 .nl-unclass-head {
   display: flex;
   align-items: baseline;
-  gap: var(--space-4);
+  gap: var(--space-5);
   flex-wrap: wrap;
-  padding: var(--space-4) var(--space-6);
-  background: var(--bg-secondary);
-  border-bottom: var(--line-weight) var(--border-style) var(--border);
 }
 .nl-unclass-n {
-  font-family: var(--font-serif);
-  font-size: var(--font-size-xl);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xl);
   font-weight: 700;
   color: var(--fg-primary);
   line-height: 1;
   font-variant-numeric: tabular-nums;
 }
 .nl-unclass-title {
-  font-family: var(--font-sans);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-base);
+  font-weight: 700;
   color: var(--fg-primary);
 }
 .nl-unclass-facts {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--space-5);
 }
 .nl-unclass-fact {
-  padding: var(--space-6);
-  border-right: var(--line-weight) var(--border-style) var(--border);
-}
-.nl-unclass-fact:last-child {
-  border-right: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
 }
 .nl-unclass-fact-k {
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
-  letter-spacing: 0.12em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   color: var(--fg-muted);
 }
 .nl-unclass-fact-v {
-  margin-top: var(--space-3);
   font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  line-height: 1.6;
-  color: var(--fg-secondary);
+  font-size: var(--font-size-2xs);
+  line-height: 1.7;
+  color: var(--fg-primary);
   text-wrap: pretty;
 }
-/* The server's refusal: a tinted block with its one way out, no edge accent. */
+/* The server's refusal: a tinted block with its one way out on the next line,
+   no edge accent. 409 is an error, not a warning. */
 .nl-unclass-error {
   display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-6);
-  flex-wrap: wrap;
-  padding: var(--space-5) var(--space-6);
-  border-top: var(--line-weight) var(--border-style) var(--border);
-  background: var(--color-warning-bg);
+  flex-direction: column;
+  gap: var(--space-4);
+  padding: var(--space-5);
+  border-radius: var(--radius-sm);
+  background: var(--color-error-bg);
   font-family: var(--font-sans);
   font-size: var(--font-size-xs);
-  line-height: 1.6;
-  color: var(--color-warning);
+  line-height: 1.8;
+  color: var(--fg-primary);
   text-wrap: pretty;
+}
+.nl-unclass-error .nl-unclass-jump {
+  margin-left: 0;
+  align-self: flex-start;
+  font-size: var(--font-size-2xs);
 }
 .nl-unclass-actions {
   display: flex;
-  align-items: flex-start;
-  gap: var(--space-6);
+  align-items: center;
+  gap: var(--space-5);
   flex-wrap: wrap;
-  padding: var(--space-5) var(--space-6);
+  padding-top: var(--space-5);
   border-top: var(--line-weight) var(--border-style) var(--border);
-}
-.nl-unclass-act {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: var(--space-2);
 }
 .nl-unclass-hint {
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
+  color: var(--fg-secondary);
 }
 .nl-unclass-jump {
   margin-left: auto;
-  align-self: center;
   font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-2xs);
   white-space: nowrap;
   color: var(--accent);
 }
-.nl-unclass .ss-state {
-  margin: var(--space-5) var(--space-6) 0;
-}
 
-/* Empty / onboarding state. */
+/* Empty / onboarding state — a card of its own; the spine below is a parallel card. */
 .nl-empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  gap: var(--space-4);
-  padding: var(--space-8) var(--space-7);
+  gap: var(--space-5);
+  padding: var(--space-7);
+  background: var(--bg-primary);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
+  box-shadow: var(--card-shadow);
 }
 .nl-empty > .nl-stale {
   align-self: stretch;
   text-align: left;
 }
 .nl-empty-icon {
-  color: var(--accent);
-  opacity: 0.55;
+  display: inline-flex;
+  color: var(--illustration-stroke-soft);
 }
 .nl-empty-title {
+  margin: 0;
   font-family: var(--font-serif);
   font-size: var(--font-size-xl);
   font-weight: 700;
   color: var(--fg-primary);
 }
 .nl-empty-msg {
-  max-width: 52ch;
+  max-width: 64ch;
   font-family: var(--font-sans);
-  font-size: var(--font-size-sm);
-  line-height: 1.6;
-  color: var(--fg-muted);
+  font-size: var(--font-size-xs);
+  line-height: 1.7;
+  color: var(--fg-secondary);
+  text-wrap: pretty;
 }
 .nl-empty-error {
   font-family: var(--font-sans);
   font-size: var(--font-size-xs);
   color: var(--color-error);
 }
-.nl-empty-spine {
-  width: 100%;
-  margin-top: var(--space-7);
-  text-align: left;
-}
 
 /* Prerequisite checklist — map_hero_journey reads chapter summaries, so without
    them the task succeeds and writes nothing. Stated before the click. */
 .nl-prereq {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
   width: 100%;
-  max-width: 720px;
+  max-width: 820px;
+  padding: var(--space-5);
   text-align: left;
-  border: var(--line-weight) var(--border-style) var(--border);
+  background: var(--bg-secondary);
   border-radius: var(--radius-md);
-  overflow: hidden;
 }
 .nl-prereq-head {
-  padding: var(--space-3) var(--space-6);
-  background: var(--bg-secondary);
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
-  letter-spacing: 0.12em;
+  font-weight: 600;
+  letter-spacing: 0.06em;
   color: var(--fg-muted);
-  border-bottom: var(--line-weight) var(--border-style) var(--border);
 }
 .nl-prereq-row {
   display: flex;
-  align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-4) var(--space-6);
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-5);
   font-family: var(--font-sans);
-  font-size: var(--font-size-sm);
-}
-.nl-prereq-row + .nl-prereq-row {
-  border-top: var(--line-weight) var(--border-style) var(--border);
+  font-size: var(--font-size-xs);
 }
 .nl-prereq-mark {
-  width: 12px;
   flex-shrink: 0;
   color: var(--fg-muted);
 }
@@ -1620,69 +1625,109 @@ a.nl-sd-ev:hover {
   color: var(--color-success);
 }
 .nl-prereq-name {
-  font-weight: 600;
+  min-width: 120px;
   color: var(--fg-primary);
-  white-space: nowrap;
 }
 .nl-prereq-count {
-  font-size: var(--font-size-xs);
+  min-width: 72px;
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
   color: var(--fg-secondary);
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 .nl-prereq-hint {
-  margin-left: auto;
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-2xs);
   color: var(--fg-muted);
 }
 .nl-prereq-cta {
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-2xs);
   white-space: nowrap;
   color: var(--accent);
 }
 .nl-trigger-row {
   display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: var(--space-6);
-  flex-wrap: wrap;
-  justify-content: center;
-  margin-top: var(--space-4);
+  gap: var(--space-4);
 }
 .nl-trigger-reason {
   font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-2xs);
   color: var(--fg-muted);
+}
+/* Running state: spinner + percent on one line, then the progress bar. */
+.nl-progress {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  width: 100%;
+  max-width: 320px;
+}
+.nl-progress-line {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+.nl-progress-spin {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  border: 2px solid var(--border);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
 }
 
 /* Stale banner — a pipeline step re-ran after this analysis was cached. It sits
-   above the hero-journey card and carries the same gated re-run action. */
+   above the hero-journey card; its link scrolls to (and flashes) the card's own
+   LLM button — it never triggers the analysis itself. */
 .nl-stale {
   display: flex;
-  align-items: flex-start;
-  gap: var(--space-5);
+  flex-direction: column;
+  gap: var(--space-3);
   padding: var(--space-5) var(--space-6);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-sm);
   background: var(--color-warning-bg);
-  color: var(--color-warning);
+  color: var(--fg-primary);
   font-family: var(--font-sans);
-  font-size: var(--font-size-sm);
-  line-height: 1.6;
-}
-.nl-stale svg {
-  flex-shrink: 0;
-  margin-top: var(--space-2);
+  font-size: var(--font-size-2xs);
+  line-height: 1.7;
 }
 .nl-stale strong {
-  display: block;
-  font-weight: 600;
-  margin-bottom: var(--space-1);
-}
-.nl-stale-text {
-  min-width: 0;
+  font-size: var(--font-size-xs);
+  font-weight: 700;
 }
 .nl-stale-act {
-  margin-left: auto;
-  flex-shrink: 0;
-  align-self: center;
-  white-space: nowrap;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  align-self: flex-start;
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+  color: var(--accent);
+  cursor: pointer;
+}
+.nl-stale-act:hover {
+  text-decoration: underline;
+}
+.nl-stale-act .ss-llm-glyph {
+  width: 12px;
+  height: 12px;
+}
+/* Brief highlight on the button the stale link points at. */
+.nl-flash {
+  animation: nl-flash 1.6s ease-out;
+}
+@keyframes nl-flash {
+  0%, 40% { box-shadow: 0 0 0 3px var(--accent); }
+  100% { box-shadow: 0 0 0 3px transparent; }
 }

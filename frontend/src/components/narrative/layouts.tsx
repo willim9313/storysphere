@@ -313,7 +313,8 @@ export function LayoutRing({ stages, theory, sel, onSelect }: VizProps) {
         {selStage && (
           <div className="nl-ring-center">
             <span className="nl-ring-center-k">
-              {t(`narrative.phase.${stagePhase(selStage.stage_id)}`)} · {stageOrdinal(selStage.stage_id)}
+              {t(`narrative.phase.${stagePhase(selStage.stage_id)}`)} ·{' '}
+              {t('narrative.ringStageOrdinal', { n: stageOrdinal(selStage.stage_id) })}
             </span>
             <span className="nl-ring-center-n">{nameOf(selStage, theory)}</span>
           </div>

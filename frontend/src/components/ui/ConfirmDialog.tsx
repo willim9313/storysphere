@@ -17,6 +17,8 @@ interface ConfirmDialogProps {
   /** Titled lists (「會失去：」＋項目、「會連帶過期：」＋項目) rendered after `items`
    *  when both are given. A section with no items is not rendered at all. */
   sections?: ConfirmSection[];
+  /** Badge beside the title (info = zero cost, warning = spends tokens). */
+  titleBadge?: { label: string; tone: 'info' | 'warning' };
   /** Plain-text cost note on the left of the button row (2xs muted). Text only —
    *  no sparkles; the glyph stays on the execute button via `spendsTokens`. */
   costHint?: string;
@@ -35,6 +37,7 @@ export function ConfirmDialog({
   items,
   sections,
   costHint,
+  titleBadge,
   danger = false,
   onConfirm,
   onCancel,
@@ -55,7 +58,14 @@ export function ConfirmDialog({
   return (
     <dialog ref={dialogRef} className="ss-dialog" onClose={onCancel}>
       <div className="ss-dialog-body">
-        <h3 className="ss-dialog-title">{title}</h3>
+        {titleBadge ? (
+          <div className="ss-dialog-title-row">
+            <h3 className="ss-dialog-title">{title}</h3>
+            <span className={`ss-badge ss-badge-${titleBadge.tone}`}>{titleBadge.label}</span>
+          </div>
+        ) : (
+          <h3 className="ss-dialog-title">{title}</h3>
+        )}
         <p className="ss-dialog-text">{message}</p>
         {items && items.length > 0 && (
           <ul className="ss-dialog-list">

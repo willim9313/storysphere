@@ -1637,6 +1637,7 @@
     "rerunArrow": "Re-run analysis →",
     "coverage": "Mapped {{mapped}}",
     "ofTotal": "/ {{total}} stages",
+    "ringStageOrdinal": "Stage {{n}}",
     "legend": "Legend",
     "absentSummary": "Not identified · {{count}}",
     "absentBody": "Absent stages are deliberate narrative choices, not \"incomplete\" — a step this book never takes is itself a finding.",
@@ -1696,6 +1697,8 @@
       "refineConfirmTitle": "Refine {{n}} unclassified events with the LLM?",
       "refineConfirmBody": "Sends one LLM request per event to judge kernel vs satellite. This spends tokens, and takes longer the more events there are. The verdicts overwrite these events\\u2019 current weights.",
       "classifyCost": "Zero cost · writes data",
+      "badgeFree": "Zero cost",
+      "badgeTokens": "Consumes tokens",
       "classifyAffects": "Will be deleted / overwritten: kernel/satellite weights of all {{total}} events (now: kernel {{kernel}} · satellite {{satellite}} · unclassified {{unclassified}})",
       "refineAffects": "Will be deleted / overwritten: the current weights of these {{n}} events"
     },

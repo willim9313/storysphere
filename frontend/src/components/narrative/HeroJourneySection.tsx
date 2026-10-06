@@ -70,6 +70,7 @@ export function HeroJourneySection({
   const rerunBtn = (
     <button
       type="button"
+      id="nl-hero-run"
       className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
       disabled={rerunning || rerunBlockedReason !== null}
       onClick={onRerun}
@@ -128,6 +129,18 @@ export function HeroJourneySection({
           </Tooltip>
         </div>
       </div>
+
+      {rerunning && (
+        <div className="nl-progress" role="status">
+          <div className="nl-progress-line">
+            <span className="nl-progress-spin" aria-hidden="true" />
+            {t('narrative.empty.running', { progress })}
+          </div>
+          <div className="ss-progress">
+            <div className="ss-progress-fill" style={{ width: `${progress}%` }} />
+          </div>
+        </div>
+      )}
 
       {/* What each view is for, on the control itself: a first-time reader will
           not hover something they don't yet know differs. */}

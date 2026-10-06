@@ -437,5 +437,6 @@
 .st-failure-line svg { flex-shrink: 0; }
 
 /* Guidance panel: reset button + live count on one row. */
+.st-guidance-row .ss-btn { font-weight: 600; }
 .st-guidance-row { display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap; }
-.st-guidance-count { font-size: var(--font-size-xs); color: var(--fg-muted); }
+.st-guidance-count { font-size: var(--font-size-2xs); color: var(--fg-muted); font-variant-numeric: tabular-nums; }
