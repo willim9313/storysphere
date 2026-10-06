@@ -11,7 +11,6 @@
  */
 
 import { useTranslation } from 'react-i18next';
-import { Link } from 'react-router-dom';
 import { AlertTriangle, Loader2 } from 'lucide-react';
 import { LlmUnconfiguredNotice } from '@/components/ui/LlmUnconfiguredNotice';
 
@@ -74,7 +73,6 @@ export function TimelineActionPanel({
       />
       <ActionRow
         name={t('timeline.action.displacement')}
-        nameHref="/methodology?framework=genette_temporal_order"
         state={displacement}
         onRun={onRunDisplacement}
         onCancel={onCancelDisplacement}
@@ -102,7 +100,6 @@ export function TimelineActionPanel({
 
 function ActionRow({
   name,
-  nameHref,
   state,
   onRun,
   onCancel,
@@ -111,7 +108,6 @@ function ActionRow({
   name: string;
   /** `displacement` names a specific theory (Genette), so the name doubles as
    *  the way out to its methodology entry. */
-  nameHref?: string;
   state: ActionRowState;
   onRun: () => void;
   onCancel: () => void;
@@ -128,13 +124,7 @@ function ActionRow({
         ) : (
           <span className={`tl-action-dot${hollow ? ' is-hollow' : ''}`} aria-hidden="true" />
         )}
-        {nameHref ? (
-          <Link to={nameHref} className="tl-action-name-link">
-            {name}
-          </Link>
-        ) : (
-          <span>{name}</span>
-        )}
+        <span>{name}</span>
       </div>
       <div className="tl-action-text">
         <span className={`tl-action-status${hollow ? ' is-blocked' : ''}`}>{state.status}</span>

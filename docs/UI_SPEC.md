@@ -1182,7 +1182,7 @@ outlier      = |deviation| > 0.15       // OUTLIER_THRESHOLD
 [前置：事件分析 d / t 筆（pct%）▬▬▬  到事件分析頁 →]
 [過期說明帶（時序分析已過期，有才出現）]
 [headline / meta（僅開啟對照時）]
-[譜面（每行固定帶「未排序」）]
+[譜面（每行 44px 左欄放「未排序」、右欄為繪圖區；選中章節左下角小黑標「Ch.n · N 事件」）]
 [圖例 2～3 行]
 [章節卡片帶]                                   [事件詳情面板 320px（開啟時譜面收窄，不覆蓋）]
 [角色軌跡（疊加層，可關）]
@@ -1204,7 +1204,7 @@ outlier      = |deviation| > 0.15       // OUTLIER_THRESHOLD
 
 #### 3.7.2 篩選
 
-popover（寬 340、`--card-radius`）內五個 AND 疊加的分區（事件類型 / 敘事模式 / 重要性 / 角色（含搜尋）/ 地點），每個選項帶命中筆數；
+popover（寬 340、`--card-radius`）頂部一列「篩選資料」＋accent 字「全部清除」（篩選即時生效，**沒有**底部「重置／套用」），下接五個 AND 疊加的分區（事件類型 / 敘事模式 / 重要性 / 角色（含搜尋）/ 地點），每個選項帶命中筆數；
 地點在真實資料中為空時該區自動隱藏。`filterMode` **不再放在 popover 內**（移到工具列）。
 
 - **篩到空 / 僅已分析＝0**：同一個殼——`沒有事件同時滿足這些條件` ＋ `目前套用 {n} 個條件…` ＋ `全部清除`。
@@ -1291,7 +1291,7 @@ off／disabled 時分段切換不出現。分段狀態與開關一樣是頁面 l
 - **列的圓點**：色＝前端由偏離量推導的敘事模式 `datum.mode`（`--narrative-*-border`，與詳情面板一致，**不用**後端 `narrative_mode`，見 5-TL-1）。
   Ink 下三色只差灰階，故再加形狀：當下＝實心圓、回敘＝空心圈、預敘＝實心方；`aria-label` 為模式名。
 - **篩選**：「只顯示符合項」時不符合的事件不計入格數；「淡化其餘」時仍計數、列表中不符合者淡化。
-- **未排序帶**：`rank === null` 的事件只計數、不進格。沒有未排序事件時帶不出現（與舊矩陣一致）。
+- **未排序帶**：`rank === null` 的事件只計數、不進格。未排序帶是固定結構，0 筆時照樣顯示「未排序事件 0」（與譜面一致）。
 - 事件列的中繼文字 `Ch.N · rank xx%` 為資料格式（等寬字、不進 i18n，與章節卡的 `Ch.N` 同）。
 
 #### 3.7.7 角色軌跡（疊加層）
@@ -1607,7 +1607,7 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 └───────────────────────────────────────────────┴────────────────────┘
 ```
 
-- 頁面本身是捲動容器（`.bo-page`），內容 `.bo-inner` max-w 1280 置中；導覽條 margin-bottom 歸零，間距交給 gap。
+- 頁面本身是捲動容器（`.bo-page`），內容 `.bo-inner` max-w 1280（含左右內距 24，內容寬 1232，與時間軸 `.tl-inner` 同算法）置中；導覽條 margin-bottom 歸零，間距交給 gap。
 - **完成度總覽**：加權 `(complete + partial × 0.5) / total`（示例 `(14 + 4×0.5) / 27 = 59%`）；大百分比旁一行 `unraveling.summary.completionRule`；右側分段條（complete／partial／empty 各用該狀態的底＋框，段間 2px）加圖例列（形狀記號＋計數＋`共 N 節點`）。
 - **欄頭**：五層卡片下沉成 DAG 欄頭，`x/y`、`· N 部分`、進度條都保留，各層進度用同一套加權算法。
 - **DAG**：`NODE_SLOT`（`components/buildOverview/buildOverviewModel.ts`）照稿列序；邊表 43 條來自 manifest（與稿逐條相同）。SVG 以 `width:100%` 等比縮放，`.bo-dagwrap` 最小 860，再窄就橫向捲動——字級不再縮小（SVG 文字用 `--font-size-2xs`）。
@@ -1642,7 +1642,7 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 #### 右欄
 
 - **層次清單**（components-rows＋list-group-head）：標頭 `L{n} · {層名}` 左、`{N} · 已析 {M}` 右（**已析只算完整**）；列 grid `24px 1fr auto 12px`（L0 菱形／名稱／計數／狀態記號）。計數沿用既有 `nodeSubLabel`；推斷概念有待審時改顯示 `{n} 待審`（待審數由前端打 `GET /inferred-concepts?status=pending` 自算，**節點狀態仍照 manifest，不覆寫成 partial**）。
-- **節點細節**（標頭「節點細節」＋右側「返回層次清單」）。結構順序：節點名＋狀態 badge → `L{n} · nodeId` → 〔L0 說明條〕→ 進度卡（有分子分母時）→ 章節分佈（只有 paragraphs／summaries／keywords／kg_event／symbols 五個節點）→ 同一次執行說明條 → 刪除說明條 → **動作區（下表）** → 前往對應頁面瀏覽 → 推斷概念審查佇列 → 原始計數 → 附加資訊（空值顯示「—」）。
+- **節點細節**（標頭「節點細節」＋右側「返回層次清單」）。結構順序：節點名＋狀態 badge → `L{n} · nodeId` → 〔L0 說明條〕→ 章節分佈（只有 paragraphs／summaries／keywords／kg_event／symbols 五個節點）→ 同一次執行說明條 → 刪除說明條 → **動作區（下表）** → 前往對應頁面瀏覽 → 推斷概念審查佇列 → 原始計數 → 附加資訊（空值顯示「—」）。
 
 動作區六態（`actionModeFor`，順序即優先序）：
 

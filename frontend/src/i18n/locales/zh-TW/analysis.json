@@ -767,8 +767,6 @@
       "importance": "重要性"
     },
     "charSearch": "搜尋角色…",
-    "reset": "重置",
-    "apply": "套用",
     "panel": {
       "region": "事件詳情",
       "eyebrow": "事件詳情",
@@ -877,6 +875,7 @@
       "legend": "中線＝兩種順序一致　下＝倒敘　上＝預敘　大點＝KERNEL",
       "legendUnranked": "底部「未排序」帶＝排不進故事時序（與尚未分析是兩回事）",
       "unranked": "未排序",
+      "chapterTag": "Ch.{{n}} · {{count}} 事件",
       "flashbackNote": "倒敘 ↩ Ch.{{ch}} 講的是故事早期（{{count}} 筆）",
       "flashforwardNote": "Ch.{{ch}} 有 {{count}} 筆被提前講出來",
       "flashbackJudged": "已判定倒敘 ↩ Ch.{{ch}}（{{count}}）",

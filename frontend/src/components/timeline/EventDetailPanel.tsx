@@ -71,9 +71,6 @@ export function EventDetailPanel({
       <header className="tl-panel-head">
         <div className="tl-panel-head-text">
           <span className="tl-panel-eyebrow">{t('timeline.panel.eyebrow')}</span>
-          {/* Lives in the header, not the toolbar: it is how you move through
-              the events this panel shows. */}
-          <span className="tl-panel-keys">{t('timeline.keyHint')}</span>
         </div>
         <button
           type="button"
@@ -92,6 +89,9 @@ export function EventDetailPanel({
             {chapterTitle && <span>{chapterTitle}</span>}
             <span>{eventTypeLabel(datum.event.eventType)}</span>
           </div>
+          {/* Sits under the kicker, not in the toolbar: it is how you move
+              through the events this panel shows (稿 12 E：kicker → 鍵位 → 標題). */}
+          <span className="tl-panel-keys">{t('timeline.keyHint')}</span>
           <h2 className="tl-panel-title">{datum.title}</h2>
           {/* Muting tracks the label it styles: the unrated state is the one
               that should read as absent, whether or not analysis ran. */}

@@ -48,7 +48,6 @@ function FilterChip({
 export interface FilterSheetProps {
   filter: FilterState;
   onChange: (f: FilterState) => void;
-  onClose: () => void;
   options: FilterOptions;
   modeLabel: (mode: string) => string;
   eventTypeLabel: (type: string) => string;
@@ -59,7 +58,6 @@ export interface FilterSheetProps {
 export function FilterSheet({
   filter,
   onChange,
-  onClose,
   options,
   modeLabel,
   eventTypeLabel,
@@ -85,6 +83,12 @@ export function FilterSheet({
 
   return (
     <div className="tl-filter-sheet" role="dialog" aria-label={t('timeline.filter')}>
+      <div className="tl-filter-sheet-head">
+        <span className="tl-filter-sheet-title">{t('timeline.toolbar.filter')}</span>
+        <button type="button" className="tl-filter-sheet-clear" onClick={reset}>
+          {t('timeline.clearAll')}
+        </button>
+      </div>
       <div className="tl-filter-sheet-section">
         <div className="tl-filter-sheet-label">{t('timeline.filterSections.eventTypes')}</div>
         <div className="tl-filter-chips">
@@ -182,15 +186,6 @@ export function FilterSheet({
           </div>
         </div>
       )}
-
-      <div className="tl-filter-sheet-foot">
-        <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary" onClick={reset}>
-          {t('timeline.reset')}
-        </button>
-        <button type="button" className="ss-btn ss-btn-sm ss-btn-primary" onClick={onClose}>
-          {t('timeline.apply')}
-        </button>
-      </div>
     </div>
   );
 }

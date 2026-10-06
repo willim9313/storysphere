@@ -668,7 +668,6 @@ export default function TimelinePage() {
               <FilterSheet
                 filter={filter}
                 onChange={setFilter}
-                onClose={() => setFilterOpen(false)}
                 options={filterOptions}
                 counts={filterCounts}
                 modeLabel={(m) => t(`timeline.narrativeModes.${m}`, m)}
