@@ -767,8 +767,6 @@
       "importance": "Importance"
     },
     "charSearch": "Search characters…",
-    "reset": "Reset",
-    "apply": "Apply",
     "panel": {
       "region": "Event detail",
       "eyebrow": "Event detail",
@@ -877,6 +875,7 @@
       "legend": "Midline = both orders agree　below = flashback　above = flashforward　large = KERNEL",
       "legendUnranked": "The \"unranked\" strip below = no place in story order (not the same as unanalyzed)",
       "unranked": "Unranked",
+      "chapterTag": "Ch.{{n}} · {{count}} events",
       "flashbackNote": "Flashback ↩ Ch.{{ch}} covers earlier story time ({{count}})",
       "flashforwardNote": "Ch.{{ch}} tells {{count}} events ahead of time",
       "flashbackJudged": "Judged flashback ↩ Ch.{{ch}} ({{count}})",

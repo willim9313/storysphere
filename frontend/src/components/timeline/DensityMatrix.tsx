@@ -122,12 +122,10 @@ export function DensityMatrix({
         </span>
       </div>
 
-      {unranked > 0 && (
-        <div className="tl-mx-unranked">
-          <span>{t('timeline.matrix.unrankedBand', { n: unranked })}</span>
-          <span className="tl-mx-note">{t('timeline.matrix.unsortedNote')}</span>
-        </div>
-      )}
+      <div className="tl-mx-unranked">
+        <span>{t('timeline.matrix.unrankedBand', { n: unranked })}</span>
+        <span className="tl-mx-note">{t('timeline.matrix.unsortedNote')}</span>
+      </div>
 
       <div className="tl-mx-legend">
         <span className="tl-mx-note">{t('timeline.matrix.cellsLegend')}</span>

@@ -772,74 +772,6 @@ interface NodeDetailProps {
   onSelectNode: (nodeId: string) => void;
 }
 
-interface ProgressNumbers {
-  num: number;
-  denom: number;
-  numLabel: string;
-  denomLabel: string;
-}
-
-function progressFor(node: BuildOverviewNode, t: TFunction): ProgressNumbers | null {
-  const c = node.counts;
-  const tCounts = (k: string) => t(`unraveling.counts.${k}`, { defaultValue: k });
-
-  if (node.nodeId === 'summaries' || node.nodeId === 'keywords') {
-    if (!c.total) return null;
-    return {
-      num: c.generated ?? 0,
-      denom: c.total,
-      numLabel: tCounts('generated'),
-      denomLabel: tCounts('chapters'),
-    };
-  }
-  if (node.nodeId === 'cep' || node.nodeId === 'character_analysis_result') {
-    if (!c.total_characters) return null;
-    return {
-      num: c.analyzed ?? 0,
-      denom: c.total_characters,
-      numLabel: tCounts('analyzed'),
-      denomLabel: tCounts('total_characters'),
-    };
-  }
-  if (['eep', 'teu', 'causality_analysis', 'impact_analysis'].includes(node.nodeId)) {
-    if (!c.total_events) return null;
-    return {
-      num: c.analyzed ?? 0,
-      denom: c.total_events,
-      numLabel: tCounts('analyzed'),
-      denomLabel: tCounts('total_events'),
-    };
-  }
-  if (['sep', 'symbol_analysis_result'].includes(node.nodeId)) {
-    if (!c.total_imagery) return null;
-    return {
-      num: c.analyzed ?? 0,
-      denom: c.total_imagery,
-      numLabel: tCounts('analyzed'),
-      denomLabel: tCounts('total_imagery'),
-    };
-  }
-  if (node.nodeId === 'voice_profile') {
-    if (!c.total_characters) return null;
-    return {
-      num: c.analyzed ?? 0,
-      denom: c.total_characters,
-      numLabel: tCounts('analyzed'),
-      denomLabel: tCounts('total_characters'),
-    };
-  }
-  if (node.nodeId === 'chronological_rank') {
-    if (!c.total_events) return null;
-    return {
-      num: c.events_ranked ?? 0,
-      denom: c.total_events,
-      numLabel: tCounts('events_ranked'),
-      denomLabel: tCounts('total_events'),
-    };
-  }
-  return null;
-}
-
 function Note({ children }: Readonly<{ children: ReactNode }>) {
   return (
     <div className="bo-note">
@@ -855,7 +787,6 @@ function NodeDetail({
   const { t } = useTranslation('analysis');
   const queryClient = useQueryClient();
   const statusLabel = t(`unraveling.status.${node.status}`);
-  const progress = progressFor(node, t);
   const blockers = blockersOf(node.nodeId, manifest.nodes, manifest.edges);
   const mode = actionModeFor(node, blockers.length);
   const route = NODE_TO_ROUTE[node.nodeId];
@@ -1017,23 +948,6 @@ function NodeDetail({
       </div>
 
       {mode === 'source' && <Note>{t('unraveling.layer.sourceHint')}</Note>}
-
-      {progress && (
-        <div className="bo-progress">
-          <span className="bo-section-h">{progress.numLabel}</span>
-          <div className="bo-progress-row">
-            <span className="bo-progress-num">{progress.num}</span>
-            <span className="bo-progress-of">/ {progress.denom}</span>
-            <span className="bo-progress-of">{progress.denomLabel}</span>
-          </div>
-          <div className="bo-progress-bar">
-            <div
-              className="bo-progress-fill"
-              style={{ width: `${(progress.num / progress.denom) * 100}%` }}
-            />
-          </div>
-        </div>
-      )}
 
       {chapterDist && chapterDist.length > 0 && (
         <div className="bo-section">
