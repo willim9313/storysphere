@@ -244,9 +244,8 @@ function BatchProgress({ batch }: Readonly<{ batch: SymbolBatch }>) {
     return (
       <div className="sym-ov-batch-panel">
         <Loader size={14} className="sym-ov-batch-spinner" aria-hidden="true" />
-        <span className="sym-ov-batch-stage">
-          {batch.stage || t('symbol.overview.batch.running')}
-        </span>
+        <span className="sym-ov-batch-stage">{t('symbol.overview.batch.running')}</span>
+        {batch.stage && <span className="sym-ov-batch-substage">{batch.stage}</span>}
         <progress className="sym-ov-batch-track" value={pct} max={100} />
         <span className="sym-ov-batch-hint">{t('symbol.overview.batch.hint')}</span>
       </div>
@@ -258,14 +257,23 @@ function BatchProgress({ batch }: Readonly<{ batch: SymbolBatch }>) {
     <div className="sym-ov-batch-panel is-done">
       <div className="sym-ov-batch-line">
         <span className="sym-ov-batch-stage">{t('symbol.overview.batch.done')}</span>
-        <span className="sym-ov-batch-tally">
-          {s.progress - s.skipped - s.failed} {t('symbol.overview.batch.statGenerated')} ·{' '}
-          {s.skipped} {t('symbol.overview.batch.statSkipped')} · {s.failed}{' '}
-          {t('symbol.overview.batch.statFailed')}
-        </span>
         <button type="button" className="sym-ov-batch-dismiss" onClick={batch.dismiss}>
           {t('symbol.overview.batch.dismiss')}
         </button>
+      </div>
+      <div className="sym-ov-batch-stats">
+        <div className="sym-ov-batch-stat">
+          <span className="sym-ov-batch-stat-n">{s.progress - s.skipped - s.failed}</span>
+          <span className="sym-ov-batch-stat-l">{t('symbol.overview.batch.statGenerated')}</span>
+        </div>
+        <div className="sym-ov-batch-stat">
+          <span className="sym-ov-batch-stat-n">{s.skipped}</span>
+          <span className="sym-ov-batch-stat-l">{t('symbol.overview.batch.statSkipped')}</span>
+        </div>
+        <div className={'sym-ov-batch-stat' + (s.failed > 0 ? ' is-failed' : '')}>
+          <span className="sym-ov-batch-stat-n">{s.failed}</span>
+          <span className="sym-ov-batch-stat-l">{t('symbol.overview.batch.statFailed')}</span>
+        </div>
       </div>
       {/* This sweep is the one with only ids to report — see BatchFailureList. */}
       <BatchFailureList failures={s.failures ?? []} />
@@ -454,7 +462,7 @@ function DensityHeatmap({
         <div className="sym-heat-axis">
           <span className="sym-heat-name" />
           <AxisHeader axis={axis} />
-          <span className="sym-heat-metric" />
+          <span className="sym-heat-metric">{t('symbol.overview.heat.loadHead')}</span>
         </div>
 
         {rows.map((s) => {

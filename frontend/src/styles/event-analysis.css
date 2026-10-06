@@ -648,6 +648,31 @@
 .ea-row-wrap { display: flex; align-items: center; }
 .ea-row-wrap > .ea-row { flex: 1; min-width: 0; }
 .ea-row-check { flex: none; margin-left: var(--space-5); accent-color: var(--accent); cursor: pointer; }
+/* 勾選模式：列表頭（取消勾選 · 已勾選 N）與清單底（生成已勾選 + 說明句），10 提案 C 區 */
+.ea-check-head {
+  display: flex; align-items: center; justify-content: space-between; gap: var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  font-family: var(--font-sans); font-size: var(--font-size-2xs);
+}
+.ea-check-cancel {
+  padding: 0; border: none; background: none; cursor: pointer;
+  font: inherit; color: var(--accent);
+}
+.ea-check-cancel:hover { text-decoration: underline; text-underline-offset: 2px; }
+.ea-check-count { color: var(--fg-muted); font-variant-numeric: tabular-nums; }
+.ea-check-foot {
+  display: flex; flex-direction: column; gap: var(--space-3);
+  padding: var(--space-4) var(--space-5);
+  border-top: var(--line-weight) var(--border-style) var(--border);
+}
+.ea-check-note { margin: 0; font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-muted); }
+/* 「只看失敗」後第二行：第 n 章 · 失敗原因（mono，過長換行，不截斷——原因只此一處可讀） */
+.ea-row-fail-reason { gap: var(--space-3); height: auto; min-height: 28px; align-items: baseline; }
+.ea-row-fail-where { flex: none; white-space: nowrap; }
+.ea-row-fail-text {
+  min-width: 0; overflow-wrap: anywhere;
+  font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-muted);
+}
 
 /* ─── 對比抽屜（H）760 ─── */
 .ea-compare-backdrop { position: fixed; inset: 0; z-index: 30; background: rgb(0 0 0 / 12%); }

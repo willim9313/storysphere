@@ -19,7 +19,7 @@ import { NarrativeChip } from '@/components/analysis/EventListItems';
 import { parseNarrativeMode } from '@/components/analysis/overview/eventTypes';
 import { EventOverviewLanding } from '@/components/analysis/overview/EventOverviewLanding';
 import { EventGroupedList } from '@/components/analysis/EventGroupedList';
-import { failedCountOf, liveFailedIds } from '@/components/analysis/batchPanelModel';
+import { failedCountOf, failureIdOf, liveFailedIds } from '@/components/analysis/batchPanelModel';
 import { EventCompareDrawer } from '@/components/analysis/EventCompareDrawer';
 import { failureKind, isLlmUnconfigured, techDetailOf } from '@/api/failureKind';
 import { GuidanceRibbon } from '@/components/ui/GuidanceRibbon';
@@ -285,6 +285,12 @@ export default function EventAnalysisPage() {
     'events',
   );
   const failedCount = failedCountOf(batch.summary, failedIds);
+  // 「只看失敗」 shows each failure's reason on its row; the summary already carries it.
+  const failureReasons = new Map(
+    (batch.summary?.failures ?? []).flatMap((f) =>
+      failureIdOf(f, 'events') ? [[failureIdOf(f, 'events') as string, f.reason] as const] : [],
+    ),
+  );
   const failedFilterOn = failedOnly && failedIds.length > 0;
 
   if (isLoading) {
@@ -352,8 +358,6 @@ export default function EventAnalysisPage() {
                   setCheckMode((v) => !v);
                   setCheckedIds(new Set());
                 },
-                checkedCount: checkedIds.size,
-                onBatchChecked: () => startBatch([...checkedIds]),
               }}
             />
             </div>
@@ -383,8 +387,15 @@ export default function EventAnalysisPage() {
               failedIds={failedIds}
               failedOnly={failedFilterOn}
               onFailedOnlyChange={setFailedOnly}
+              failureReasons={failedFilterOn ? failureReasons : undefined}
               checkMode={checkMode}
               checked={checkedIds}
+              onExitCheckMode={() => {
+                setCheckMode(false);
+                setCheckedIds(new Set());
+              }}
+              onGenerateChecked={() => startBatch([...checkedIds])}
+              batchBusy={batch.pending || batch.running}
               onToggleChecked={(id) =>
                 setCheckedIds((prev) => {
                   const next = new Set(prev);
@@ -489,8 +500,8 @@ export default function EventAnalysisPage() {
                       {importance && (
                         <span className="ea-detail-meta-imp">
                           {isKernel
-                            ? t('event.importance.kernelTagline')
-                            : t('event.importance.satelliteTagline')}
+                            ? t('event.importance.kernelMeta')
+                            : t('event.importance.satelliteMeta')}
                         </span>
                       )}
                       {eventDetail.status === 'partial' && (
@@ -710,7 +721,7 @@ export default function EventAnalysisPage() {
 
       <ConfirmDialog
         open={confirmBatchEep}
-        title={t('event.batchTitle')}
+        title={t('batch.triggerAll')}
         message={t('event.batchMessage', { count: evtData?.unanalyzed.length ?? 0 })}
         confirmLabel={t('event.batchConfirm')}
         spendsTokens

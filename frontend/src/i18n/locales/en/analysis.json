@@ -260,7 +260,6 @@
     }
   },
   "event": {
-    "batchTitle": "Batch Generate Event EEP",
     "batchMessage": "Will run deep analysis on {{count}} unanalyzed events. Already-analyzed events will be skipped. This will consume significant tokens.",
     "batchConfirm": "Confirm",
     "retryFailed": "Retry failed parts",
@@ -288,7 +287,9 @@
       "kernel": "Kernel Event",
       "satellite": "Satellite Event",
       "kernelTagline": "Kernel · Pivotal turning point",
-      "satelliteTagline": "Satellite · Supporting detail"
+      "kernelMeta": "Kernel event: drives the main line; the plot fails without it",
+      "satelliteTagline": "Satellite · Supporting detail",
+      "satelliteMeta": "Satellite event: supporting detail"
     },
     "narrative": {
       "flashback": "Flashback",
@@ -320,7 +321,7 @@
       "factorsConsequencesSub": "factors · consequences",
       "keyQuotesCount": "{{count}} quotes",
       "roleLegend": "Role key",
-      "topTermsSub": "TF · top terms"
+      "topTermsSub": "TF · top 12"
     },
     "list": {
       "searchPlaceholder": "Search {{count}} events…",
@@ -336,10 +337,11 @@
       "noChapterGroup": "No chapter",
       "groupMeta": "{{total}} · {{analyzed}} analyzed",
       "noMatch": "No events match these filters",
-      "clearFilters": "Clear filters"
+      "clearFilters": "Clear filters",
+      "checkedCount": "{{count}} selected",
+      "checkNote": "Analyzed rows get no checkbox — checking them would not re-run anything."
     },
     "empty": {
-      "subtitle": "Select an analyzed event from the left to view its EEP details, or click \"Create\" on an unanalyzed event to trigger deep analysis.",
       "unanalyzedSubtitle": "This event has no EEP analysis yet. Triggering will extract state changes, participant roles, causal chain, and impact.",
       "createBtn": "Create analysis"
     },
@@ -361,7 +363,8 @@
       "ranking": {
         "caption": "Sorted by importance (kernel first), then participant count · bar = participant count. Importance is only determined once an EEP exists.",
         "heroSub": "Ch.{{chapter}} · {{importance}} · {{participants}} participants",
-        "viewAnalysis": "View analysis",
+        "heroSubAnalyzed": "Ch.{{chapter}} · {{participants}} participants",
+        "viewAnalysis": "View details",
         "createHero": "Create event analysis",
         "participants": "{{count}}",
         "collapse": "Collapse",
@@ -1339,7 +1342,6 @@
         "noisy": "{{count}} with noisy evidence",
         "separator": " · "
       },
-      "aiCostLegend": "Marked items are LLM-generated or will trigger generation: they spend tokens and enter HITL review. Every other signal is computed at no cost.",
       "picks": {
         "title": "Where to start",
         "subtitle": "Top {{count}} by narrative load, computed from structured signals",
@@ -1356,6 +1358,7 @@
         "ctaBlocked": "Refused by provider — cannot interpret"
       },
       "heat": {
+        "loadHead": "Load",
         "meta": "{{rows}} ranked symbols × {{slots}} axis slots · body chapter maximum {{max}}",
         "subtitle": "Shading is an absolute occurrence count, never rescaled per symbol or chapter, so rows compare directly — the steps are in the legend below",
         "axisBody": "Body, ch {{first}}–{{last}}",
@@ -1538,12 +1541,6 @@
       "badge": "Blocked",
       "badgeTitle": "The LLM provider refused this symbol's prompt; no interpretation was produced"
     },
-    "emptyStep1Title": "Confirm paragraph tokenisation is complete",
-    "emptyStep1Desc": "Imagery extraction relies on paragraph-level tokens — if the paragraph layer has not been built, extraction will not run automatically.",
-    "emptyStep2Title": "Check status on the Build Overview page",
-    "emptyStep2Desc": "The Build Overview DAG will clearly mark the \"Symbols\" node as empty, partial, or complete.",
-    "emptyStep3Title": "Trigger manually if needed",
-    "emptyStep3Desc": "If the dependency layer is complete but the list is still empty, trigger the imagery extraction pipeline from the corresponding node on the Build Overview page.",
     "guide": {
       "prefix": "Researcher guide:",
       "body": "This page lays the book's imagery out as a map. The <strong>sort axis</strong> decides what \"important\" means — narrative load is the composite measure, while <strong>raw frequency is only a control</strong>: appearing often is not the same as carrying weight. Filter by category and review state on the left."

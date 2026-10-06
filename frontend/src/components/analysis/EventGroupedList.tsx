@@ -21,9 +21,16 @@ interface EventGroupedListProps {
   failedIds: readonly string[];
   failedOnly: boolean;
   onFailedOnlyChange: (on: boolean) => void;
+  /** Failure reason per event id; passed only while narrowed to failures. */
+  failureReasons?: ReadonlyMap<string, string>;
   checkMode: boolean;
   checked: Set<string>;
   onToggleChecked: (id: string) => void;
+  /** Check mode lives in the list (10 提案 C 區): header 取消勾選 · 已勾選 N, footer 生成已勾選. */
+  onExitCheckMode: () => void;
+  onGenerateChecked: () => void;
+  /** A batch is starting or running: the footer button waits. */
+  batchBusy: boolean;
 }
 
 type Row =
@@ -80,9 +87,13 @@ export function EventGroupedList({
   failedIds,
   failedOnly,
   onFailedOnlyChange,
+  failureReasons,
   checkMode,
   checked,
   onToggleChecked,
+  onExitCheckMode,
+  onGenerateChecked,
+  batchBusy,
 }: Readonly<EventGroupedListProps>) {
   const { t } = useTranslation('analysis');
   const [impFilter, setImpFilter] = useState<Set<ImportanceKey>>(new Set());
@@ -199,6 +210,15 @@ export function EventGroupedList({
         </div>
       </div>
 
+      {checkMode && (
+        <div className="ea-check-head">
+          <button type="button" className="ea-check-cancel" onClick={onExitCheckMode}>
+            {t('batch.checkModeOff')}
+          </button>
+          <span className="ea-check-count">{t('event.list.checkedCount', { count: checked.size })}</span>
+        </div>
+      )}
+
       <div className="ea-list">
         {groups.map((g) => {
           const open = !collapsed.has(g.key);
@@ -243,6 +263,7 @@ export function EventGroupedList({
                         onGenerate={() => onGenerate(row.id)}
                         isGenerating={generatingId === row.id}
                         failed={failedSet.has(row.id)}
+                        failureReason={failureReasons?.get(row.id)}
                       />
                     </div>
                   ),
@@ -271,6 +292,20 @@ export function EventGroupedList({
           </div>
         )}
       </div>
+
+      {checkMode && (
+        <div className="ea-check-foot">
+          <button
+            type="button"
+            className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm"
+            disabled={checked.size === 0 || batchBusy}
+            onClick={onGenerateChecked}
+          >
+            {t('batch.generateChecked')} ({checked.size})
+          </button>
+          <p className="ea-check-note">{t('event.list.checkNote')}</p>
+        </div>
+      )}
     </>
   );
 }
