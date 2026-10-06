@@ -104,7 +104,14 @@ export function BatchEepPanel({
      `stage` ("分析事件 12/57"), rendered below. */
   const pct = totalCount > 0 ? Math.round((analyzedCount / totalCount) * 100) : 0;
   const stage = batchTask?.stage ?? '';
-  const runningLabel = t(k('runningWithCount'), { current: analyzedCount, total: totalCount });
+  // 「分析中 N/M…」 counts this run (README §3.5): N = items the run has walked,
+  // M = items it was given — a subset run says 3, not the whole book. Before
+  // the task reports its first stage it has no total, so fall back to the book.
+  const runTotal = batchTask?.subTotal ?? 0;
+  const runningLabel =
+    runTotal > 0
+      ? t(k('runningWithCount'), { current: Math.min(batchTask?.subProgress ?? 0, runTotal), total: runTotal })
+      : t(k('runningWithCount'), { current: analyzedCount, total: totalCount });
 
   const cardClass =
     'ea-batch' +

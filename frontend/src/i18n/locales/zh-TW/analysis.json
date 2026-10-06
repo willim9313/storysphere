@@ -671,6 +671,8 @@
       "intensitySep": "、",
       "orphanTitle": "未歸入任何張力線",
       "orphanCellLabel": "第 {{chapter}} 章 {{count}} 個未歸入 TEU",
+      "cellLabelIntensity": "第 {{chapter}} 章 {{count}} 個 TEU，強度 {{intensities}}",
+      "orphanCellLabelIntensity": "第 {{chapter}} 章 {{count}} 個未歸入 TEU，強度 {{intensities}}",
       "orphanMeta": "{{count}} TEU（{{pct}}%）",
       "lostChapters": "{{list}} 整章落單",
       "expand": "展開",
@@ -709,6 +711,10 @@
     }
   },
   "timeline": {
+    "coverage": {
+      "prereq": "前置：事件分析 {{done}} / {{total}} 筆（{{pct}}%）",
+      "toEvents": "到事件分析頁 →"
+    },
     "narrativeModes": {
       "present": "當下敘事",
       "flashback": "回敘",
@@ -1111,7 +1117,9 @@
     "openPageNotImplemented": "尚未實作",
     "counts": {
       "chapters": "章節",
-      "paragraphs": "chunks",
+      "paragraphs": "段落",
+      "chaptersN": "{{n}} 章",
+      "paragraphsN": "{{n}} 段",
       "generated": "已產出",
       "total": "總計",
       "character": "人物",

@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import {
   DEFAULT_READER_PREFS,
-  MODE_DEFAULTS,
+  DEFAULT_TYPOGRAPHY,
   entityDistributionRows,
   formatTypography,
   isOverridden,
@@ -13,10 +13,9 @@ import {
   withTypography,
 } from './readerModel';
 
-describe('mode defaults', () => {
-  it('are 檢視 17 / 1.6 and 專注 19 / 1.85', () => {
-    expect(formatTypography(MODE_DEFAULTS.view)).toBe('17 / 1.6');
-    expect(formatTypography(MODE_DEFAULTS.focus)).toBe('19 / 1.85');
+describe('default typography', () => {
+  it('is 17 / 1.6', () => {
+    expect(formatTypography(DEFAULT_TYPOGRAPHY)).toBe('17 / 1.6');
   });
 });
 
@@ -27,61 +26,50 @@ describe('normalizePrefs', () => {
     expect(normalizePrefs({ warmth: 9, fade: 'yes' })).toEqual(DEFAULT_READER_PREFS);
   });
 
-  it('migrates the legacy {fs,lh,warmth,fade} shape into the 檢視 values', () => {
+  it('reads the flat {fs,lh,warmth,fade} shape', () => {
     const p = normalizePrefs({ fs: 2, lh: 1, warmth: 3, fade: true });
-    expect(p.warmth).toBe(3);
+    expect(p).toEqual({ fs: 2, lh: 1, warmth: 3, fade: true });
+  });
+
+  it('migrates the interim per-mode shape: the 檢視 group wins, 專注 is dropped', () => {
+    const p = normalizePrefs({ view: { fs: 2 }, focus: { lh: 2, fs: 0 }, warmth: 0, fade: true });
+    expect(resolveTypography(p)).toEqual({ fs: 2, lh: 0 });
+    expect(p.warmth).toBe(0);
     expect(p.fade).toBe(true);
-    // 檢視 keeps what the user had: 19px / 1.85.
-    expect(resolveTypography(p, 'view')).toEqual({ fs: 2, lh: 1 });
-    // 專注 starts from its own default.
-    expect(resolveTypography(p, 'focus')).toEqual(MODE_DEFAULTS.focus);
   });
 
-  it('drops legacy values that equal the 檢視 default', () => {
-    const p = normalizePrefs({ fs: 1, lh: 0, warmth: 1, fade: false });
-    expect(p.view).toEqual({});
-    expect(isOverridden(p, 'view')).toBe(false);
-  });
-
-  it('keeps the per-mode shape and ignores stray top-level fs/lh once view/focus exist', () => {
-    const p = normalizePrefs({ fs: 0, view: { fs: 2 }, focus: { lh: 2 }, warmth: 0, fade: false });
-    expect(resolveTypography(p, 'view')).toEqual({ fs: 2, lh: 0 });
-    expect(resolveTypography(p, 'focus')).toEqual({ fs: 2, lh: 2 });
+  it('per-mode shape with an empty 檢視 group means the default, ignoring 專注', () => {
+    const p = normalizePrefs({ view: {}, focus: { fs: 0 } });
+    expect(resolveTypography(p)).toEqual(DEFAULT_TYPOGRAPHY);
   });
 
   it('discards out-of-range steps', () => {
-    const p = normalizePrefs({ view: { fs: 7, lh: -1 }, focus: { fs: 'big' } });
-    expect(p.view).toEqual({});
-    expect(p.focus).toEqual({});
+    expect(resolveTypography(normalizePrefs({ fs: 7, lh: -1 }))).toEqual(DEFAULT_TYPOGRAPHY);
+    expect(resolveTypography(normalizePrefs({ view: { fs: 'big' } }))).toEqual(DEFAULT_TYPOGRAPHY);
   });
 });
 
 describe('withTypography / resetTypography / isOverridden', () => {
-  it('stores a change only for the mode it was made in', () => {
-    const p = withTypography(DEFAULT_READER_PREFS, 'view', { fs: 2 });
-    expect(resolveTypography(p, 'view')).toEqual({ fs: 2, lh: 0 });
-    expect(resolveTypography(p, 'focus')).toEqual(MODE_DEFAULTS.focus);
-    expect(isOverridden(p, 'view')).toBe(true);
-    expect(isOverridden(p, 'focus')).toBe(false);
+  it('stores a change and reports it as an override', () => {
+    const p = withTypography(DEFAULT_READER_PREFS, { fs: 2 });
+    expect(resolveTypography(p)).toEqual({ fs: 2, lh: 0 });
+    expect(isOverridden(p)).toBe(true);
   });
 
   it('stops being an override when the user picks the default value again', () => {
-    const p = withTypography(withTypography(DEFAULT_READER_PREFS, 'focus', { lh: 2 }), 'focus', { lh: 1 });
-    expect(isOverridden(p, 'focus')).toBe(false);
+    const p = withTypography(withTypography(DEFAULT_READER_PREFS, { lh: 2 }), { lh: 0 });
+    expect(isOverridden(p)).toBe(false);
   });
 
   it('keeps the other axis when only one changes', () => {
-    const p = withTypography(withTypography(DEFAULT_READER_PREFS, 'view', { fs: 0 }), 'view', { lh: 2 });
-    expect(resolveTypography(p, 'view')).toEqual({ fs: 0, lh: 2 });
+    const p = withTypography(withTypography(DEFAULT_READER_PREFS, { fs: 0 }), { lh: 2 });
+    expect(resolveTypography(p)).toEqual({ fs: 0, lh: 2 });
   });
 
-  it('reset drops only that mode and leaves warmth / fade / the other mode', () => {
-    let p = withTypography(DEFAULT_READER_PREFS, 'view', { fs: 2 });
-    p = withTypography(p, 'focus', { fs: 0 });
-    p = { ...p, warmth: 2, fade: true };
-    const r = resetTypography(p, 'view');
-    expect(isOverridden(r, 'view')).toBe(false);
-    expect(resolveTypography(r, 'focus').fs).toBe(0);
+  it('reset restores the default typography and leaves warmth / fade', () => {
+    const p = { ...withTypography(DEFAULT_READER_PREFS, { fs: 2, lh: 1 }), warmth: 2 as const, fade: true };
+    const r = resetTypography(p);
+    expect(isOverridden(r)).toBe(false);
     expect(r.warmth).toBe(2);
     expect(r.fade).toBe(true);
   });

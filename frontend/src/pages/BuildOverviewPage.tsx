@@ -129,7 +129,7 @@ function nodeSubLabel(t: TFunction, n: BuildOverviewNode, pendingConcepts?: numb
   switch (n.nodeId) {
     case 'summaries':
     case 'keywords':
-      return `${c.generated ?? 0} / ${c.total ?? 0} ${t('unraveling.counts.chapters')}`;
+      return `${c.generated ?? 0} / ${c.total ?? 0}`;
     case 'symbols':
       return `${c.imagery_entities ?? c.generated ?? 0}`;
     case 'cep':
@@ -157,11 +157,11 @@ function nodeSubLabel(t: TFunction, n: BuildOverviewNode, pendingConcepts?: numb
     case 'kg_relation':
       return `${c.relations ?? 0}`;
     case 'book_meta':
-      return `${c.fields ?? Object.keys(n.meta).length} ${t('unraveling.counts.fields', { defaultValue: 'fields' })}`;
+      return t('unraveling.counts.built');
     case 'chapters':
-      return `${c.chapters ?? c.total ?? 0}`;
+      return t('unraveling.counts.chaptersN', { n: c.chapters ?? c.total ?? 0 });
     case 'paragraphs':
-      return `${c.paragraphs ?? c.total ?? 0}`;
+      return t('unraveling.counts.paragraphsN', { n: c.paragraphs ?? c.total ?? 0 });
     default:
       return n.status === 'complete' ? t('unraveling.status.complete') : '';
   }

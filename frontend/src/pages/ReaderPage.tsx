@@ -75,16 +75,16 @@ export default function ReaderPage() {
   // restored on exit. (The collapsed state itself is not persisted today; that
   // is unchanged.)
   const [focus, setFocus] = useState(false);
-  // `reader:prefs` may still hold the legacy {fs,lh,warmth,fade} shape;
-  // normalizePrefs reads both and every write goes back out in the per-mode
-  // shape. fs / lh are kept per mode (檢視 / 專注), warmth and fade are shared.
+  // One set of fs / lh / warmth / fade shared by 檢視 and 專注. `reader:prefs`
+  // may still hold an older shape (incl. per-mode view/focus); normalizePrefs
+  // reads it and every write goes back out flat.
   const [storedPrefs, setStoredPrefs] = useLocalStorage<Record<string, unknown>>(READER_PREFS_KEY, DEFAULT_READER_PREFS);
   const readerPrefs = useMemo(() => normalizePrefs(storedPrefs), [storedPrefs]);
   const mode: ReaderMode = focus ? 'focus' : 'view';
-  const typography = resolveTypography(readerPrefs, mode);
+  const typography = resolveTypography(readerPrefs);
   const updateTypography = (patch: Partial<Typography>) =>
-    setStoredPrefs((prev) => withTypography(normalizePrefs(prev), mode, patch));
-  const resetModeTypography = () => setStoredPrefs((prev) => resetTypography(normalizePrefs(prev), mode));
+    setStoredPrefs((prev) => withTypography(normalizePrefs(prev), patch));
+  const resetModeTypography = () => setStoredPrefs((prev) => resetTypography(normalizePrefs(prev)));
   const updateSharedPrefs = (patch: Partial<Pick<ReaderPrefs, 'warmth' | 'fade'>>) =>
     setStoredPrefs((prev) => ({ ...normalizePrefs(prev), ...patch }));
   const [epistemicHintShown, setEpistemicHintShown] = useState(() => {
@@ -577,7 +577,6 @@ export default function ReaderPage() {
                   </div>
                   <TypographyPanel
                     prefs={readerPrefs}
-                    mode={mode}
                     onTypography={updateTypography}
                     onResetTypography={resetModeTypography}
                     onPrefs={updateSharedPrefs}

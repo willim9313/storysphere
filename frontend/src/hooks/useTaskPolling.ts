@@ -1,5 +1,5 @@
-import { useReducer } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useReducer } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { ApiError } from '@/api/client';
 import { fetchTaskStatus } from '@/api/ingest';
 import type { MurmurEvent, TaskStatus } from '@/api/types';
@@ -22,6 +22,15 @@ export function useTaskPolling(
 ) {
   // Triggers re-render when murmur store is updated
   const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
+
+  // Every page that starts a background task polls it through here, so this is
+  // the one place to wake the global task list: useTaskNotifications stops
+  // polling once nothing is in flight, and without this nudge the sidebar badge
+  // and Task Center would not see a task started from an analysis page.
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (taskId) void queryClient.invalidateQueries({ queryKey: qk.tasks.list() });
+  }, [taskId, queryClient]);
 
   const query = useQuery<TaskStatus>({
     queryKey: qk.tasks.one(taskId),

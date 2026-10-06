@@ -956,7 +956,7 @@ export default function GraphPage() {
       {!pairModeActive && <LegendCard clusterMode={clusterMode} />}
 
       {/* 強制重跑推論 — irreversible but free: danger styling, NO cost glyph.
-          The body keeps the original wording verbatim (including 「重跡」). */}
+          The body keeps the original wording verbatim (the typo 「重跡」 is already corrected to 「重跑」, FINAL_RULINGS #9). */}
       <ConfirmDialog
         open={forceConfirmOpen}
         title={t('inference.forceRerunTitle')}

@@ -1,9 +1,8 @@
 /**
- * Reader typography model (DS v3 · 08 閱讀頁 G 區).
+ * Reader typography model (DS v3 · 08 閱讀頁 G 區, FINAL_RULINGS #7).
  *
- * `reader:prefs` keeps font size / line height per mode (檢視 / 專注) as
- * *overrides* on top of each mode's own default; warmth and fade are shared by
- * both modes. Pure functions only — ReaderPage and TypographyPanel own the
+ * `reader:prefs` keeps one font size / line height / warmth / fade that 檢視 and
+ * 專注 share. Pure functions only — ReaderPage and TypographyPanel own the
  * localStorage plumbing and the rendering.
  */
 
@@ -12,96 +11,69 @@ export type ReaderMode = 'view' | 'focus';
 export type Step = 0 | 1 | 2;
 export type Warmth = 0 | 1 | 2 | 3;
 
-export interface Typography {
+export type Typography = {
   fs: Step;
   lh: Step;
-}
-
-// A type alias (not an interface) so it is assignable to the Record<string, unknown>
-// that `reader:prefs` is read back as — the stored JSON may still be the legacy shape.
-export type ReaderPrefs = {
-  warmth: Warmth;
-  fade: boolean;
-  /** Only the values the user changed in 檢視; absent key = the mode default. */
-  view: Partial<Typography>;
-  /** Same for 專注. */
-  focus: Partial<Typography>;
 };
 
-/** 15 / 17 / 19 px — the scale did not move, only each mode's default landing. */
+// A type alias (not an interface) so it is assignable to the Record<string, unknown>
+// that `reader:prefs` is read back as — the stored JSON may still be an older shape.
+export type ReaderPrefs = Typography & {
+  warmth: Warmth;
+  fade: boolean;
+};
+
+/** 15 / 17 / 19 px */
 export const FS_PX = ['15px', '17px', '19px'] as const;
 /** 1.6 / 1.85 / 2.15 */
 export const LH_VALUES = ['1.6', '1.85', '2.15'] as const;
 
-/** 檢視 17 / 1.6 (fs=1, lh=0) · 專注 19 / 1.85 (fs=2, lh=1). */
-export const MODE_DEFAULTS: Record<ReaderMode, Typography> = {
-  view: { fs: 1, lh: 0 },
-  focus: { fs: 2, lh: 1 },
-};
+/** 17 / 1.6 (fs=1, lh=0). */
+export const DEFAULT_TYPOGRAPHY: Typography = { fs: 1, lh: 0 };
 
-export const DEFAULT_READER_PREFS: ReaderPrefs = { warmth: 1, fade: false, view: {}, focus: {} };
+export const DEFAULT_READER_PREFS: ReaderPrefs = { ...DEFAULT_TYPOGRAPHY, warmth: 1, fade: false };
 
 const isStep = (v: unknown): v is Step => v === 0 || v === 1 || v === 2;
 const isWarmth = (v: unknown): v is Warmth => v === 0 || v === 1 || v === 2 || v === 3;
 
-/** Keep only valid steps that differ from the mode default. */
-function cleanOverride(raw: unknown, mode: ReaderMode): Partial<Typography> {
-  const out: Partial<Typography> = {};
-  if (typeof raw !== 'object' || raw === null) return out;
-  const o = raw as Record<string, unknown>;
-  const def = MODE_DEFAULTS[mode];
-  if (isStep(o.fs) && o.fs !== def.fs) out.fs = o.fs;
-  if (isStep(o.lh) && o.lh !== def.lh) out.lh = o.lh;
-  return out;
-}
-
 /**
- * Parse whatever `reader:prefs` holds. The legacy shape `{fs, lh, warmth, fade}`
- * (one font size / line height for everything) becomes the 檢視 values, so
- * existing users keep what they chose; 專注 starts from its own defaults.
+ * Parse whatever `reader:prefs` holds. Older shapes still read back:
+ *  - flat `{fs, lh, warmth, fade}` (the current shape, and the original one);
+ *  - the interim per-mode `{view:{fs?,lh?}, focus:{…}, warmth, fade}` — the 檢視
+ *    group wins (it is what users saw by default); the 專注 group is dropped.
+ * The next write goes back out flat.
  */
 export function normalizePrefs(raw: unknown): ReaderPrefs {
   if (typeof raw !== 'object' || raw === null) return DEFAULT_READER_PREFS;
   const o = raw as Record<string, unknown>;
-  const hasPerMode = 'view' in o || 'focus' in o;
-  const view = hasPerMode ? cleanOverride(o.view, 'view') : cleanOverride(o, 'view');
-  const focus = hasPerMode ? cleanOverride(o.focus, 'focus') : {};
+  const view = typeof o.view === 'object' && o.view !== null ? (o.view as Record<string, unknown>) : null;
+  const src = view ?? o;
   return {
+    fs: isStep(src.fs) ? src.fs : DEFAULT_TYPOGRAPHY.fs,
+    lh: isStep(src.lh) ? src.lh : DEFAULT_TYPOGRAPHY.lh,
     warmth: isWarmth(o.warmth) ? o.warmth : DEFAULT_READER_PREFS.warmth,
     fade: typeof o.fade === 'boolean' ? o.fade : DEFAULT_READER_PREFS.fade,
-    view,
-    focus,
   };
 }
 
-/** The font size / line height actually applied in `mode`. */
-export function resolveTypography(prefs: ReaderPrefs, mode: ReaderMode): Typography {
-  const def = MODE_DEFAULTS[mode];
-  const o = prefs[mode];
-  return { fs: o.fs ?? def.fs, lh: o.lh ?? def.lh };
+/** The font size / line height actually applied. */
+export function resolveTypography(prefs: ReaderPrefs): Typography {
+  return { fs: prefs.fs, lh: prefs.lh };
 }
 
-/** True when the user's value in `mode` differs from that mode's default. */
-export function isOverridden(prefs: ReaderPrefs, mode: ReaderMode): boolean {
-  const o = prefs[mode];
-  return o.fs !== undefined || o.lh !== undefined;
+/** True when the user's value differs from the default. */
+export function isOverridden(prefs: ReaderPrefs): boolean {
+  return prefs.fs !== DEFAULT_TYPOGRAPHY.fs || prefs.lh !== DEFAULT_TYPOGRAPHY.lh;
 }
 
-/** Apply a user change to one mode; a value equal to the default is dropped. */
-export function withTypography(
-  prefs: ReaderPrefs,
-  mode: ReaderMode,
-  patch: Partial<Typography>,
-): ReaderPrefs {
-  const next = resolveTypography(prefs, mode);
-  if (patch.fs !== undefined) next.fs = patch.fs;
-  if (patch.lh !== undefined) next.lh = patch.lh;
-  return { ...prefs, [mode]: cleanOverride(next, mode) };
+/** Apply a user change. */
+export function withTypography(prefs: ReaderPrefs, patch: Partial<Typography>): ReaderPrefs {
+  return { ...prefs, ...patch };
 }
 
-/** 「回到此態預設」: drop this mode's overrides, leave the other mode alone. */
-export function resetTypography(prefs: ReaderPrefs, mode: ReaderMode): ReaderPrefs {
-  return { ...prefs, [mode]: {} };
+/** 「回到預設」: back to the default font size / line height; warmth and fade stay. */
+export function resetTypography(prefs: ReaderPrefs): ReaderPrefs {
+  return { ...prefs, ...DEFAULT_TYPOGRAPHY };
 }
 
 /** "17 / 1.6" — the readout shown next to 此態預設 / 目前. */

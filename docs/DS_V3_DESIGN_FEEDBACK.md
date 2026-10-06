@@ -1017,6 +1017,13 @@ Handoff `redesign_v3_handoff_batch_3.zip`（`design_handoff_03_analysis/`）。�
 - **目前處置**：不動。**5-4 已落地**：11 補稿 B 區補了損失清單版確認框，`window.confirm` 已換成 `ConfirmDialog`（danger＋spendsTokens＋costHint）。
 - **請設計端**：無需動作。
 
+#### 3-RD-R1 `reader:prefs` 兩態共用後，「此態預設」措辭失去「態」（稽核修復 PR-1）
+
+- **出處**：FINAL_RULINGS #7「reader:prefs 兩態共用一組」；08 G 區 Aa 彈窗仍畫「檢視」標頭＋「此態預設 17 / 1.6」＋「回到此態預設」。
+- **問題**：字級／行距改成兩態共用一組後，彈窗不再有「檢視／專注」分態，專注態的預設 19 / 1.85 也作廢；「此態」二字沒有對象。
+- **目前處置**：彈窗拿掉態標頭，字串（`typography.modeDefault`「此態預設」、`typography.resetToDefault`「回到此態預設」）依 FINAL_RULINGS 已通過的原文不動，預設一律 17 / 1.6。舊的分態存檔讀回時取 `view` 那組。
+- **請設計端**：確認兩條字串是否改成「預設」「回到預設」，並重畫 Aa 彈窗（不含態標頭）。
+
 ## 第 4 批 · 專門視圖（時間軸・建構概覽・知識圖譜・張力分析）
 
 Handoff `redesign_v3_handoff_batch_4.zip`（`design_handoff_04_views/`）。下文「12／13／14／15」指 `design/決議紀錄/` 下的四份決議紀錄。
@@ -1307,7 +1314,7 @@ Handoff `redesign_v3_handoff_batch_4.zip`（`design_handoff_04_views/`）。下�
 
 - **出處**：14 E 區④確認框；`menu.forceRerunDesc`。
 - **問題**：已採用的關係已是正式邊，重跑不會讓它們回到待審；只有部分已否決的候選會被重設。「清除全部決定」「會以待審查狀態再次出現」都說過頭。
-- **目前處置**：字串逐字保留（含「重跡」）。
+- **目前處置**：字串沿用原稿；原稿的錯字「重跡」已依 FINAL_RULINGS #9 改為「重跑」（其餘文案未動）。
 - **請設計端**：修正文案。
 
 #### 4-KG-7 統計列的位置
@@ -1406,6 +1413,13 @@ Handoff `redesign_v3_handoff_batch_4.zip`（`design_handoff_04_views/`）。下�
 - **請設計端**：確認可保留，或指定要拿掉的欄位。
 
 ---
+
+#### 4-UN-R1 章節節點只有一個計數，畫不出「10 / 10 章」（稽核修復 PR-1）
+
+- **出處**：13 提案 A 區 DAG 節點第二行：章節「10 / 10 章」、段落「412 段」、書籍元資料「已建立」。
+- **問題**：`chapters` 節點的 `counts` 只有 `{chapters}` 一個數，沒有「已處理／總數」兩個值。
+- **目前處置**：章節顯示「{n} 章」、段落「{n} 段」、書籍元資料「已建立」（`unraveling.counts.built`）、摘要／關鍵字「x / y」（不加單位）；原始計數區 `paragraphs` 標籤由英文 chunks 改為「段落」。
+- **請設計端**：確認章節節點寫「10 章」是否可接受，或要求 API 補 total。
 
 ## 第 5 批 · 補充包（研究者導覽・敘事結構・批次面板・語氣色／類別色・兩份補稿）
 
