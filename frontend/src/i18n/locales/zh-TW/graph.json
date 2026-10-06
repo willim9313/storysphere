@@ -115,6 +115,7 @@
         "community": "社群"
       },
       "overview": "群集概觀",
+      "overviewIn": "群集概觀 · {{lens}}",
       "drillInTitle": "{{typeName}}群集 · {{n}} 個成員",
       "drillInFactionTitle": "{{name}} · {{n}} 名成員",
       "members": "{{n}} 個成員",
@@ -261,7 +262,9 @@
       "noBookmarks": "尚未標記實體",
       "removeBookmark": "移除標記",
       "bookmarkAggregateNote": "目前為聚合檢視：點擊書籤將切回個別檢視並選取該實體。",
-      "bookmarkStorageNote": "存於此瀏覽器（localStorage）"
+      "bookmarkStorageNote": "存於此瀏覽器（localStorage）",
+      "expand": "展開 Lens 卡",
+      "collapse": "收合 Lens 卡"
     },
     "orphan": {
       "button": "未連結實體",

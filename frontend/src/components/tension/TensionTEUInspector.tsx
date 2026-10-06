@@ -16,11 +16,6 @@ interface Props {
   onOpenChapter: (chapter: number) => void;
 }
 
-/** Bar height in px for a TEU of this intensity (mini bars in a chapter row). */
-function miniHeight(intensity: number): number {
-  return Math.round(8 + intensity * 12);
-}
-
 /**
  * Step 1's raw output, chapter by chapter, in one card of action rows.
  *
@@ -101,7 +96,6 @@ export function TensionTEUInspector({ teus, lines, assign, onOpenChapter }: Read
                       key={teu.id}
                       data-band={scale(teu.intensity).bucket}
                       data-orphan={teu.line_id == null}
-                      style={{ height: `${miniHeight(teu.intensity)}px` }}
                     />
                   ))}
                 </span>

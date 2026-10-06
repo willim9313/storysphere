@@ -139,7 +139,7 @@ export function PairModeOverlay({
     );
   } else {
     evoSideBody = (
-      <ul className="flex flex-col" style={{ gap: 6 }}>
+      <ul className="flex flex-col" style={{ gap: 'var(--space-3)' }}>
         {addedThisChapter.map((id) => {
           const n = nodeById.get(id);
           if (!n) return null;
@@ -150,7 +150,7 @@ export function PairModeOverlay({
   }
 
   const pathSideBody = (
-    <ul className="flex flex-col" style={{ gap: 6 }}>
+    <ul className="flex flex-col" style={{ gap: 'var(--space-3)' }}>
       {pathNodes.map((n) => (
         <SidePanelPill key={n.id} node={n} />
       ))}
@@ -173,11 +173,11 @@ export function PairModeOverlay({
       <div
         className="absolute flex items-center"
         style={{
-          top: 16,
+          top: 'var(--space-6)',
           left: '50%',
           transform: 'translateX(-50%)',
-          gap: 10,
-          padding: '8px 12px',
+          gap: 'var(--space-4)',
+          padding: 'var(--space-4) var(--space-5)',
           backgroundColor: 'var(--bg-primary)',
           border: '1px solid var(--border)',
           borderRadius: 'var(--radius-md)',
@@ -199,8 +199,8 @@ export function PairModeOverlay({
             backgroundColor: 'var(--bg-secondary)',
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius-md)',
-            padding: 2,
-            gap: 1,
+            padding: 'var(--space-1)',
+            gap: 'var(--space-1)',
           }}
         >
           {(['evo', 'path'] as const).map((mode) => {
@@ -213,7 +213,7 @@ export function PairModeOverlay({
                 onClick={() => onSubModeChange(mode)}
                 className="inline-flex items-center"
                 style={{
-                  padding: '4px 10px',
+                  padding: 'var(--space-2) var(--space-5)',
                   borderRadius: 'var(--radius-sm)',
                   fontSize: 'var(--font-size-2xs)',
                   backgroundColor: active ? 'var(--bg-primary)' : 'transparent',
@@ -244,18 +244,18 @@ export function PairModeOverlay({
         <div
           className="absolute flex flex-col items-center"
           style={{
-            bottom: 20,
+            bottom: 'var(--space-6)',
             left: '50%',
             transform: 'translateX(-50%)',
-            gap: 8,
-            padding: '10px 16px',
+            gap: 'var(--space-4)',
+            padding: 'var(--space-4) var(--space-6)',
             backgroundColor: 'var(--bg-primary)',
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius-md)',
             boxShadow: 'var(--shadow-md)',
           }}
         >
-          <div className="flex items-center" style={{ gap: 6 }}>
+          <div className="flex items-center" style={{ gap: 'var(--space-3)' }}>
             {Array.from({ length: totalChapters }, (_, i) => i + 1).map((n) => (
               <button
                 key={n}
@@ -293,7 +293,7 @@ export function PairModeOverlay({
             border: '1px solid var(--border)',
             borderRadius: 'var(--radius-md)',
             boxShadow: 'var(--shadow-md)',
-            padding: 12,
+            padding: 'var(--space-5)',
             overflowY: 'auto',
           }}
         >
@@ -317,7 +317,7 @@ function EmptyStateMessage({ text }: { readonly text: string }) {
   return (
     <div
       className="text-center"
-      style={{ maxWidth: 320, padding: 24, color: 'var(--fg-muted)' }}
+      style={{ maxWidth: 320, padding: 'var(--space-7)', color: 'var(--fg-muted)' }}
     >
       <p className="text-sm" style={{ fontFamily: 'var(--font-serif)' }}>
         {text}
@@ -333,8 +333,8 @@ function SidePanelPill({ node }: { readonly node: GraphNode }) {
     <li
       className="flex items-center"
       style={{
-        gap: 6,
-        padding: '5px 9px',
+        gap: 'var(--space-3)',
+        padding: 'var(--space-3) var(--space-4)',
         borderRadius: 'var(--pill-radius, 999px)',
         border: '1px solid var(--border)',
       }}

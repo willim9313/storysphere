@@ -2,7 +2,6 @@ import { useState, type CSSProperties, type ReactNode } from 'react';
 import {
   Search,
   RotateCcw,
-  GitBranch,
   ChevronDown,
   Loader,
   AlertTriangle,
@@ -148,7 +147,6 @@ export function GraphToolbar({
       </div>
 
       <button type="button" onClick={onReset} className="ss-btn ss-btn-sm ss-btn-secondary">
-        <RotateCcw size={11} />
         {t('v1.toolbar.reset')}
       </button>
 
@@ -245,7 +243,6 @@ function InferenceControls({
           aria-expanded={popoverOpen}
           className="ss-btn ss-btn-sm ss-btn-secondary"
         >
-          <GitBranch size={11} style={{ color: 'var(--accent)' }} />
           {t('v1.inferred.toolbar.run')}
           <ChevronDown size={11} />
         </button>
@@ -303,7 +300,6 @@ function InferenceControls({
           aria-expanded={menuOpen}
           className="ss-btn ss-btn-sm ss-btn-secondary"
         >
-          <GitBranch size={11} style={{ color: 'var(--accent)' }} />
           {t('v1.inferred.toolbar.rerun')}
           <ChevronDown size={11} />
         </button>

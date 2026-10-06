@@ -115,6 +115,7 @@
         "community": "Community"
       },
       "overview": "Cluster overview",
+      "overviewIn": "Cluster overview · {{lens}}",
       "drillInTitle": "{{typeName}} cluster · {{n}} members",
       "drillInFactionTitle": "{{name}} · {{n}} members",
       "members": "{{n}} members",
@@ -261,7 +262,9 @@
       "noBookmarks": "No bookmarked entities",
       "removeBookmark": "Remove bookmark",
       "bookmarkAggregateNote": "Aggregated view: clicking a bookmark switches back to the individual view and selects that entity.",
-      "bookmarkStorageNote": "Stored in this browser (localStorage)"
+      "bookmarkStorageNote": "Stored in this browser (localStorage)",
+      "expand": "Expand lens card",
+      "collapse": "Collapse lens card"
     },
     "orphan": {
       "button": "Unlinked entities",

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import type { AssignApi, TensionLineDetail } from './reviewTypes';
 
 interface Props {
@@ -65,7 +65,7 @@ export function TensionAssignControl({ teuId, lines, assign }: Props) {
       {failure && (
         <div className="tn-note is-error" role="alert">
           {failure.kind === 'conflict'
-            ? t('tension.teu.assign.conflict')
+            ? <Trans i18nKey="tension.teu.assign.conflict" ns="analysis" components={{ strong: <strong /> }} />
             : t('tension.teu.assign.failed', { reason: failure.reason })}
         </div>
       )}

@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Bookmark, Clock, Eye, Pause, Pin, Play, Settings, X } from 'lucide-react';
+import { Bookmark, ChevronDown, Pause, Play, Settings, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { detectTimeline, fetchTimelineConfig } from '@/api/graph';
@@ -61,6 +61,8 @@ export function LensCard({
   const queryClient = useQueryClient();
 
   const [lensTab, setLensTab] = useState<LensTab>('timeline');
+  // 收合態（稿的 landing 狀態）；刻意不寫 localStorage。
+  const [collapsed, setCollapsed] = useState(true);
 
   // ── Timeline state (preserves legacy localStorage keys) ───────────
   const [tlMode, setTlMode] = useLocalStorage<'chapter' | 'story'>(
@@ -247,138 +249,145 @@ export function LensCard({
   const isAggregateMode = clusterMode !== 'node';
 
   // ── Render ────────────────────────────────────────────────────────
+  // 14 提案 A/F：收合態 272、展開態 296。收合狀態只活在本次工作階段（稿與 README 沒有規定要記憶）。
+  const shownTab: LensTab = collapsed ? 'timeline' : lensTab;
+  const pickTab = (tab: LensTab) => {
+    setLensTab(tab);
+    setCollapsed(false);
+  };
+
+  const positionLabel =
+    tlPosition === 0
+      ? t('v1.lens.allChapters')
+      : t('v1.lens.chapter', { n: tlPosition, total: currentMax });
+
+  const modeSeg = chapterAvailable ? (
+    <div className="ss-seg kg-lens-seg" role="group">
+      {(['chapter', 'story'] as const).map((m) => {
+        const disabled = m === 'story' && !storyViable;
+        return (
+          <button
+            key={m}
+            type="button"
+            disabled={disabled}
+            aria-pressed={tlMode === m}
+            onClick={() => {
+              setTlMode(m);
+              setTlPosition(0);
+            }}
+            className={tlMode === m ? 'ss-seg-item active' : 'ss-seg-item'}
+          >
+            {m === 'chapter' ? t('timeline.controls.modeReading') : t('timeline.controls.modeStory')}
+          </button>
+        );
+      })}
+    </div>
+  ) : (
+    <span />
+  );
+
+  const slider = (
+    <div className="kg-lens-slider">
+      <input
+        type="range"
+        min={0}
+        max={currentMax}
+        value={Math.min(tlPosition, currentMax)}
+        onChange={(e) => setTlPosition(Number(e.target.value))}
+        aria-label={t('v1.lens.tabTimeline')}
+      />
+      <span className="kg-lens-slider-label">{positionLabel}</span>
+    </div>
+  );
+
+  const playButton = (cls: string) => (
+    <button type="button" onClick={handleTogglePlay} disabled={currentMax <= 0} className={cls}>
+      {playing ? <Pause size={12} /> : <Play size={12} />}
+      {playing ? t('v1.lens.playbackPause') : t('v1.lens.playbackStart')}
+    </button>
+  );
+
   return (
-    <div className="kg-lens">
-      {/* Tab bar */}
-      <div className="flex" style={{ borderBottom: '1px solid var(--border)' }}>
-        <LensTabButton
-          active={lensTab === 'timeline'}
-          icon={<Clock size={12} />}
-          label={t('v1.lens.tabTimeline')}
-          onClick={() => setLensTab('timeline')}
-        />
-        <LensTabButton
-          active={lensTab === 'epistemic'}
-          icon={<Eye size={12} />}
-          label={t('v1.lens.tabEpistemic')}
-          onClick={() => setLensTab('epistemic')}
-        />
-        <LensTabButton
-          active={lensTab === 'bookmarks'}
-          icon={<Bookmark size={12} />}
-          label={t('v1.lens.tabBookmarks')}
-          onClick={() => setLensTab('bookmarks')}
-        />
+    <div className={collapsed ? 'kg-lens is-collapsed' : 'kg-lens'}>
+      {/* Tab bar（純文字分頁＋收合 chevron） */}
+      <div className="kg-lens-tabs">
+        {(
+          [
+            ['timeline', 'v1.lens.tabTimeline'],
+            ['epistemic', 'v1.lens.tabEpistemic'],
+            ['bookmarks', 'v1.lens.tabBookmarks'],
+          ] as const
+        ).map(([tab, key]) => (
+          <button
+            key={tab}
+            type="button"
+            onClick={() => pickTab(tab)}
+            className={shownTab === tab ? 'kg-lens-tab is-active' : 'kg-lens-tab'}
+          >
+            {t(key)}
+          </button>
+        ))}
+        <span className="kg-lens-tabs-spacer" />
+        <button
+          type="button"
+          className="kg-lens-collapse"
+          aria-expanded={!collapsed}
+          aria-label={collapsed ? t('v1.lens.expand') : t('v1.lens.collapse')}
+          onClick={() => setCollapsed((v) => !v)}
+        >
+          <ChevronDown size={13} className={collapsed ? undefined : 'is-flipped'} />
+        </button>
       </div>
 
-      <div className="px-4 py-3">
-        {/* ── Timeline tab ─────────────────────────────────────────── */}
-        {lensTab === 'timeline' && anyTimelineAvailable && (
+      {/* ── 收合態：分頁 + 閱讀/故事 + 細滑桿 + 全域註記 ───────────────── */}
+      {collapsed &&
+        (anyTimelineAvailable ? (
           <>
-            <div className="flex items-center justify-between mb-1.5">
-              {chapterAvailable ? (
-                <div className="flex gap-1">
-                  {(['chapter', 'story'] as const).map((m) => {
-                    const disabled = m === 'story' && !storyViable;
-                    const isActive = tlMode === m;
-                    return (
-                      <button
-                        key={m}
-                        disabled={disabled}
-                        onClick={() => {
-                          if (disabled) return;
-                          setTlMode(m);
-                          setTlPosition(0);
-                        }}
-                        className="kg-t2xs py-1 px-2 rounded transition-colors"
-                        style={{
-                          backgroundColor: isActive ? 'var(--accent)' : 'var(--bg-secondary)',
-                          color: isActive ? 'var(--bg-primary)' : 'var(--fg-secondary)',
-                          border: '1px solid var(--border)',
-                          opacity: disabled ? 0.45 : 1,
-                          cursor: disabled ? 'not-allowed' : 'pointer',
-                        }}
-                      >
-                        {m === 'chapter' ? t('timeline.controls.modeReading') : t('timeline.controls.modeStory')}
-                      </button>
-                    );
-                  })}
-                </div>
-              ) : (
-                <span />
-              )}
-              <Tooltip label={t('timeline.controls.reconfigure')}>
-                <button
-                  type="button"
-                  aria-label={t('timeline.controls.reconfigure')}
-                  disabled={detectMutation.isPending}
-                  onClick={() => detectMutation.mutate()}
-                  style={{ color: 'var(--fg-muted)' }}
-                >
-                  <Settings size={12} className={detectMutation.isPending ? 'animate-spin' : ''} />
-                </button>
-              </Tooltip>
+            <div className="kg-lens-row">
+              {modeSeg}
+              <span className="kg-lens-tabs-spacer" />
+              {playButton('kg-lens-play-hint')}
             </div>
-            {chapterAvailable && !storyViable && (
-              <p className="kg-lens-locked">{t('v1.lens.storyModeLocked')}</p>
-            )}
-
-            <div
-              className="font-bold mb-1.5"
-              style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-sm)', color: 'var(--fg-primary)' }}
-            >
-              {tlPosition === 0
-                ? t('v1.lens.allChapters')
-                : t('v1.lens.chapter', { n: tlPosition, total: currentMax })}
-            </div>
-            <input
-              type="range"
-              min={0}
-              max={currentMax}
-              value={Math.min(tlPosition, currentMax)}
-              onChange={(e) => setTlPosition(Number(e.target.value))}
-              className="w-full"
-              style={{ accentColor: 'var(--accent)' }}
-              aria-label={t('v1.lens.tabTimeline')}
-            />
-            <div className="flex justify-between kg-t2xs mt-0.5" style={{ color: 'var(--fg-muted)' }}>
-              <span>{t('v1.lens.allChapters')}</span>
-              <span>{t('v1.lens.chapter', { n: currentMax, total: currentMax })}</span>
-            </div>
-
-            <button
-              onClick={handleTogglePlay}
-              disabled={currentMax <= 0}
-              className="w-full flex items-center justify-center gap-1.5 mt-2.5 py-1.5 rounded"
-              style={{
-                backgroundColor: 'var(--bg-secondary)',
-                border: '1px solid var(--border)',
-                color: 'var(--fg-primary)',
-                fontSize: 'var(--font-size-2xs)',
-                opacity: currentMax <= 0 ? 0.5 : 1,
-                cursor: currentMax <= 0 ? 'not-allowed' : 'pointer',
-              }}
-            >
-              {playing ? <Pause size={12} /> : <Play size={12} />}
-              {playing ? t('v1.lens.playbackPause') : t('v1.lens.playbackStart')}
-            </button>
-
-            <p
-              className="kg-t2xs mt-2 pt-2"
-              style={{ color: 'var(--fg-muted)', lineHeight: 1.55, borderTop: '1px solid var(--border)' }}
-            >
-              {t('v1.lens.timelineGlobalNote')}
-            </p>
+            {slider}
+            <p className="kg-lens-note">{t('v1.lens.timelineGlobalNote')}</p>
           </>
-        )}
-        {lensTab === 'timeline' && !anyTimelineAvailable && (
-          <p className="kg-t2xs" style={{ color: 'var(--fg-muted)' }}>
-            {t('v1.lens.noTimeline')}
-          </p>
-        )}
+        ) : (
+          <p className="kg-lens-note">{t('v1.lens.noTimeline')}</p>
+        ))}
 
-        {/* ── Epistemic tab ────────────────────────────────────────── */}
-        {lensTab === 'epistemic' && isAggregateMode && (
+      {/* ── Timeline tab ─────────────────────────────────────────── */}
+      {!collapsed && lensTab === 'timeline' && anyTimelineAvailable && (
+        <>
+          <div className="kg-lens-row">
+            {modeSeg}
+            <span className="kg-lens-tabs-spacer" />
+            <Tooltip label={t('timeline.controls.reconfigure')}>
+              <button
+                type="button"
+                className="kg-lens-gear"
+                aria-label={t('timeline.controls.reconfigure')}
+                disabled={detectMutation.isPending}
+                onClick={() => detectMutation.mutate()}
+              >
+                <Settings size={14} className={detectMutation.isPending ? 'animate-spin' : ''} />
+              </button>
+            </Tooltip>
+          </div>
+          {chapterAvailable && !storyViable && (
+            <p className="kg-lens-locked">{t('v1.lens.storyModeLocked')}</p>
+          )}
+          {slider}
+          {playButton('ss-btn ss-btn-sm ss-btn-secondary kg-lens-play')}
+          <p className="kg-lens-note">{t('v1.lens.timelineGlobalNote')}</p>
+        </>
+      )}
+      {!collapsed && lensTab === 'timeline' && !anyTimelineAvailable && (
+        <p className="kg-lens-note">{t('v1.lens.noTimeline')}</p>
+      )}
+
+      {/* ── Epistemic tab ────────────────────────────────────────── */}
+      {!collapsed && lensTab === 'epistemic' && isAggregateMode && (
+        <>
           <div className="kg-lens-aggregate">
             <span className="kg-label">{t('v1.lens.epistemicDisabledTitle')}</span>
             <p className="kg-text">{t('v1.lens.epistemicDisabledDesc')}</p>
@@ -386,218 +395,135 @@ export function LensCard({
               {t('v1.lens.backToIndividual')}
             </button>
           </div>
-        )}
+          <p className="kg-lens-note">{epFallbackNote}</p>
+        </>
+      )}
 
-        {lensTab === 'epistemic' && !isAggregateMode && (
-          <>
-            <div className="text-xs mb-1.5" style={{ color: 'var(--fg-secondary)' }}>
-              {t('v1.lens.epistemicIntro')}
-            </div>
-            <div className="flex items-center gap-2.5 relative">
-              <button
-                onClick={() => setEpPickerOpen((v) => !v)}
-                className="flex items-center gap-2.5 flex-1 text-left"
-                aria-expanded={epPickerOpen}
-              >
-                <span
-                  className="inline-flex items-center justify-center rounded-full flex-shrink-0"
-                  style={{
-                    width: 24,
-                    height: 24,
-                    backgroundColor: selectedCharacter ? 'var(--accent)' : 'var(--bg-tertiary)',
-                    color: selectedCharacter ? 'var(--bg-primary)' : 'var(--fg-muted)',
-                    fontSize: 'var(--font-size-2xs)',
-                    fontWeight: 600,
-                  }}
-                >
-                  {selectedCharacter ? selectedCharacter.name.charAt(0).toUpperCase() : '·'}
-                </span>
-                <span className="flex flex-col min-w-0">
-                  <span
-                    className="text-xs truncate"
-                    style={{
-                      color: selectedCharacter ? 'var(--fg-primary)' : 'var(--fg-muted)',
-                      fontWeight: selectedCharacter ? 500 : 400,
-                    }}
-                  >
-                    {selectedCharacter
-                      ? t('v1.lens.perspectiveOf', { name: selectedCharacter.name })
-                      : t('v1.lens.selectPerspective')}
-                  </span>
-                </span>
-              </button>
-              {selectedCharacter && (
-                <button
-                  onClick={() => handleSelectCharacter(null)}
-                  style={{ color: 'var(--fg-muted)' }}
-                  aria-label={t('v1.lens.clearPerspective')}
-                >
-                  <X size={12} />
-                </button>
-              )}
-              {epPickerOpen && (
-                <div
-                  className="absolute left-0 right-0 z-20 max-h-48 overflow-y-auto"
-                  style={{
-                    top: 32,
-                    backgroundColor: 'var(--bg-primary)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-md, 6px)',
-                    boxShadow: 'var(--shadow-md)',
-                  }}
-                >
-                  {characterNodes.length === 0 ? (
-                    <div className="px-2 py-2 kg-t2xs" style={{ color: 'var(--fg-muted)' }}>
-                      {t('v1.lens.noCharacters')}
-                    </div>
-                  ) : (
-                    characterNodes.map((n) => (
-                      <button
-                        key={n.id}
-                        onClick={() => handleSelectCharacter(n.id)}
-                        className="w-full text-left px-2 py-1.5 text-xs"
-                        style={{
-                          backgroundColor: n.id === epCharacterId ? 'var(--bg-secondary)' : 'transparent',
-                          color: 'var(--fg-primary)',
-                        }}
-                        onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = 'var(--bg-secondary)')}
-                        onMouseLeave={(e) =>
-                          (e.currentTarget.style.backgroundColor =
-                            n.id === epCharacterId ? 'var(--bg-secondary)' : 'transparent')
-                        }
-                      >
-                        {n.name}
-                      </button>
-                    ))
-                  )}
-                </div>
-              )}
-            </div>
-
-            {epActive && epistemicState && !epistemicState.dataComplete && (
-              <div className="mt-2">
-                <ClassifyVisibilityButton
-                  bookId={bookId}
-                  onComplete={() =>
-                    queryClient.invalidateQueries({ queryKey: qk.epistemic.all(bookId) })
-                  }
-                />
-              </div>
-            )}
-
-            <label
-              className="flex items-center gap-2 mt-2.5 py-1"
-              style={{ opacity: epCharacterId ? 1 : 0.5, cursor: epCharacterId ? 'pointer' : 'not-allowed' }}
+      {!collapsed && lensTab === 'epistemic' && !isAggregateMode && (
+        <>
+          <span className="kg-label">{t('v1.lens.epistemicIntro')}</span>
+          <div className="kg-lens-select-wrap">
+            <button
+              type="button"
+              onClick={() => setEpPickerOpen((v) => !v)}
+              className="kg-lens-select"
+              aria-expanded={epPickerOpen}
             >
-              <input
-                type="checkbox"
-                checked={epEnabled && !!epCharacterId}
-                disabled={!epCharacterId}
-                onChange={() => setEpEnabled((v) => !v)}
-              />
-              <span className="flex flex-col">
-                <span className="text-xs" style={{ color: 'var(--fg-primary)' }}>
-                  {t('v1.lens.epistemicToggleLabel')}
-                </span>
-                <span className="kg-t2xs" style={{ color: 'var(--fg-muted)' }}>
-                  {t('v1.lens.epistemicToggleDesc')}
-                </span>
+              <span className={selectedCharacter ? 'kg-lens-select-text' : 'kg-lens-select-text is-placeholder'}>
+                {selectedCharacter
+                  ? t('v1.lens.perspectiveOf', { name: selectedCharacter.name })
+                  : t('v1.lens.selectPerspective')}
               </span>
-            </label>
-
-            {epActive && (
-              <>
-                <div
-                  className="mt-1.5 px-3 py-2 rounded"
-                  style={{ backgroundColor: 'var(--bg-secondary)', textAlign: 'center' }}
-                >
-                  <div className="text-lg font-semibold tabular-nums" style={{ color: 'var(--fg-primary)' }}>
-                    {epKnownCount}
-                    <span className="kg-txs font-normal" style={{ color: 'var(--fg-muted)' }}>
-                      {' / '}
-                      {nodes.length}
-                    </span>
-                  </div>
-                  <div className="kg-t2xs" style={{ color: 'var(--fg-muted)' }}>
-                    {t('v1.lens.epistemicKnownStat', { name: selectedCharacter?.name ?? '' })}
-                  </div>
-                </div>
-
-                <div
-                  className="flex gap-1.5 items-start mt-2 p-1.5 rounded kg-t2xs"
-                  style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--fg-secondary)', lineHeight: 1.55 }}
-                >
-                  <Clock size={11} style={{ marginTop: 2, color: 'var(--fg-muted)', flexShrink: 0 }} />
-                  <span>{epFallbackNote}</span>
-                </div>
-
-                <label className="flex items-center gap-2 mt-2 py-1" style={{ cursor: 'pointer' }}>
-                  <input
-                    type="checkbox"
-                    checked={epMisbelief}
-                    onChange={() => setEpMisbelief((v) => !v)}
-                  />
-                  <span className="flex flex-col">
-                    <span className="text-xs" style={{ color: 'var(--fg-primary)' }}>
-                      {t('v1.lens.misbeliefToggle')}
-                    </span>
-                    <span className="kg-t2xs" style={{ color: 'var(--fg-muted)' }}>
-                      {t('v1.lens.misbeliefToggleDesc')}
-                    </span>
-                  </span>
-                </label>
-              </>
+              <ChevronDown size={12} />
+            </button>
+            {selectedCharacter && (
+              <button
+                type="button"
+                className="kg-lens-x"
+                onClick={() => handleSelectCharacter(null)}
+                aria-label={t('v1.lens.clearPerspective')}
+              >
+                <X size={12} />
+              </button>
             )}
-          </>
-        )}
-
-        {/* ── Bookmarks tab ────────────────────────────────────────── */}
-        {lensTab === 'bookmarks' && (
-          <div className="flex flex-col gap-1.5">
-            {bookmarkNodes.length === 0 ? (
-              <div className="flex items-center gap-2">
-                <Bookmark size={12} style={{ color: 'var(--fg-muted)' }} />
-                <span className="kg-t2xs" style={{ color: 'var(--fg-muted)' }}>
-                  {t('v1.lens.noBookmarks')}
-                </span>
-              </div>
-            ) : (
-              <ul className="space-y-1">
-                {bookmarkNodes.map((n) => (
-                  <li key={n.id} className="flex items-center gap-2">
-                    <Pin size={11} style={{ color: 'var(--accent)' }} className="flex-shrink-0" />
+            {epPickerOpen && (
+              <div className="kg-lens-menu">
+                {characterNodes.length === 0 ? (
+                  <div className="kg-lens-menu-empty">{t('v1.lens.noCharacters')}</div>
+                ) : (
+                  characterNodes.map((n) => (
                     <button
-                      onClick={() => onBookmarkClick?.(n.id)}
-                      className="flex-1 text-left text-xs truncate"
-                      style={{ color: 'var(--fg-primary)' }}
+                      key={n.id}
+                      type="button"
+                      onClick={() => handleSelectCharacter(n.id)}
+                      className={n.id === epCharacterId ? 'kg-lens-menu-item is-on' : 'kg-lens-menu-item'}
                     >
                       {n.name}
                     </button>
-                    <button
-                      onClick={() => onBookmarkRemove(n.id)}
-                      style={{ color: 'var(--fg-muted)' }}
-                      aria-label={t('v1.lens.removeBookmark')}
-                    >
-                      <X size={11} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
+                  ))
+                )}
+              </div>
             )}
-            {isAggregateMode && (
-              <p
-                className="kg-t2xs p-1.5 rounded"
-                style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--fg-secondary)', lineHeight: 1.55 }}
-              >
-                {t('v1.lens.bookmarkAggregateNote')}
-              </p>
-            )}
-            <div className="kg-t2xs mt-0.5" style={{ color: 'var(--fg-muted)' }}>
-              {t('v1.lens.bookmarkStorageNote')}
-            </div>
           </div>
-        )}
-      </div>
+
+          <LensToggle
+            checked={epEnabled && !!epCharacterId}
+            disabled={!epCharacterId}
+            onChange={() => setEpEnabled((v) => !v)}
+            label={t('v1.lens.epistemicToggleLabel')}
+            desc={t('v1.lens.epistemicToggleDesc')}
+          />
+
+          {epActive && (
+            <>
+              <LensToggle
+                checked={epMisbelief}
+                onChange={() => setEpMisbelief((v) => !v)}
+                label={t('v1.lens.misbeliefToggle')}
+                desc={t('v1.lens.misbeliefToggleDesc')}
+              />
+              <div className="kg-lens-stat">
+                <span className="kg-lens-stat-key">
+                  {t('v1.lens.epistemicKnownStat', { name: selectedCharacter?.name ?? '' })}
+                </span>
+                <span className="kg-lens-stat-val">
+                  {epKnownCount} / {nodes.length}
+                </span>
+              </div>
+              <p className="kg-lens-note kg-lens-note-secondary">{epFallbackNote}</p>
+            </>
+          )}
+
+          {epActive && epistemicState && !epistemicState.dataComplete && (
+            <div className="kg-lens-foot">
+              <ClassifyVisibilityButton
+                bookId={bookId}
+                onComplete={() => queryClient.invalidateQueries({ queryKey: qk.epistemic.all(bookId) })}
+              />
+            </div>
+          )}
+        </>
+      )}
+
+      {/* ── Bookmarks tab ────────────────────────────────────────── */}
+      {!collapsed && lensTab === 'bookmarks' && (
+        <>
+          {bookmarkNodes.length === 0 ? (
+            <div className="kg-lens-empty">
+              <Bookmark size={12} />
+              <span>{t('v1.lens.noBookmarks')}</span>
+            </div>
+          ) : (
+            <ul className="kg-lens-bookmarks">
+              {bookmarkNodes.map((n) => (
+                <li key={n.id} className="kg-lens-bookmark">
+                  <button
+                    type="button"
+                    onClick={() => onBookmarkClick?.(n.id)}
+                    className={`ss-pill ss-pill-${n.type} kg-lens-bookmark-pill`}
+                  >
+                    <span className="ss-pill-dot" />
+                    <span className="kg-lens-bookmark-name">{n.name}</span>
+                  </button>
+                  <span className="kg-lens-tabs-spacer" />
+                  <button
+                    type="button"
+                    className="kg-lens-x"
+                    onClick={() => onBookmarkRemove(n.id)}
+                    aria-label={t('v1.lens.removeBookmark')}
+                  >
+                    <X size={12} />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+          {isAggregateMode && (
+            <p className="kg-lens-note kg-lens-note-secondary">{t('v1.lens.bookmarkAggregateNote')}</p>
+          )}
+          <div className="kg-lens-foot kg-lens-note">{t('v1.lens.bookmarkStorageNote')}</div>
+        </>
+      )}
 
       {pendingDetection && (
         <TimelineConfigModal
@@ -610,31 +536,35 @@ export function LensCard({
   );
 }
 
-function LensTabButton({
-  active,
-  icon,
+function LensToggle({
+  checked,
+  disabled,
+  onChange,
   label,
-  onClick,
+  desc,
 }: {
-  active: boolean;
-  icon: React.ReactNode;
+  checked: boolean;
+  disabled?: boolean;
+  onChange: () => void;
   label: string;
-  onClick: () => void;
+  desc: string;
 }) {
   return (
     <button
-      onClick={onClick}
-      className="flex-1 flex items-center justify-center gap-1.5 py-2"
-      style={{
-        fontSize: 'var(--font-size-2xs)',
-        fontWeight: 500,
-        color: active ? 'var(--accent)' : 'var(--fg-secondary)',
-        borderBottom: active ? '2px solid var(--accent)' : '2px solid transparent',
-        marginBottom: -1,
-      }}
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      disabled={disabled}
+      onClick={onChange}
+      className="kg-lens-toggle"
     >
-      {icon}
-      {label}
+      <span className="kg-switch-track kg-lens-toggle-track">
+        <span className="kg-switch-knob" />
+      </span>
+      <span className="kg-lens-toggle-text">
+        <span className="kg-lens-toggle-label">{label}</span>
+        <span className="kg-lens-toggle-desc">{desc}</span>
+      </span>
     </button>
   );
 }

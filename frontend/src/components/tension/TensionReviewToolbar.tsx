@@ -89,7 +89,7 @@ export function TensionReviewToolbar({
             </span>
           )}
           <span className="tn-spacer" />
-          <button type="button" className="ss-btn ss-btn-sm ss-btn-ghost" onClick={onClearSelection}>
+          <button type="button" className="tn-esc-hint" onClick={onClearSelection}>
             {t('tension.toolbar.clearSelection')}
           </button>
         </div>

@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Link } from 'react-router-dom';
 import { Loader2, Scale } from 'lucide-react';
@@ -180,7 +181,7 @@ export function TensionErrorCard({
   meta,
 }: {
   title: string;
-  message: string;
+  message: ReactNode;
   retryLabel: string;
   onRetry: () => void;
   meta?: string | null;

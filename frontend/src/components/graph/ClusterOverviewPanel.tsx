@@ -113,7 +113,7 @@ export function ClusterOverviewPanel({
   const overviewClusters = clustered?.superNodes ?? [];
 
   return (
-    <PanelShell title={t('v1.cluster.overview')} onClose={onClose}>
+    <PanelShell title={t('v1.cluster.overviewIn', { lens: t(isCommunityMode ? 'v1.cluster.mode.community' : 'v1.cluster.mode.type') })} onClose={onClose}>
       {/* Community scope cards (此檢視範圍 / 怎麼分的) — pinned to the TOP of the
           panel and always visible, never folded into a tooltip. Without them the
           reader assumes factions were drawn by reading the plot. */}
