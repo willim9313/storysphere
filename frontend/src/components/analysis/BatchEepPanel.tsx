@@ -44,8 +44,6 @@ interface BatchEepPanelProps {
     onBatchChapter: () => void;
     checkMode: boolean;
     onToggleCheckMode: () => void;
-    checkedCount: number;
-    onBatchChecked: () => void;
   };
   /** The one subset the character page has: the top-N by mentions. */
   topSubset?: {
@@ -266,6 +264,9 @@ export function BatchEepPanel({
                     {t(k('showFailures'), { count: failedCount })}
                   </button>
                 )}
+                {/* Run-scoped (README 共通規則): the failure list belongs to this run and
+                    a refresh drops it. Shared wording, so both pages say the same thing. */}
+                {failedCount > 0 && <p className="ea-batch-hint">{t('batch.failures.hint')}</p>}
               </div>
             )}
 
@@ -303,25 +304,14 @@ export function BatchEepPanel({
                     </button>
                   </Tooltip>
                 </div>
-                <button
-                  type="button"
-                  className={
-                    'ss-btn ss-btn-sm ss-btn-ghost' + (subset.checkMode ? ' is-active' : '')
-                  }
-                  aria-pressed={subset.checkMode}
-                  onClick={subset.onToggleCheckMode}
-                >
-                  <CheckSquare size={11} />{' '}
-                  {subset.checkMode ? t(k('checkModeOff')) : t(k('checkModeOn'))}
-                </button>
-                {subset.checkMode && (
+                {/* In check mode the list takes over (取消勾選 / 生成已勾選 live there, 10 C 區). */}
+                {!subset.checkMode && (
                   <button
                     type="button"
-                    className="ss-btn ss-btn-sm ss-btn-primary ss-btn-llm"
-                    disabled={subset.checkedCount === 0 || isPending}
-                    onClick={subset.onBatchChecked}
+                    className="ss-btn ss-btn-sm ss-btn-secondary"
+                    onClick={subset.onToggleCheckMode}
                   >
-                    {t(k('generateChecked'))} ({subset.checkedCount})
+                    <CheckSquare size={11} /> {t(k('checkModeOn'))}
                   </button>
                 )}
               </div>

@@ -260,7 +260,6 @@
     }
   },
   "event": {
-    "batchTitle": "批次生成事件 EEP",
     "batchMessage": "將對 {{count}} 個尚未分析的事件執行深度分析，已分析的事件會自動跳過。此操作將消耗大量 token。",
     "batchConfirm": "確認執行",
     "retryFailed": "重試失敗部分",
@@ -278,9 +277,9 @@
       "topTerms": "關鍵詞"
     },
     "roles": {
-      "initiator": "發起者",
+      "initiator": "發動者",
       "actor": "行動者",
-      "reactor": "反應者",
+      "reactor": "回應者",
       "victim": "受害者",
       "beneficiary": "受益者"
     },
@@ -288,7 +287,9 @@
       "kernel": "核心事件",
       "satellite": "衛星事件",
       "kernelTagline": "Kernel · 影響故事走向的關鍵節點",
-      "satelliteTagline": "Satellite · 補充細節"
+      "kernelMeta": "核心事件：推進主線、移除後情節無法成立",
+      "satelliteTagline": "Satellite · 補充細節",
+      "satelliteMeta": "衛星事件：補充細節"
     },
     "narrative": {
       "flashback": "倒敘",
@@ -320,7 +321,7 @@
       "factorsConsequencesSub": "因素 · 後果",
       "keyQuotesCount": "{{count}} 段",
       "roleLegend": "角色圖例",
-      "topTermsSub": "TF · top terms"
+      "topTermsSub": "TF · 前 12"
     },
     "list": {
       "searchPlaceholder": "搜尋 {{count}} 件事件…",
@@ -336,10 +337,11 @@
       "noChapterGroup": "未標章節",
       "groupMeta": "{{total}} · 已析 {{analyzed}}",
       "noMatch": "沒有符合篩選條件的事件",
-      "clearFilters": "清除篩選"
+      "clearFilters": "清除篩選",
+      "checkedCount": "已勾選 {{count}}",
+      "checkNote": "已分析的列不長 checkbox——勾了也不會重跑。"
     },
     "empty": {
-      "subtitle": "從左側清單選擇任一已分析事件以查看其 EEP 詳情；或點擊「建立」為未分析事件觸發深度分析。",
       "unanalyzedSubtitle": "此事件尚未生成 EEP 分析。觸發後將抽取狀態變化、參與者角色、因果鏈與影響等維度。",
       "createBtn": "建立分析"
     },
@@ -361,7 +363,8 @@
       "ranking": {
         "caption": "主排序＝重要度（核心優先）· 次排序＝參與者數 · 長條＝參與者數。未分析事件的重要度需生成 EEP 後才會判定。",
         "heroSub": "Ch.{{chapter}} · {{importance}} · {{participants}} 名參與者",
-        "viewAnalysis": "查看分析",
+        "heroSubAnalyzed": "Ch.{{chapter}} · 參與者 {{participants}} 人",
+        "viewAnalysis": "查看詳情",
         "createHero": "建立事件分析",
         "participants": "{{count}} 人",
         "collapse": "收合其餘事件",
@@ -1340,7 +1343,6 @@
         "noisy": "證據有雜訊 {{count}} 個",
         "separator": " · "
       },
-      "aiCostLegend": "標此記號者為 LLM 生成內容或會觸發生成的動作，需消耗 token 並進入 HITL 審核；其餘訊號皆為零成本實算。",
       "picks": {
         "title": "該先讀哪幾個",
         "subtitle": "依敘事負載排序的前 {{count}} 名，全部由結構化訊號即時算出",
@@ -1357,6 +1359,7 @@
         "ctaBlocked": "供應商拒絕 · 無法詮釋"
       },
       "heat": {
+        "loadHead": "負載",
         "meta": "{{rows}} 個主清單意象 × {{slots}} 段章節軸 · 正文單章最大值 {{max}}",
         "subtitle": "色階是絕對出現次數，不隨意象或章節重新縮放，所以各列可直接互比——級距見下方圖例",
         "axisBody": "正文 第 {{first}}–{{last}} 章",
@@ -1539,12 +1542,6 @@
       "badge": "被阻擋",
       "badgeTitle": "LLM 供應商拒絕了這個意象的提示,尚未產出詮釋"
     },
-    "emptyStep1Title": "確認文本切分已完成",
-    "emptyStep1Desc": "意象萃取依賴段落層次的 token——若段落層尚未建立，意象不會自動執行。",
-    "emptyStep2Title": "至建構概覽頁確認狀態",
-    "emptyStep2Desc": "建構概覽 DAG 會明確標示「Symbols」節點為 empty / partial / complete。",
-    "emptyStep3Title": "必要時手動觸發",
-    "emptyStep3Desc": "若依賴層完整但仍為空，可從建構概覽頁的對應節點觸發意象萃取 pipeline。",
     "guide": {
       "prefix": "研究者導覽：",
       "body": "本頁把全書意象排成一張地圖。<strong>排序主軸</strong>決定「重要」怎麼算——敘事負載是綜合指標，<strong>正文頻率只是對照組</strong>，出現得多不等於分量重。左側可依類別與審核狀態篩選。"

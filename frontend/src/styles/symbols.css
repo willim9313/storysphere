@@ -1495,7 +1495,31 @@
   font-weight: 600;
   color: var(--fg-primary);
 }
-.sym-ov-batch-tally,
+/* Done card: three big counts (same shape as the events panel's .ea-batch-stats);
+   failures read in the error colour. */
+.sym-ov-batch-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-3);
+}
+.sym-ov-batch-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-4);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+}
+.sym-ov-batch-stat-n {
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  color: var(--fg-primary);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+}
+.sym-ov-batch-stat-l { color: var(--fg-muted); }
+.sym-ov-batch-stat.is-failed .sym-ov-batch-stat-n { color: var(--color-error); }
+.sym-ov-batch-substage { color: var(--fg-secondary); }
 .sym-ov-batch-hint {
   color: var(--fg-muted);
   font-variant-numeric: tabular-nums;

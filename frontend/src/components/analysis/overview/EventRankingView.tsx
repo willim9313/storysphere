@@ -54,11 +54,16 @@ export function EventRankingView({
             <span className="ea-ov-hero-name">{hero.title}</span>
           </div>
           <div className="ea-ov-hero-sub">
-            {t('event.overview.ranking.heroSub', {
-              chapter: hero.chapter ?? '—',
-              importance: importanceLabel(hero.importance),
-              participants: hero.participants,
-            })}
+            {t(
+              hero.analyzed
+                ? 'event.overview.ranking.heroSubAnalyzed'
+                : 'event.overview.ranking.heroSub',
+              {
+                chapter: hero.chapter ?? '—',
+                importance: importanceLabel(hero.importance),
+                participants: hero.participants,
+              },
+            )}
           </div>
         </div>
         {hero.analyzed ? (

@@ -154,6 +154,7 @@ export function EventUnanalyzedItem({
   onGenerate,
   isGenerating,
   failed,
+  failureReason,
 }: Readonly<{
   item: UnanalyzedEntity;
   isSelected: boolean;
@@ -163,6 +164,9 @@ export function EventUnanalyzedItem({
   /** The last batch run failed on this one: marked with a diamond dot (shape,
    *  not hue — Ink has one colour for every status). */
   failed?: boolean;
+  /** Set only while the list is narrowed to failures (「只看失敗」): the second line then
+   *  reads 「第 n 章 · <reason>」 instead of the chapter / chip / 生成分析 line (10 提案 D 區). */
+  failureReason?: string;
 }>) {
   const { t } = useTranslation('analysis');
   const mode = normalizeNarrative(item.narrativeMode);
@@ -183,11 +187,24 @@ export function EventUnanalyzedItem({
       <ImportanceBadge importance={null} analyzed={false} />
       <span className="ea-row-body">
         <span className="ea-row-name">{item.name}</span>
+        {failureReason !== undefined ? (
+          <span className="ea-row-meta ea-row-fail-reason">
+            {item.chapter != null && (
+              <>
+                <span className="ea-row-fail-where">
+                  {t('batch.failures.chapter', { chapter: item.chapter })}
+                </span>
+                <span className="dot" />
+              </>
+            )}
+            <code className="ea-row-fail-text">{failureReason}</code>
+          </span>
+        ) : (
         <RowMeta chapter={item.chapter ?? null} mode={mode}>
           {!isGenerating && (
             <button
               type="button"
-              className="ss-btn ss-btn-sm ss-btn-ghost ss-btn-llm ea-row-create"
+              className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm ea-row-create"
               onClick={(e) => {
                 e.stopPropagation();
                 onGenerate();
@@ -197,6 +214,7 @@ export function EventUnanalyzedItem({
             </button>
           )}
         </RowMeta>
+        )}
       </span>
       {isGenerating && <span className="ea-row-dot running" />}
       {failed && !isGenerating && (
