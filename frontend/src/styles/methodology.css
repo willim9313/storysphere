@@ -465,6 +465,13 @@
 }
 .md-itemcard-top { display: flex; align-items: flex-start; gap: var(--space-4); }
 .md-itemcard-num { flex-shrink: 0; font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--accent); padding-top: var(--space-1); }
+/* 一般方法卡（07 稿 C 區 03）：24px 圓形序號、名稱 base；Schmidt 卡牆維持純文字序號＋sm 名稱（F 區） */
+.md-itemcard-plain .md-itemcard-num {
+  width: 24px; height: 24px; padding-top: 0; border-radius: 50%;
+  border: var(--line-weight) var(--border-style) var(--border);
+  display: flex; align-items: center; justify-content: center;
+}
+.md-itemcard-plain .md-itemcard-name { font-size: var(--font-size-base); }
 .md-itemcard-id { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-1); }
 .md-itemcard-name { font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 700; color: var(--fg-primary); }
 .md-itemcard-sub {

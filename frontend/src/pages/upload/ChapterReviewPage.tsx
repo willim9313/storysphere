@@ -54,12 +54,12 @@ function conflictCode(err: unknown): string | null {
   return err.code || 'review_not_open';
 }
 
-function Banner({ kind, children, action }: Readonly<{ kind: NoteKind; children: ReactNode; action?: ReactNode }>) {
+function Banner({ kind, children, action, top = false }: Readonly<{ kind: NoteKind; children: ReactNode; action?: ReactNode; top?: boolean }>) {
   let icon: ReactNode = <Info size={16} />;
   if (kind === 'success') icon = '✓';
   else if (kind === 'error' || kind === 'warning') icon = <AlertTriangle size={16} />;
   return (
-    <div className={`cr-banner cr-banner-${kind}`} role={kind === 'error' ? 'alert' : 'status'}>
+    <div className={`cr-banner cr-banner-${kind}${top ? ' cr-banner-top' : ''}`} role={kind === 'error' ? 'alert' : 'status'}>
       <span className="cr-banner-icon">{icon}</span>
       <p className="cr-banner-text">{children}</p>
       {action}
@@ -498,9 +498,9 @@ export default function ChapterReviewPage() {
 
   // ── Render ───────────────────────────────────────────────────────────────
   const crumb = (
-    <div className="ss-booknav">
+    <div className="ss-booknav cr-booknav">
       <Link to="/upload" className="ss-booknav-back">
-        <ArrowLeft size={12} />
+        <ArrowLeft size={14} className="cr-booknav-arrow" />
         {t('title')}
       </Link>
       {book?.title && (
@@ -622,7 +622,7 @@ export default function ChapterReviewPage() {
         </div>
 
         {banner && (
-          <Banner kind={banner.kind}>
+          <Banner kind={banner.kind} top>
             {banner.text}
             {banner.settings && <>{'\u3000'}{llmLink}</>}
           </Banner>

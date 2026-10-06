@@ -35,6 +35,8 @@
   margin: 0; line-height: 1.2;
   font-family: var(--font-serif); font-size: var(--font-size-3xl); font-weight: 700; color: var(--fg-primary);
 }
+/* 失敗態頁標題比正常態小一級（01 稿 E 區：2xl） */
+.lib-title-failure { font-size: var(--font-size-2xl); }
 .lib-summary { font-size: var(--font-size-2xs); color: var(--fg-muted); }
 .lib-section-head {
   font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 600; color: var(--fg-primary);

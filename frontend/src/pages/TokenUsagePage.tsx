@@ -67,10 +67,7 @@ export default function TokenUsagePage() {
     );
   } else if (loading || !data) {
     body = (
-      <output className="tu-loading">
-        <LoadingSpinner />
-        <span>{tc('loading')}</span>
-      </output>
+      <LoadingSpinner className="tu-loading" label={tc('loading')} />
     );
   } else if (data.summary.totalCalls === 0) {
     body = <div className="tu-empty">{t('token.noData')}</div>;

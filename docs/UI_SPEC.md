@@ -314,7 +314,7 @@ DS v3 第 1 批 1-3b。權威稿：02 章節審閱決議紀錄 frame A–H。全
 樣式在 `styles/chapter-review.css`（`cr-` 前綴，全走 token）；純函式在 `pages/upload/`
 （`applyBoundaries.ts`、`paragraphSplits.ts`、`spineLayout.ts`，皆有測試）。
 
-- **外框**：基本外框＋28px 麵包屑（kit `.ss-booknav`）「上傳 & 處理進度 / {書名} / 章節審閱」，退出路徑回
+- **外框**：基本外框＋28px 麵包屑（kit `.ss-booknav`）「上傳 & 處理進度 / {書名} / 章節審閱」（稿 02：2xs 字級、全列 `--fg-secondary`、箭頭 accent、書名只換 serif、目前頁 `--fg-primary`，`.cr-booknav` 覆寫），退出路徑回
   `/upload`（書還沒落地，不回書庫）。書名取 `useBook(bookId)`（#2-a），取不到就省略該段。B 檢視密度：
   padding `--space-7`、區段 `--space-6`、卡內 `--space-5`、列 `--space-4`。
 - **標題列**：「審閱章節結構」serif 2xl 700＋副標「審核章節結構 · 送出前最後一道人工閘門」；右側按鈕依序：
@@ -2216,7 +2216,7 @@ group header 五件：accent chevron（收合鈕，`aria-expanded`）+ 書名（
 |------|------|
 | 未搜尋 · 書單載入中 | 內容區留白（**不得**顯示「書庫尚無書籍」） |
 | 未搜尋 · 有書 | 置中圓形底 accent 搜尋圖示 + 標題 + 副標 |
-| 未搜尋 · 無書 | `EmptyState`：Upload icon + 「書庫尚無書籍」+ 說明 + 「立即上傳」→ `/upload` |
+| 未搜尋 · 無書 | **不畫搜尋列、模式切換與分頁**，只有置中 `EmptyState weight="ready"`：Upload 28 + serif 2xl「書庫尚無書籍」+ 說明 + 「立即上傳」→ `/upload`（稿 05 A 區右格） |
 | `GET /books` 失敗 | 整頁替換為 `PageFailure`（`pageName`＝「跨書搜尋」；有 JSON body → 「無法載入跨書搜尋」，無回應或裸 502/503/504 → 「伺服器沒有回應」）＋重試（refetch）。**絕不落成「書庫尚無書籍」** |
 | 搜尋中 | `SkeletonLoader`，不用 spinner：3 組骨架，每組 22px 標題條 + 2 條結果列（欄寬 96／彈性／76） |
 | 搜尋失敗 · 功能層（`failureKind` = page） | 「搜尋失敗，請稍後再試。」（i18n `error.searchFailed`，原寫死）＋手動「重試」（重送同一查詢＋目前範圍） |

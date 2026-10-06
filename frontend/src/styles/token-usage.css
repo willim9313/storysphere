@@ -185,21 +185,15 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--space-8) var(--space-6);
-  min-height: 200px;
-  border: 2px dashed var(--border);
-  border-radius: var(--radius-lg);
+  padding: var(--space-8);
+  border: var(--line-weight) dashed var(--border);
+  border-radius: var(--card-radius);
   color: var(--fg-muted);
   font-size: var(--font-size-sm);
 }
 
 /* ── Loading ── */
-.tu-loading {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: var(--space-4);
-  padding: var(--space-8) 0;
-  color: var(--fg-muted);
-  font-size: var(--font-size-sm);
-}
+/* 06 稿 D 區：spinner 與文字同一列、24px、fg-secondary、xs */
+.tu-loading.ss-spinner { flex-direction: row; gap: var(--space-5); padding: var(--space-8) 0; }
+.tu-loading .ss-spinner-icon { width: 24px; height: 24px; }
+.tu-loading .ss-spinner-label { font-size: var(--font-size-xs); color: var(--fg-secondary); }

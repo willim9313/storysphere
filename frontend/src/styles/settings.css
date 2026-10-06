@@ -210,7 +210,10 @@
 .st-field-label { font-size: var(--font-size-xs); font-weight: 600; color: var(--fg-primary); }
 .st-field-hint { font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-muted); margin: 0; }
 .st-seg { align-self: flex-start; align-items: center; }
-.st-seg .ss-seg-item { padding: var(--space-4) var(--space-7); }
+.st-seg .ss-seg-item { padding: var(--space-3) var(--space-6); }
+/* KG 後端 segmented（04 稿 D 區）：較寬內距、選中格文字 accent */
+.st-seg-kg .ss-seg-item { padding: var(--space-4) var(--space-7); }
+.st-seg-kg .ss-seg-item.active { color: var(--accent); }
 .st-seg .ss-seg-item:disabled { color: var(--fg-muted); cursor: not-allowed; }
 .st-seg-wrap { display: flex; align-items: center; gap: var(--space-5); }
 
@@ -231,6 +234,10 @@
   font-family: var(--font-mono); font-size: var(--font-size-2xs); word-break: break-all;
 }
 .st-row-val.mono { color: var(--fg-secondary); }
+/* LLM 唯讀列（04 稿 B 區）：key 欄 148px、值 fg-primary */
+.st-rows-llm .st-row-key { width: 148px; }
+.st-rows-llm .st-row-val.mono { color: var(--fg-primary); }
+.st-rows-llm .st-row-val.mono.muted { color: var(--fg-muted); }
 .st-row-val.muted { color: var(--fg-muted); }
 .st-kgbadge {
   font-family: var(--font-mono); font-size: var(--font-size-2xs); font-weight: 600;

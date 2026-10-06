@@ -159,7 +159,7 @@ export default function LibraryPage() {
     return (
       <div className="lib-page">
         <div className="lib-inner">
-          {title}
+          <h1 className="lib-title lib-title-failure">{t('allBooks')}</h1>
           <PageFailure
             variant={failureKind(error)}
             pageName={t('allBooks')}

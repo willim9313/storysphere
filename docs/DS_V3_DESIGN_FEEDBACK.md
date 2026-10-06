@@ -202,6 +202,7 @@ Handoff `redesign_v3_handoff_batch_1.zip`（`design_handoff_01_entry/`）。下�
 | 1-X | 易誤讀 · 正文流：非正文章節內段落的降階、選中章的標示 | 待同步 |
 | 1-Y | 遺漏 · 錯誤態與 409 是否保留麵包屑 | 待同步 |
 | 1-Z | 矛盾 · 收合導軌缺口只在 Ink，還是兩個主題都畫 | 待同步 |
+| 1-AA | 矛盾 · 「已處理 mm:ss」計時起點 `startedAt` 不存在於資料卡 | 待同步 |
 
 ### 1-A 投件拒絕文案其實已存在
 
@@ -405,6 +406,13 @@ Handoff `redesign_v3_handoff_batch_1.zip`（`design_handoff_01_entry/`）。下�
 - **目前處置**：照決議紀錄 canvas，兩個主題都畫缺口，Warm 另保留 warning 填色。
 - **請設計端**：README 改字或確認。
 
+### 1-AA 「已處理 mm:ss」計時起點 `startedAt` 不存在於資料卡
+
+- **出處**：03 F 區「跨分頁復原」卡底部說明；README §2 C「計時必須從 `task.startedAt` 回推」。
+- **問題**：`specs/spec-data-cards.md` 的 TaskStatus 只有 `createdAt`，沒有 `startedAt`。
+- **目前處置**：維持以 `createdAt` 回推（`ProcessingCard.tsx`，decision Q2），含排隊（pending）時間。
+- **請設計端**：把 README 的 `task.startedAt` 改成 `task.createdAt`（或確認要的是「開始跑」起算，那就需要後端另提供欄位）。
+
 ---
 
 ## 第 2 批 · 系統頁（設定・跨書搜尋・Token 用量・方法論）
@@ -541,6 +549,7 @@ Handoff `redesign_v3_handoff_batch_2.zip`（`design_handoff_02_system/`）。下
 | 2-SR-4 | 矛盾 · 搜尋失敗（功能層）不用 PageFailure page 版 | 待同步 |
 | 2-SR-5 | 遺漏 · `GET /books` 載入中 | 待同步 |
 | 2-SR-6 | 遺漏 · 命中軌的位置、沒有命中時與語意模式 | 待同步 |
+| 2-SR-7 | 易誤讀 · 「無結果」標「最輕」與 EmptyState 三級的對應 | 待同步 |
 
 #### 2-SR-1 部分失敗「需後端另案」的前提不成立
 
@@ -589,6 +598,13 @@ Handoff `redesign_v3_handoff_batch_2.zip`（`design_handoff_02_system/`）。下
 - **目前處置**：刻痕位置＝命中處在段落文字中的字元 offset ÷ 文字長度。軌放在正文欄左側（稿是 flex 獨立欄，README 說三欄 grid，所以軌不佔 grid 欄、在正文欄內）。
   只在關鍵字模式、且至少一個命中時才畫；語意模式沒有軌（`<mark>` 高亮則與既有行為一致，兩模式都有）。
 - **請設計端**：確認位置語意與語意模式不畫軌。
+
+#### 2-SR-7 「無結果」標「最輕」與 EmptyState 三級的對應
+
+- **出處**：05 E 區「No results · filtered to nothing（最輕）」：h4 serif lg 600＋xs 說明，無圖示。
+- **問題**：kit 的 `filtered` 分量（最輕）不顯示說明句、字級也是 sm；稿上的「最輕」卻帶一句說明、標題 lg 600，其實等於 `prerequisite` 去掉圖示。
+- **目前處置**：沿用 `EmptyState weight="prerequisite"`（lg 600 標題＋一句說明、不畫圖示），畫面與稿一致。
+- **請設計端**：說明這格對應 kit 三級的哪一級，或在 kit 補一級「帶說明、無圖示」。
 
 ### Token 用量 `/token-usage`
 

@@ -51,8 +51,7 @@
 .up-code {
   display: block; margin: 0;
   font-family: var(--font-mono); font-size: var(--font-size-2xs); line-height: 1.6;
-  color: var(--fg-secondary); background: var(--bg-tertiary);
-  padding: var(--space-1) var(--space-3); border-radius: var(--radius-sm);
+  color: var(--fg-secondary);
   overflow-wrap: anywhere;
 }
 
@@ -64,7 +63,6 @@
   transition: background-color var(--transition-fast), border-color var(--transition-fast);
 }
 .up-drop[data-dragging="true"] { border-color: var(--accent); background: var(--bg-secondary); }
-.up-drop[data-invalid="true"] { border-color: var(--color-error); }
 .up-drop-icon { display: inline-flex; color: var(--illustration-stroke-soft); }
 .up-drop-main {
   font-family: var(--font-sans); font-size: var(--font-size-base); font-weight: 600; color: var(--fg-primary);
