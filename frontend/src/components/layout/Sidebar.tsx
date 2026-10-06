@@ -6,7 +6,7 @@ import {
   BookOpen,
   Search,
   BarChart3,
-  SlidersHorizontal,
+  Settings2,
   Loader,
   PanelLeft,
   PanelLeftClose,
@@ -141,7 +141,7 @@ export function Sidebar({ tasksOpen, activeCount, onToggleTasks }: SidebarProps)
     // 任務中心：全側欄唯一的 <button>。
     { id: 'tasks', icon: Loader, label: t('tasks'), active: tasksOpen, onClick: onToggleTasks, badge: activeCount },
     { id: 'tokenUsage', icon: BarChart3, label: t('tokenUsage'), to: '/token-usage', active: startsWith('/token-usage') },
-    { id: 'settings', icon: SlidersHorizontal, label: t('settings'), to: '/settings', active: startsWith('/settings') },
+    { id: 'settings', icon: Settings2, label: t('settings'), to: '/settings', active: startsWith('/settings') },
   ];
 
   // asRow：標籤直接可見的列形態（側欄展開，或溢出選單內）。
@@ -222,6 +222,7 @@ export function Sidebar({ tasksOpen, activeCount, onToggleTasks }: SidebarProps)
             {expanded && <span className="ss-rail-label">{t('collapseSidebar')}</span>}
           </button>
         </Tooltip>
+        <div className="ss-rail-gap" />
 
         {bookId && (
           <>

@@ -84,6 +84,7 @@
   padding: var(--space-3) var(--space-5);
   color: var(--fg-muted);
 }
+.sym-search:focus-within { outline: var(--focus-ring-width) solid var(--focus-ring-color); outline-offset: var(--focus-ring-offset); }
 .sym-search svg {
   flex: none;
 }
@@ -94,7 +95,7 @@
   outline: 0;
   color: var(--fg-primary);
   font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-xs);
   min-width: 0;
 }
 .sym-search input::placeholder {
@@ -453,7 +454,6 @@
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
-  text-transform: uppercase;
   letter-spacing: 0.06em;
   font-weight: 600;
 }
@@ -497,7 +497,6 @@
   font-size: var(--font-size-2xs);
   font-weight: 600;
   letter-spacing: 0.02em;
-  text-transform: uppercase;
 }
 
 /* ── Generated interpretation (DS v3 · 5-4, 11 補稿 A／C) ─────

@@ -419,18 +419,20 @@
 }
 .tl-filter-search-icon {
   position: absolute;
-  left: 8px;
+  left: var(--space-5);
   display: flex;
   color: var(--fg-muted);
 }
+/* 收斂到共用輸入框（components-inputs Search 列）：--input-* token、search 內距 space-3 × space-5。
+   左內距 = icon 左位 space-5 + icon 寬 12 + 間距 space-3 */
 .tl-filter-search input {
   width: 100%;
   font-family: var(--font-sans);
   font-size: var(--font-size-xs);
-  padding: 4px 8px 4px 24px;
-  border: 1px solid var(--border);
-  border-radius: var(--control-radius);
-  background: var(--bg-primary);
+  padding: var(--space-3) var(--space-5) var(--space-3) calc(var(--space-5) + 12px + var(--space-3));
+  border: var(--input-border-width) var(--border-style) var(--border);
+  border-radius: var(--input-radius);
+  background: var(--input-bg);
   color: var(--fg-primary);
 }
 .tl-filter-sheet-foot {
@@ -736,14 +738,18 @@
   opacity: 0.18;
 }
 .tl-stave-hit {
-  position: absolute;
+  display: block;
   width: 16px;
   height: 16px;
-  margin: -8px 0 0 -8px;
   border: none;
   border-radius: 50%;
   background: transparent;
   cursor: pointer;
+}
+/* Tooltip 錨點承接原本掛在按鈕上的絕對定位（left／top 以 inline 給） */
+.tl-stave-hit-anchor {
+  position: absolute;
+  margin: -8px 0 0 -8px;
   z-index: 3;
 }
 .tl-stave-hit:focus-visible {
@@ -786,16 +792,19 @@
   color: var(--fg-muted);
 }
 .tl-stave-unranked-dot {
-  position: absolute;
-  top: 4px;
+  display: block;
   width: 5px;
   height: 5px;
-  margin-left: -2.5px;
   padding: 0;
   border: 1px solid var(--fg-muted);
   border-radius: 50%;
   background: var(--bg-primary);
   cursor: pointer;
+}
+.tl-stave-unranked-anchor {
+  position: absolute;
+  top: 4px;
+  margin-left: -2.5px;
 }
 .tl-stave-unranked-dot.selected {
   box-shadow: 0 0 0 3px var(--timeline-selected-ring);
@@ -1195,22 +1204,25 @@
   border-top: 1px dashed var(--border);
 }
 .tl-lane-dot {
-  position: absolute;
-  top: 50%;
+  display: block;
   width: 6px;
   height: 6px;
-  margin: -3px 0 0 -3px;
   padding: 0;
   border: none;
   border-radius: 50%;
   background: var(--fg-primary);
   cursor: pointer;
+}
+/* 錨點負責絕對定位與置中（點的大小隨 kernel 變，用 translate 而非固定 margin） */
+.tl-lane-dot-anchor {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
   z-index: 2;
 }
 .tl-lane-dot.kernel {
   width: 9px;
   height: 9px;
-  margin: -4.5px 0 0 -4.5px;
 }
 .tl-lane-dot.unanalyzed {
   background: var(--bg-primary);

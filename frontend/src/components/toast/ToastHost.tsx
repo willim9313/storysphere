@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Check, Info, TriangleAlert, X } from 'lucide-react';
 import { useToast, useToastAnchor, useToastState, type Toast, type ToastType } from '@/contexts/ToastContext';
 import { RAIL } from '@/contexts/FloatRailContext';
@@ -13,6 +14,7 @@ const ICONS: Record<ToastType, typeof Check> = {
 };
 
 function ToastRow({ toast, onDismiss }: Readonly<{ toast: Toast; onDismiss: (id: number) => void }>) {
+  const { t } = useTranslation('common');
   const Icon = ICONS[toast.type];
   return (
     <div className="ss-toast">
@@ -39,7 +41,7 @@ function ToastRow({ toast, onDismiss }: Readonly<{ toast: Toast; onDismiss: (id:
         type="button"
         className="ss-toast-close"
         onClick={() => onDismiss(toast.id)}
-        aria-label="關閉"
+        aria-label={t('close')}
       >
         <X size={15} />
       </button>

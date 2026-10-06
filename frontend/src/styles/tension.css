@@ -96,7 +96,6 @@
   border-radius: var(--input-radius);
 }
 .tn-input.is-serif { font-family: var(--font-serif); font-size: var(--font-size-sm); line-height: 1.8; resize: vertical; }
-.tn-input:focus { outline: 2px solid var(--accent); outline-offset: -1px; }
 .tn-select {
   font-family: var(--font-sans); font-size: var(--font-size-xs);
   padding: var(--space-4) var(--space-5);
@@ -304,7 +303,7 @@
 /* ── 模式切換 ───────────────────────────────────────────────────── */
 
 .tn-mode-row { display: flex; align-items: center; gap: var(--space-6); flex-wrap: wrap; }
-.tn-mode-seg .ss-seg-item { font-size: var(--font-size-xs); padding: var(--space-3) var(--space-6); }
+.tn-mode-seg .ss-seg-item { padding: var(--space-3) var(--space-6); }
 
 /* ── 章節格點 ───────────────────────────────────────────────────── */
 

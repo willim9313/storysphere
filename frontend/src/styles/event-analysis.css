@@ -49,11 +49,13 @@
 }
 .ea-search {
   display: flex; align-items: center; gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
+  padding: var(--space-3) var(--space-5);
   background: var(--input-bg);
   border: var(--input-border-width) var(--border-style) var(--border);
   border-radius: var(--input-radius);
 }
+/* 輸入框自己 outline:none，鍵盤焦點環改畫在外框（components-inputs：共用 focus ring） */
+.ea-search:focus-within { outline: var(--focus-ring-width) solid var(--focus-ring-color); outline-offset: var(--focus-ring-offset); }
 .ea-search input {
   flex: 1;
   background: transparent; border: none; outline: none;
@@ -243,20 +245,7 @@
 .ea-detail-meta .ea-detail-meta-imp { color: var(--fg-secondary); }
 .ea-detail-meta .ss-badge { align-self: center; }
 
-/* 分頁：底線式 */
-.ea-detail-tabs {
-  display: flex; flex-wrap: wrap; gap: var(--space-2);
-  border-bottom: var(--line-weight) var(--border-style) var(--border);
-}
-.ea-detail-tab {
-  padding: var(--space-4) var(--space-5);
-  border: none; background: none; cursor: pointer; white-space: nowrap;
-  font-family: var(--font-sans); font-size: var(--font-size-xs); font-weight: 500;
-  color: var(--fg-muted);
-  box-shadow: none;
-}
-.ea-detail-tab:hover:not(.active) { color: var(--fg-primary); }
-.ea-detail-tab.active { color: var(--fg-primary); font-weight: 600; box-shadow: inset 0 -2px 0 var(--accent); }
+/* 分頁：底線式，共用 .ss-utabs / .ss-utab（ss-kit.css） */
 
 .ea-detail-body { display: flex; flex-direction: column; gap: var(--space-6); }
 

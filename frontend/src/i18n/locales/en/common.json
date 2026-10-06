@@ -2,6 +2,7 @@
   "cancel": "Cancel",
   "confirm": "Confirm",
   "loading": "Loading…",
+  "loadingCaption": "Loading",
   "search": "Search…",
   "retry": "Retry",
   "triggerFailed": "Failed to trigger analysis. Please try again later.",
@@ -25,5 +26,26 @@
     "techDetail": "Technical details",
     "llmUnconfigured": "No LLM provider is configured, so LLM analysis can't run.",
     "llmSettings": "Go to LLM settings →"
+  },
+  "close": "Close",
+  "taskCenter": {
+    "title": "Task center",
+    "close": "Close task center",
+    "loading": "Loading tasks…",
+    "emptyMain": "No tasks in progress",
+    "emptySub1": "Once you start an analysis, the progress of",
+    "emptySub2": "every LLM task shows up here.",
+    "running": "In progress · {{n}}",
+    "done": "Completed · {{n}}",
+    "clear": "Clear",
+    "untitled": "Processing",
+    "partial": "Partially complete",
+    "doneUnknown": "Completed",
+    "justNow": "Just finished",
+    "minAgo": "Finished {{n}} min ago",
+    "hourAgo": "Finished {{n}} h ago",
+    "dayAgo": "Finished {{n}} d ago",
+    "failed": "Failed",
+    "failedGoto": "Failed · go to the page to fix"
   }
 }

@@ -62,7 +62,7 @@
   mask: var(--ss-llm-glyph) no-repeat center / contain;
 }
 .ss-llm-glyph {
-  display: inline-block; width: 12px; height: 12px; flex-shrink: 0;
+  display: inline-block; width: 12px; height: 12px; flex-shrink: 0; vertical-align: -2px;
   background-color: currentColor;
   -webkit-mask: var(--ss-llm-glyph) no-repeat center / contain;
   mask: var(--ss-llm-glyph) no-repeat center / contain;
@@ -256,7 +256,7 @@
 
 .ss-task-note {
   display: flex; align-items: center; gap: var(--space-3);
-  margin-top: var(--space-3); font-size: var(--font-size-2xs); color: var(--fg-muted);
+  margin-top: var(--space-2); font-size: var(--font-size-2xs); color: var(--fg-muted);
 }
 .ss-task-note-warn { color: var(--color-warning); }
 .ss-task-note-err  { color: var(--color-error); }
@@ -319,6 +319,9 @@
 .ss-rail-label { white-space: nowrap; overflow: hidden; }
 /* Tooltip 的包裹層：不能破壞側欄的置中／stretch 排列 */
 .ss-tooltip-anchor { display: inline-flex; }
+.ss-tooltip-anchor-inline { display: inline; }
+/* 收合鈕與第一格之間的墊高（LibraryRail.dc.html：panelIcon 後 height:var(--space-2)） */
+.ss-rail-gap { flex-shrink: 0; height: var(--space-2); }
 
 /* 書籍群：底色與格子同為 bg-tertiary，hover／active 改用上一階，否則看不出來 */
 .ss-rail-book {
@@ -369,6 +372,14 @@
   border-radius: var(--radius-sm);
 }
 .ss-tooltip-nowrap { white-space: nowrap; max-width: none; }
+
+/* ── LoadingSpinner（loading-states 卡 Spinner 欄）：Loader 22、fg-secondary、說明字 2xs muted ── */
+.ss-spinner {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: var(--space-4); padding: var(--space-8) 0;
+}
+.ss-spinner-icon { color: var(--fg-secondary); animation: spin 1s linear infinite; }
+.ss-spinner-label { font-size: var(--font-size-2xs); color: var(--fg-muted); }
 
 /* ── Book title bar（0-6b；kit .ss-booknav，框架 §4）──────────────
    28px 常駐列：← 書庫 | 書名 › 目前功能。導航不在這裡——九個功能在側欄書籍群。 */
@@ -644,16 +655,32 @@
   display: inline-flex; gap: 2px; padding: 2px;
   background: var(--bg-secondary);
   border: var(--border-width) var(--border-style) var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--control-radius);
 }
 .ss-seg-item {
-  font-family: var(--font-sans); font-size: var(--font-size-2xs); font-weight: 500;
-  padding: var(--space-2) var(--space-4); border-radius: var(--radius-sm);
+  font-family: var(--font-sans); font-size: var(--font-size-xs); font-weight: 500;
+  padding: var(--space-2) var(--space-5); border-radius: var(--radius-sm);
   background: transparent; border: none; cursor: pointer; color: var(--fg-secondary);
   transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 .ss-seg-item:hover { color: var(--fg-primary); }
-.ss-seg-item.active { background: var(--bg-primary); color: var(--fg-primary); font-weight: 600; box-shadow: var(--shadow-sm); }
+.ss-seg-item.active { background: var(--bg-primary); color: var(--fg-primary); font-weight: 600; }
+
+/* ── 底線分頁（components-tabs 卡；合併自 .ca-tab 與 .ea-detail-tab）──
+   xs；idle muted 500、hover secondary、active primary 600＋2px accent 底線。 */
+.ss-utabs {
+  display: flex; flex-wrap: wrap; gap: var(--space-1);
+  border-bottom: var(--line-weight) var(--border-style) var(--border);
+}
+.ss-utab {
+  display: inline-flex; align-items: center; white-space: nowrap;
+  padding: var(--space-3) var(--space-5);
+  background: none; border: none; cursor: pointer;
+  font-family: var(--font-sans); font-size: var(--font-size-xs); font-weight: 500;
+  color: var(--fg-muted);
+}
+.ss-utab:hover:not(.active) { color: var(--fg-secondary); }
+.ss-utab.active { color: var(--fg-primary); font-weight: 600; box-shadow: inset 0 -2px 0 var(--accent); }
 
 /* ── Book card（設計系統 components-library-cards；書庫）──── */
 .ss-bookcard {
@@ -734,7 +761,6 @@
 .ss-state-chev-open { transform: rotate(90deg); }
 .ss-state-code {
   font-family: var(--font-mono); font-size: var(--font-size-2xs);
-  padding: 0 var(--space-2); border-radius: var(--radius-sm); background: var(--bg-secondary);
 }
 
 /* ── StatRow（第 2 批引入；kit 原文，10px 標籤改走 --font-size-2xs）──

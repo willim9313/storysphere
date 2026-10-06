@@ -210,9 +210,10 @@
 
 .rd-fab-wrap { position: fixed; display: flex; }
 .rd-fab {
-  width: 40px; height: 40px; border-radius: 50%; border: none; cursor: pointer;
+  width: 40px; height: 40px; border-radius: 50%; cursor: pointer;
   display: flex; align-items: center; justify-content: center;
-  background: var(--accent); color: var(--accent-fg); box-shadow: var(--shadow-md);
+  background: var(--bg-primary); color: var(--fg-secondary);
+  border: var(--card-border-width) var(--border-style) var(--border); box-shadow: var(--shadow-md);
 }
 
 /* 失敗態：側欄與書名列由外框常駐，這裡只置中內容區。 */

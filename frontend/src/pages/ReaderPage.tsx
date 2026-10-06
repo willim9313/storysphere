@@ -678,7 +678,8 @@ export default function ReaderPage() {
       )}
 
       {showBackToTop && (
-        <div className="rd-fab-wrap" style={{ right: RAIL.right, bottom: RAIL.slots[1], zIndex: RAIL.z.fab }}>
+        // right + 4：40px FAB 與 48px 泡泡同中線（(48-40)/2）
+        <div className="rd-fab-wrap" style={{ right: RAIL.right + 4, bottom: RAIL.slots[1], zIndex: RAIL.z.fab }}>
           <Tooltip label={t('nav.backToTop')}>
             <button type="button" onClick={handleBackToTop} aria-label={t('nav.backToTop')} className="rd-fab">
               <ArrowUp size={18} strokeWidth={2.2} />

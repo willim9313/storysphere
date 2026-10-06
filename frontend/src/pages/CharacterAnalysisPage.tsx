@@ -479,14 +479,14 @@ export default function CharacterAnalysisPage() {
         </div>
 
         {/* Primary tabs */}
-        <div className="ca-tabs" role="tablist">
+        <div className="ss-utabs" role="tablist">
           {PRIMARY_TABS.map((tab) => (
             <button
               key={tab}
               type="button"
               role="tab"
               aria-selected={primaryTab === tab}
-              className={'ca-tab' + (primaryTab === tab ? ' active' : '')}
+              className={'ss-utab' + (primaryTab === tab ? ' active' : '')}
               onClick={() => setPrimaryTab(tab)}
             >
               {t(`character.tabs.${tab}`)}

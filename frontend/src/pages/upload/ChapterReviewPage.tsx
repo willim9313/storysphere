@@ -10,6 +10,7 @@ import { failureKind, isLlmUnconfigured, LLM_SETTINGS_PATH, techDetailOf } from 
 import type { ReviewChapter } from '@/api/types';
 import { useBook } from '@/hooks/useBook';
 import { PageFailure } from '@/components/ui/PageFailure';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { applyBoundaries } from './applyBoundaries';
 import { buildSubmitPayload, normalizeSplitOffsets, pieceKey, splitPiece } from './paragraphSplits';
 import {
@@ -579,15 +580,16 @@ export default function ChapterReviewPage() {
             {/* Only when some chapter is marked 目錄. Glyph only on the state
                 that calls the LLM; the cached state just reopens the drawer. */}
             {hasToc && (
-              <button
-                type="button"
-                className={`ss-btn ss-btn-sm ss-btn-secondary${tocViewMode ? '' : ' ss-btn-llm'}`}
-                title={t('review.toc.detectedHint')}
-                disabled={tocStatus === 'loading'}
-                onClick={tocViewMode ? openTocDrawer : runTocParse}
-              >
-                {t(tocViewMode ? 'review.toc.viewBtn' : 'review.toc.readBtn')}
-              </button>
+              <Tooltip label={t('review.toc.detectedHint')}>
+                <button
+                  type="button"
+                  className={`ss-btn ss-btn-sm ss-btn-secondary${tocViewMode ? '' : ' ss-btn-llm'}`}
+                  disabled={tocStatus === 'loading'}
+                  onClick={tocViewMode ? openTocDrawer : runTocParse}
+                >
+                  {t(tocViewMode ? 'review.toc.viewBtn' : 'review.toc.readBtn')}
+                </button>
+              </Tooltip>
             )}
             {/* Three states carried by the button itself; one-shot. */}
             <button
@@ -688,15 +690,16 @@ export default function ChapterReviewPage() {
                         </button>
                       ))}
                     </div>
-                    <button
-                      type="button"
-                      className="cr-spine-toggle"
-                      title={t('review.spineToggle')}
-                      aria-label={t('review.spineToggle')}
-                      onClick={() => setSpineOpen(false)}
-                    >
-                      <PanelLeft size={16} />
-                    </button>
+                    <Tooltip label={t('review.spineToggle')}>
+                      <button
+                        type="button"
+                        className="cr-spine-toggle"
+                        aria-label={t('review.spineToggle')}
+                        onClick={() => setSpineOpen(false)}
+                      >
+                        <PanelLeft size={16} />
+                      </button>
+                    </Tooltip>
                   </div>
                 </div>
                 <p className="cr-spine-summary">
@@ -724,7 +727,11 @@ export default function ChapterReviewPage() {
                         <span className="cr-block-head">
                           <span className={isBody ? 'cr-mark' : 'cr-mark is-nonbody'} />
                           <span className="cr-block-label">{headLabel}</span>
-                          {flagged && <span className="cr-flag" title={t('review.flagMisSplit')} />}
+                          {flagged && (
+                            <Tooltip label={t('review.flagMisSplit')} anchorClassName="cr-flag-anchor">
+                              <span className="cr-flag" />
+                            </Tooltip>
+                          )}
                         </span>
                         {ch.title && <span className="cr-block-title">{ch.title}</span>}
                         <span className="cr-block-count">{t('review.paraCount', { n: paraCount })}</span>
@@ -739,12 +746,10 @@ export default function ChapterReviewPage() {
                         .filter(Boolean)
                         .join(' · ');
                       return (
+                        <Tooltip key={ci} label={tip} anchorClassName="cr-ov-anchor" anchorStyle={{ height: h }}>
                         <button
-                          key={ci}
                           type="button"
                           className="cr-ov-row"
-                          style={{ height: h }}
-                          title={tip}
                           aria-label={tip}
                           onClick={() => jumpTo(ci)}
                         >
@@ -758,6 +763,7 @@ export default function ChapterReviewPage() {
                           />
                           <span className={flagged ? 'cr-ov-flag is-flagged' : 'cr-ov-flag'} />
                         </button>
+                        </Tooltip>
                       );
                     })}
                   </div>
@@ -765,16 +771,18 @@ export default function ChapterReviewPage() {
               </>
             ) : (
               <>
-                <button
-                  type="button"
-                  className="cr-spine-toggle"
-                  title={t('review.spineToggle')}
-                  aria-label={t('review.spineToggle')}
-                  onClick={() => setSpineOpen(true)}
-                >
-                  <PanelLeft size={16} />
-                </button>
-                <div className="cr-rail" title={t('review.railHint')}>
+                <Tooltip label={t('review.spineToggle')}>
+                  <button
+                    type="button"
+                    className="cr-spine-toggle"
+                    aria-label={t('review.spineToggle')}
+                    onClick={() => setSpineOpen(true)}
+                  >
+                    <PanelLeft size={16} />
+                  </button>
+                </Tooltip>
+                <Tooltip label={t('review.railHint')} anchorClassName="cr-rail-anchor">
+                <div className="cr-rail">
                   {view.rows.map(({ ci, isBody, flagged, paraCount }) => (
                     <button
                       key={ci}
@@ -791,6 +799,7 @@ export default function ChapterReviewPage() {
                     />
                   ))}
                 </div>
+                </Tooltip>
               </>
             )}
           </aside>
@@ -814,15 +823,16 @@ export default function ChapterReviewPage() {
                 <div className="cr-guide" role="dialog" aria-label={t('review.glossaryToggle')}>
                   <div className="cr-guide-head">
                     <h3 className="cr-guide-title">{t('review.glossaryToggle')}</h3>
-                    <button
-                      type="button"
-                      className="cr-icon-btn"
-                      title={t('review.toc.close')}
-                      aria-label={t('review.toc.close')}
-                      onClick={() => setGlossaryOpen(false)}
-                    >
-                      <X size={16} />
-                    </button>
+                    <Tooltip label={t('review.toc.close')}>
+                      <button
+                        type="button"
+                        className="cr-icon-btn"
+                        aria-label={t('review.toc.close')}
+                        onClick={() => setGlossaryOpen(false)}
+                      >
+                        <X size={16} />
+                      </button>
+                    </Tooltip>
                   </div>
                   <p className="cr-guide-intro">{t('review.glossaryIntro')}</p>
                   <div className="cr-guide-grid">
@@ -883,24 +893,26 @@ export default function ChapterReviewPage() {
                         </option>
                       ))}
                     </select>
-                    <button
-                      type="button"
-                      className="ss-btn ss-btn-sm ss-btn-ghost"
-                      disabled={ci === 0}
-                      title={t('review.mergePrevTitle')}
-                      onClick={() => mergeIntoPrev(ci)}
-                    >
-                      {t('review.mergePrev')}
-                    </button>
-                    <button
-                      type="button"
-                      className="ss-btn ss-btn-sm ss-btn-ghost"
-                      disabled={ci === chapters.length - 1}
-                      title={t('review.mergeNextTitle')}
-                      onClick={() => mergeIntoNext(ci)}
-                    >
-                      {t('review.mergeNext')}
-                    </button>
+                    <Tooltip label={t('review.mergePrevTitle')}>
+                      <button
+                        type="button"
+                        className="ss-btn ss-btn-sm ss-btn-ghost"
+                        disabled={ci === 0}
+                        onClick={() => mergeIntoPrev(ci)}
+                      >
+                        {t('review.mergePrev')}
+                      </button>
+                    </Tooltip>
+                    <Tooltip label={t('review.mergeNextTitle')}>
+                      <button
+                        type="button"
+                        className="ss-btn ss-btn-sm ss-btn-ghost"
+                        disabled={ci === chapters.length - 1}
+                        onClick={() => mergeIntoNext(ci)}
+                      >
+                        {t('review.mergeNext')}
+                      </button>
+                    </Tooltip>
                   </div>
 
                   {ch.paragraphs.map((p, pi) => {
@@ -911,17 +923,18 @@ export default function ChapterReviewPage() {
                     const bodyPart = p.titleSpan ? p.text.slice(p.titleSpan[1]) : p.text;
                     return (
                       <div className={pIsBody ? 'cr-para' : 'cr-para is-nonbody'} key={pieceKey(p)}>
-                        <button
-                          type="button"
-                          className={pi > 0 ? 'cr-split' : 'cr-split is-first'}
-                          title={t('review.splitHere')}
-                          aria-label={t('review.splitHere')}
-                          tabIndex={pi > 0 ? undefined : -1}
-                          disabled={pi === 0}
-                          onClick={() => splitAt(ci, pi)}
-                        >
-                          ＋
-                        </button>
+                        <Tooltip label={t('review.splitHere')}>
+                          <button
+                            type="button"
+                            className={pi > 0 ? 'cr-split' : 'cr-split is-first'}
+                            aria-label={t('review.splitHere')}
+                            tabIndex={pi > 0 ? undefined : -1}
+                            disabled={pi === 0}
+                            onClick={() => splitAt(ci, pi)}
+                          >
+                            ＋
+                          </button>
+                        </Tooltip>
                         <p className="cr-para-text" data-para-ci={ci} data-para-pi={pi}>
                           {titlePart && <span className="cr-para-lead">{titlePart}</span>}
                           {bodyPart}
@@ -967,15 +980,16 @@ export default function ChapterReviewPage() {
                       {t('review.toc.reparse')}
                     </button>
                   )}
-                  <button
-                    type="button"
-                    className="cr-icon-btn"
-                    title={t('review.toc.close')}
-                    aria-label={t('review.toc.close')}
-                    onClick={() => setTocOpen(false)}
-                  >
-                    <X size={15} />
-                  </button>
+                  <Tooltip label={t('review.toc.close')}>
+                    <button
+                      type="button"
+                      className="cr-icon-btn"
+                      aria-label={t('review.toc.close')}
+                      onClick={() => setTocOpen(false)}
+                    >
+                      <X size={15} />
+                    </button>
+                  </Tooltip>
                 </div>
               </div>
 

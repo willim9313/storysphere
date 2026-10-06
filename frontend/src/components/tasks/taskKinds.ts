@@ -49,10 +49,12 @@ export const FALLBACK_KIND: KindMeta = {
 /** Hands the entity palette to `.ss-task-*` as custom properties. */
 export function kindVars(meta: KindMeta): CSSProperties {
   const e = `--entity-${meta.entity}`;
+  // 缺 kind 時 Ink 描邊走 --border／--fg-secondary（17 決議紀錄 taskRow()），不套 other 的彩色
+  const neutral = meta === FALLBACK_KIND;
   return {
     '--tk-bg': `var(${e}-bg)`,
-    '--tk-border': `var(${e}-border)`,
-    '--tk-fg': `var(${e}-fg)`,
+    '--tk-border': neutral ? 'var(--border)' : `var(${e}-border)`,
+    '--tk-fg': neutral ? 'var(--fg-secondary)' : `var(${e}-fg)`,
     '--tk-dot': `var(${e}-dot)`,
   } as CSSProperties;
 }
