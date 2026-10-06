@@ -84,18 +84,14 @@ export function UnclassifiedBlock({
       )}
       {llmBlocked && <LlmUnconfiguredNotice />}
       <div className="nl-unclass-actions">
-        <div className="nl-unclass-act">
-          <button type="button" className="ss-btn ss-btn-md ss-btn-secondary" onClick={onClassify} disabled={busy}>
-            {classifyRunning ? t('narrative.unclassified.running', { progress }) : t('narrative.unclassified.classify')}
-          </button>
-          <span className="nl-unclass-hint">{t('narrative.unclassified.classifyCost')}</span>
-        </div>
-        <div className="nl-unclass-act">
-          <button type="button" className="ss-btn ss-btn-md ss-btn-secondary ss-btn-llm" onClick={onRefine} disabled={busy}>
-            {refineRunning ? t('narrative.unclassified.running', { progress }) : t('narrative.unclassified.refine', { n: count })}
-          </button>
-          <span className="nl-unclass-hint">{t('tension.state.tokenHintShort')}</span>
-        </div>
+        <button type="button" className="ss-btn ss-btn-md ss-btn-secondary" onClick={onClassify} disabled={busy}>
+          {classifyRunning ? t('narrative.unclassified.running', { progress }) : t('narrative.unclassified.classify')}
+        </button>
+        <span className="nl-unclass-hint">{t('narrative.unclassified.classifyCost')}</span>
+        <button type="button" className="ss-btn ss-btn-md ss-btn-secondary ss-btn-llm" onClick={onRefine} disabled={busy}>
+          {refineRunning ? t('narrative.unclassified.running', { progress }) : t('narrative.unclassified.refine', { n: count })}
+        </button>
+        <span className="nl-unclass-hint">{t('tension.state.tokenHintShort')}</span>
         {!refusedMessage && (
           <Link className="nl-unclass-jump" to={eventsPath}>
             {t('narrative.unclassified.jump')}

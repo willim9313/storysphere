@@ -244,7 +244,7 @@ function GuidancePanel() {
       <div className="st-guidance-row">
         <button
           type="button"
-          className="ss-btn ss-btn-sm ss-btn-secondary"
+          className="ss-btn ss-btn-md ss-btn-secondary"
           disabled={n === 0}
           onClick={resetAllGuidance}
         >

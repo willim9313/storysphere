@@ -85,8 +85,8 @@ font-family: 'Caveat', 'Noto Serif TC', cursive;               /* 僅限插畫�
 （框架 §4）。DS v3 之前這裡是 40px 的九格文字分頁列，已移除。
 
 **右端重開鈕（第 5 批 5-1，19 決議紀錄）**：當下頁面的研究者導覽條**已被關閉**時，書名列右端
-（`margin-left:auto`）出現 ghost 小鈕（`.ss-btn .ss-btn-ghost .ss-btn-sm`，標籤 `settings:guidance.title`「研究者導覽」，
-無字符、無 toast）；導覽條開著時不出現。點＝刪掉該 surface 的 `storysphere:guidance-dismissed:<surface>`，導覽條重新出現就是回饋。
+（`margin-left:auto`）出現 ghost 小鈕（`.gd-reopen`：高 20、`padding 0 space-3`、2xs、`fg-secondary`，前置 12px Lucide `Info`（`--color-info`），
+hover 底 `--bg-secondary`；標籤 `settings:guidance.title`「研究者導覽」，無 toast）；導覽條開著時不出現。點＝刪掉該 surface 的 `storysphere:guidance-dismissed:<surface>`，導覽條重新出現就是回饋。
 一頁兩條（`event-overview`／`event-detail`，互斥顯示）只看當下掛載的那條。`GuidanceRibbon` 掛載時向
 `components/ui/guidanceStore.ts` 登記自己的 surface、卸載時取消，書名列據此判斷（不靠 props）。10 個 surface 全套。
 `BookLayout` 取書失敗時書名列仍在、但沒有導覽條，所以鈕不出現。非書籍路由目前沒有任何頁使用導覽條，本批不做
@@ -2010,7 +2010,7 @@ en 對應：Previewing／Requirement not met: Standard mode · KG backend set to
 [頁首 — 頁名 + 一句定位 + 書級 meta]
 [研究者導覽條 — GuidanceRibbon surface="narrative"，字串逐字]
 [索引卡 — ① 詮釋・英雄旅程 / ② 統計・事件骨幹 / ③ 旁證・其他結構線索]
-[過期橫條 — is_stale 時，疊在英雄旅程卡上方]
+[過期橫條 — is_stale 時，疊在英雄旅程卡上方；「✦ 重新分析 →」文字連結只捲動並聚焦、短暫高亮卡內 LLM 鈕（`#nl-hero-run`），不觸發分析]
 [英雄旅程卡 — 標題列 + 書級審核 + 分段切換 + 缺席說明 + 圖｜階段詳情（sticky）]
 [事件骨幹卡 — 比例列 + 逐章核心事件 + 選定事件 + 未分類區塊 + 跳轉]
 [交叉證據卡 — 三列同軸 + 時序結構／張力兩欄]
@@ -2020,9 +2020,9 @@ en 對應：Previewing／Requirement not met: Standard mode · KG backend set to
 
 #### 頁首、導覽條、索引卡
 
-- 頁首：h1「敘事結構」＋副標「這本書的結構是什麼形狀」＋ mono meta `書名 · N 章 · M 事件 · 分類來源`。
+- 頁首：h1「敘事結構」（serif 2xl／700）＋副標「這本書的結構是什麼形狀」（sans sm）＋ meta `書名 · N 章 · M 事件 · 分類來源`（sans 2xs muted）。內容區底 `--bg-secondary`、卡片 `--bg-primary` 浮在上面；內距 24／24／32、區塊間距 16。
 - 導覽條字串逐字（`narrative.guide.*`），表面由 `GuidanceRibbon` 管。
-- 索引卡（`.nl-index`）：序號圓點＋角色標籤＋右側狀態徽章，卡片是錨點連結（`#nl-hero`／`#nl-spine`／`#nl-cross`）。
+- 索引卡（`.nl-index`，固定三欄、gap 12、內距 12）：序號圓點（18px）＋角色標籤（不大寫）＋右側狀態徽章（無外框；英雄旅程「尚未分析」用 warning 底），卡片是錨點連結（`#nl-hero`／`#nl-spine`／`#nl-cross`）。
 
 #### 英雄旅程卡（`HeroJourneySection`，`#nl-hero`）
 
@@ -2031,12 +2031,12 @@ en 對應：Previewing／Requirement not met: Standard mode · KG backend set to
 - **重新分析的閘門**：與空態按鈕同一道摘要閘門（`summaryGate`）；缺章時 disabled，Tooltip 顯示「缺 N 章摘要，補齊後才會有可映射的內容」。分析中按鈕就地換成「分析中… {progress}%」（`progress` 是後端寫死的 10／20／90，照實顯示，不承諾 ETA）。
 - **版面切換**：`.ss-seg`（`.nl-seg` 撐成四等分），每顆兩行＝名稱＋副標（`narrative.layout.*`／`narrative.viewHint.*`，spec §6 不可丟失）。`role="radiogroup"`／`radio`。一次只顯示一種，每種＝圖＋圖例＋階段詳情。預設章節對位帶。選取的階段在切換版面時保留（狀態在 `HeroJourneySection`）。
 - **缺席說明**（`.nl-absent-note`）：虛線框，只在有未識別階段時出現。
-- **圖＋詳情**（`.nl-hj-body`）：卡不限高；詳情欄 `.nl-detail` `position: sticky; top: 16px`。對位帶、三相位分欄在右側（欄寬 380），圓環右側（圓環欄 460），**水平軌跡在下方全寬**（代表事件兩欄）。視窗 ≤ 1100 時單欄、詳情不 sticky。
+- **圖＋詳情**（`.nl-hj-body`）：卡不限高；詳情欄 `.nl-detail` `position: sticky; top: 16px`。對位帶在右側（欄寬 340）、三相位分欄在右側（欄寬 380），圓環右側（圓環欄 460），**水平軌跡在下方全寬**（代表事件兩欄）。視窗 ≤ 1100 時單欄、詳情不 sticky。
 
 **章節對位帶（`LayoutBand`）**
 
 - 軸長固定為全書章數，空章留白。階段只畫在**實際章節**上：`chapter_range` 先 `normalizeChapters`（排序＋去重），連續段 `chapterRuns` 各畫一個色塊，段間 2px 細線（`opacity .5`）相連；遇見導師 1、2、5、8 ＝ 三塊，不畫成 1–8。
-- 「共用」（3 個以上階段落在同一章，`sharedChapters`）標在章節刻度上（`共用` 字樣＋刻度數字加粗），該欄在每條泳道內底色加深（`--bg-tertiary`）。「共用」說明文字沒有任何左邊框強調。
+- 「共用」（3 個以上階段落在同一章，`sharedChapters`）標在章節刻度上（`共用` 字樣＋刻度數字加粗），該欄在每條泳道內底色加深（`--bg-secondary`）。「共用」說明文字沒有任何左邊框強調。
 - ↰（章節逆序）＝起點早於前一階段起點（取實際最小章），Tooltip 說明。
 - 寬度守衛取 ResizeObserver 量出的實際欄寬：<18px 章號每 5 章一次並收起「共用」字樣、<9px 每 10 章；色塊 <34px 時不印章號。
 - 未識別＝整列虛框、不填色（四種版面都保留同一個虛線記號）；低信心＝淺階填色＋實線外框（Ink 下不靠色相）。下方一列核心事件密度共用同一條軸。

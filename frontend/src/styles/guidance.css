@@ -47,8 +47,27 @@
 }
 
 /* Reopen button at the right end of the 28px book title bar — shown only
-   while the surface on screen has its ribbon dismissed. Ghost, no glyph. */
+   while the surface on screen has its ribbon dismissed. Ghost: 20px tall, a
+   12px info glyph (the same one the ribbon draws), hover fills bg-secondary. */
 .ss-booknav .gd-reopen {
   margin-left: auto;
   flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: 20px;
+  padding: 0 var(--space-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+  cursor: pointer;
+}
+.ss-booknav .gd-reopen svg {
+  color: var(--color-info);
+}
+.ss-booknav .gd-reopen:hover {
+  background: var(--bg-secondary);
 }
