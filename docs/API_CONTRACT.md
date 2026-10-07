@@ -902,7 +902,7 @@ interface GraphEdge {
 
 ### #9b GET /books/:bookId/entities/:entityId/chunks
 
-取得特定實體出現的所有段落。
+取得特定實體出現的所有段落。只計正文章節（`role = body`），與 #4 相同：非正文（目錄、序、後記）的段落不列出，`total` 也不計入——否則出處會指向章節清單裡沒有的章。
 
 **Response 200**
 ```ts
@@ -924,7 +924,7 @@ interface EntityChunkItem {
 }
 ```
 
-**UI 使用頁面**：知識圖譜頁「相關段落」面板
+**UI 使用頁面**：知識圖譜頁「相關段落」面板、閱讀頁實體卡「出現段落」
 
 ---
 

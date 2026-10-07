@@ -468,6 +468,40 @@ class TestGetChapterChunks:
         assert set(keywords) == {"mystery", "journey"}
 
 
+# ── GET /books/:bookId/entities/:entityId/chunks ──────────────────────────────
+
+
+class TestGetEntityChunks:
+    def test_excludes_non_body_chapters(self, client, mock_doc):
+        """A preface chunk would point at a chapter #4 doesn't list — the reader
+        then jumps into a chapter with no title, card or next-chapter link."""
+        from storysphere.domain.documents import ChapterRole
+
+        preface_para = _make_paragraph("p-pre", "Alice in the preface.")
+        body_para = _make_paragraph("p-body", "Alice in chapter one.")
+        preface = Chapter(number=0, title="序", role=ChapterRole.preface, paragraphs=[preface_para])
+        body = Chapter(number=1, title="Chapter One", paragraphs=[body_para])
+        doc = _make_document(chapters=[preface, body], doc_id="book-preface")
+
+        def _get(did):
+            return doc if did == "book-preface" else None
+
+        def _by_entity(did, eid):
+            return [
+                (preface.id, 0, preface.title, preface_para),
+                (body.id, 1, body.title, body_para),
+            ]
+
+        mock_doc.get_document.side_effect = _get
+        mock_doc.get_paragraphs_by_entity.side_effect = _by_entity
+
+        resp = client.get("/api/v1/books/book-preface/entities/ent-alice/chunks")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert [c["id"] for c in data["chunks"]] == ["p-body"]
+        assert data["total"] == 1
+
+
 # ── GET /books/:bookId/entities/:entityId/epistemic-state ─────────────────────
 
 
