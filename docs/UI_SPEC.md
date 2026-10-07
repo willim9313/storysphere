@@ -431,7 +431,7 @@ header：「章節 · N」label＋**「全部展開／全部收合」secondary �
 chevron 有自己的 hover 底（`--bg-tertiary`，展開時也是）。選中＝accent 外框＋`--bg-secondary` 底（**不用 inset**）。展開內容：摘要 → 關鍵字 → 「實體 · N」膠囊（可點開實體卡）。
 36px 細軌與欄 1 細軌同一套樣式（chevron＋直排「章節」、無圖示、整條可點展開；展開態的收合 chevron 才是右上角獨立鈕）；直排「章節」已移進 i18n `reader.col2Rail`（原為硬編）。
 
-**卷首／卷末（非正文章節，2026-10-07，計畫 `docs/plans/20261007-reader-non-body-chapters.md`）**：清單以 #4 `includeNonBody=true` 取得全部章，
+**卷首／卷末（非正文章節，2026-10-07，計畫 `docs/plans/20261007-reader-non-body-chapters.md`）**：清單以 #4 `include_non_body=true` 取得全部章，
 依章號分兩群——**卷首**（`order ≤ 0`）排在第 1 章前、**卷末**（`order > N`）排在最後一章後；沒有非正文的那一端不渲染。
 
 - 群組標頭：可摺疊一列「卷首 · N」／「卷末 · N」，**預設收起**（不持久化），前置空心方塊（`--fg-muted` 描邊，同章節審閱頁的非正文標記），文字 muted。

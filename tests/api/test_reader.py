@@ -327,6 +327,66 @@ class TestListChapters:
         titles = [ch["title"] for ch in resp.json()]
         assert titles == ["Chapter One"]
 
+    def test_include_non_body_lists_all_chapters_with_role(self, client, mock_doc):
+        """The reader shows front/back matter read-only as 卷首／卷末, so it
+        asks for every chapter, in document order, tagged with its role."""
+        from storysphere.domain.documents import ChapterRole
+
+        para = _make_paragraph(
+            "p-pre", "Alice in the preface.",
+            entities=[ParagraphEntity(entity_id="ent-alice", entity_name="Alice",
+                                      entity_type="character", start=0, end=5)],
+        )
+        doc = _make_document(
+            chapters=[
+                Chapter(number=0, title="序", role=ChapterRole.preface,
+                        summary="stale", paragraphs=[para]),
+                Chapter(number=1, title="Chapter One", paragraphs=[]),
+                Chapter(number=2, title="後記", role=ChapterRole.afterword, paragraphs=[]),
+            ],
+            doc_id="book-with-matter",
+        )
+
+        def _get(did):
+            return doc if did == "book-with-matter" else None
+
+        mock_doc.get_document.side_effect = _get
+
+        resp = client.get("/api/v1/books/book-with-matter/chapters?include_non_body=true")
+        assert resp.status_code == 200
+        chapters = resp.json()
+        assert [(c["title"], c["role"]) for c in chapters] == [
+            ("序", "preface"), ("Chapter One", "body"), ("後記", "afterword"),
+        ]
+        # Non-body matter is never analysed: no summary or entity data leaks
+        # through even when stale stored values exist.
+        preface = chapters[0]
+        assert preface["chunkCount"] == 1
+        assert preface["entityCount"] == 0
+        assert preface["summary"] is None
+        assert preface["topEntities"] is None
+
+    def test_untitled_non_body_has_empty_title(self, client, mock_doc):
+        """「Chapter 0」would read as a story chapter number; the reader shows
+        the role name instead, so an untitled non-body chapter gets ''."""
+        from storysphere.domain.documents import ChapterRole
+
+        doc = _make_document(
+            chapters=[
+                Chapter(number=0, title=None, role=ChapterRole.toc, paragraphs=[]),
+                Chapter(number=1, title=None, paragraphs=[]),
+            ],
+            doc_id="book-untitled-matter",
+        )
+        mock_doc.get_document.side_effect = lambda did: doc if did == "book-untitled-matter" else None
+
+        resp = client.get("/api/v1/books/book-untitled-matter/chapters?include_non_body=true")
+        assert [c["title"] for c in resp.json()] == ["", "Chapter 1"]
+
+    def test_default_role_is_body(self, client):
+        resp = client.get("/api/v1/books/doc-1/chapters")
+        assert {ch["role"] for ch in resp.json()} == {"body"}
+
     def test_kg_fallback_when_no_stored_entities(self, client, mock_doc, mock_kg):
         """When paragraphs have no stored entities, falls back to KG text matching."""
         paras = [
