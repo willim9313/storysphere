@@ -152,3 +152,79 @@ export function ChapterCard({
     </div>
   );
 }
+
+interface ChapterMatterGroupProps {
+  /** 卷首 (before chapter 1) or 卷末 (after the last chapter). */
+  position: 'front' | 'back';
+  chapters: readonly Chapter[];
+  isOpen: boolean;
+  onToggle: () => void;
+  selectedChapterId: string | null;
+  /** Ids matching the active search, or null when no search is active. */
+  matchedChapterIds: ReadonlySet<string> | null;
+  onSelect: (chapterId: string) => void;
+}
+
+/**
+ * Non-body matter as a collapsible group (UI_SPEC §3.3 卷首／卷末). Read-only
+ * single-row cards: the pipeline never summarises or extracts these chapters,
+ * so there is nothing to expand. Cards deliberately carry no
+ * `data-chapter-card` — BezierConnectors indexes body chapters only.
+ */
+export function ChapterMatterGroup({
+  position,
+  chapters,
+  isOpen,
+  onToggle,
+  selectedChapterId,
+  matchedChapterIds,
+  onSelect,
+}: ChapterMatterGroupProps) {
+  const { t } = useTranslation('reader');
+  const { t: tu } = useTranslation('upload');
+  if (chapters.length === 0) return null;
+
+  return (
+    <div className="rd-matter">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        className="rd-matter-head"
+      >
+        <ChevronDown
+          size={12}
+          style={{ transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }}
+        />
+        <span className="rd-matter-mark" aria-hidden="true" />
+        {t(position === 'front' ? 'matter.front' : 'matter.back', { count: chapters.length })}
+      </button>
+      {isOpen &&
+        chapters.map((chapter) => {
+          const role = tu(`review.chapterType.${chapter.role}`);
+          const classes = [
+            'rd-chapter',
+            'rd-chapter-matter',
+            selectedChapterId === chapter.id && 'is-selected',
+            matchedChapterIds !== null && !matchedChapterIds.has(chapter.id) && 'is-dimmed',
+          ]
+            .filter(Boolean)
+            .join(' ');
+          return (
+            <button
+              key={chapter.id}
+              type="button"
+              onClick={() => onSelect(chapter.id)}
+              aria-current={selectedChapterId === chapter.id ? 'true' : undefined}
+              className={classes}
+            >
+              <span className="rd-chapter-name truncate">
+                {chapter.title ? `${role} · ${chapter.title}` : role}
+              </span>
+              <span className="rd-chapter-meta">{t('matter.paragraphs', { count: chapter.chunkCount })}</span>
+            </button>
+          );
+        })}
+    </div>
+  );
+}

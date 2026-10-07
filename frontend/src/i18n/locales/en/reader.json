@@ -15,6 +15,12 @@
     "entityCount": "Entities · {{count}}",
     "toggleExpand": "Expand/collapse chapter"
   },
+  "matter": {
+    "front": "Front matter · {{count}}",
+    "back": "Back matter · {{count}}",
+    "paragraphs": "{{count}} paragraphs",
+    "epistemicDisabled": "Front and back matter isn't analysed"
+  },
   "chapterListHeader": "Chapters · {{count}}",
   "expandAll": "Expand all",
   "collapseAll": "Collapse all",

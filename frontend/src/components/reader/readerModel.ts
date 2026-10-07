@@ -96,3 +96,25 @@ export function entityDistributionRows(
 ): { type: EntityDistType; count: number }[] {
   return ENTITY_DIST_TYPES.map((type) => ({ type, count: stats?.[type] ?? 0 }));
 }
+
+/**
+ * Split #4 (include_non_body) into 卷首／正文／卷末 (UI_SPEC §3.3).
+ *
+ * Non-body matter before the first body chapter is 卷首, everything non-body
+ * after it is 卷末 — chapter numbering guarantees front/back matter only, and
+ * the API already returns document order. A book with no body chapters puts
+ * all of its matter in 卷首. `body` is what the reading flow (next chapter,
+ * Bezier index, chapter count, epistemic) keeps using.
+ */
+export function groupChapters<T extends { role: string }>(
+  chapters: readonly T[],
+): { front: T[]; body: T[]; back: T[] } {
+  const front: T[] = [];
+  const body: T[] = [];
+  const back: T[] = [];
+  for (const c of chapters) {
+    if (c.role === 'body') body.push(c);
+    else (body.length === 0 ? front : back).push(c);
+  }
+  return { front, body, back };
+}

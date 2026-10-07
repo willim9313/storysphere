@@ -233,7 +233,13 @@ interface BookDetail extends Book {
 
 ### #4 GET /books/:bookId/chapters
 
-章節列表。只回傳 `role` 為 `body` 的章節——目錄、序、跋等非正文章節屬於前後附加內容，不算閱讀流程的一部分，會被排除（但仍保留在資料庫中，供未來跨書籍查閱功能使用）。
+章節列表。預設只回傳 `role` 為 `body` 的章節——目錄、序、跋等非正文章節屬於前後附加內容，不算閱讀流程的一部分，會被排除（但仍保留在資料庫中）。
+
+**Query**
+
+| 參數 | 說明 |
+|------|------|
+| `include_non_body` | `true` → 依文件順序回傳全部章節（含非正文），供閱讀頁的卷首／卷末唯讀呈現。非正文章的 `entityCount` 為 0、`summary`／`topEntities`／`keywords` 為 null（pipeline 不處理非正文）；無標題時 `title` 為空字串（不套「Chapter N」，因非正文的 `order` 不是故事章號） |
 
 **Response 200**
 ```ts
@@ -243,7 +249,8 @@ interface Chapter {
   id: string;
   bookId: string;
   title: string;
-  order: number;
+  order: number;      // 故事章號：body 1..N；卷首 ≤ 0、卷末 > N
+  role: 'body' | 'toc' | 'preface' | 'afterword' | 'other';
   chunkCount: number;
   entityCount: number;
   summary?: string;
@@ -256,7 +263,7 @@ interface Chapter {
 }
 ```
 
-**UI 使用頁面**：閱讀頁欄 2
+**UI 使用頁面**：閱讀頁欄 2（帶 `include_non_body=true`）
 
 ---
 

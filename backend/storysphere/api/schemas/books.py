@@ -125,6 +125,7 @@ class ChapterResponse(BaseModel):
     book_id: str
     title: str
     order: int
+    role: Literal["body", "toc", "preface", "afterword", "other"] = "body"
     chunk_count: int = 0
     entity_count: int = 0
     summary: str | None = None

@@ -39,13 +39,15 @@ router = APIRouter(prefix="/books", tags=["books"])
 
 @router.get("/{book_id}/chapters", response_model=list[ChapterResponse])
 async def list_chapters(
-    book_id: str, doc: DocServiceDep, kg: KGServiceDep
+    book_id: str, doc: DocServiceDep, kg: KGServiceDep, include_non_body: bool = False
 ) -> list[dict]:
     """List chapters for a book.
 
     Non-body chapters (table of contents, prefaces, afterwords) are front/
-    back matter, not part of the reading flow — they're excluded here even
-    though they remain stored (e.g. for a future cross-book lookup).
+    back matter, not part of the reading flow — excluded by default. The
+    reader passes ``include_non_body`` to show them read-only as 卷首／卷末;
+    the pipeline never summarises or extracts them, so their summary,
+    keywords and entity fields stay empty.
     """
     document = await doc.get_document(book_id)
     if document is None:
@@ -65,8 +67,23 @@ async def list_chapters(
     if not has_stored:
         all_entities = await kg.list_entities(document_id=book_id)
 
+    listed = document.chapters if include_non_body else body_chapters
     results: list[dict] = []
-    for ch in body_chapters:
+    for ch in listed:
+        if ch.role != ChapterRole.body:
+            results.append(
+                ChapterResponse(
+                    id=ch.id,
+                    book_id=book_id,
+                    # No "Chapter N" fallback: N is not a story chapter
+                    # number here, and the reader labels these by role.
+                    title=ch.title or "",
+                    order=ch.number,
+                    role=ch.role.value,
+                    chunk_count=len(ch.paragraphs),
+                ).model_dump(by_alias=True)
+            )
+            continue
         if has_stored:
             # Aggregate unique entities from stored paragraph data
             seen_ids: dict[str, ParagraphEntity] = {}
@@ -100,6 +117,7 @@ async def list_chapters(
                 book_id=book_id,
                 title=ch.title or f"Chapter {ch.number}",
                 order=ch.number,
+                role=ch.role.value,
                 chunk_count=len(ch.paragraphs),
                 entity_count=entity_count,
                 summary=ch.summary,
