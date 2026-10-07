@@ -10,7 +10,7 @@ import { useChapters } from '@/hooks/useChapters';
 import { useChunks } from '@/hooks/useChunks';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
 import { BookOverview } from '@/components/reader/BookOverview';
-import { ChapterCard } from '@/components/reader/ChapterCard';
+import { ChapterCard, ChapterMatterGroup } from '@/components/reader/ChapterCard';
 import { ChunkCard } from '@/components/reader/ChunkCard';
 import { BezierConnectors } from '@/components/reader/BezierConnectors';
 import { EpistemicSidePanel } from '@/components/reader/EpistemicSidePanel';
@@ -19,6 +19,7 @@ import { TypographyPanel } from '@/components/reader/TypographyPanel';
 import {
   DEFAULT_READER_PREFS,
   FS_PX,
+  groupChapters,
   LH_VALUES,
   normalizePrefs,
   paperBackground,
@@ -51,6 +52,7 @@ const getIsNarrow = () =>
 export default function ReaderPage() {
   const { bookId } = useParams<{ bookId: string }>();
   const { t } = useTranslation('reader');
+  const { t: tu } = useTranslation('upload');
   // The back-to-top FAB flickers in and out with scrolling, so its rail slot
   // is held for the whole route, not just while it is visible (rail R2).
   useRailOccupant('fabReserved', true);
@@ -62,6 +64,8 @@ export default function ReaderPage() {
   const [epistemicOpen, setEpistemicOpen] = useState(false);
   const [annotationMode, setAnnotationMode] = useState<'full' | 'characters' | 'off'>('full');
   const [searchQuery, setSearchQuery] = useState('');
+  // 卷首／卷末 groups start collapsed and are not persisted (UI_SPEC §3.3).
+  const [matterOpen, setMatterOpen] = useState({ front: false, back: false });
   const [isNarrow, setIsNarrow] = useState(getIsNarrow);
   const [col1Collapsed, setCol1Collapsed] = useState(getIsNarrow);
   const [col2Collapsed, setCol2Collapsed] = useState(getIsNarrow);
@@ -120,7 +124,7 @@ export default function ReaderPage() {
   const { setPageContext } = useChatDispatch();
   const { theme } = useTheme();
   const { data: book, isLoading: bookLoading, error: bookError, refetch: refetchBook } = useBook(bookId);
-  const { data: chapters, isLoading: chaptersLoading } = useChapters(bookId);
+  const { data: chapters, isLoading: chaptersLoading } = useChapters(bookId, true);
   const { data: chunks, isLoading: chunksLoading } = useChunks(bookId, viewingChapterId);
 
   // Deep-link from other pages (currently SymbolsPage occurrence rows) into a
@@ -203,11 +207,16 @@ export default function ReaderPage() {
     setPageContext({
       chapterId: viewingChapterId ?? undefined,
       chapterTitle: chapter?.title,
-      chapterNumber: chapter?.order,
+      // Non-body `order` is not a story chapter number (0, N+1 …).
+      chapterNumber: chapter?.role === 'body' ? chapter.order : undefined,
     });
   }, [viewingChapterId, chapters, setPageContext]);
 
-  const showEpistemicHint = !epistemicHintShown && !!viewingChapterId && !epistemicOpen;
+  // Not on 卷首／卷末: the button is disabled there, so the hint would point at nothing.
+  const showEpistemicHint =
+    !epistemicHintShown &&
+    !epistemicOpen &&
+    chapters?.find((c) => c.id === viewingChapterId)?.role === 'body';
 
   const dismissEpistemicHint = () => {
     try { localStorage.setItem(EPISTEMIC_HINT_KEY, 'true'); } catch { /* ignore */ }
@@ -215,7 +224,10 @@ export default function ReaderPage() {
   };
 
   // P0: useMemo must be before early returns (Rules of Hooks)
-  const chapterList = useMemo(() => chapters ?? [], [chapters]);
+  // `chapterList` is body chapters only — the reading flow (next chapter,
+  // Bezier index, chapter count, epistemic) never sees 卷首／卷末 matter.
+  const chapterGroups = useMemo(() => groupChapters(chapters ?? []), [chapters]);
+  const chapterList = chapterGroups.body;
   // Search no longer filters chapters out of the list (canvas behavior): all
   // chapters stay rendered, non-matches are just dimmed via `dimmed` below.
   // null = no active search (nothing dimmed); a Set = active search, dim ids
@@ -224,7 +236,7 @@ export default function ReaderPage() {
     const q = searchQuery.toLowerCase().trim();
     if (!q) return null;
     const ids = new Set<string>();
-    for (const chapter of chapterList) {
+    for (const chapter of chapters ?? []) {
       const matches =
         chapter.title.toLowerCase().includes(q) ||
         chapter.topEntities?.some((e) => e.name?.toLowerCase().includes(q)) ||
@@ -232,7 +244,7 @@ export default function ReaderPage() {
       if (matches) ids.add(chapter.id);
     }
     return ids;
-  }, [chapterList, searchQuery]);
+  }, [chapters, searchQuery]);
 
   useEffect(() => {
     if (!showEpistemicHint) return;
@@ -308,7 +320,8 @@ export default function ReaderPage() {
   // Index of the viewing (= selected) chapter within chapterList — the same
   // list rendered in column 2, so this also serves as BezierConnectors'
   // selectedChapterIdx (it queries data-chapter-card by index in that list).
-  const viewingChapter = chapterList.find((c) => c.id === viewingChapterId);
+  const viewingChapter = chapters?.find((c) => c.id === viewingChapterId);
+  const viewingNonBody = !!viewingChapter && viewingChapter.role !== 'body';
   const viewingChapterOrder = viewingChapter?.order ?? null;
   const viewingChapterIdx = chapterList.findIndex((c) => c.id === viewingChapterId);
   const nextChapter =
@@ -330,6 +343,10 @@ export default function ReaderPage() {
   // (independent expand/collapse still works afterward via the chevron).
   const handleSelectChapter = (chapterId: string) => {
     setViewingChapterId(chapterId);
+    // The epistemic panel is cut off by story chapter number, which non-body
+    // matter doesn't have — close it rather than leave the last chapter's state up.
+    const role = chapters?.find((c) => c.id === chapterId)?.role;
+    if (role && role !== 'body') setEpistemicOpen(false);
     setExpandedChapters((prev) => (prev[chapterId] ? prev : { ...prev, [chapterId]: true }));
   };
 
@@ -473,6 +490,15 @@ export default function ReaderPage() {
 
             {/* Chapter list — search dims non-matches instead of removing them */}
             <div ref={col2ListRef} className="rd-chapter-list">
+              <ChapterMatterGroup
+                position="front"
+                chapters={chapterGroups.front}
+                isOpen={matterOpen.front}
+                onToggle={() => setMatterOpen((m) => ({ ...m, front: !m.front }))}
+                selectedChapterId={viewingChapterId}
+                matchedChapterIds={matchedChapterIds}
+                onSelect={handleSelectChapter}
+              />
               {chapterList.map((chapter) => (
                 <div key={chapter.id} data-chapter-card>
                   <ChapterCard
@@ -486,6 +512,15 @@ export default function ReaderPage() {
                   />
                 </div>
               ))}
+              <ChapterMatterGroup
+                position="back"
+                chapters={chapterGroups.back}
+                isOpen={matterOpen.back}
+                onToggle={() => setMatterOpen((m) => ({ ...m, back: !m.back }))}
+                selectedChapterId={viewingChapterId}
+                matchedChapterIds={matchedChapterIds}
+                onSelect={handleSelectChapter}
+              />
             </div>
           </>
         ) : (
@@ -511,7 +546,7 @@ export default function ReaderPage() {
           selectedChapterIdx={viewingChapterIdx}
           viewingChapterId={viewingChapterId}
           chunkCount={chunks?.length ?? 0}
-          visible={!col2Collapsed && !!viewingChapterId && !focus}
+          visible={!col2Collapsed && !!viewingChapterId && !focus && !viewingNonBody}
           colRevision={colRevision}
         />
       )}
@@ -525,8 +560,17 @@ export default function ReaderPage() {
               <div className="rd-head-row">
                 <div className="rd-head-titles">
                   <div className="rd-head-title-row">
-                    <h3 className="rd-head-title">{viewingChapter?.title}</h3>
-                    {viewingChapterOrder != null && (
+                    <h3 className="rd-head-title">
+                      {viewingNonBody && !viewingChapter?.title
+                        ? tu(`review.chapterType.${viewingChapter?.role}`)
+                        : viewingChapter?.title}
+                    </h3>
+                    {viewingNonBody ? (
+                      // Untitled matter already shows its role as the title.
+                      viewingChapter?.title && (
+                        <span className="ss-badge">{tu(`review.chapterType.${viewingChapter.role}`)}</span>
+                      )
+                    ) : viewingChapterOrder != null && (
                       <span className="ss-badge" style={{ fontFamily: 'var(--font-mono)' }}>
                         {t('nav.chapterBadge', { current: viewingChapterOrder, total: chapterList.length })}
                       </span>
@@ -562,17 +606,20 @@ export default function ReaderPage() {
                     ))}
                   </div>
                   <div className="relative">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setEpistemicOpen((v) => !v);
-                        if (!epistemicHintShown) dismissEpistemicHint();
-                      }}
-                      aria-expanded={epistemicOpen}
-                      className={`ss-btn ss-btn-sm ss-btn-ghost${epistemicOpen ? ' rd-tool-on' : ''}`}
-                    >
-                      {epistemicOpen ? t('epistemicClose') : t('epistemicLabel')}
-                    </button>
+                    <Tooltip label={t('matter.epistemicDisabled')} disabled={!viewingNonBody}>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setEpistemicOpen((v) => !v);
+                          if (!epistemicHintShown) dismissEpistemicHint();
+                        }}
+                        disabled={viewingNonBody}
+                        aria-expanded={epistemicOpen}
+                        className={`ss-btn ss-btn-sm ss-btn-ghost${epistemicOpen ? ' rd-tool-on' : ''}`}
+                      >
+                        {epistemicOpen ? t('epistemicClose') : t('epistemicLabel')}
+                      </button>
+                    </Tooltip>
                     {showEpistemicHint && (
                       <div onClick={dismissEpistemicHint} className="rd-hint">
                         <p>{t('epistemicHint')}</p>
@@ -593,7 +640,9 @@ export default function ReaderPage() {
             </div>
 
             {/* Chunks */}
-            <div className="rd-chunks" data-annotation-mode={annotationMode}>
+            {/* Non-body matter was never extracted: always plain prose, without
+                touching the user's annotation preference. */}
+            <div className="rd-chunks" data-annotation-mode={viewingNonBody ? 'off' : annotationMode}>
               {chunksLoading && <LoadingSpinner />}
               {!chunksLoading && (
                 <div

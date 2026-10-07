@@ -36,6 +36,8 @@ export interface Chapter {
   bookId: string;
   title: string;
   order: number;
+  /** 非正文（toc／preface／afterword／other）只在 #4 帶 include_non_body 時出現。 */
+  role: components['schemas']['ChapterResponse']['role'];
   chunkCount: number;
   entityCount: number;
   summary?: string;

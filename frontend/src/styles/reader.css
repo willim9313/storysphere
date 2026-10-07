@@ -179,6 +179,8 @@
   flex-shrink: 0; line-height: 22px;
 }
 .rd-chunk .chunk-chips { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-2); }
+/* 標註「關」：global.css 的同名規則在 @layer 裡，會被上一行（unlayered）蓋過，這裡要重申。 */
+[data-annotation-mode='off'] .rd-chunk .chunk-chips { display: none; }
 .rd-chunk-text {
   margin: 0; font-family: var(--font-serif); color: var(--fg-primary); text-wrap: pretty;
   font-size: var(--reader-fs, 17px); line-height: var(--reader-lh, 1.6);
@@ -364,3 +366,25 @@
 .rd-ep-misbelief .is-confidence { font-family: var(--font-mono); color: var(--fg-muted); }
 .rd-ep-computing { display: flex; align-items: center; gap: var(--space-3); }
 .rd-ep-misbelief b { font-weight: 500; }
+
+/* ── 卷首／卷末（非正文，UI_SPEC §3.3）──────────────────────
+   摺疊群組標頭＋唯讀單列卡；空心方塊＝非正文（同章節審閱頁）。 */
+.rd-matter { display: flex; flex-direction: column; gap: var(--space-2); }
+.rd-matter-head {
+  display: flex; align-items: center; gap: var(--space-3);
+  padding: var(--space-2) var(--space-3); background: transparent; border: none; cursor: pointer;
+  font-family: var(--font-sans); font-size: var(--font-size-2xs); color: var(--fg-secondary);
+  border-radius: var(--control-radius);
+  transition: background-color var(--transition-fast);
+}
+.rd-matter-head:hover { background: var(--bg-secondary); }
+.rd-matter-mark {
+  width: 8px; height: 8px; flex-shrink: 0;
+  border: var(--line-weight) var(--border-style) var(--fg-muted);
+}
+.rd-chapter-matter {
+  flex-direction: row; align-items: baseline; justify-content: space-between; gap: var(--space-4);
+  padding: var(--space-3) var(--space-4); text-align: left; cursor: pointer;
+}
+.rd-chapter-matter .rd-chapter-name { min-width: 0; }
+.rd-chapter-matter .rd-chapter-meta { flex-shrink: 0; }

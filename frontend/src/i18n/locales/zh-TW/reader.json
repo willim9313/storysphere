@@ -15,6 +15,12 @@
     "entityCount": "實體 · {{count}}",
     "toggleExpand": "展開／收合本章"
   },
+  "matter": {
+    "front": "卷首 · {{count}}",
+    "back": "卷末 · {{count}}",
+    "paragraphs": "{{count}} 段",
+    "epistemicDisabled": "非正文不參與分析"
+  },
   "chapterListHeader": "章節 · {{count}}",
   "expandAll": "全部展開",
   "collapseAll": "全部收合",

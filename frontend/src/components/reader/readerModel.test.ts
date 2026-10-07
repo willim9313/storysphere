@@ -5,6 +5,7 @@ import {
   DEFAULT_TYPOGRAPHY,
   entityDistributionRows,
   formatTypography,
+  groupChapters,
   isOverridden,
   normalizePrefs,
   paperBackground,
@@ -91,5 +92,29 @@ describe('entityDistributionRows', () => {
 
   it('tolerates a missing stats object', () => {
     expect(entityDistributionRows(undefined).every((r) => r.count === 0)).toBe(true);
+  });
+});
+
+describe('groupChapters', () => {
+  const ch = (id: string, role: string) => ({ id, role });
+
+  it('splits leading and trailing matter around the body chapters', () => {
+    const g = groupChapters([ch('toc', 'toc'), ch('pre', 'preface'), ch('1', 'body'), ch('2', 'body'), ch('aft', 'afterword')]);
+    expect(g.front.map((c) => c.id)).toEqual(['toc', 'pre']);
+    expect(g.body.map((c) => c.id)).toEqual(['1', '2']);
+    expect(g.back.map((c) => c.id)).toEqual(['aft']);
+  });
+
+  it('leaves both groups empty for a body-only book', () => {
+    const g = groupChapters([ch('1', 'body'), ch('2', 'body')]);
+    expect(g.front).toEqual([]);
+    expect(g.back).toEqual([]);
+  });
+
+  it('puts all matter in 卷首 when there is no body chapter', () => {
+    const g = groupChapters([ch('toc', 'toc'), ch('other', 'other')]);
+    expect(g.front.map((c) => c.id)).toEqual(['toc', 'other']);
+    expect(g.body).toEqual([]);
+    expect(g.back).toEqual([]);
   });
 });
