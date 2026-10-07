@@ -6,6 +6,7 @@
 .claude/settings.local.json
 .claude/skills/
 .playwright-cli/
+.impeccable/critique/
 
 # ========== Environment & Secrets ==========
 .env
