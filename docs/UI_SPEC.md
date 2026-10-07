@@ -416,7 +416,7 @@ DS v3 第 1 批 1-3b。權威稿：02 章節審閱決議紀錄 frame A–H。全
 
 - 作者行**版位一律保留**：沒有作者時也佔一行高度（`.rd-book-author` min-height），作者是下一期功能。
 - 實體分佈固定 6 型順序（角色／地點／組織／物品／概念／其他），**事件不列入，數量 0 的類型照列**（`readerModel.entityDistributionRows`）。
-- 收合後 46px 細軌：chevron＋accent `FileText`＋直排「書籍資訊」，點細軌任意處展開。
+- 收合後 46px 細軌（08 B 區 railTrack）：`--bg-secondary` 底、chevron 12 muted＋直排「書籍資訊」2xs secondary，**無圖示**，點細軌任意處展開。
 
 **功能未完成（`PipelineRerunPanel`）**：done 顯綠勾無鈕、pending 整列不渲染、**只有 failed 才有「重新執行」**（不做成永遠可見的四步表，避免誤觸花 token 的鈕）。
 鈕掛 `.ss-btn-llm`，面板底部保留文字提示「會呼叫 LLM，消耗 token；覆蓋該步驟的產物。」。觸發失敗若是應用層 503（`isLlmUnconfigured`）→ 該列下方就地顯示
@@ -429,7 +429,7 @@ header：「章節 · N」label＋**「全部展開／全部收合」secondary �
 
 章節卡為**多開手風琴**，兩個分離的點擊區：**左側＝導覽**（欄 3 讀該章，順帶展開）、**右側 chevron＝只展開／收合**，中間以 1px 內分隔線（chevron 的 border-left）標出；
 chevron 有自己的 hover 底（`--bg-tertiary`，展開時也是）。選中＝accent 外框＋`--bg-secondary` 底（**不用 inset**）。展開內容：摘要 → 關鍵字 → 「實體 · N」膠囊（可點開實體卡）。
-36px 細軌的直排「章節」已移進 i18n `reader.col2Rail`（原為硬編）。
+36px 細軌與欄 1 細軌同一套樣式（chevron＋直排「章節」、無圖示、整條可點展開；展開態的收合 chevron 才是右上角獨立鈕）；直排「章節」已移進 i18n `reader.col2Rail`（原為硬編）。
 
 #### 貝茲欄 — `BezierConnectors`
 

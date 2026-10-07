@@ -14,14 +14,15 @@
 }
 .rd-col1-scroll { height: 100%; }
 .rd-book { padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4); }
+/* 收合軌（08 B 區 railTrack）：整條可點；chevron 12 muted＋垂直標籤 2xs secondary，無圖示 */
 .rd-rail-btn {
-  display: flex; flex-direction: column; align-items: center; width: 100%;
-  padding-top: var(--space-5); gap: var(--space-6);
-  background: none; border: none; cursor: pointer; color: var(--fg-muted);
+  display: flex; flex-direction: column; align-items: center; width: 100%; height: 100%;
+  padding: var(--space-4) 0; gap: var(--space-4);
+  background: var(--bg-secondary); border: none; cursor: pointer; color: var(--fg-muted);
 }
 .rd-rail-label {
   writing-mode: vertical-rl; font-family: var(--font-sans);
-  font-size: var(--font-size-2xs); color: var(--fg-muted); letter-spacing: 0.1em;
+  font-size: var(--font-size-2xs); color: var(--fg-secondary); letter-spacing: 0.1em;
 }
 .rd-cover {
   height: 76px; flex-shrink: 0; display: flex; align-items: center; justify-content: center;
@@ -87,10 +88,6 @@
 .rd-chapter-list {
   flex: 1; overflow-y: auto; padding: var(--space-4);
   display: flex; flex-direction: column; gap: var(--space-2);
-}
-.rd-rail-col2 {
-  display: flex; flex-direction: column; align-items: center;
-  padding-top: var(--space-8); gap: var(--space-3); color: var(--fg-muted);
 }
 
 /* 章節卡：左＝導覽、右 chevron＝展開，中間 1px 內分隔線；選中＝accent 外框＋底色（不用 inset）。 */

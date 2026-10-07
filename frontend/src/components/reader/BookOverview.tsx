@@ -31,8 +31,7 @@ export function BookOverview({ book, collapsed, onToggleCollapse }: Readonly<Boo
   if (collapsed) {
     return (
       <button onClick={onToggleCollapse} aria-label={t('col1Expand')} className="rd-rail-btn">
-        <ChevronRight size={16} />
-        <FileText size={20} style={{ color: 'var(--accent)' }} />
+        <ChevronRight size={12} />
         <span className="rd-rail-label">{t('bookInfo')}</span>
       </button>
     );

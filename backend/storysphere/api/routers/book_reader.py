@@ -277,7 +277,11 @@ async def get_entity_chunks(
     doc: DocServiceDep,
     kg: KGServiceDep,
 ) -> dict:
-    """Get all chunks (paragraphs) where a specific entity appears."""
+    """Get all chunks (paragraphs) where a specific entity appears.
+
+    Only body chapters count, matching #4: a chunk from front/back matter
+    would point at a chapter the chapter list doesn't contain.
+    """
     document = await doc.get_document(book_id)
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
@@ -287,9 +291,12 @@ async def get_entity_chunks(
         raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
 
     rows = await doc.get_paragraphs_by_entity(book_id, entity_id)
+    body_chapter_ids = {ch.id for ch in document.chapters if ch.role == ChapterRole.body}
 
     chunks: list[dict] = []
     for ch_id, ch_num, ch_title, p in rows:
+        if ch_id not in body_chapter_ids:
+            continue
         if p.entities is not None:
             segments = _build_segments_from_stored(p.text, p.entities)
         else:
