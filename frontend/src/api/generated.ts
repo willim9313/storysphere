@@ -254,8 +254,10 @@ export interface paths {
          * @description List chapters for a book.
          *
          *     Non-body chapters (table of contents, prefaces, afterwords) are front/
-         *     back matter, not part of the reading flow — they're excluded here even
-         *     though they remain stored (e.g. for a future cross-book lookup).
+         *     back matter, not part of the reading flow — excluded by default. The
+         *     reader passes ``include_non_body`` to show them read-only as 卷首／卷末;
+         *     the pipeline never summarises or extracts them, so their summary,
+         *     keywords and entity fields stay empty.
          */
         get: operations["list_chapters_api_v1_books__book_id__chapters_get"];
         put?: never;
@@ -296,6 +298,9 @@ export interface paths {
         /**
          * Get Entity Chunks
          * @description Get all chunks (paragraphs) where a specific entity appears.
+         *
+         *     Only body chapters count, matching #4: a chunk from front/back matter
+         *     would point at a chapter the chapter list doesn't contain.
          */
         get: operations["get_entity_chunks_api_v1_books__book_id__entities__entity_id__chunks_get"];
         put?: never;
@@ -2502,6 +2507,12 @@ export interface components {
             title: string;
             /** Order */
             order: number;
+            /**
+             * Role
+             * @default body
+             * @enum {string}
+             */
+            role: "body" | "toc" | "preface" | "afterword" | "other";
             /**
              * Chunkcount
              * @default 0
@@ -5268,7 +5279,9 @@ export interface operations {
     };
     list_chapters_api_v1_books__book_id__chapters_get: {
         parameters: {
-            query?: never;
+            query?: {
+                include_non_body?: boolean;
+            };
             header?: never;
             path: {
                 book_id: string;
