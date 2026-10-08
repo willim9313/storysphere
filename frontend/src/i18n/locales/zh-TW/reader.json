@@ -112,12 +112,19 @@
   "failure": {
     "backToOverview": "回書籍總覽"
   },
+  "unanalyzed": {
+    "title": "尚未分析",
+    "body": "這本書還沒建立知識圖譜：統計、實體、關係與事件都還是空的。分析在建構概覽啟動。",
+    "cta": "前往建構概覽 →"
+  },
   "rerun": {
     "title": "功能未完成",
     "rerun": "重新執行",
     "running": "執行中",
     "failed": "執行失敗",
     "hint": "會呼叫 LLM，消耗 token；覆蓋該步驟的產物。",
+    "confirmBody": "會覆蓋「{{step}}」的產物。下游會受哪些影響，見建構概覽。",
+    "costHint": "會呼叫 LLM，消耗 token",
     "steps": {
       "summarization": "章節摘要",
       "featureExtraction": "特徵萃取",

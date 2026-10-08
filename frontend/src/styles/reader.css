@@ -398,3 +398,12 @@
 .rd-chapter-matter .rd-chapter-meta { flex-shrink: 0; }
 /* 實體卡開啟時把焦點移到卡本身（role=dialog）；容器不畫焦點框，Tab 下一站就是卡內第一個控制項。 */
 .rd-ecard:focus-visible { outline: none; }
+
+/* ── 尚未分析（知識圖譜步驟未跑）：取代欄 1 的統計格與實體分佈，引導到建構概覽 ── */
+.rd-unanalyzed {
+  display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3);
+  padding: var(--space-5); background: var(--bg-secondary);
+  border: var(--line-weight) var(--border-style) var(--border); border-radius: var(--radius-md);
+}
+.rd-unanalyzed-title { margin: 0; font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 600; color: var(--fg-primary); }
+.rd-unanalyzed-body { margin: 0; font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-secondary); }

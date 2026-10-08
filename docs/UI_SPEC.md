@@ -417,11 +417,12 @@ DS v3 第 1 批 1-3b。權威稿：02 章節審閱決議紀錄 frame A–H。全
 `PipelineRerunPanel`（有 failed 步驟才出現）→「全書關鍵字 前 12 · 依權重」→「實體分佈 6 型全列」。
 
 - 作者行**版位一律保留**：沒有作者時也佔一行高度（`.rd-book-author` min-height），作者是下一期功能。
+- **尚未分析**（`pipelineStatus.knowledgeGraph === 'pending'`，實體／關係／事件都來自這一步）：統計格與實體分佈改為「尚未分析」區塊（`--bg-secondary` 底、serif 標題＋說明＋「前往建構概覽 →」連到 `/books/:bookId/unraveling`）。閱讀頁**不放啟動鈕**——觸發與下游影響說明集中在建構概覽。
 - 實體分佈固定 6 型順序（角色／地點／組織／物品／概念／其他），**事件不列入，數量 0 的類型照列**（`readerModel.entityDistributionRows`）。
 - 收合後 46px 細軌（08 B 區 railTrack）：`--bg-secondary` 底、chevron 12 muted＋直排「書籍資訊」2xs secondary，**無圖示**，點細軌任意處展開。
 
 **功能未完成（`PipelineRerunPanel`）**：done 顯綠勾無鈕、pending 整列不渲染、**只有 failed 才有「重新執行」**（不做成永遠可見的四步表，避免誤觸花 token 的鈕）。
-鈕掛 `.ss-btn-llm`，面板底部保留文字提示「會呼叫 LLM，消耗 token；覆蓋該步驟的產物。」。觸發失敗若是應用層 503（`isLlmUnconfigured`）→ 該列下方就地顯示
+鈕掛 `.ss-btn-llm`，面板底部保留文字提示「會呼叫 LLM，消耗 token；覆蓋該步驟的產物。」。**點「重新執行」先開 `ConfirmDialog`**（標題＝步驟名、內文「會覆蓋「{步驟}」的產物。下游會受哪些影響，見建構概覽。」、左下成本提示、執行鈕帶字符），確認才送出——下游影響不在這裡重算，以建構概覽為準。觸發失敗若是應用層 503（`isLlmUnconfigured`）→ 該列下方就地顯示
 `LlmUnconfiguredNotice`（前往 LLM 設定），其餘照常；其他錯誤顯示在該列。四步名稱與「功能未完成」「重新執行」「執行中」已移進 i18n `reader.rerun.*`（逐字）。
 
 #### 欄 2 — 章節列表（`ChapterCard`）
