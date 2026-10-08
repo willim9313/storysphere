@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { SegmentRenderer, type EntityMarkClickPayload } from './SegmentRenderer';
 import { KeywordTags } from './KeywordTags';
+import { isSeparatorText, keywordsWithoutEntities } from './readerModel';
 import type { Chunk, Segment, EntityType } from '@/api/types';
 
 const pillClass: Record<EntityType, string> = {
@@ -34,6 +35,25 @@ export function ChunkCard({
   readonly onEntityClick?: (payload: EntityMarkClickPayload) => void;
 }) {
   const entities = useMemo(() => extractEntities(chunk.segments), [chunk.segments]);
+  const keywords = useMemo(
+    () =>
+      keywordsWithoutEntities(chunk.keywords, [
+        ...entities.map((e) => e.name),
+        ...chunk.segments.filter((seg) => seg.entity).map((seg) => seg.text),
+      ]),
+    [chunk.keywords, chunk.segments, entities],
+  );
+
+  // A bare scene break keeps its #order (it is still a locatable chunk) but
+  // reads as a rule, not as a card of its own.
+  if (entities.length === 0 && isSeparatorText(chunk.content)) {
+    return (
+      <div data-chunk-card className="rd-chunk rd-chunk-sep">
+        <span className="rd-chunk-order">#{chunk.order}</span>
+        <span className="rd-chunk-sep-rule" role="separator" aria-label={chunk.content.trim()} />
+      </div>
+    );
+  }
 
   return (
     <div data-chunk-card className="rd-chunk">
@@ -85,7 +105,11 @@ export function ChunkCard({
       <p className="rd-chunk-text">
         <SegmentRenderer segments={chunk.segments} />
       </p>
-      {chunk.keywords.length > 0 && <KeywordTags keywords={chunk.keywords} limit={6} />}
+      {keywords.length > 0 && (
+        <div className="rd-chunk-kw">
+          <KeywordTags keywords={keywords} limit={6} />
+        </div>
+      )}
     </div>
   );
 }

@@ -65,6 +65,8 @@ export default function ReaderPage() {
   const [expandedChapters, setExpandedChapters] = useState<Record<string, boolean>>({});
   const [epistemicOpen, setEpistemicOpen] = useState(false);
   const [annotationMode, setAnnotationMode] = useState<'full' | 'characters' | 'off'>('full');
+  // 檢視's annotation density, restored when leaving 專注 (see handleModeChange).
+  const viewAnnotationRef = useRef<'full' | 'characters' | 'off'>('full');
   const [searchQuery, setSearchQuery] = useState('');
   // 卷首／卷末 groups start collapsed and are not persisted (UI_SPEC §3.3).
   const [matterOpen, setMatterOpen] = useState({ front: false, back: false });
@@ -455,8 +457,16 @@ export default function ReaderPage() {
     if (!epistemicHintShown) dismissEpistemicHint();
   };
 
+  // 專注 is for reading: it starts at annotation density 「角色」 (still
+  // changeable), and leaving it restores whatever 檢視 had (UI_SPEC §3.3).
   const handleModeChange = (next: ReaderMode) => {
     if ((next === 'focus') === focus) return;
+    if (next === 'focus') {
+      viewAnnotationRef.current = annotationMode;
+      setAnnotationMode('characters');
+    } else {
+      setAnnotationMode(viewAnnotationRef.current);
+    }
     setFocus(next === 'focus');
     setTimeout(() => setColRevision((r) => r + 1), 220);
   };
