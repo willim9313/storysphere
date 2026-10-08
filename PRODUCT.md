@@ -42,6 +42,7 @@ StorySphere 把一本小說（PDF / DOCX / EPUB）經多階段 pipeline 轉成�
 ## Capabilities and Constraints
 
 - 前端：React 19 + TypeScript + Vite；後端 FastAPI；API 規格以 `docs/API_CONTRACT.md` 為準，頁面規格以 `docs/UI_SPEC.md` 為準，token 以 `docs/DESIGN_TOKENS.md` 為準。
+- **桌面優先，不支援手機**：最小支援視窗寬度 **720px**（13 吋筆電半螢幕）；基準為筆電全螢幕與外接螢幕。窄於 720px 不保證可用，也不做手機版型（2026-10-08 使用者確認）。
 - **介面語言中英並重**：繁體中文與英文同等要求，任何新文案兩語都要到位（i18next）。
 - 術語定義以 `docs/domain-glossary.md` 為準。
 - PDF 來源的 CJK 文字可能含字中空白等抽取瑕疵；分析品質依書而異。

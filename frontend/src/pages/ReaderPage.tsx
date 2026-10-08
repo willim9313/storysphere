@@ -20,12 +20,14 @@ import {
   DEFAULT_READER_PREFS,
   FS_PX,
   groupChapters,
+  protectCol3,
   LH_VALUES,
   normalizePrefs,
   paperBackground,
   resetTypography,
   resolveTypography,
   withTypography,
+  type OpenColumns,
   type ReaderMode,
   type ReaderPrefs,
   type Typography,
@@ -70,6 +72,7 @@ export default function ReaderPage() {
   const [col1Collapsed, setCol1Collapsed] = useState(getIsNarrow);
   const [col2Collapsed, setCol2Collapsed] = useState(getIsNarrow);
   const [colRevision, setColRevision] = useState(0);
+  const pageRef = useRef<HTMLDivElement>(null);
   // Focus mode is session-only (not persisted). It doesn't mutate
   // col1Collapsed/col2Collapsed — the effective collapsed state used for
   // rendering is `col1Collapsed || focus` (see below), so the underlying
@@ -270,6 +273,26 @@ export default function ReaderPage() {
     return () => mq.removeEventListener('change', onChange);
   }, []);
 
+  // Shrinking the window (e.g. snapping to half-screen) re-applies the
+  // column-3 guard; nothing was "just opened", so col1 goes first.
+  useEffect(() => {
+    if (focus) return;
+    let frame = 0;
+    const onResize = () => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(() =>
+        applyCol3Guard(null, { col1: !col1Collapsed, col2: !col2Collapsed, col4: epistemicOpen }),
+      );
+    };
+    window.addEventListener('resize', onResize);
+    return () => {
+      cancelAnimationFrame(frame);
+      window.removeEventListener('resize', onResize);
+    };
+    // applyCol3Guard reads only the state listed here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [col1Collapsed, col2Collapsed, epistemicOpen, isNarrow, focus]);
+
   // Typography panel's "fade in" preference: each chunk starts hidden
   // (`.rd-fade` in global.css) and plays the rd-fade animation once when it
   // scrolls into view, then stays visible (unobserve). Re-runs whenever the
@@ -401,16 +424,35 @@ export default function ReaderPage() {
     col3ScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
+  // Column-3 guard (UI_SPEC §3.3): opening a column that would squeeze the
+  // reading column under 360px collapses col1, then col2 — never `opened`.
+  const applyCol3Guard = (opened: keyof OpenColumns | null, open: OpenColumns) => {
+    const width = pageRef.current?.clientWidth;
+    const next = width ? protectCol3(width, open, isNarrow, opened) : open;
+    setCol1Collapsed(!next.col1);
+    setCol2Collapsed(!next.col2);
+  };
+
   const handleCol1Toggle = () => {
     if (focus) return;
-    setCol1Collapsed((v) => !v);
+    if (col1Collapsed) applyCol3Guard('col1', { col1: true, col2: !col2Collapsed, col4: epistemicOpen });
+    else setCol1Collapsed(true);
     setTimeout(() => setColRevision((r) => r + 1), 220);
   };
 
   const handleCol2Toggle = () => {
     if (focus) return;
-    setCol2Collapsed((v) => !v);
+    if (col2Collapsed) applyCol3Guard('col2', { col1: !col1Collapsed, col2: true, col4: epistemicOpen });
+    else setCol2Collapsed(true);
     setTimeout(() => setColRevision((r) => r + 1), 220);
+  };
+
+  const handleEpistemicToggle = () => {
+    if (!epistemicOpen) {
+      applyCol3Guard('col4', { col1: !col1Collapsed, col2: !col2Collapsed, col4: true });
+    }
+    setEpistemicOpen((v) => !v);
+    if (!epistemicHintShown) dismissEpistemicHint();
   };
 
   const handleModeChange = (next: ReaderMode) => {
@@ -420,7 +462,7 @@ export default function ReaderPage() {
   };
 
   return (
-    <div className="rd-page">
+    <div ref={pageRef} className="rd-page">
       {/* Column 1: Book Overview */}
       <div
         ref={col1Ref}
@@ -609,10 +651,7 @@ export default function ReaderPage() {
                     <Tooltip label={t('matter.epistemicDisabled')} disabled={!viewingNonBody}>
                       <button
                         type="button"
-                        onClick={() => {
-                          setEpistemicOpen((v) => !v);
-                          if (!epistemicHintShown) dismissEpistemicHint();
-                        }}
+                        onClick={handleEpistemicToggle}
                         disabled={viewingNonBody}
                         aria-expanded={epistemicOpen}
                         className={`ss-btn ss-btn-sm ss-btn-ghost${epistemicOpen ? ' rd-tool-on' : ''}`}
