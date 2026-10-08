@@ -749,7 +749,11 @@ export default function ReaderPage() {
           type={entityCard.type}
           anchorRect={entityCard.anchorRect}
           onClose={() => setEntityCard(null)}
-          onJump={handleJumpToChunk}
+          // Close first: left open, the card sits on top of the flashing target.
+          onJump={(chapterId, chunkId) => {
+            setEntityCard(null);
+            handleJumpToChunk(chapterId, chunkId);
+          }}
         />
       )}
     </div>
