@@ -368,7 +368,12 @@ export default function GraphPage() {
       const bucket = classifyRelationLabel(label) as 'positive' | 'negative';
       return {
         selector: `edge[label = "${label}"][!inferred]`,
-        style: { 'line-color': bucketColor[bucket] } as Record<string, unknown>,
+        // Line style carries the meaning as well as colour (UI_SPEC §3.6): Ink
+        // flattens success and error to the same black, and red/green alone
+        // fails colour-blind readers. 合作＝solid, a touch heavier; 敵對＝dashed.
+        style: (bucket === 'positive'
+          ? { 'line-color': bucketColor[bucket], 'line-style': 'solid', width: 2 }
+          : { 'line-color': bucketColor[bucket], 'line-style': 'dashed', 'line-dash-pattern': [6, 4] }) as Record<string, unknown>,
       };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `theme` is an intentional cache-buster: forces re-reading CSS vars when the theme switches

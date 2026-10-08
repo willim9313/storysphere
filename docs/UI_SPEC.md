@@ -1086,7 +1086,7 @@ localStorage key（**必須保留**，換版面不換 key）：`graph:${bookId}:
 
 2026-07-20 依設計稿改為**底部橫條**（LensCard 右側，`bottom:16 / left:348`），非右上角直式卡。純說明、不可點（型別開關唯一入口是工具列 filter chips，C6）：
 - 第一列：**完整 7 個 entity types**（角色/地點/組織/物品/概念/事件/其他，設計 contract 規定不得只列 4 類子集）swatch＋標籤，**不含計數**（依設計稿）
-- 第二列：邊語意（合作＝success／敵對＝error／一般＝fg-muted／推測＝warning dashed）＋節點大小示意（○◯ 圓圈大小＝登場頻率）
+- 第二列：邊語意（**線型為主、顏色為輔**——Ink 下 success／error 同為墨色、紅綠對色覺障礙無效：合作＝success 實線略粗／敵對＝error 虛線 6·4／一般＝fg-muted 細實線／推測＝warning 點線；圖例 swatch 畫同樣的線型）＋節點大小示意（○◯ 圓圈大小＝登場頻率）
 
 swatch 為該類型的**節點形狀**（12px SVG，`--graph-*-fill` 底 + `--graph-*-stroke` 框），與畫布一致。孤兒實體改由右上「未連結實體」抽屜負責（Phase 1）。
 
