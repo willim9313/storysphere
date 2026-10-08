@@ -84,6 +84,12 @@
   flex: 1; min-width: 0; background: transparent; border: none; outline: none;
   font-size: var(--font-size-2xs); color: var(--fg-primary);
 }
+/* 框畫在外層（input 本身無框，outline: none 蓋過了全站 :focus-visible）；placeholder 不吃 Tailwind 預設灰。 */
+.rd-search:has(input:focus-visible) {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+.rd-search input::placeholder { color: var(--fg-muted); }
 .rd-search-note { margin: 0; font-size: var(--font-size-2xs); color: var(--fg-muted); }
 .rd-chapter-list {
   flex: 1; overflow-y: auto; padding: var(--space-4);
@@ -97,7 +103,9 @@
   border-radius: var(--card-radius); background: var(--bg-primary);
   transition: opacity var(--transition-fast);
 }
-.rd-chapter.is-selected { border-color: var(--accent); background: var(--bg-secondary); }
+.rd-chapter.is-selected {
+  border-color: var(--accent); border-width: var(--card-selected-border-width); background: var(--bg-secondary);
+}
 .rd-chapter.is-dimmed { opacity: 0.4; }
 .rd-chapter-top { display: flex; align-items: stretch; }
 .rd-chapter-nav {

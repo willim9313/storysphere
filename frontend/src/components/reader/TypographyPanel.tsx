@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useTheme } from '@/contexts/ThemeContext';
 import { Tooltip } from '@/components/ui/Tooltip';
@@ -39,14 +39,26 @@ export function TypographyPanel({
   const { theme } = useTheme();
   const [open, setOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelId = useId();
 
   useEffect(() => {
     if (!open) return;
     const handlePointerDown = (e: MouseEvent) => {
       if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) setOpen(false);
     };
+    // Esc closes and hands focus back to Aa, wherever focus was inside the panel.
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return;
+      setOpen(false);
+      triggerRef.current?.focus();
+    };
     document.addEventListener('mousedown', handlePointerDown);
-    return () => document.removeEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
   }, [open]);
 
   const current = resolveTypography(prefs);
@@ -55,16 +67,18 @@ export function TypographyPanel({
   return (
     <div className="relative" ref={wrapperRef}>
       <button
+        ref={triggerRef}
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-expanded={open}
+        aria-controls={open ? panelId : undefined}
         className={`ss-btn ss-btn-sm ss-btn-ghost${open ? ' rd-tool-on' : ''}`}
         style={{ fontFamily: 'var(--font-serif)' }}
       >
         {t('typography.trigger')}
       </button>
       {open && (
-        <div className="rd-typo">
+        <div id={panelId} className="rd-typo">
           <div className="rd-typo-group">
             <div className="rd-typo-line is-muted">
               <span>{t('typography.modeDefault')}</span>

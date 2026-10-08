@@ -303,6 +303,7 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 | `--card-radius` | `var(--radius-lg)`（12px） | `var(--radius-sm)`（4px） | 書卡、settings 卡、panel、option card |
 | `--card-border-width` | `1px` | `1.5px` | 卡片與 panel 外框 |
 | `--card-shadow` | `var(--shadow-sm)` | `none` | 卡片 elevation（Ink 全平面） |
+| `--card-selected-border-width` | `var(--card-border-width)`（1px） | `2px` | 選中卡的框重（閱讀頁目前章）。Ink 的 accent `#111` 與 border `#1a1a1a` 幾乎同色，選中只能靠線重承載 |
 | `--btn-radius` | `var(--radius-md)`（8px） | `var(--radius-sm)`（4px） | 按鈕 |
 | `--btn-border-width` | `1px` | `1.5px` | 按鈕外框 |
 | `--btn-shadow` | `none` | `none` | 按鈕 elevation |

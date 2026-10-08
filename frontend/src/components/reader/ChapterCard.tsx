@@ -59,6 +59,7 @@ export function ChapterCard({
         <div
           role="button"
           tabIndex={0}
+          aria-current={isSelected ? 'true' : undefined}
           onClick={onSelect}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {

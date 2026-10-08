@@ -277,6 +277,7 @@
   --card-radius:       var(--radius-lg);
   --card-border-width: var(--border-width);
   --card-shadow:       var(--shadow-sm);
+  --card-selected-border-width: var(--card-border-width); /* 選中卡（如閱讀頁目前章）的框重 */
   --btn-radius:        var(--radius-md);
   --btn-border-width:  var(--border-width);
   --btn-shadow:        none;
@@ -428,6 +429,8 @@
   --card-radius:       var(--radius-sm);
   --card-border-width: 1.5px;
   --card-shadow:       none;
+  /* Ink 的 accent 與 border 幾乎同色，選中只能靠線重承載 */
+  --card-selected-border-width: 2px;
   --btn-radius:        var(--radius-sm);
   --btn-border-width:  1.5px;
   --btn-shadow:        none;
