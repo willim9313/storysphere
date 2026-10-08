@@ -197,13 +197,14 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
         'text-opacity': 0,
       },
     },
-    // Inferred edges: warning color + dashed line to read as "speculative,
-    // not a confirmed relation" (KG redesign brief §4 / canvas legend).
+    // Inferred edges: warning color + dotted line to read as "speculative,
+    // not a confirmed relation" (KG redesign brief §4 / canvas legend). Dotted,
+    // not dashed: dashed now means 敵對 (GraphPage relationEdgeStylesheet).
     // width = 1 + confidence × 1.6, opacity = 0.42 + confidence × 0.25
     {
       selector: 'edge[?inferred]',
       style: {
-        'line-style': 'dashed',
+        'line-style': 'dotted',
         'line-color': warning,
         width: ((ele: cytoscape.EdgeSingular) =>
           1 + (Number(ele.data('confidence')) || 0) * 1.6) as cytoscape.Css.PropertyValueEdge<number>,

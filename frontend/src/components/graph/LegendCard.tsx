@@ -108,16 +108,16 @@ export function LegendCard({ clusterMode = 'node' }: Readonly<{ clusterMode?: Cl
       <div className="kg-legend-row">
         {clusterMode === 'node' && (
           <>
-            <EdgeSwatch color="var(--color-success)" label={t('v1.legend.edgeCooperative')} />
-            <EdgeSwatch color="var(--color-error)" label={t('v1.legend.edgeHostile')} />
-            <EdgeSwatch color="var(--fg-muted)" label={t('v1.legend.edgeNeutral')} />
-            <EdgeSwatch color="var(--color-warning)" label={t('v1.legend.edgeInferred')} dashed />
+            <EdgeSwatch color="var(--color-success)" label={t('v1.legend.edgeCooperative')} weight={2.5} />
+            <EdgeSwatch color="var(--color-error)" label={t('v1.legend.edgeHostile')} lineStyle="dashed" />
+            <EdgeSwatch color="var(--fg-muted)" label={t('v1.legend.edgeNeutral')} weight={1} />
+            <EdgeSwatch color="var(--color-warning)" label={t('v1.legend.edgeInferred')} lineStyle="dotted" />
           </>
         )}
         {/* FactionCanvas draws rivalry as a red dashed line and cooperation as
             a plain muted one; only the rivalry mark needs naming. */}
         {clusterMode === 'community' && (
-          <EdgeSwatch color="var(--color-error)" label={t('v1.legend.edgeHostile')} dashed />
+          <EdgeSwatch color="var(--color-error)" label={t('v1.legend.edgeHostile')} lineStyle="dashed" />
         )}
         {isAggregated && (
           <WidthSwatch
@@ -173,16 +173,24 @@ function SizeSwatch({ label }: { readonly label: string }) {
   );
 }
 
-function EdgeSwatch({ color, label, dashed }: { readonly color: string; readonly label: string; readonly dashed?: boolean }) {
+/** Line style matches the canvas: 合作 solid (heavier), 敵對 dashed, 推測 dotted
+ *  — the style, not the colour, is what survives the Ink theme. */
+function EdgeSwatch({
+  color,
+  label,
+  lineStyle = 'solid',
+  weight = 2,
+}: {
+  readonly color: string;
+  readonly label: string;
+  readonly lineStyle?: 'solid' | 'dashed' | 'dotted';
+  readonly weight?: number;
+}) {
   return (
     <span className="kg-legend-item">
       <span
         className="flex-shrink-0"
-        style={
-          dashed
-            ? { width: 20, height: 0, borderTop: `2px dashed ${color}` }
-            : { width: 20, height: 2, backgroundColor: color, borderRadius: 2 }
-        }
+        style={{ width: 20, height: 0, borderTop: `${weight}px ${lineStyle} ${color}` }}
       />
       {label}
     </span>
