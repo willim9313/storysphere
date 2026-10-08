@@ -4,10 +4,12 @@ import {
   DEFAULT_READER_PREFS,
   DEFAULT_TYPOGRAPHY,
   entityDistributionRows,
+  col3Width,
   formatTypography,
   groupChapters,
   isOverridden,
   normalizePrefs,
+  protectCol3,
   paperBackground,
   resetTypography,
   resolveTypography,
@@ -116,5 +118,40 @@ describe('groupChapters', () => {
     expect(g.front.map((c) => c.id)).toEqual(['toc', 'other']);
     expect(g.body).toEqual([]);
     expect(g.back).toEqual([]);
+  });
+});
+
+describe('protectCol3', () => {
+  const all = { col1: true, col2: true, col4: true };
+
+  it('collapses col1 first when every column is open at 1024', () => {
+    // 1024 page − 48 sidebar: col3 was 156px before the guard.
+    expect(col3Width(976, all, false)).toBe(156);
+    const next = protectCol3(976, all, false, 'col4');
+    expect(next).toEqual({ col1: false, col2: true, col4: true });
+    expect(col3Width(976, next, false)).toBeGreaterThanOrEqual(360);
+  });
+
+  it('never collapses the column that was just opened', () => {
+    // Narrow 720 window (672 page): opening col1 with col2 open squeezes col3.
+    const next = protectCol3(672, { col1: true, col2: true, col4: false }, true, 'col1');
+    expect(next.col1).toBe(true);
+    expect(next.col2).toBe(false);
+  });
+
+  it('leaves the layout alone when col3 already fits', () => {
+    const open = { col1: false, col2: true, col4: false };
+    expect(protectCol3(672, open, true, 'col2')).toEqual(open);
+  });
+
+  it('does not count the Bezier column in a narrow window', () => {
+    const open = { col1: false, col2: true, col4: false };
+    expect(col3Width(672, open, true)).toBe(672 - 46 - 224);
+  });
+
+  it('collapses both side columns for col4 in a 720 window', () => {
+    const next = protectCol3(672, { col1: true, col2: true, col4: true }, true, 'col4');
+    expect(next).toEqual({ col1: false, col2: false, col4: true });
+    expect(col3Width(672, next, true)).toBe(302);
   });
 });
