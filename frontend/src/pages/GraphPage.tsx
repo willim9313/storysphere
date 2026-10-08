@@ -34,13 +34,16 @@ import { EntityComparePanel } from '@/components/graph/EntityComparePanel';
 import { InferredEdgePanel } from '@/components/graph/InferredEdgePanel';
 import { GraphRightRail } from '@/components/graph/GraphRightRail';
 import {
+  CORNER_STACK_WIDTH,
   MAIN_PANEL_WIDTH,
   SECONDARY_PANEL_WIDTH,
   activeSecondaryPanel,
-  railWidth,
+  cornerStackCompact,
+  railLayout,
   resolveRailPanel,
   type SecondaryPanel,
 } from '@/components/graph/graphPanelModel';
+import { useGuidanceDismissed } from '@/components/ui/guidanceStore';
 import { PairModeOverlay, type PairSubMode } from '@/components/graph/PairModeOverlay';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -119,6 +122,29 @@ export default function GraphPage() {
     [],
   );
   const [viewportSnap, setViewportSnap] = useState<ViewportSnapshot | null>(null);
+
+  // Stage width and the floating guidance ribbon's bottom edge drive the
+  // narrow-stage layout (secondary panel overlay, compact corner stack).
+  // Callback ref: the stage only mounts once graph data has loaded (the page
+  // returns early before that), so the observer must start when it appears.
+  const [stage, setStage] = useState<HTMLDivElement | null>(null);
+  const ribbonDismissed = useGuidanceDismissed('graph');
+  const [stageBox, setStageBox] = useState({ width: 0, ribbonBottom: 0 });
+  useEffect(() => {
+    if (!stage) return;
+    const measure = () => {
+      const ribbon = stage.querySelector<HTMLElement>('.ss-guidance');
+      setStageBox({
+        width: stage.clientWidth,
+        ribbonBottom: ribbon ? ribbon.offsetTop + ribbon.offsetHeight : 0,
+      });
+    };
+    const ro = new ResizeObserver(measure);
+    ro.observe(stage);
+    const ribbon = stage.querySelector('.ss-guidance');
+    if (ribbon) ro.observe(ribbon);
+    return () => ro.disconnect();
+  }, [stage, ribbonDismissed]);
   const [orphanOpen, setOrphanOpen] = useState(false);
   const [forceConfirmOpen, setForceConfirmOpen] = useState(false);
 
@@ -635,9 +661,17 @@ export default function GraphPage() {
   const railMain = resolvedRail === 'cluster' && !clusteredGraph ? null : resolvedRail;
   const secondaryPanel = selectedNode ? activeSecondaryPanel(railMain, rightPanel) : null;
   const secondaryWidth = secondaryPanel ? SECONDARY_PANEL_WIDTH[secondaryPanel] : 0;
-  // Shared right anchor for the bottom-right widget column (stats / mini-map / zoom):
+  // Narrow stages: the secondary panel covers the main one rather than
+  // squeezing the canvas to nothing, and the corner stack goes compact when it
+  // would land on the lens card (UI_SPEC §3.6).
+  const layout = railLayout(stageBox.width, railMain, secondaryPanel);
+  const cornerCompact = stageBox.width > 0 && cornerStackCompact(stageBox.width, layout.occupied);
+  // Shared right anchor for the corner widget stack (stats / mini-map / zoom):
   // reads the width the rail actually occupies instead of a hard-coded number.
-  const bottomRightAnchor = `calc(${railWidth(railMain, secondaryPanel)}px + var(--space-5))`;
+  const bottomRightAnchor = `calc(${layout.occupied}px + var(--space-5))`;
+  // Compact stack sits top-right — below the ribbon when the two can't share the row.
+  const ribbonShared = 12 + 430 + 12 + CORNER_STACK_WIDTH + 12 <= stageBox.width - layout.occupied;
+  const cornerTop = stageBox.ribbonBottom > 0 && !ribbonShared ? stageBox.ribbonBottom + 12 : 12;
 
   let railName = '';
   if (railMain === 'compare') railName = t('v1.compare.title');
@@ -705,7 +739,12 @@ export default function GraphPage() {
         />
       )}
 
-      <div className="kg-stage">
+      <div
+        ref={setStage}
+        className="kg-stage"
+        // Free canvas width left of the rail — the floating ribbon caps itself to it.
+        style={{ '--kg-free': `${Math.max(0, stageBox.width - layout.occupied)}px` } as React.CSSProperties}
+      >
         {isCommunityMode && factionData ? (
           <FactionCanvas
             analysis={factionData}
@@ -779,7 +818,10 @@ export default function GraphPage() {
 
             {/* Bottom-right: stats / mini-map / zoom share one right anchor that
                 follows the rail's real width. */}
-            <div className="kg-br" style={{ right: bottomRightAnchor }}>
+            <div
+              className={cornerCompact ? 'kg-br is-compact' : 'kg-br'}
+              style={cornerCompact ? { right: bottomRightAnchor, top: cornerTop } : { right: bottomRightAnchor }}
+            >
               <div className="kg-stats">
                 {isCommunityMode && factionData ? (
                   <>
@@ -814,7 +856,7 @@ export default function GraphPage() {
                 )}
               </div>
 
-              {isCommunityMode && factionData ? (
+              {cornerCompact ? null : isCommunityMode && factionData ? (
                 <MiniMap
                   nodes={factionMiniMapNodes}
                   edges={factionMiniMapEdges}
@@ -957,7 +999,10 @@ export default function GraphPage() {
             {/* Secondary detail layer (analysis / paragraphs): stacked to the left
                 of the main panel (main stays pinned right), one at a time, only beside the entity / event panel. */}
             {secondaryPanel && selectedNode && bookId && (
-              <div className="kg-secondary" style={{ width: secondaryWidth, right: MAIN_PANEL_WIDTH }}>
+              <div
+                className="kg-secondary"
+                style={{ width: secondaryWidth, right: layout.secondaryOverlay ? 0 : MAIN_PANEL_WIDTH }}
+              >
                 {secondaryPanel === 'analysis' ? (
                   <AnalysisPanel bookId={bookId} node={selectedNode} onClose={() => setRightPanel(null)} />
                 ) : (

@@ -58,3 +58,45 @@ export function railWidth(main: RailPanel | null, secondary: SecondaryPanel | nu
   if (main === null) return 0;
   return MAIN_PANEL_WIDTH + (secondary ? SECONDARY_PANEL_WIDTH[secondary] : 0);
 }
+
+/**
+ * Narrow stages (UI_SPEC §3.6, 720px minimum): the frozen panel widths can eat
+ * the whole canvas, so the layout yields instead of clipping.
+ *
+ * - The secondary panel stacks left of the main one only while at least
+ *   MIN_CANVAS_WIDTH of canvas survives; otherwise it covers the main panel
+ *   (pinned right) — closing it brings the main panel back.
+ */
+export const MIN_CANVAS_WIDTH = 280;
+/** `.kg-lens` (bottom-left) and `.kg-br` (bottom-right) widths, plus the --space-5 gutter. */
+const LENS_CARD_WIDTH = 272;
+export const CORNER_STACK_WIDTH = 182;
+const GUTTER = 12;
+
+export interface RailLayout {
+  /** The secondary panel sits over the main one instead of beside it. */
+  secondaryOverlay: boolean;
+  /** Width the rail takes from the right of the stage. */
+  occupied: number;
+}
+
+export function railLayout(
+  stageWidth: number,
+  main: RailPanel | null,
+  secondary: SecondaryPanel | null,
+): RailLayout {
+  if (main === null) return { secondaryOverlay: false, occupied: 0 };
+  if (secondary === null) return { secondaryOverlay: false, occupied: MAIN_PANEL_WIDTH };
+  const stacked = MAIN_PANEL_WIDTH + SECONDARY_PANEL_WIDTH[secondary];
+  if (stageWidth - stacked >= MIN_CANVAS_WIDTH) return { secondaryOverlay: false, occupied: stacked };
+  return { secondaryOverlay: true, occupied: SECONDARY_PANEL_WIDTH[secondary] };
+}
+
+/**
+ * When the canvas left of the rail can't hold the lens card and the
+ * stats／mini-map／zoom stack side by side, the stack goes compact: mini-map
+ * dropped, stats + zoom moved to the canvas's top-right corner.
+ */
+export function cornerStackCompact(stageWidth: number, occupied: number): boolean {
+  return stageWidth - occupied < GUTTER + LENS_CARD_WIDTH + GUTTER + CORNER_STACK_WIDTH + GUTTER;
+}

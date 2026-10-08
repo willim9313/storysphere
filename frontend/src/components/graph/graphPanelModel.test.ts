@@ -7,6 +7,8 @@ import {
   railWidth,
   resolveRailPanel,
   type RailInput,
+  cornerStackCompact,
+  railLayout,
 } from './graphPanelModel';
 
 const base: RailInput = {
@@ -79,5 +81,33 @@ describe('railWidth', () => {
   it('adds the secondary panel width on top (360 / 400)', () => {
     expect(railWidth('entity', 'analysis')).toBe(320 + SECONDARY_PANEL_WIDTH.analysis);
     expect(railWidth('entity', 'paragraphs')).toBe(320 + 400);
+  });
+});
+
+describe('railLayout', () => {
+  it('stacks the secondary panel beside the main one when the canvas keeps 280px', () => {
+    // 1440 window: stage 1392.
+    expect(railLayout(1392, 'entity', 'paragraphs')).toEqual({ secondaryOverlay: false, occupied: 720 });
+  });
+
+  it('covers the main panel when stacking would starve the canvas', () => {
+    // 1024 window (stage 976) and 720 window (stage 672) with the 400px paragraphs panel.
+    expect(railLayout(976, 'entity', 'paragraphs')).toEqual({ secondaryOverlay: true, occupied: 400 });
+    expect(railLayout(672, 'entity', 'paragraphs')).toEqual({ secondaryOverlay: true, occupied: 400 });
+  });
+
+  it('is just the main panel, or nothing', () => {
+    expect(railLayout(672, 'entity', null)).toEqual({ secondaryOverlay: false, occupied: 320 });
+    expect(railLayout(672, null, 'analysis')).toEqual({ secondaryOverlay: false, occupied: 0 });
+  });
+});
+
+describe('cornerStackCompact', () => {
+  it('goes compact once the lens card and the corner stack would collide', () => {
+    expect(cornerStackCompact(672, 320)).toBe(true); // 720 window, entity panel open
+    expect(cornerStackCompact(672, 400)).toBe(true); // 720 window, paragraphs over main
+    expect(cornerStackCompact(976, 400)).toBe(false); // 1024 window, paragraphs over main: 576px fits both
+    expect(cornerStackCompact(976, 320)).toBe(false); // 1024 window, entity panel only
+    expect(cornerStackCompact(1392, 720)).toBe(false); // 1440, both panels side by side
   });
 });
