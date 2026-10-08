@@ -111,7 +111,7 @@ export function EntityComparePanel({ bookId, a, b, onClose, onEnterPairMode }: E
                 <div key={ir.id} className="kg-ir">
                   {/* `type · 共同鄰居 N 個 · Adamic-Adar x` — the evidence the review queue shows too. */}
                   <span className="kg-text">
-                    <span className="kg-ir-type">{ir.suggestedRelationType}</span>
+                    <span className="kg-ir-type">{t(`inferredType.${ir.suggestedRelationType}`)}</span>
                     {' · '}
                     {t('v1.inferred.review.evidenceFallback', {
                       common: ir.commonNeighborCount,

@@ -116,6 +116,17 @@ const DYNAMIC_KEYS: { ns: string; keys: string[] }[] = [
     ns: 'analysis',
     keys: ['tension.grid.cellLabelIntensity', 'tension.grid.orphanCellLabelIntensity'],
   },
+  {
+    // InferredEdgePanel / EntityComparePanel: t(`inferredType.${suggestedRelationType}`)
+    ns: 'graph',
+    keys: [
+      'inferredType.potential_ally',
+      'inferredType.potential_enemy',
+      'inferredType.potential_friendship',
+      'inferredType.potential_associate',
+      'inferredType.unknown',
+    ],
+  },
 ];
 
 describe('i18n keys', () => {

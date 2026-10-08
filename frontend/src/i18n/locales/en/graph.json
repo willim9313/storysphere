@@ -305,5 +305,12 @@
   "guide": {
     "prefix": "Researcher guide:",
     "body": "Three lenses onto one graph: <strong>individual</strong> for how a single entity connects, <strong>type</strong> for grouping by character / place / object, and <strong>community</strong> for algorithmically detected factions; <strong>the legend changes with the lens</strong>. \"Run inference\" uses a common-neighbours score to propose relationships the text implies but never states; it calls no LLM and costs no tokens, <strong>but inferred edges need human confirmation before they enter the graph</strong>."
+  },
+  "inferredType": {
+    "potential_ally": "Possible ally",
+    "potential_enemy": "Possible enemy",
+    "potential_friendship": "Possible friendship",
+    "potential_associate": "Possible association",
+    "unknown": "Undetermined"
   }
 }

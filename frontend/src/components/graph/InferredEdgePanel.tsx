@@ -134,9 +134,10 @@ function InferredRow({ ir, bookId, focus, onSuccess, onGraphInvalidate }: Inferr
     <div ref={ref} className={focus ? 'kg-ir is-focus' : 'kg-ir'}>
       <div className="kg-ir-head">
         <span className="kg-ir-name">{ir.sourceName}</span>
-        <span className="kg-note">→</span>
+        {/* ↔ not →: CN / Adamic-Adar scores are symmetric — neither end is the source. */}
+        <span className="kg-note">↔</span>
         <span className="kg-ir-name">{ir.targetName}</span>
-        <span className="kg-ir-type">{ir.suggestedRelationType}</span>
+        <span className="kg-ir-type">{t(`inferredType.${ir.suggestedRelationType}`)}</span>
       </div>
 
       <div className="kg-ir-evidence">

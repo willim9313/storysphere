@@ -941,6 +941,8 @@ interface EntityChunkItem {
 
 執行 Common Neighbors + Adamic-Adar 演算法，計算候選推斷關係。
 
+**只提出角色 × 角色的配對**（2026-10-08）：共同鄰居仍在整張圖上計算（角色常經由地點、物品相連），但兩端都必須是 `character`——角色 × 地點之類的「潛在夥伴」沒有意義。每次執行都會刪除既有的、兩端不全是角色的 **PENDING** 記錄；CONFIRMED／REJECTED 是使用者的裁決，保留不動。
+
 **Request Body**
 ```ts
 { forceRefresh?: boolean }

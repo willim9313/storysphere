@@ -419,7 +419,7 @@
 .kg-ir.is-focus { outline: var(--line-weight) solid var(--accent); }
 .kg-ir-head { display: flex; align-items: center; flex-wrap: wrap; gap: var(--space-3); font-size: var(--font-size-2xs); }
 .kg-ir-name { font-weight: 600; color: var(--fg-primary); }
-.kg-ir-type { font-family: var(--font-mono); color: var(--accent); }
+.kg-ir-type { font-family: var(--font-sans); font-weight: 600; color: var(--accent); }
 .kg-ir-evidence { display: flex; gap: var(--space-3); font-size: var(--font-size-2xs); line-height: 1.7; }
 .kg-ir-evidence-key { color: var(--fg-muted); flex-shrink: 0; }
 
