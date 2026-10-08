@@ -112,12 +112,19 @@
   "failure": {
     "backToOverview": "Back to book overview"
   },
+  "unanalyzed": {
+    "title": "Not analysed yet",
+    "body": "This book has no knowledge graph yet — stats, entities, relations and events are still empty. Start the analysis from Build overview.",
+    "cta": "Go to Build overview →"
+  },
   "rerun": {
     "title": "Incomplete features",
     "rerun": "Re-run",
     "running": "Running",
     "failed": "Run failed",
     "hint": "Calls the LLM and uses tokens; overwrites this step's output.",
+    "confirmBody": "This overwrites the output of “{{step}}”. See Build overview for what it affects downstream.",
+    "costHint": "Calls the LLM and spends tokens",
     "steps": {
       "summarization": "Chapter summaries",
       "featureExtraction": "Feature extraction",

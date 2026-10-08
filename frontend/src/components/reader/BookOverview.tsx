@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, FileText } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Link } from 'react-router-dom';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { StatusBadge } from '@/components/library/StatusBadge';
 import { KeywordTags } from './KeywordTags';
@@ -27,6 +28,10 @@ interface BookOverviewProps {
 export function BookOverview({ book, collapsed, onToggleCollapse }: Readonly<BookOverviewProps>) {
   const { t } = useTranslation('reader');
   const { t: tg } = useTranslation('graph');
+  // Entities, relations and events all come from the knowledge-graph step; until
+  // it has run, the stats and distribution below would be a row of honest-looking
+  // zeros. Say so instead and point at where analysis is started (UI_SPEC §3.3).
+  const unanalyzed = book.pipelineStatus?.knowledgeGraph === 'pending';
 
   if (collapsed) {
     return (
@@ -69,14 +74,24 @@ export function BookOverview({ book, collapsed, onToggleCollapse }: Readonly<Boo
 
       {book.summary && <p className="rd-book-summary">{book.summary}</p>}
 
-      <div className="rd-stats">
-        {stats.map(({ key, value }) => (
-          <div key={key} className={key === 'events' ? 'rd-stat rd-stat-wide' : 'rd-stat'}>
-            <span className="rd-stat-value">{value}</span>
-            <span className="rd-stat-label">{t(`stats.${key}`)}</span>
-          </div>
-        ))}
-      </div>
+      {unanalyzed ? (
+        <div className="rd-unanalyzed">
+          <p className="rd-unanalyzed-title">{t('unanalyzed.title')}</p>
+          <p className="rd-unanalyzed-body">{t('unanalyzed.body')}</p>
+          <Link to={`/books/${book.id}/unraveling`} className="ss-btn ss-btn-sm ss-btn-secondary">
+            {t('unanalyzed.cta')}
+          </Link>
+        </div>
+      ) : (
+        <div className="rd-stats">
+          {stats.map(({ key, value }) => (
+            <div key={key} className={key === 'events' ? 'rd-stat rd-stat-wide' : 'rd-stat'}>
+              <span className="rd-stat-value">{value}</span>
+              <span className="rd-stat-label">{t(`stats.${key}`)}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {/* Pipeline rerun */}
       {book.pipelineStatus && (
@@ -94,20 +109,22 @@ export function BookOverview({ book, collapsed, onToggleCollapse }: Readonly<Boo
       )}
 
       {/* Entity distribution */}
-      <div className="rd-section">
-        <h3 className="rd-label">
-          {t('entityDistribution')} <span className="rd-label-hint">{t('entityDistributionHint')}</span>
-        </h3>
-        <div className="rd-chips">
-          {entityDistributionRows(book.entityStats).map(({ type, count }) => (
-            <span key={type} className={`ss-pill ${entityTypeCls[type]}`}>
-              <span className="ss-pill-dot" />
-              {tg(`entityTypes.${type}`)}
-              <span className="rd-pill-count">{count}</span>
-            </span>
-          ))}
+      {!unanalyzed && (
+        <div className="rd-section">
+          <h3 className="rd-label">
+            {t('entityDistribution')} <span className="rd-label-hint">{t('entityDistributionHint')}</span>
+          </h3>
+          <div className="rd-chips">
+            {entityDistributionRows(book.entityStats).map(({ type, count }) => (
+              <span key={type} className={`ss-pill ${entityTypeCls[type]}`}>
+                <span className="ss-pill-dot" />
+                {tg(`entityTypes.${type}`)}
+                <span className="rd-pill-count">{count}</span>
+              </span>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </div>
   );
 }

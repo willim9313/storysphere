@@ -8,6 +8,7 @@ import type { RerunStep } from '@/api/ingest';
 import { isLlmUnconfigured } from '@/api/failureKind';
 import { qk } from '@/api/queryKeys';
 import { LlmUnconfiguredNotice } from '@/components/ui/LlmUnconfiguredNotice';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 
 type StepKey = 'summarization' | 'featureExtraction' | 'knowledgeGraph' | 'symbolDiscovery';
 
@@ -39,6 +40,8 @@ function StepRow({ def, status, bookId, onComplete }: Readonly<StepRowProps>) {
   // The app's own 503 (no LLM provider): a feature state, not a failure — it
   // is shown in place and the rest of the page stays as it was.
   const [unconfigured, setUnconfigured] = useState(false);
+  // Rerun spends tokens and overwrites the step's output — confirm first.
+  const [confirmOpen, setConfirmOpen] = useState(false);
 
   const handleRerun = async () => {
     setRunning(true);
@@ -95,7 +98,7 @@ function StepRow({ def, status, bookId, onComplete }: Readonly<StepRowProps>) {
         <span>{label}</span>
         <button
           type="button"
-          onClick={handleRerun}
+          onClick={() => setConfirmOpen(true)}
           disabled={running}
           className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
         >
@@ -104,6 +107,19 @@ function StepRow({ def, status, bookId, onComplete }: Readonly<StepRowProps>) {
       </div>
       {error && <span className="rd-rerun-error">{error}</span>}
       {unconfigured && <LlmUnconfiguredNotice />}
+      <ConfirmDialog
+        open={confirmOpen}
+        title={label}
+        message={t('rerun.confirmBody', { step: label })}
+        confirmLabel={t('rerun.rerun')}
+        costHint={t('rerun.costHint')}
+        spendsTokens
+        onConfirm={() => {
+          setConfirmOpen(false);
+          void handleRerun();
+        }}
+        onCancel={() => setConfirmOpen(false)}
+      />
     </div>
   );
 }
