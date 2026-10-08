@@ -457,7 +457,8 @@ chevron 有自己的 hover 底（`--bg-tertiary`，展開時也是）。選中�
 
 底部 2px 捲動進度細條。標題列：章名（serif lg）＋「第 N / M 章」badge＋「N chunks」。
 
-**chunk 卡**：頂列 `#order`（mono，從 #0 起）靠左、實體膠囊靠右；正文（serif，字級／行距由下方兩態偏好決定）；關鍵字。
+**chunk 卡**：頂列 `#order`（mono，從 #0 起）靠左、實體膠囊靠右；正文（serif，字級／行距由下方兩態偏好決定）；關鍵字（**去掉與該段實體名／標註字面重複者**，忽略大小寫與字中空白，`readerModel.keywordsWithoutEntities`）。
+**純分隔符段落**（只有標點／符號，如「✦✦✦」，且無實體；`readerModel.isSeparatorText`）：保留 `#order`，畫成一條置中細線，不畫整張卡。
 標註密度以容器 `data-annotation-mode` 控制（`global.css`）：「角色」＝非角色 mark／chip 取消底線與 hover 色塊並**拿掉 pointer-events**；「關」＝chips 整列隱藏、正文純散文；`#order` 三段都留。
 
 **章末導航只放右側「下一章 {章名} →」**（`.ss-btn-sm.ss-btn-secondary`）；最後一章沒有，也沒有「上一章」。
@@ -476,6 +477,8 @@ chevron 有自己的 hover 底（`--bg-tertiary`，展開時也是）。選中�
 | 欄 | 四欄各依使用者收合 | 欄 1、欄 2 強制進軌、貝茲欄隱藏（不寫收合偏好，退出原樣還原，專注期間收合鈕 no-op） |
 | 正文欄 | 滿版 | `max-width: 760px` 置中 |
 | chunk 卡 | 完整卡框與底色 | 卡框與底色收成一條區隔細線；`#order` 掛到正文左側邊界外（左側留 `--space-8` 的溝，窄視窗也不被裁） |
+| 標註密度 | 使用者設定 | **進入時自動切「角色」**（仍可改），退出時還原檢視態的設定 |
+| chunk chip／段末關鍵字 | 顯示（關鍵字去掉與實體重複者） | **都收起**，只留正文與標註 |
 
 刻度 15／17／19px、1.6／1.85／2.15 不動；字級與行距兩態共用同一組（FINAL_RULINGS #7）。模式只存在於當次 session，不持久化。專注態是 A 級的變體（間距仍 12／8／8／4），不換級。
 

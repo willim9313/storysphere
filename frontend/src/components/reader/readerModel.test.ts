@@ -7,6 +7,8 @@ import {
   col3Width,
   formatTypography,
   groupChapters,
+  isSeparatorText,
+  keywordsWithoutEntities,
   isOverridden,
   normalizePrefs,
   protectCol3,
@@ -153,5 +155,30 @@ describe('protectCol3', () => {
     const next = protectCol3(672, { col1: true, col2: true, col4: true }, true, 'col4');
     expect(next).toEqual({ col1: false, col2: false, col4: true });
     expect(col3Width(672, next, true)).toBe(302);
+  });
+});
+
+describe('keywordsWithoutEntities', () => {
+  it('drops keywords that repeat an entity name or surface form', () => {
+    expect(keywordsWithoutEntities(['伊內絲', '記憶', '鹽', '門檻'], ['伊內絲', '鹽'])).toEqual(['記憶', '門檻']);
+  });
+
+  it('matches across PDF intra-word spaces and case', () => {
+    expect(keywordsWithoutEntities(['伊 內 絲', 'Salt'], ['伊內絲', 'salt'])).toEqual([]);
+  });
+});
+
+describe('isSeparatorText', () => {
+  it('recognises scene breaks made of symbols', () => {
+    expect(isSeparatorText('✦✦✦')).toBe(true);
+    expect(isSeparatorText(' * * * ')).toBe(true);
+    expect(isSeparatorText('——')).toBe(true);
+  });
+
+  it('rejects text with words, and empty text', () => {
+    expect(isSeparatorText('～')).toBe(true);
+    expect(isSeparatorText('第一章')).toBe(false);
+    expect(isSeparatorText('「好。」')).toBe(false);
+    expect(isSeparatorText('   ')).toBe(false);
   });
 });

@@ -155,3 +155,24 @@ export function protectCol3(
   }
   return next;
 }
+
+/** Compare names ignoring case and whitespace — PDF text often carries
+ *  spaces inside CJK words (「伊 內 絲」), and those must still match. */
+const normalizeTerm = (s: string) => s.toLowerCase().replace(/\s+/g, '');
+
+/**
+ * Chunk keywords minus any that repeat an entity already shown as a chip or
+ * an inline mark (critique: the same names were said three times per chunk).
+ * `entityTerms` holds both canonical names and the surface forms in the text.
+ */
+export function keywordsWithoutEntities(keywords: readonly string[], entityTerms: readonly string[]): string[] {
+  const taken = new Set(entityTerms.map(normalizeTerm));
+  return keywords.filter((k) => !taken.has(normalizeTerm(k)));
+}
+
+/** A chunk that is only a scene break (「✦✦✦」「* * *」「——」): punctuation and
+ *  symbols, no words. Rendered as a thin rule instead of a full card. */
+export function isSeparatorText(text: string): boolean {
+  const t = text.trim();
+  return t.length > 0 && t.length <= 24 && /^[\p{P}\p{S}\s]+$/u.test(t);
+}

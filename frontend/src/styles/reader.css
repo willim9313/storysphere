@@ -407,3 +407,15 @@
 }
 .rd-unanalyzed-title { margin: 0; font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 600; color: var(--fg-primary); }
 .rd-unanalyzed-body { margin: 0; font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-secondary); }
+
+/* ── 純分隔符段落（✦✦✦ 等場景切換）：留 #order 可定位，但畫成一條置中細線，不佔整張卡 ── */
+.rd-chunk.rd-chunk-sep {
+  flex-direction: row; align-items: center; gap: var(--space-4);
+  padding: var(--space-2) var(--space-4); background: transparent; border-color: transparent;
+}
+.rd-chunk-sep-rule { flex: 1; height: var(--line-weight); background: var(--border); margin-right: 25%; margin-left: 25%; }
+.rd-chunks-inner[data-mode='focus'] .rd-chunk.rd-chunk-sep { border-top: none; padding: var(--space-3) 0; }
+
+/* 專注態＝安靜查證：段落頂部 chip 與段末關鍵字都收起，只留正文與（角色）標註。 */
+.rd-chunks-inner[data-mode='focus'] .rd-chunk .chunk-chips,
+.rd-chunks-inner[data-mode='focus'] .rd-chunk-kw { display: none; }
