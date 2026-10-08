@@ -61,6 +61,10 @@ import '@/styles/graph.css';
 const readCssVar = (name: string) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
 const ALL_TYPES = new Set<string>(['character', 'location', 'concept', 'event', 'organization', 'object', 'other']);
+// Events start hidden (UI_SPEC §3.6): a book's events outnumber its entities
+// (62 of 100 nodes in a typical book) and bury the relationship structure the
+// default view is for. The 事件 chip turns them back on; 重設視圖 returns here.
+const DEFAULT_VISIBLE_TYPES = new Set<string>([...ALL_TYPES].filter((t) => t !== 'event'));
 const MULTI_SELECT_CAP = 2;
 const ZOOM_STEP = 1.25;
 
@@ -106,7 +110,7 @@ export default function GraphPage() {
   const [compareArmed, setCompareArmed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
-  const [visibleTypes, setVisibleTypes] = useState<Set<string>>(new Set(ALL_TYPES));
+  const [visibleTypes, setVisibleTypes] = useState<Set<string>>(new Set(DEFAULT_VISIBLE_TYPES));
   const [rightPanel, setRightPanel] = useState<SecondaryPanel | null>(null);
   const [unknownEntityIds, setUnknownEntityIds] = useState<Set<string>>(new Set());
   const [misbeliefEventIds, setMisbeliefEventIds] = useState<Set<string>>(new Set());
@@ -425,6 +429,17 @@ export default function GraphPage() {
     }
   }, [data, searchParams, setClusterMode]);
 
+  // Selecting a node whose type is switched off (search, deep link, a panel
+  // link — events start hidden) turns that type back on instead of selecting
+  // something the canvas doesn't draw.
+  useEffect(() => {
+    if (!selectedNodeId) return;
+    const node = elements.find((el) => el.group === 'nodes' && el.data.id === selectedNodeId);
+    const type = node ? String(node.data.entityType ?? '') : '';
+    if (!type || visibleTypes.has(type)) return;
+    setVisibleTypes((prev) => new Set(prev).add(type));
+  }, [selectedNodeId, elements, visibleTypes]);
+
   const deepLinkChapter = useMemo(() => {
     const raw = searchParams.get('chapter');
     if (!raw) return undefined;
@@ -496,7 +511,7 @@ export default function GraphPage() {
   const handleReset = useCallback(() => {
     setSearchQuery('');
     setSearchOpen(false);
-    setVisibleTypes(new Set(ALL_TYPES));
+    setVisibleTypes(new Set(DEFAULT_VISIBLE_TYPES));
     setSelectedNodeId(null);
     setSelectedNodeIds([]);
     setCompareArmed(false);
@@ -583,6 +598,12 @@ export default function GraphPage() {
 
   const nodeCount = data?.nodes.length ?? 0;
   const edgeCount = data?.edges.length ?? 0;
+  // What the canvas actually draws in 個別 view (type chips, search, and the
+  // orphan drawer all take nodes off), shown as 「34／100」 when it differs.
+  const shownNodeCount = filteredElements.filter((el) => el.group === 'nodes').length;
+  const shownEdgeCount = filteredElements.filter((el) => el.group === 'edges' && !el.data.inferred).length;
+  const fraction = (shown: number, total: number) =>
+    !clusteredGraph && shown !== total ? `${shown}／${total}` : String(total);
 
   // No nodes yet → show an onboarding guide instead of a blank canvas.
   if (nodeCount === 0) return <GraphOnboardingHero />;
@@ -764,11 +785,11 @@ export default function GraphPage() {
                 ) : (
                   <>
                     <span>
-                      <strong>{nodeCount}</strong> {tStats('statsNodeLabel')}
+                      <strong>{fraction(shownNodeCount, nodeCount)}</strong> {tStats('statsNodeLabel')}
                     </span>
                     <span className="kg-stats-sep">·</span>
                     <span>
-                      <strong>{edgeCount}</strong> {tStats('statsEdgeLabel')}
+                      <strong>{fraction(shownEdgeCount, edgeCount)}</strong> {tStats('statsEdgeLabel')}
                     </span>
                     {inferredCount > 0 && (
                       <>
