@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { createContext, useContext, useLayoutEffect, useMemo, useState, type ReactNode } from 'react';
 
 export type Theme = 'warm' | 'ink';
 
@@ -28,7 +28,11 @@ export function ThemeProvider({ children }: Readonly<{ children: ReactNode }>) {
     return VALID_THEMES.has(stored as Theme) ? (stored as Theme) : 'warm';
   });
 
-  useEffect(() => {
+  // Layout effect, not a passive one: children read the new theme's CSS
+  // variables in their own effects (GraphCanvas re-styles cytoscape from
+  // getComputedStyle), and passive effects run child-first — they would see
+  // the previous theme's values.
+  useLayoutEffect(() => {
     document.documentElement.dataset.theme = theme;
     localStorage.setItem(STORAGE_KEY, theme);
   }, [theme]);
