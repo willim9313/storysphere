@@ -388,3 +388,5 @@
 }
 .rd-chapter-matter .rd-chapter-name { min-width: 0; }
 .rd-chapter-matter .rd-chapter-meta { flex-shrink: 0; }
+/* 實體卡開啟時把焦點移到卡本身（role=dialog）；容器不畫焦點框，Tab 下一站就是卡內第一個控制項。 */
+.rd-ecard:focus-visible { outline: none; }

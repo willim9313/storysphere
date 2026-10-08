@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useId, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Trans, useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
@@ -20,7 +20,9 @@ const pillClass: Record<EntityType, string> = {
 
 const POPOVER_WIDTH = 320;
 const POPOVER_MARGIN = 16;
-const POPOVER_FLIP_THRESHOLD = 320;
+/** `.rd-ecard` max-height — the most the card can grow to once its lists load. */
+const POPOVER_MAX_VH = 0.6;
+const POPOVER_GAP = 8;
 
 interface EntityCardProps {
   readonly bookId: string;
@@ -37,6 +39,10 @@ export function EntityCard({ bookId, entityId, name, type, anchorRect, onClose, 
   const { t: tg } = useTranslation('graph');
   const navigate = useNavigate();
   const cardRef = useRef<HTMLDivElement>(null);
+  const nameId = useId();
+  // Whatever had focus when the card opened (the chip, for keyboard users).
+  // Captured once: by the first effect the card has already taken focus.
+  const openerRef = useRef<Element | null>(document.activeElement);
 
   const { data: chunksData, isLoading: chunksLoading, isError: chunksErrored } = useEntityChunks(bookId, entityId);
 
@@ -52,9 +58,23 @@ export function EntityCard({ bookId, entityId, name, type, anchorRect, onClose, 
     retry: false,
   });
 
+  // Explicit dismissals (Esc, ×) hand focus back to the opener. A jump or an
+  // outside click must not: the opener may be gone, or focus pulled away.
+  const closeAndRestoreFocus = () => {
+    onClose();
+    const opener = openerRef.current;
+    if (opener instanceof HTMLElement && opener.isConnected) opener.focus({ preventScroll: true });
+  };
+
+  // Move focus into the card so keyboard users reach its actions without
+  // tabbing through every chip that follows the opener in the DOM.
+  useEffect(() => {
+    cardRef.current?.focus({ preventScroll: true });
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') closeAndRestoreFocus();
     };
     const handlePointerDown = (e: MouseEvent) => {
       if (cardRef.current && !cardRef.current.contains(e.target as Node)) onClose();
@@ -65,22 +85,28 @@ export function EntityCard({ bookId, entityId, name, type, anchorRect, onClose, 
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('mousedown', handlePointerDown);
     };
+    // closeAndRestoreFocus only closes over onClose.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onClose]);
 
-  // Anchored to the clicked mark's viewport rect; flips above the anchor
-  // when there isn't enough room below (same heuristic as the design
-  // reference: flip once the anchor bottom sits within 320px of the
-  // viewport's bottom edge). 320px wide / max-height 60vh / flex column live
-  // in `.rd-ecard`; only the anchor position is computed here.
+  // Anchored to the clicked mark's viewport rect. Flips above when the card's
+  // full height (60vh once its lists load) wouldn't fit below and there is
+  // more room above; either way max-height is clamped to the side it opens
+  // on, so the card never runs past the viewport edge. 320px wide / flex
+  // column live in `.rd-ecard`.
   const style = useMemo<React.CSSProperties>(() => {
+    const vh = window.innerHeight;
     const left = Math.max(8, Math.min(anchorRect.left, window.innerWidth - POPOVER_WIDTH - POPOVER_MARGIN));
-    const top = anchorRect.bottom + 8;
-    const flip = top > window.innerHeight - POPOVER_FLIP_THRESHOLD;
-    const base: React.CSSProperties = { left };
+    const spaceBelow = vh - anchorRect.bottom - POPOVER_GAP - POPOVER_MARGIN;
+    const spaceAbove = anchorRect.top - POPOVER_GAP - POPOVER_MARGIN;
+    const fullHeight = vh * POPOVER_MAX_VH;
+    const flip = spaceBelow < fullHeight && spaceAbove > spaceBelow;
+    const room = flip ? spaceAbove : spaceBelow;
+    const base: React.CSSProperties = { left, maxHeight: Math.min(fullHeight, room) };
     if (flip) {
-      base.bottom = window.innerHeight - anchorRect.top + 8;
+      base.bottom = vh - anchorRect.top + POPOVER_GAP;
     } else {
-      base.top = top;
+      base.top = anchorRect.bottom + POPOVER_GAP;
     }
     return base;
   }, [anchorRect]);
@@ -101,17 +127,29 @@ export function EntityCard({ bookId, entityId, name, type, anchorRect, onClose, 
     : [];
 
   return (
-    <div ref={cardRef} style={style} className="rd-ecard">
+    <div
+      ref={cardRef}
+      style={style}
+      className="rd-ecard"
+      role="dialog"
+      aria-labelledby={nameId}
+      tabIndex={-1}
+      // Tabbing out of the card closes it (no focus trap — it is a popover).
+      onBlur={(e) => {
+        const next = e.relatedTarget;
+        if (next instanceof Node && !e.currentTarget.contains(next)) onClose();
+      }}
+    >
       <div className="rd-ecard-head">
         <div className="rd-ecard-title-row">
           <div className="rd-ecard-name-row">
-            <h3 className="rd-ecard-name">{name}</h3>
+            <h3 id={nameId} className="rd-ecard-name">{name}</h3>
             <span className={`ss-pill ${pillClass[type]}`}>
               <span className="ss-pill-dot" />
               {tg(`entityTypes.${type}`)}
             </span>
           </div>
-          <button onClick={onClose} aria-label={t('entityCard.close')} className="rd-icon-btn">
+          <button onClick={closeAndRestoreFocus} aria-label={t('entityCard.close')} className="rd-icon-btn">
             <X size={15} />
           </button>
         </div>
