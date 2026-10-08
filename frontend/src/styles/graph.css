@@ -488,3 +488,9 @@
 /* LensCard 內沿用的字級（取代寫死 px 的 Tailwind 任意值） */
 .kg-t2xs { font-size: var(--font-size-2xs); }
 .kg-txs { font-size: var(--font-size-xs); }
+
+/* 窄舞台（UI_SPEC §3.6，720px 起）：角落元件與 Lens 卡會相撞時改精簡——迷你地圖拿掉，
+   統計＋縮放移到畫布右上角（與導覽條同列放不下時排到它下方，位置由 GraphPage 量測給定）。 */
+.kg-br.is-compact { bottom: auto; }
+/* 導覽條最寬 430，但不得伸進右欄底下：跟著畫布剩餘寬度縮（--kg-free 由 GraphPage 量測）。 */
+.kg-stage .ss-guidance.is-float { max-width: min(430px, calc(var(--kg-free, 100%) - 2 * var(--space-5))); }
