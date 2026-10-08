@@ -428,7 +428,7 @@ header：「章節 · N」label＋**「全部展開／全部收合」secondary �
 搜尋**不過濾**——不符者 `opacity:0.4` 仍可點，下方「N 章符合」，無命中「沒有章節含「…」」（兩條逐字）。
 
 章節卡為**多開手風琴**，兩個分離的點擊區：**左側＝導覽**（欄 3 讀該章，順帶展開）、**右側 chevron＝只展開／收合**，中間以 1px 內分隔線（chevron 的 border-left）標出；
-chevron 有自己的 hover 底（`--bg-tertiary`，展開時也是）。選中＝accent 外框＋`--bg-secondary` 底（**不用 inset**）。展開內容：摘要 → 關鍵字 → 「實體 · N」膠囊（可點開實體卡）。
+chevron 有自己的 hover 底（`--bg-tertiary`，展開時也是）。選中＝accent 外框＋`--bg-secondary` 底（**不用 inset**）；框重取 `--card-selected-border-width`（Warm 同卡框、Ink 2px——Ink 的 accent 與 border 幾乎同色）。展開內容：摘要 → 關鍵字 → 「實體 · N」膠囊（可點開實體卡）。
 36px 細軌與欄 1 細軌同一套樣式（chevron＋直排「章節」、無圖示、整條可點展開；展開態的收合 chevron 才是右上角獨立鈕）；直排「章節」已移進 i18n `reader.col2Rail`（原為硬編）。
 
 **卷首／卷末（非正文章節，2026-10-07，計畫 `docs/plans/20261007-reader-non-body-chapters.md`）**：清單以 #4 `include_non_body=true` 取得全部章，
@@ -480,6 +480,7 @@ chevron 有自己的 hover 底（`--bg-tertiary`，展開時也是）。選中�
 
 彈窗 **220px**：（「此態預設 17 / 1.6」＋「目前 …」＋ **「回到此態預設」鈕——只在使用者的值 ≠ 預設時出現**；兩態共用一組，不再有「檢視／專注」標頭，「此態」二字的措辭待設計端確認，見 DS_V3_DESIGN_FEEDBACK 第 5 批）→ 字級 小／標準／大 → 行距 緊／標準／寬 →
 紙張色溫（4 色票，**只在 Warm 渲染**；Ink 整段不渲染且忽略既存偏好，欄 3 背景固定 `--bg-primary`）→ 逐段淡入。
+點外或 **Esc** 關閉；Esc 時焦點回到 Aa 鈕（Aa 鈕帶 `aria-expanded`／`aria-controls`）。
 
 `reader:prefs` 結構（純邏輯在 `components/reader/readerModel.ts`，有 vitest）：
 
