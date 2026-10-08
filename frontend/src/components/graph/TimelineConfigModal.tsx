@@ -55,7 +55,7 @@ export function TimelineConfigModal({ bookId, detection, onClose }: TimelineConf
           <h3 className="text-base font-semibold" style={{ fontFamily: 'var(--font-serif)' }}>
             {t('timeline.modal.title')}
           </h3>
-          <button onClick={onClose} style={{ color: 'var(--fg-muted)' }}>
+          <button type="button" onClick={onClose} aria-label={tc('close')} style={{ color: 'var(--fg-muted)' }}>
             <X size={18} />
           </button>
         </div>

@@ -296,7 +296,7 @@ function FactionSettingsSection({
               type="button"
               className="kg-stepper"
               onClick={() => onChange({ ...settings, minClusterSize: Math.max(2, settings.minClusterSize - 1) })}
-              aria-label="decrease"
+              aria-label={t('a11y.decrease')}
             >
               −
             </button>
@@ -307,7 +307,7 @@ function FactionSettingsSection({
               type="button"
               className="kg-stepper"
               onClick={() => onChange({ ...settings, minClusterSize: Math.min(20, settings.minClusterSize + 1) })}
-              aria-label="increase"
+              aria-label={t('a11y.increase')}
             >
               +
             </button>
@@ -495,11 +495,12 @@ interface PanelShellProps {
 }
 
 function PanelShell({ title, onClose, children }: PanelShellProps) {
+  const { t } = useTranslation('graph');
   return (
     <div className="kg-panel">
       <div className="kg-panel-head">
         <h3 className="kg-panel-title">{title}</h3>
-        <button type="button" onClick={onClose} className="kg-icon-btn" aria-label="Close">
+        <button type="button" onClick={onClose} className="kg-icon-btn" aria-label={t('a11y.close')}>
           <X size={14} />
         </button>
       </div>

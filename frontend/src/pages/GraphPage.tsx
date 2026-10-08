@@ -8,6 +8,7 @@ import { useTheme } from '@/contexts/ThemeContext';
 import { useBook } from '@/hooks/useBook';
 import { useGraphData } from '@/hooks/useGraphData';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useDismissOverlay } from '@/hooks/useDismissOverlay';
 import {
   toCytoscapeElements,
   toClusteredCytoscapeElements,
@@ -23,6 +24,7 @@ import { GraphCanvas, type GraphCanvasHandle, type ViewportSnapshot } from '@/co
 import { GraphOnboardingHero } from '@/components/graph/GraphOnboardingHero';
 import { GraphToolbar, resolveInferenceState, type AnimationMode, type ClusterMode } from '@/components/graph/GraphToolbar';
 import { EntityDetailPanel } from '@/components/graph/EntityDetailPanel';
+import { buildEntityRelations } from '@/components/graph/entityRelations';
 import { EventDetailPanel } from '@/components/graph/EventDetailPanel';
 import { LensCard, type TimelineState } from '@/components/graph/LensCard';
 import { LegendCard } from '@/components/graph/LegendCard';
@@ -113,6 +115,7 @@ export default function GraphPage() {
   const [compareArmed, setCompareArmed] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchOpen, setSearchOpen] = useState(false);
+  const [searchActiveOptionId, setSearchActiveOptionId] = useState<string | null>(null);
   const [visibleTypes, setVisibleTypes] = useState<Set<string>>(new Set(DEFAULT_VISIBLE_TYPES));
   const [rightPanel, setRightPanel] = useState<SecondaryPanel | null>(null);
   const [unknownEntityIds, setUnknownEntityIds] = useState<Set<string>>(new Set());
@@ -590,6 +593,16 @@ export default function GraphPage() {
     );
   }, [selectedNodeId, data]);
 
+  // Confirmed relations for the panel list. Flags the ones whose other end the
+  // canvas currently hides (type chips / search / orphan drawer); not in cluster view.
+  const selectedRelations = useMemo(() => {
+    if (!selectedNodeId || !data) return [];
+    const visible = clusteredGraph
+      ? null
+      : new Set(filteredElements.filter((el) => el.group === 'nodes').map((el) => el.data.id as string));
+    return buildEntityRelations(selectedNodeId, data.nodes, data.edges, visible);
+  }, [selectedNodeId, data, clusteredGraph, filteredElements]);
+
   const compareNodes = useMemo<[GraphNode, GraphNode] | null>(() => {
     if (selectedNodeIds.length !== 2 || !data) return null;
     const a = data.nodes.find((n) => n.id === selectedNodeIds[0]);
@@ -697,6 +710,8 @@ export default function GraphPage() {
             setSearchOpen(q.length > 0);
           }}
           onSearchFocus={() => searchQuery.length > 0 && setSearchOpen(true)}
+          searchExpanded={searchOpen && searchQuery.length > 0}
+          searchActiveOptionId={searchActiveOptionId}
           searchDropdown={
             <SearchDropdown
               query={searchQuery}
@@ -704,9 +719,21 @@ export default function GraphPage() {
               chapters={chapters ?? []}
               open={searchOpen}
               onClose={() => setSearchOpen(false)}
+              onActiveOptionChange={setSearchActiveOptionId}
               onSelectEntity={(id) => {
-                setSelectedNodeId(id);
-                setSelectedNodeIds([]);
+                if (compareArmed && selectedNodeIds.length === 1) {
+                  // Armed 「加入比較」: the search pick is the second node, same
+                  // as tapping it on the canvas (see handleNodeTap).
+                  if (selectedNodeIds[0] !== id) {
+                    setSelectedNodeIds([selectedNodeIds[0], id]);
+                    setCompareArmed(false);
+                    setSelectedNodeId(null);
+                    setRightPanel(null);
+                  }
+                } else {
+                  setSelectedNodeId(id);
+                  setSelectedNodeIds([]);
+                }
                 setSearchOpen(false);
                 setSearchQuery('');
               }}
@@ -769,6 +796,7 @@ export default function GraphPage() {
             animationMode={animationMode}
             extraStylesheet={extraStylesheet}
             onViewportChange={handleViewportChange}
+            summaryLabel={t('relations.canvasSummary', { nodes: shownNodeCount, edges: shownEdgeCount })}
           />
         )}
 
@@ -785,7 +813,7 @@ export default function GraphPage() {
                 edge, the drawer opens upward. */}
             <div className="kg-bl">
               {clusterMode === 'node' && orphans.length > 0 && (
-                <OrphanDrawer orphans={orphans} open={orphanOpen} onToggle={() => setOrphanOpen((v) => !v)} />
+                <OrphanDrawer orphans={orphans} open={orphanOpen} onToggle={() => setOrphanOpen((v) => !v)} onClose={() => setOrphanOpen(false)} />
               )}
               {bookId && (
                 <LensCard
@@ -882,7 +910,7 @@ export default function GraphPage() {
                   <button
                     type="button"
                     className="kg-zoom-btn"
-                    aria-label="Zoom out"
+                    aria-label={t('a11y.zoomOut')}
                     onClick={() => canvasRef.current?.zoomBy(1 / ZOOM_STEP)}
                   >
                     <Minus size={12} />
@@ -891,7 +919,7 @@ export default function GraphPage() {
                   <button
                     type="button"
                     className="kg-zoom-btn"
-                    aria-label="Zoom in"
+                    aria-label={t('a11y.zoomIn')}
                     onClick={() => canvasRef.current?.zoomBy(ZOOM_STEP)}
                   >
                     <Plus size={12} />
@@ -976,6 +1004,8 @@ export default function GraphPage() {
                       node={selectedNode}
                       bookId={bookId}
                       relationCount={selectedRelationCount}
+                      relations={selectedRelations}
+                      onSelectRelated={(id) => handleNodeTap(id, { shift: false })}
                       isBookmarked={bookmarkedIds.includes(selectedNode.id)}
                       onBookmarkToggle={() =>
                         bookmarkedIds.includes(selectedNode.id)
@@ -1061,16 +1091,22 @@ function OrphanDrawer({
   orphans,
   open,
   onToggle,
+  onClose,
 }: {
   orphans: OrphanNode[];
   open: boolean;
   onToggle: () => void;
+  onClose: () => void;
 }) {
   const { t } = useTranslation('graph');
+  const wrapRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  useDismissOverlay(open, onClose, wrapRef, triggerRef);
   return (
-    <div className="kg-orphan">
+    <div className="kg-orphan" ref={wrapRef}>
       <button
         type="button"
+        ref={triggerRef}
         onClick={onToggle}
         aria-expanded={open}
         className="ss-btn ss-btn-sm ss-btn-secondary"

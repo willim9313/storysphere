@@ -12,12 +12,20 @@ import { useTaskPolling } from '@/hooks/useTaskPolling';
 
 import type { GraphNode } from '@/api/types';
 import { qk } from '@/api/queryKeys';
+import type { EntityRelationRow } from './entityRelations';
+
+/** Relations shown before 「顯示全部」. */
+const RELATIONS_PREVIEW = 8;
 
 interface EntityDetailPanelProps {
   readonly node: GraphNode;
   readonly bookId: string;
   /** Number of relations (graph degree) touching this entity in the current graph. */
   readonly relationCount: number;
+  /** Confirmed (non-inferred) relations of this entity, already sorted. */
+  readonly relations: readonly EntityRelationRow[];
+  /** Select the other entity — same behaviour as tapping its node on the canvas. */
+  readonly onSelectRelated: (entityId: string) => void;
   readonly onClose: () => void;
   readonly onShowAnalysis: () => void;
   readonly onShowParagraphs: () => void;
@@ -32,6 +40,8 @@ export function EntityDetailPanel({
   node,
   bookId,
   relationCount,
+  relations,
+  onSelectRelated,
   onClose,
   onShowAnalysis,
   onShowParagraphs,
@@ -73,7 +83,7 @@ export function EntityDetailPanel({
     <div className="kg-panel">
       <div className="kg-panel-head">
         <h3 className="kg-panel-title">{node.name}</h3>
-        <button type="button" onClick={onClose} className="kg-icon-btn" aria-label="Close">
+        <button type="button" onClick={onClose} className="kg-icon-btn" aria-label={t('a11y.close')}>
           <X size={14} />
         </button>
       </div>
@@ -123,6 +133,8 @@ export function EntityDetailPanel({
           )}
         </div>
 
+        <RelationsSection relations={relations} onSelectRelated={onSelectRelated} />
+
         {/* 深度分析 — character only */}
         {node.type === 'character' && (
           <AnalysisSection bookId={bookId} entityId={node.id} onShowAnalysis={onShowAnalysis} />
@@ -155,6 +167,87 @@ export function EntityDetailPanel({
         </section>
       </div>
     </div>
+  );
+}
+
+// ── Relations list ───────────────────────────────────────────────────────────
+// Keyboard/screen-reader route into the graph: the canvas is a bitmap, so the
+// neighbourhood is listed here. Cooperative/hostile is carried by a line glyph
+// (solid / dashed, mirroring the canvas edge) plus hidden text, never colour alone.
+
+function RelationsSection({
+  relations,
+  onSelectRelated,
+}: {
+  readonly relations: readonly EntityRelationRow[];
+  readonly onSelectRelated: (entityId: string) => void;
+}) {
+  const { t } = useTranslation('graph');
+  const [expanded, setExpanded] = useState(false);
+  const overflow = relations.length > RELATIONS_PREVIEW;
+  const shown = expanded ? relations : relations.slice(0, RELATIONS_PREVIEW);
+
+  return (
+    <section className="kg-section" aria-label={t('relations.title')}>
+      <div className="kg-section-head">
+        <span className="kg-label">{t('relations.title')}</span>
+        <span className="kg-note">{t('relations.count', { count: relations.length })}</span>
+      </div>
+      {relations.length === 0 ? (
+        <p className="kg-note">{t('relations.empty')}</p>
+      ) : (
+        <ul className="kg-rel-list">
+          {shown.map((r) => (
+            <li key={r.edgeId}>
+              <button type="button" className="kg-rel-row" onClick={() => onSelectRelated(r.otherId)}>
+                <RelationGlyph bucket={r.bucket} />
+                <span className="kg-rel-name">{r.otherName}</span>
+                <span className="kg-rel-type">
+                  {t(`relations.types.${r.type || 'unknown'}`, { defaultValue: r.type })}
+                </span>
+                {r.bucket !== 'neutral' && (
+                  <span className="kg-vh">
+                    {r.bucket === 'positive' ? t('relations.cooperative') : t('relations.hostile')}
+                  </span>
+                )}
+                {r.hidden && <span className="kg-rel-off">{t('relations.offCanvas')}</span>}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      {overflow && (
+        <button
+          type="button"
+          onClick={() => setExpanded((v) => !v)}
+          aria-expanded={expanded}
+          className="ss-btn ss-btn-sm ss-btn-ghost"
+          style={{ alignSelf: 'flex-start' }}
+        >
+          {expanded ? t('relations.showLess') : t('relations.showAll', { count: relations.length })}
+        </button>
+      )}
+    </section>
+  );
+}
+
+/** Short line segment mirroring the canvas edge: cooperative solid, hostile dashed, neutral none. */
+function RelationGlyph({ bucket }: { readonly bucket: EntityRelationRow['bucket'] }) {
+  return (
+    <svg className="kg-rel-glyph" width="18" height="6" viewBox="0 0 18 6" aria-hidden="true" focusable="false">
+      {bucket !== 'neutral' && (
+        <line
+          x1="1"
+          y1="3"
+          x2="17"
+          y2="3"
+          stroke="currentColor"
+          strokeWidth={bucket === 'positive' ? 2 : 1.5}
+          strokeDasharray={bucket === 'negative' ? '4 3' : undefined}
+          strokeLinecap="butt"
+        />
+      )}
+    </svg>
   );
 }
 

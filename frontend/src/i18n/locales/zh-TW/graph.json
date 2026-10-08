@@ -312,5 +312,42 @@
     "potential_friendship": "潛在友誼",
     "potential_associate": "潛在關聯",
     "unknown": "未判定"
+  },
+  "searchA11y": {
+    "inputLabel": "搜尋實體或章節",
+    "listLabel": "搜尋結果"
+  },
+  "a11y": {
+    "close": "關閉面板",
+    "zoomIn": "放大",
+    "zoomOut": "縮小",
+    "decrease": "減少",
+    "increase": "增加",
+    "lensTabs": "視角分頁"
+  },
+  "relations": {
+    "title": "關係",
+    "count": "{{count}} 筆",
+    "empty": "沒有已確認的關係",
+    "showAll": "顯示全部 {{count}} 筆",
+    "showLess": "收合",
+    "offCanvas": "（畫布已隱藏）",
+    "cooperative": "合作",
+    "hostile": "敵對",
+    "canvasSummary": "知識圖譜：{{nodes}} 個節點、{{edges}} 條關係",
+    "types": {
+      "family": "家人",
+      "friendship": "友誼",
+      "romance": "戀人",
+      "enemy": "敵對",
+      "ally": "盟友",
+      "subordinate": "從屬",
+      "located_in": "位於",
+      "member_of": "成員",
+      "owns": "擁有",
+      "other": "其他",
+      "unknown": "未分類",
+      "participates_in": "參與"
+    }
   }
 }

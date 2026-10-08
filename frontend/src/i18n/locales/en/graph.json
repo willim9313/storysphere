@@ -312,5 +312,42 @@
     "potential_friendship": "Possible friendship",
     "potential_associate": "Possible association",
     "unknown": "Undetermined"
+  },
+  "searchA11y": {
+    "inputLabel": "Search entities or chapters",
+    "listLabel": "Search results"
+  },
+  "a11y": {
+    "close": "Close panel",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "decrease": "Decrease",
+    "increase": "Increase",
+    "lensTabs": "Lens tabs"
+  },
+  "relations": {
+    "title": "Relations",
+    "count": "{{count}}",
+    "empty": "No confirmed relations",
+    "showAll": "Show all {{count}}",
+    "showLess": "Show fewer",
+    "offCanvas": "(hidden on canvas)",
+    "cooperative": "Cooperative",
+    "hostile": "Hostile",
+    "canvasSummary": "Knowledge graph: {{nodes}} nodes, {{edges}} relations",
+    "types": {
+      "family": "Family",
+      "friendship": "Friendship",
+      "romance": "Romance",
+      "enemy": "Enemy",
+      "ally": "Ally",
+      "subordinate": "Subordinate",
+      "located_in": "Located in",
+      "member_of": "Member of",
+      "owns": "Owns",
+      "other": "Other",
+      "unknown": "Unclassified",
+      "participates_in": "Takes part in"
+    }
   }
 }

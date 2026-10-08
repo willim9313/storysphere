@@ -38,6 +38,8 @@ interface GraphCanvasProps {
   readonly animationMode?: AnimationMode;
   readonly extraStylesheet?: cytoscape.StylesheetStyle[];
   readonly onViewportChange?: (snap: ViewportSnapshot) => void;
+  /** Screen-reader summary of what the canvas draws (it is a bitmap to AT). */
+  readonly summaryLabel?: string;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -225,6 +227,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
     animationMode = 'fade',
     extraStylesheet = [],
     onViewportChange,
+    summaryLabel,
   },
   ref,
 ) {
@@ -559,6 +562,8 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
   return (
     <div
       ref={containerRef}
+      role="img"
+      aria-label={summaryLabel}
       className="absolute inset-0"
       style={{ backgroundColor: 'var(--bg-primary)' }}
     />
