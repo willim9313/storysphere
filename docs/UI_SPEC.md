@@ -1031,7 +1031,8 @@ partial 時附「部分分析」徽章。其下為研究者導覽 ribbon。
 
 - Cytoscape.js 渲染（fcose layout）；載入後自動 `fit` 置中（Phase 1）
 - 節點大小＝**登場頻率**（`chunkCount` sqrt 縮放）
-- 節點顏色依實體類型 — 使用 `--graph-{type}-fill / -stroke / -label` token
+- **節點形狀依實體類型**（2026-10-08，`lib/cytoscapeConfig.ts` `NODE_SHAPES`）：角色＝圓、地點＝圓角方、組織＝六角、物品＝菱形、概念＝圓角三角、事件＝方塊、其他＝較小的圓（0.75 倍）。形狀是第一辨識通道——角色／事件／物品的 fill 幾乎同色，Ink 又把語意色壓平
+- 節點顏色依實體類型 — 使用 `--graph-{type}-fill / -stroke / -label` token（第二通道，兩主題共用）
 - **聚焦模式**（Phase 1）：選取 degree ≥ 5 的節點時，非鄰居 dim 至 ~0.1，聚焦焦點＋鄰居
 - **標籤策略**（Phase 1）：預設只顯示 degree top-N 標籤；聚焦時顯示焦點＋前 N 鄰居；事件標題單行截斷；低 zoom 隱藏
 - **孤兒節點**（degree 0）自畫布移除，改收進右上「未連結實體」抽屜（Phase 1）
@@ -1087,7 +1088,7 @@ localStorage key（**必須保留**，換版面不換 key）：`graph:${bookId}:
 - 第一列：**完整 7 個 entity types**（角色/地點/組織/物品/概念/事件/其他，設計 contract 規定不得只列 4 類子集）swatch＋標籤，**不含計數**（依設計稿）
 - 第二列：邊語意（合作＝success／敵對＝error／一般＝fg-muted／推測＝warning dashed）＋節點大小示意（○◯ 圓圈大小＝登場頻率）
 
-swatch 為圓點（`--graph-*-fill` 底 + `--graph-*-stroke` 框）。孤兒實體改由右上「未連結實體」抽屜負責（Phase 1）。
+swatch 為該類型的**節點形狀**（12px SVG，`--graph-*-fill` 底 + `--graph-*-stroke` 框），與畫布一致。孤兒實體改由右上「未連結實體」抽屜負責（Phase 1）。
 
 #### MiniMap（右下角 180×120）
 

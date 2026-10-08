@@ -5,6 +5,25 @@ import type { AggregatedEdge } from '@/services/kgClustering';
 const v = (name: string) =>
   getComputedStyle(document.documentElement).getPropertyValue(name).trim();
 
+/**
+ * Entity type → node shape (UI_SPEC §3.6, 2026-10-08). The --graph-* fills of
+ * character / event / object are near-identical pinks, and Ink flattens the
+ * semantic colours, so shape is the channel that keeps types apart in both
+ * themes (DESIGN.md Glyph Not Hue Rule). LegendCard draws the same shapes.
+ */
+export const NODE_SHAPES = {
+  character: 'ellipse',
+  location: 'round-rectangle',
+  organization: 'hexagon',
+  object: 'diamond',
+  concept: 'round-triangle',
+  event: 'rectangle',
+  other: 'ellipse',
+} as const satisfies Record<string, cytoscape.Css.NodeShape>;
+
+/** 「其他」shares the circle with characters, so it is drawn a size smaller. */
+const OTHER_SIZE_FACTOR = 0.75;
+
 export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
   // "other" doubles as the fallback for any type outside the map — falling
   // back to --border painted org/object nodes near-black under Ink.
@@ -77,15 +96,10 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
 
   return [
     {
-      // V1 design: all entity types render as circles. Differentiation is
-      // by fill/stroke color + dot, never by shape (see design styles.css
-      // .gnode-fill — single <circle> renderer across all types).
-      //
-      // Design-system v2 (ink-on-paper): both themes share the warm entity
-      // hue arc — the --graph-* tokens are not overridden per theme — so
-      // node types stay color-distinguishable in Warm and Ink alike
-      // (formerly B-047; the old B&W themes that neutralized entity colors
-      // are gone).
+      // Types are told apart by shape first, colour second (NODE_SHAPES). V1
+      // drew every type as a circle and relied on the warm hue arc alone,
+      // which left 角色／事件／物品 indistinguishable. Both themes still share
+      // the --graph-* colours (Shared Taxonomy Rule).
       selector: 'node',
       style: {
         label: 'data(label)',
@@ -108,12 +122,15 @@ export function getCytoscapeStylesheet(): cytoscape.StylesheetStyle[] {
         'text-margin-y': 4,
         'background-color': (ele: cytoscape.NodeSingular) =>
           fills[ele.data('entityType') as string] ?? fills.other,
-        width: 'data(size)',
-        height: 'data(size)',
+        width: (ele: cytoscape.NodeSingular) =>
+          ele.data('entityType') === 'other' ? ele.data('size') * OTHER_SIZE_FACTOR : ele.data('size'),
+        height: (ele: cytoscape.NodeSingular) =>
+          ele.data('entityType') === 'other' ? ele.data('size') * OTHER_SIZE_FACTOR : ele.data('size'),
         'border-width': nodeBorderWidth,
         'border-color': (ele: cytoscape.NodeSingular) =>
           strokes[ele.data('entityType') as string] ?? strokes.other,
-        shape: 'ellipse',
+        shape: (ele: cytoscape.NodeSingular) =>
+          NODE_SHAPES[ele.data('entityType') as keyof typeof NODE_SHAPES] ?? NODE_SHAPES.other,
       },
     },
     {
