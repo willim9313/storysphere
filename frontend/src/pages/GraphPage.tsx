@@ -414,6 +414,14 @@ export default function GraphPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- `theme` is an intentional cache-buster: forces re-reading CSS vars when the theme switches
   }, [misbeliefEventIds, theme]);
 
+  // One stable array for GraphCanvas: it re-applies the whole stylesheet when
+  // this identity changes, and a fresh array on every render fed an idle
+  // render loop (cy.style → 'render' → viewport snapshot → re-render).
+  const extraStylesheet = useMemo(
+    () => [...relationEdgeStylesheet, ...epistemicStylesheet, ...misbeliefStylesheet],
+    [relationEdgeStylesheet, epistemicStylesheet, misbeliefStylesheet],
+  );
+
   // F4 deep-link restore (?entity=&mode=&chapter=): seeds selection + cluster
   // mode from the shareable URL on load. `entity` keeps applying whenever
   // `data` becomes available (unchanged from before); `mode` is applied only
@@ -720,7 +728,7 @@ export default function GraphPage() {
             selectedNodeId={selectedNodeId}
             selectedNodeIds={selectedNodeIds}
             animationMode={animationMode}
-            extraStylesheet={[...relationEdgeStylesheet, ...epistemicStylesheet, ...misbeliefStylesheet]}
+            extraStylesheet={extraStylesheet}
             onViewportChange={handleViewportChange}
           />
         )}
