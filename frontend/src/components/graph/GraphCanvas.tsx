@@ -245,6 +245,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
   // focus-dim (applyHighlight) and label visibility so both use one source
   // of truth for "how connected is this node".
   const degreesRef = useRef<Map<string, number>>(new Map());
+  const pendingSelectRef = useRef<string | null>(null);
   // Current focus-mode label allowlist (null when not focused); read by the
   // cy 'zoom' handler above, which fires outside React's render cycle.
   const focusLabelIdsRef = useRef<Set<string> | null>(null);
@@ -488,10 +489,28 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
     const cy = cyRef.current;
     if (!cy || !selectedNodeId) return;
     const node = cy.getElementById(selectedNodeId);
-    if (!node.length) return;
+    if (!node.length) {
+      // Not drawn yet — its type is filtered off and GraphPage is turning it
+      // back on (events start hidden). The effect below finishes the job.
+      pendingSelectRef.current = selectedNodeId;
+      return;
+    }
+    pendingSelectRef.current = null;
     applyHighlight(cy, [selectedNodeId], degreesRef.current);
     cy.animate({ center: { eles: node }, zoom: 1.4 }, { duration: 400 });
   }, [selectedNodeId]);
+
+  // Finish a selection whose node only arrived with a later elements update.
+  useEffect(() => {
+    const cy = cyRef.current;
+    const id = pendingSelectRef.current;
+    if (!cy || !id || id !== selectedNodeId) return;
+    const node = cy.getElementById(id);
+    if (!node.length) return;
+    pendingSelectRef.current = null;
+    applyHighlight(cy, [id], degreesRef.current);
+    cy.animate({ center: { eles: node }, zoom: 1.4 }, { duration: 400 });
+  }, [elements, selectedNodeId]);
 
   // Multi-select highlight (Scenario E)
   useEffect(() => {
