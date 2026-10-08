@@ -1847,6 +1847,7 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 | # | 類型 | 狀態 |
 |---|------|------|
 | TD-1 | 缺陷 · Ink 下閱讀頁選中章幾乎看不出來 | 待同步 |
+| TD-2 | 缺陷 · 圖譜節點類型無法辨識（推翻 V1「不用形狀」） | 待同步 |
 
 ### TD-1 Ink 下閱讀頁選中章幾乎看不出來
 
@@ -1854,3 +1855,10 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 - **問題**：Ink 的 `--accent #111` 與 `--border #1a1a1a` 幾乎同色，選中章只剩 `#f6f6f4`／`#fff` 的底色差（1.08:1），與「只展開未選中」的卡分不出來。
 - **目前處置**：使用者裁決（2026-10-08）新增 shape token `--card-selected-border-width`（Warm 同卡框 1px、Ink 2px），並表示要逐步拉開兩主題的顯示差異。
 - **請設計端**：認可此 token 並補進 Ink 稿；整體規劃兩主題在形（線重、填色極性、形狀）上的分化，而不只換 palette。
+
+### TD-2 圖譜節點類型無法辨識（推翻 V1「不用形狀」）
+
+- **出處**：14 知識圖譜稿節點（`styles.css .gnode-fill` 單一 `<circle>` renderer，「never by shape」）；impeccable critique 知識圖譜頁（2026-10-08）P0
+- **問題**：角色／事件／物品的 `--graph-*-fill` 為 `#ffe8d9`／`#ffe0de`／`#ffe3dc`，幾乎同色，描邊也相近；形狀一律圓。Warm 下就分不出類型，違反 Glyph Not Hue Rule。
+- **目前處置**：使用者裁決（2026-10-08，方向 A：兩主題都「形狀＋顏色」，保留 Shared Taxonomy Rule）：角色＝圓、地點＝圓角方、組織＝六角、物品＝菱形、概念＝圓角三角、事件＝方塊、其他＝較小的圓；圖例 swatch 同步畫形狀。後續可能改走方向 B（Ink 無色、純形狀＋線型），待使用者看過效果再定。
+- **請設計端**：認可形狀對應並補進 14 稿與圖例規格；評估 Ink 是否要走「無色純形狀」。

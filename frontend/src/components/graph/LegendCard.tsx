@@ -1,6 +1,20 @@
 import { useTranslation } from 'react-i18next';
 import type { EntityType } from '@/api/types';
 import type { ClusterMode } from './GraphToolbar';
+import { NODE_SHAPES } from '@/lib/cytoscapeConfig';
+
+type NodeShape = (typeof NODE_SHAPES)[keyof typeof NODE_SHAPES];
+
+/** 12px drawings of the cytoscape node shapes, so the legend reads the way the
+ *  canvas does (shape first, colour second). 「其他」 is the smaller circle. */
+const SHAPE_MARK: Record<NodeShape, (small: boolean) => React.ReactNode> = {
+  ellipse: (small) => <circle cx="6" cy="6" r={small ? 3.8 : 5} />,
+  'round-rectangle': () => <rect x="1" y="1" width="10" height="10" rx="3" />,
+  hexagon: () => <polygon points="3,1 9,1 11.5,6 9,11 3,11 0.5,6" />,
+  diamond: () => <polygon points="6,0.5 11.5,6 6,11.5 0.5,6" />,
+  'round-triangle': () => <polygon points="6,1 11,10.5 1,10.5" strokeLinejoin="round" />,
+  rectangle: () => <rect x="1.5" y="1.5" width="9" height="9" />,
+};
 
 // 設計 contract（README「Graph legend covers all 7 types」）：圖例必須涵蓋
 // 完整 7 類，不得只列 4 類 demo 子集——數量為 0 的類型也照列。
@@ -69,15 +83,16 @@ export function LegendCard({ clusterMode = 'node' }: Readonly<{ clusterMode?: Cl
               const dotKey = TYPE_KEY[type];
               return (
                 <span key={type} className="kg-legend-type">
-                  <span
-                    className="inline-block rounded-full flex-shrink-0"
-                    style={{
-                      width: 9,
-                      height: 9,
-                      backgroundColor: `var(--graph-${dotKey}-fill)`,
-                      border: `var(--line-weight) solid var(--graph-${dotKey}-stroke)`,
-                    }}
-                  />
+                  <svg
+                    width="12"
+                    height="12"
+                    viewBox="0 0 12 12"
+                    aria-hidden="true"
+                    className="flex-shrink-0"
+                    style={{ fill: `var(--graph-${dotKey}-fill)`, stroke: `var(--graph-${dotKey}-stroke)`, strokeWidth: 1.2 }}
+                  >
+                    {SHAPE_MARK[NODE_SHAPES[type]](type === 'other')}
+                  </svg>
                   {t(`entityTypes.${type}`)}
                 </span>
               );
