@@ -11,8 +11,8 @@
   "onboarding": {
     "eyebrow": "Knowledge Graph",
     "title": "No nodes to show yet",
-    "intro": "The knowledge graph is built from entities and relations extracted from each chapter. This book has no nodes yet — make sure processing has finished, or re-upload it.",
-    "cta": "Go to Upload"
+    "intro": "The knowledge graph is built from entities and relations extracted from each chapter. This book has no nodes yet — check the knowledge-graph step in Build overview, or run it again.",
+    "cta": "Go to Build overview"
   },
   "timeline": {
     "modal": {
