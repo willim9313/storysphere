@@ -169,7 +169,9 @@ hover 底 `--bg-secondary`；標籤 `settings:guidance.title`「研究者導覽�
 - **StatusBadge** 三態色彩不變，加字符冗餘編碼：✓ 已分析、i 已就緒、✕ 錯誤（Ink 下 status 色都收成同一黑）。
   `StatusBadge` 為共用元件，書籍總覽頁一併換新外觀。
 - **降級告警**：`failedSteps.join('、') + ' 不可用'`＋`AlertTriangle`、warning 底，位在 badge 之下、meta 之上。
-- **刪除兩段式**：hover／focus 才出現 28px 垃圾桶；點了只進確認態——error 底列「刪除？」＋danger「確認」＋ghost「取消」。
+- **刪除兩段式**：hover／focus 才出現 28px 垃圾桶（名稱「刪除《書名》」）；點了只進確認態——error 底列「刪除？」＋danger「確認」＋ghost「取消」。
+  已分析的書句子改「刪除？分析結果會一併刪除」；刪除失敗時列不收起、句子換「刪除失敗，請重試」（`role="status"`）。
+  Esc 或點卡片外取消，Esc／「取消」焦點回垃圾桶；刪除成功後焦點移到下一張卡（沒有則「上傳新書」卡）。
   不是 modal、沒有 undo toast。
 - 卡上不再顯示最後開啟日期（稿上 anatomy 沒有）。
 
