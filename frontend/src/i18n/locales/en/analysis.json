@@ -95,7 +95,8 @@
       "frameworkLabel": "Analysis framework",
       "mentionCount": "{{count}} mentions",
       "createBtn": "Create",
-      "frameworkNote": "The framework (Jung / Schmidt) only affects the archetype section."
+      "frameworkNote": "The framework (Jung / Schmidt) only affects the archetype section.",
+      "empty": "No characters yet."
     },
     "archFilter": {
       "label": "Filter analyzed characters by archetype",
@@ -105,6 +106,10 @@
       "clearAll": "Clear all filters"
     },
     "overview": {
+      "empty": {
+        "title": "No characters extracted from this book yet",
+        "description": "The cast comes from the knowledge graph’s entity extraction. Check in the build overview that the “Knowledge graph” step has finished, or run it again."
+      },
       "title": "Cast Overview",
       "metaTotal": "characters",
       "metaAnalyzed": "analyzed",

@@ -629,7 +629,8 @@ export default function CharacterAnalysisPage() {
           <div className="ca-left-top">
             {/* Book-level batch actions live in the one column both views share,
                 above the framework axis (09·10): reachable with a character selected. */}
-            {charData && bookId && (
+            {/* With no characters the panel is only disabled buttons (0/0); hide it. */}
+            {charData && bookId && totalCharacters > 0 && (
               <BatchEepPanel
                 bookId={bookId}
                 page="characters"
@@ -722,6 +723,10 @@ export default function CharacterAnalysisPage() {
           )}
 
           <div className="ca-list">
+            {charData && totalCharacters === 0 && (
+              // Group-head row: same inset and muted 2xs as the group labels it replaces.
+              <p className="ca-list-group-head" style={{ margin: 0 }}>{t('character.list.empty')}</p>
+            )}
             {filteredAnalyzed.length > 0 && (
               <div className="ca-list-group">
                 <div className="ca-list-group-head">

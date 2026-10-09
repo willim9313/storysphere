@@ -636,6 +636,7 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 頂部固定一條 **Tip Ribbon**（首次進入顯示，localStorage `storysphere:tip-dismissed:character-analysis` 永久 dismiss）。
 
 **未選取角色時（角色總覽 landing，2026-07 重做，取代舊版「快速前往已分析角色」）**：
+- **此書 0 位角色**：整個 landing 換成 `EmptyState`（prerequisite）「此書尚未抽出角色」＋說明＋「前往建構概覽」（`/books/:id/unraveling`，沿用 `graph:onboarding.cta`）；不畫視圖 toggle／象限／排行。左欄批次面板隱藏，清單只留一行「尚無角色。」（見 DS_V3_DESIGN_FEEDBACK CA-2）。**這 3 句是草稿・待設計定案**（i18n `analysis:character.overview.empty.{title,description}`、`character.list.empty`）
 - 標頭：「角色群像」h1 + meta 計數列（N 位角色 · 已分析 · 未分析）+ 右側**只留視圖 toggle**（兩顆批次鈕與執行中進度已搬進左欄批次面板，第 5 批 09·10）
 - Segmented toggle 切「定位象限」（預設）/「提及量排行」
 - **定位象限**：SVG 散點圖 + 右欄派系圖例卡；X = normalized log10(mentionCount+1)、Y = normalized pagerank（#6e `character-metrics`）、泡泡半徑 = 關係數（degree，上限封頂）、顏色 = 派系（#6d `factions`，無派系 = 透明+muted 描邊）；兩軸中位數虛線十字；提及前 8 名恆顯示 label，其餘 hover 顯示；metrics 端點失敗時降級顯示錯誤佔位（排行視圖不受影響，只依賴 #6a）
@@ -659,7 +660,7 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 | 人格 (persona) | 角色簡介（serif 段落）+ 原型卡（primary/secondary + 信心度條 + 「切到對照」+ 編號證據列）+ 個性特質 grid（`minmax(240px,1fr)`，以「：」拆詞+描述） |
 | 行為 (behavior) | `cep.actions` bullet + 關鍵事件卡（依章排序，mono Ch.N + significance；名稱比對得到的事件附「在事件分析頁查看」連結，帶 `state.selectId`） |
 | 關係 (relations) | **ego-network SVG**（當前角色 hub + 橢圓佈局 + 曲線邊依型別著色：敵人/盟友/下屬/成員/其他 → entity 色相，未知型別 fallback 其他；角色 target 可點切換）+ 按對象分組關係卡（「N 段」badge + 型別 pills）+ 代表引言 |
-| 弧線 (arc) | 章節軸（動態 Ch.1–N）+ phase 色帶（`--narrative-*-border` 按索引輪替，相鄰共享邊界章時錯行堆疊）+ keyEvents marker + 可點 phase 卡（與色帶同步高亮） |
+| 弧線 (arc) | 章節軸（動態 Ch.1–N）+ phase 色帶（`chapterRange` 為 `a-b` 或單章 `n`，單章畫一章寬）（`--narrative-*-border` 按索引輪替，相鄰共享邊界章時錯行堆疊）+ keyEvents marker + 可點 phase 卡（與色帶同步高亮） |
 
 **生成中狀態**（`CharacterGenerating`，2026-07 新增）：置中 420px 卡 — spin icon + 角色名 + mono TASK ID + 進度條 + 6 步 checklist；步驟由後端 5/30/85 三個 progress 事件推導（步驟 2–5 為同一並行組），對映見元件內 `deriveStages` 註解。
 

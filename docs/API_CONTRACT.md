@@ -493,11 +493,14 @@ interface ArchetypeDetail {
 }
 
 interface ArcSegment {
-  chapterRange: string;
+  chapterRange: string;             // "a-b" 或單章 "n"
   phase: string;
   description: string;
 }
 ```
+
+`CepData`（見 generated.ts）的 `keyEvents` 是 LLM 產出的物件陣列（`event` / `chapter` / `significance`）。
+**`keyEvents[].chapter` 一律為 `number | null`**：LLM 常寫成字串 `"1"`，後端回應時轉成整數（快取中的舊結果同樣適用）；無法解析為整數章號時為 `null`。
 
 **Response 404**：尚未生成，前端顯示「未生成」引導按鈕
 

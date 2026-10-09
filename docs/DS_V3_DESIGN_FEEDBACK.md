@@ -1881,6 +1881,7 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 | # | 類型 | 狀態 |
 |---|------|------|
 | CA-1 | 缺口 · 認知狀態「誤信尚未推論」狀態（瀏覽章節不再暗中花 token） | 待同步 |
+| CA-2 | 遺漏 · 角色分析頁「此書沒有任何角色」空態 | 待同步 |
 
 ### CA-1 認知狀態「誤信尚未推論」狀態
 
@@ -1888,3 +1889,10 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 - **問題**：誤信是 LLM 推論，以 (角色, 章) 快取；拖章節游標、認知對照選第二角色，只要該章未快取就會在背景呼叫 LLM，違反 PRODUCT 原則 3「花 token 之前說清楚」。稿只有「有誤信」與「未發現顯著誤信」兩態，沒有「尚未推論」。
 - **目前處置**（使用者 2026-10-09 裁決 1a／2a／3a）：認知分頁與認知對照一律以 #12e `cached_only=1` 讀取（已知／未知照常、零成本）。未推論時 Summary 徽章顯示「誤信 —」、誤信欄計數「—」，欄內一句「截至第 N 章的誤信尚未推論。」＋ `ss-btn-secondary ss-btn-llm`「推論誤信」＋ muted 提示「會呼叫 LLM，消耗 token」；**不開確認框**（同單件「建立」）。推論後仍未推論（無 provider）→ 欄內換成 `LlmUnconfiguredNotice`。字串 `analysis:character.epistemic.{misbeliefPending,inferMisbeliefs,inferringMisbeliefs,inferMisbeliefsFailed}` 為工程草稿。
 - **請設計端**：把「尚未推論」態補進 09 稿認知分頁與字串表；確認「—」作為未推論計數、按鈕放欄內而非 Summary 列。
+
+### CA-2 角色分析頁「此書沒有任何角色」空態
+
+- **出處**：09 角色分析稿角色總覽 landing（象限／排行雙視圖，只畫有角色的情況）與左欄批次面板；impeccable critique／audit 角色分析頁（2026-10-09）P1-2
+- **問題**：0 位角色的書，象限顯示「角色結構重要性資料暫時無法取得」（「暫時」誤導，實際是沒有角色）、排行整片空白、左欄清單空白、批次面板只剩 0/0 的停用鈕。
+- **目前處置**（使用者 2026-10-09 裁決 2a）：landing 改為 `EmptyState` prerequisite「此書尚未抽出角色」＋「角色清單來自知識圖譜的實體抽取。請到建構概覽確認「知識圖譜」步驟已完成，或重新執行。」＋「前往建構概覽」（沿用知識圖譜空態已裁決字串）；不畫視圖切換／象限／排行。左欄批次面板隱藏，清單一行「尚無角色。」。新字串 3 句為工程草稿。
+- **請設計端**：把空態補進 09 稿 landing 與左欄；確認批次面板在 0 位角色時隱藏（而非第 5 種狀態）。

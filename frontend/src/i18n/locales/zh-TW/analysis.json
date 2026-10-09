@@ -95,7 +95,8 @@
       "frameworkLabel": "分析框架",
       "mentionCount": "提及 {{count}} 次",
       "createBtn": "建立",
-      "frameworkNote": "框架（Jung / Schmidt）只影響原型那一節。"
+      "frameworkNote": "框架（Jung / Schmidt）只影響原型那一節。",
+      "empty": "尚無角色。"
     },
     "archFilter": {
       "label": "依原型篩選已分析角色",
@@ -105,6 +106,10 @@
       "clearAll": "清除全部篩選"
     },
     "overview": {
+      "empty": {
+        "title": "此書尚未抽出角色",
+        "description": "角色清單來自知識圖譜的實體抽取。請到建構概覽確認「知識圖譜」步驟已完成，或重新執行。"
+      },
       "title": "角色群像",
       "metaTotal": "位角色",
       "metaAnalyzed": "已分析",
