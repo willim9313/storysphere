@@ -7,7 +7,10 @@
  * - 弧線階段的錯行（相鄰階段共享邊界章才錯行）
  * - 原型信心度檔位、「未生成」與「生成失敗」的判定
  * - 象限在 metrics 載入中／失敗時的區分
+ * - 原型名稱在書本語言與介面語言之間的對照（以原型 id 為準）
  */
+
+import { getFrameworks } from '@/data/frameworksData';
 
 // ── 左欄提及量長條 ────────────────────────────────────────────
 
@@ -216,3 +219,47 @@ export function quadrantStatus(metricsLoading: boolean, plottedCount: number): Q
   if (metricsLoading) return 'loading';
   return plottedCount === 0 ? 'unavailable' : 'ready';
 }
+
+// ── 原型名稱（書本語言 ↔ 介面語言）────────────────────────────
+
+/**
+ * 後端回的原型名是**書本語言**（中文書 →「統治者」），介面語言可能不同。
+ * 中英兩套原型表共用 id（`ruler`），所以先把名稱對回 id，再依介面語言取名。
+ */
+const archetypeIndexCache = new Map<string, Map<string, string>>();
+
+function archetypeIndex(framework: string): Map<string, string> {
+  const cached = archetypeIndexCache.get(framework);
+  if (cached) return cached;
+  const index = new Map<string, string>();
+  for (const lang of ['zh-TW', 'en']) {
+    const fw = getFrameworks(lang).find((f) => f.key === framework);
+    fw?.items.forEach((item) => index.set(item.name.trim().toLowerCase(), item.id));
+  }
+  archetypeIndexCache.set(framework, index);
+  return index;
+}
+
+/** 名稱 → 原型 id；對不到（LLM 寫了變體）回 null。 */
+export function archetypeIdOf(framework: string, name: string | null | undefined): string | null {
+  if (!name) return null;
+  return archetypeIndex(framework).get(name.trim().toLowerCase()) ?? null;
+}
+
+/** 篩選與計數用的鍵：對得到 id 用 id，否則退回原名（不讓資料整筆消失）。 */
+export function archetypeKey(framework: string, name: string | null | undefined): string {
+  return archetypeIdOf(framework, name) ?? name ?? '';
+}
+
+/** 依介面語言顯示原型名；對不到 id 時照原名顯示。 */
+export function archetypeDisplayName(
+  framework: string,
+  name: string | null | undefined,
+  lang: string,
+): string {
+  const id = archetypeIdOf(framework, name);
+  if (!id) return name ?? '';
+  const item = getFrameworks(lang).find((f) => f.key === framework)?.items.find((i) => i.id === id);
+  return item?.name ?? name ?? '';
+}
+

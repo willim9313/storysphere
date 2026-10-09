@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import {
+  archetypeDisplayName,
+  archetypeIdOf,
+  archetypeKey,
   DIMMED_OPACITY,
   archetypeState,
   assignArcRows,
@@ -288,3 +291,26 @@ describe('quadrantStatus', () => {
     expect(quadrantStatus(false, 12)).toBe('ready');
   });
 });
+
+describe('archetype names across languages', () => {
+  it('maps a name in either language to the shared id', () => {
+    expect(archetypeIdOf('jung', '統治者')).toBe('ruler');
+    expect(archetypeIdOf('jung', 'The Ruler')).toBe('ruler');
+    expect(archetypeIdOf('jung', ' the ruler ')).toBe('ruler');
+    expect(archetypeIdOf('schmidt', '國王')).toBe('king');
+  });
+  it('returns null for unknown or empty names', () => {
+    expect(archetypeIdOf('jung', '不存在的原型')).toBeNull();
+    expect(archetypeIdOf('jung', undefined)).toBeNull();
+  });
+  it('keys by id, falling back to the raw name', () => {
+    expect(archetypeKey('jung', '統治者')).toBe('ruler');
+    expect(archetypeKey('jung', '自創原型')).toBe('自創原型');
+  });
+  it('displays the name in the interface language', () => {
+    expect(archetypeDisplayName('jung', '統治者', 'en')).toBe('The Ruler');
+    expect(archetypeDisplayName('jung', 'The Ruler', 'zh-TW')).toBe('統治者');
+    expect(archetypeDisplayName('jung', '自創原型', 'en')).toBe('自創原型');
+  });
+});
+

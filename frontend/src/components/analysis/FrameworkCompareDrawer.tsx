@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import type { ArchetypeDetail, CharacterAnalysisDetail } from '@/api/types';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { ConfidenceMeter } from './ConfidenceMeter';
+import { archetypeDisplayName } from './characterModel';
 
 interface Props {
   open: boolean;
@@ -46,7 +47,7 @@ function CompareColumn({
   title: string;
   archetype: ArchetypeDetail | undefined;
 }) {
-  const { t } = useTranslation('analysis');
+  const { t, i18n } = useTranslation('analysis');
 
   if (!archetype) {
     return (
@@ -67,11 +68,13 @@ function CompareColumn({
       </div>
       <div className="ca-compare-row">
         <span className="ca-compare-row-label">{t('character.primaryArchetype')}</span>
-        <span className="ca-compare-primary">{archetype.primary}</span>
+        <span className="ca-compare-primary">
+          {archetypeDisplayName(archetype.framework, archetype.primary, i18n.language)}
+        </span>
       </div>
       {archetype.secondary && (
         <div className="ca-compare-secondary">
-          {t('character.compare.secondaryLabel', { name: archetype.secondary })}
+          {t('character.compare.secondaryLabel', { name: archetypeDisplayName(archetype.framework, archetype.secondary, i18n.language) })}
         </div>
       )}
       {/* 信心度三件套在抽屜兩側都齊備：Ink 下長條會塌成單色，文字與數字是必要的冗餘。 */}

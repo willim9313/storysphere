@@ -39,7 +39,7 @@ export function FactionLegend({
   selection,
   onSelectionChange,
 }: Readonly<FactionLegendProps>) {
-  const { t } = useTranslation('analysis');
+  const { t, i18n } = useTranslation('analysis');
   const [otherOpen, setOtherOpen] = useState(false);
   const pick = (next: Exclude<FactionSelection, null>) =>
     onSelectionChange(toggleFactionSelection(selection, next));
@@ -53,14 +53,19 @@ export function FactionLegend({
         <>
           <div className="ca-ov-legend-head">{t('character.overview.quadrant.legendHead')}</div>
           {legend.slotted.map((f) => {
-            const names = f.topMemberNames;
+            const names = f.topMemberNames.slice(0, 2);
+            // zh reads the total (「A、B 等 7 人」); en reads the remainder
+            // (「A, B and 5 more」), so pass both and let each string pick.
+            // With no remainder en drops the "and 0 more" tail; zh is unchanged.
+            const zh = i18n.language.startsWith('zh');
+            const rest = f.memberCount - names.length;
+            const joined = names.join(zh ? '、' : ', ');
             const label =
-              names.length > 0
-                ? t('character.overview.quadrant.legendRow', {
-                    names: names.slice(0, 2).join('、'),
-                    count: f.memberCount,
-                  })
-                : f.label;
+              names.length === 0
+                ? f.label
+                : zh || rest > 0
+                  ? t('character.overview.quadrant.legendRow', { names: joined, count: f.memberCount, rest })
+                  : joined;
             return (
               <button
                 key={f.id}

@@ -4,7 +4,7 @@ import type { CharacterAnalysisDetail } from '@/api/types';
 import { useSourceJump } from '@/hooks/useSourceJump';
 import { SourceJumpText } from '../SourceJumpText';
 import { ConfidenceMeter } from '../ConfidenceMeter';
-import { archetypeState } from '../characterModel';
+import { archetypeDisplayName, archetypeState } from '../characterModel';
 
 type Framework = 'jung' | 'schmidt';
 
@@ -40,9 +40,12 @@ export function PersonaPane({
   onRetryFailed,
   isRetrying,
 }: Readonly<Props>) {
-  const { t } = useTranslation('analysis');
+  const { t, i18n } = useTranslation('analysis');
   const { jump, pendingKey } = useSourceJump(bookId);
   const archetype = data.archetypes.find((a) => a.framework === framework);
+  // #7a names are in the book's language; show them in the interface language.
+  const primaryName = archetypeDisplayName(framework, archetype?.primary, i18n.language);
+  const secondaryName = archetypeDisplayName(framework, archetype?.secondary, i18n.language);
   const pct = archetype ? Math.round(archetype.confidence * 100) : 0;
   // 「未生成」（還沒做）與「生成失敗」（做了但壞了）是兩件事，由 failedParts 決定。
   const state = archetypeState(data, framework);
@@ -51,7 +54,7 @@ export function PersonaPane({
   );
   const labelKey =
     framework === 'jung' ? 'character.persona.archetypeLabelJung' : 'character.persona.archetypeLabelSchmidt';
-  const archetypeTitle = t(labelKey, { name: archetype ? archetype.primary : placeholderName });
+  const archetypeTitle = t(labelKey, { name: archetype ? primaryName : placeholderName });
 
   const traits = data.cep?.traits ?? [];
 
@@ -86,12 +89,12 @@ export function PersonaPane({
               <div className="ca-persona-arc-rows">
                 <div className="ca-persona-arc-field">
                   <span className="ca-persona-arc-field-label">{t('character.primaryArchetype')}</span>
-                  <span className="ca-persona-arc-primary">{archetype.primary}</span>
+                  <span className="ca-persona-arc-primary">{primaryName}</span>
                 </div>
                 {archetype.secondary && (
                   <div className="ca-persona-arc-field">
                     <span className="ca-persona-arc-field-label">{t('character.secondaryArchetype')}</span>
-                    <span className="ca-persona-arc-secondary">{archetype.secondary}</span>
+                    <span className="ca-persona-arc-secondary">{secondaryName}</span>
                   </div>
                 )}
                 <div className="ca-persona-arc-field">
