@@ -23,7 +23,9 @@
     "deleteBook": "Delete \"{{title}}\"",
     "deleteConfirm": "Delete?",
     "deleteConfirmAnalyzed": "Delete? Its analysis will be deleted too.",
-    "deleteFailed": "Delete failed. Try again."
+    "deleteFailed": "Delete failed. Try again.",
+    "listSep": ", ",
+    "unavailable": "unavailable"
   },
   "shortcuts": {
     "continueReading": "Continue Reading",

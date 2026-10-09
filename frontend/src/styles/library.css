@@ -144,6 +144,13 @@
   font-size: var(--font-size-2xs); line-height: 1.4;
 }
 .lib-card-degraded svg { flex-shrink: 0; margin-top: var(--space-1); }
+.lib-card-degraded-body { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
+.lib-nowrap { white-space: nowrap; }
+/* 疊在整卡連結（標題 ::after）之上，與垃圾桶同一層。 */
+.lib-card-degraded-link {
+  position: relative; z-index: 1; align-self: flex-start;
+  color: inherit; font-weight: 600; text-decoration: underline; text-underline-offset: 2px;
+}
 
 /* 處理中任務：BookCard 處理中態，不另做任務卡。 */
 .lib-card-processing { opacity: 0.78; cursor: default; }
