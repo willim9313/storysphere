@@ -82,7 +82,7 @@ export function CharacterGenerating({ task, name }: Readonly<Props>) {
         </div>
 
         <div className="ca-gen-progress-bar">
-          <div className="ca-gen-progress-fill" style={{ width: `${pct}%` }} />
+          <div className="ca-gen-progress-fill" style={{ transform: `scaleX(${pct / 100})` }} />
         </div>
 
         <ul className="ca-gen-stages">

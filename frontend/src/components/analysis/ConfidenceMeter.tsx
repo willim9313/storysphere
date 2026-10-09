@@ -17,7 +17,7 @@ export function ConfidenceMeter({ pct }: Readonly<{ pct: number }>) {
   return (
     <div className="ca-conf">
       <div className="ca-conf-track">
-        <div className="ca-conf-fill" style={{ width: `${pct}%` }} />
+        <div className="ca-conf-fill" style={{ transform: `scaleX(${pct / 100})` }} />
       </div>
       <span className="ca-conf-pct">
         {t(BAND_KEY[confidenceBand(pct)])} · {pct}%
