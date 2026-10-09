@@ -515,3 +515,190 @@
   position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
   clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
 }
+
+/* ── SearchDropdown（DS v3 遷移）── */
+/* 固定幾何（不在 8 階）：浮層寬 460、章節序號圓 22、列／群組水平內距 14、maxHeight 70vh。 */
+.kg-search-pop {
+  /* 渲染在 toolbar 的 .kg-search 內，掛在搜尋框正下方 */
+  position: absolute; z-index: 40; display: flex; flex-direction: column;
+  top: calc(100% + var(--space-3)); left: 0; width: 460px; max-height: 70vh;
+  background: var(--bg-primary); border: 1px solid var(--border);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-lg); overflow: hidden;
+}
+.kg-search-scroll { flex: 1 1 0%; overflow-y: auto; }
+.kg-search-group { padding: var(--space-3) 0; border-bottom: 1px solid var(--border); }
+.kg-search-group.is-last { border-bottom: 0; }
+.kg-search-group-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: var(--space-2) 14px; font-size: var(--font-size-2xs); font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg-muted);
+}
+.kg-search-count { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+.kg-search-row {
+  display: flex; align-items: center; width: 100%; gap: var(--space-4);
+  padding: var(--space-3) 14px; font-size: var(--font-size-xs); text-align: left;
+  background: transparent; color: var(--fg-primary); cursor: pointer;
+}
+.kg-search-row:hover { background: var(--bg-secondary); }
+.kg-search-row.is-active { background: var(--bg-tertiary); }
+.kg-search-name { flex: 1 1 0%; min-width: 0; font-family: var(--font-serif); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.kg-search-meta { font-size: var(--font-size-2xs); color: var(--fg-muted); white-space: nowrap; }
+.kg-search-dot { display: inline-block; flex: none; width: var(--space-4); height: var(--space-4); border-radius: 9999px; }
+.kg-search-order {
+  display: inline-flex; align-items: center; justify-content: center; flex: none;
+  width: 22px; height: 22px; border-radius: 9999px; font-variant-numeric: tabular-nums;
+  background: var(--bg-tertiary); color: var(--fg-secondary);
+  font-family: var(--font-mono); font-size: var(--font-size-2xs);
+}
+.kg-search-empty { padding: var(--space-3) 14px; font-size: var(--font-size-2xs); color: var(--fg-muted); }
+.kg-search-hit {
+  background: var(--color-warning-bg); color: var(--fg-primary);
+  padding: 0 var(--space-1); border-radius: var(--radius-sm); font-weight: 600;
+}
+.kg-search-foot {
+  display: flex; align-items: center; flex-shrink: 0; gap: var(--space-5);
+  padding: var(--space-3) 14px; background: var(--bg-secondary);
+  border-top: 1px solid var(--border); font-size: var(--font-size-2xs); color: var(--fg-muted);
+}
+.kg-search-hint { display: inline-flex; align-items: center; gap: var(--space-2); }
+.kg-search-foot-end { margin-left: auto; }
+.kg-search-kbd {
+  font-family: var(--font-mono); font-weight: 600; font-size: var(--font-size-2xs);
+  padding: 0 var(--space-2); border-radius: var(--radius-sm);
+  background: var(--bg-tertiary); color: var(--fg-secondary);
+}
+
+/* ── PairModeOverlay（DS v3 遷移）── */
+.kg-pair { position: absolute; inset: 0; z-index: 30; background-color: var(--bg-primary); }
+@keyframes pairNodeFadeIn {
+  from { opacity: 0; transform: scale(0.55); }
+  to { opacity: 1; transform: scale(1); }
+}
+.kg-pair-fade-in { animation: pairNodeFadeIn 480ms ease-out; }
+
+/* 浮動卡共用外觀：上方標題卡、下方步進卡、右側面板 */
+.kg-pair-top, .kg-pair-steps, .kg-pair-side {
+  position: absolute; background-color: var(--bg-primary);
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--radius-md); box-shadow: var(--shadow-md);
+}
+.kg-pair-top {
+  top: var(--space-6); left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: var(--space-4); padding: var(--space-4) var(--space-5);
+}
+.kg-pair-title {
+  font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 600;
+  color: var(--fg-primary); white-space: nowrap;
+}
+.kg-pair-toggle {
+  display: inline-flex; gap: var(--space-1); padding: var(--space-1);
+  background-color: var(--bg-secondary); border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--radius-md);
+}
+.kg-pair-mode {
+  display: inline-flex; align-items: center; padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-sm); font-size: var(--font-size-2xs);
+  background-color: transparent; color: var(--fg-secondary); box-shadow: none;
+}
+.kg-pair-mode.is-active { background-color: var(--bg-primary); color: var(--accent); box-shadow: var(--shadow-sm); }
+
+.kg-pair-svg { width: 100%; height: 100%; max-width: 960px; max-height: 560px; } /* = VIEW_W/VIEW_H，固定幾何 */
+.kg-pair-end-label { font-size: var(--font-size-sm); font-family: var(--font-serif); font-weight: 700; fill: var(--fg-primary); }
+.kg-pair-nb-label { font-size: var(--font-size-2xs); font-family: var(--font-sans); fill: var(--fg-primary); }
+.kg-pair-overflow-label { font-size: var(--font-size-2xs); font-family: var(--font-mono); fill: var(--fg-secondary); }
+.kg-pair-path-label { font-size: var(--font-size-2xs); font-family: var(--font-sans); font-weight: 400; fill: var(--fg-primary); }
+.kg-pair-path-label.is-end { font-weight: 700; }
+
+.kg-pair-steps {
+  bottom: var(--space-6); left: 50%; transform: translateX(-50%);
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-4); padding: var(--space-4) var(--space-6);
+}
+.kg-pair-dots { display: flex; align-items: center; gap: var(--space-3); }
+/* 步進點 7／10px 為固定幾何，不在 8 階上 */
+.kg-pair-dot {
+  width: 7px; height: 7px; border-radius: 9999px; background-color: var(--border);
+  transition: all var(--transition-fast);
+}
+.kg-pair-dot.is-active { width: 10px; height: 10px; background-color: var(--accent); }
+.kg-pair-progress { font-size: var(--font-size-2xs); color: var(--fg-muted); font-variant-numeric: tabular-nums; }
+
+/* 右側面板：top 76／width 260／bottom 96 為固定幾何（讓出頂卡與步進卡），不在 8 階上 */
+.kg-pair-side {
+  top: 76px; right: var(--space-6); bottom: var(--space-6); width: 260px;
+  display: flex; flex-direction: column; padding: var(--space-5); overflow-y: auto;
+}
+.kg-pair-side.has-steps { bottom: 96px; }
+.kg-pair-side-title {
+  margin-bottom: var(--space-4); font-size: var(--font-size-xs); font-weight: 600;
+  text-transform: uppercase; letter-spacing: 0.06em; color: var(--fg-muted);
+}
+.kg-pair-side-empty { font-size: var(--font-size-xs); color: var(--fg-muted); }
+.kg-pair-list { display: flex; flex-direction: column; gap: var(--space-3); }
+
+.kg-pair-pill {
+  display: flex; align-items: center; gap: var(--space-3); padding: var(--space-3) var(--space-4);
+  border-radius: var(--pill-radius); border: var(--line-weight) var(--border-style) var(--border);
+}
+/* 色點 8px 為固定幾何；顏色依實體類型由 inline 帶入 */
+.kg-pair-pill-dot {
+  display: inline-block; flex: none; width: 8px; height: 8px; border-radius: 9999px;
+  border: var(--line-weight) var(--border-style);
+}
+.kg-pair-pill-name {
+  flex: 1; min-width: 0; font-size: var(--font-size-xs); color: var(--fg-primary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.kg-pair-pill-type { flex: none; font-size: var(--font-size-2xs); color: var(--fg-muted); }
+
+/* 空態訊息：max-width 320 為固定幾何 */
+.kg-pair-empty { max-width: 320px; padding: var(--space-7); text-align: center; color: var(--fg-muted); }
+.kg-pair-empty p { font-family: var(--font-serif); font-size: var(--font-size-sm); }
+
+/* ── TimelineConfigModal（DS v3 遷移）── */
+.ss-dialog.kg-tlcfg { width: 480px; }
+.kg-tlcfg-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+.kg-tlcfg-stats {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-5); text-align: center;
+  padding: var(--space-5); background: var(--bg-secondary);
+  border: var(--card-border-width) var(--border-style) var(--border); border-radius: var(--radius-md);
+}
+.kg-tlcfg-stat-value { font-size: var(--font-size-lg); font-weight: 600; color: var(--fg-primary); font-variant-numeric: tabular-nums; }
+.kg-tlcfg-stat-label { font-size: var(--font-size-2xs); color: var(--fg-muted); }
+.kg-tlcfg-modes { display: flex; flex-direction: column; gap: var(--space-5); }
+.kg-tlcfg-card {
+  padding: var(--space-5); border-radius: var(--radius-md);
+  background: var(--bg-secondary); border: var(--card-border-width) var(--border-style) var(--border);
+}
+.kg-tlcfg-card[data-enabled] {
+  border-color: var(--accent);
+  background: color-mix(in srgb, var(--accent) 5%, var(--bg-primary));
+}
+.kg-tlcfg-card[data-locked] { opacity: 0.55; }
+.kg-tlcfg-card-row { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-5); }
+.kg-tlcfg-card-main { display: flex; align-items: flex-start; gap: var(--space-4); flex: 1; min-width: 0; }
+.kg-tlcfg-card-icon { flex-shrink: 0; margin-top: var(--space-1); color: var(--fg-muted); display: inline-flex; }
+.kg-tlcfg-card-icon[data-viable] { color: var(--accent); }
+.kg-tlcfg-card-text { min-width: 0; }
+.kg-tlcfg-card-title {
+  display: flex; align-items: center; gap: var(--space-3);
+  font-size: var(--font-size-sm); font-weight: 500; color: var(--fg-primary);
+}
+.kg-tlcfg-ok { color: var(--color-success); }
+.kg-tlcfg-card-desc { margin: var(--space-1) 0 0; font-size: var(--font-size-xs); color: var(--fg-secondary); }
+.kg-tlcfg-card-note { margin: var(--space-2) 0 0; font-size: var(--font-size-2xs); color: var(--fg-muted); }
+.kg-tlcfg-switch {
+  position: relative; display: inline-flex; align-items: center; flex-shrink: 0;
+  width: 36px; height: 20px; margin-top: var(--space-1); padding: 0; border: 0; cursor: pointer;
+  border-radius: var(--pill-radius); background: var(--bg-tertiary);
+  transition: background-color var(--transition-fast);
+}
+.kg-tlcfg-switch[data-on] { background: var(--accent); }
+.kg-tlcfg-switch:disabled { cursor: not-allowed; }
+.kg-tlcfg-knob {
+  display: inline-block; width: 14px; height: 14px; border-radius: 50%;
+  background: var(--bg-primary); box-shadow: 0 0 0 var(--line-weight) var(--border);
+  transform: translateX(3px);
+  transition: transform var(--transition-fast);
+}
+.kg-tlcfg-switch[data-on] .kg-tlcfg-knob { transform: translateX(19px); }
+.kg-tlcfg-error { margin: 0; text-align: right; font-size: var(--font-size-xs); color: var(--color-error); }
