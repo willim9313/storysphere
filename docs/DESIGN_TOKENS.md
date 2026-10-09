@@ -65,7 +65,7 @@
 | Token | warm | ink |
 |-------|------|-----|
 | `--border` | `#ddceb2` | `#1a1a1a` |
-| `--accent` | `#b05a34`（焦赭） | `#111111` |
+| `--accent` | `#a0522f`（焦赭） | `#111111` |
 | `--accent-fg` | `#f8f3e7` | `#ffffff` |
 
 ### 3.3.1 Focus Ring（鍵盤 a11y）
@@ -74,7 +74,7 @@
 
 | Token | warm | ink |
 |-------|------|-----|
-| `--focus-ring-color` | `#b05a34` | `#151515` |
+| `--focus-ring-color` | `#a0522f` | `#151515` |
 | `--focus-ring-width` | `2px` | 繼承 |
 | `--focus-ring-offset` | `2px` | 繼承 |
 
@@ -231,12 +231,14 @@ warm 由 status 色系派生；ink 用 fill polarity（深淺取代色相）。
 
 warm 為暖色功能色（橄欖/赭黃/磚紅/灰藍，沉在紙面上）；ink 全部單色，狀態由 icon 字形承載。
 
+warm 的 success／warning／info 於 2026-10-09 加深到與自身 `-bg` 至少 4.5:1（11px badge 字），accent 同日加深到紙色字疊其上與其疊在 `--bg-secondary` 上皆 ≥4.5:1。資料家族（polarity dot、narrative border、timeline、booker 等）沿用舊色值，它們是圖形標記不是文字。
+
 | 屬性 | warm | ink |
 |------|------|-----|
-| `--color-success` / `-bg` | `#5f7d3b` / `#eef1df` | `#151515` / `#ececea` |
-| `--color-warning` / `-bg` | `#ad7519` / `#f6edd6` | `#151515` / `#ececea` |
+| `--color-success` / `-bg` | `#587437` / `#eef1df` | `#151515` / `#ececea` |
+| `--color-warning` / `-bg` | `#906115` / `#f6edd6` | `#151515` / `#ececea` |
 | `--color-error` / `-bg` | `#a8482c` / `#f4e4da` | `#151515` / `#ececea` |
-| `--color-info` / `-bg` | `#5f6a88` / `#e8e7ee` | `#151515` / `#ececea` |
+| `--color-info` / `-bg` | `#5c6683` / `#e8e7ee` | `#151515` / `#ececea` |
 
 ### 3.10 Unraveling DAG 節點狀態
 

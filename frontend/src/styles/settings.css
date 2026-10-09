@@ -189,7 +189,7 @@
    所以 Warm 預覽保留字面值（與 tokens.css 的 Warm 區塊同值，改 token 時要連動）。 */
 .st-theme-swatch.warm > span:nth-child(1) { background: #f8f3e7; }
 .st-theme-swatch.warm > span:nth-child(2) { background: #f1e8d5; }
-.st-theme-swatch.warm > span:nth-child(3) { background: #b05a34; }
+.st-theme-swatch.warm > span:nth-child(3) { background: #a0522f; }
 .st-theme-swatch.warm > span:nth-child(4) { background: #2a2620; }
 .st-theme-current {
   position: absolute; top: var(--space-4); right: var(--space-4);

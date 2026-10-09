@@ -32,13 +32,13 @@
 
   /* Line & accent */
   --border:       #ddceb2;
-  --accent:       #b05a34;   /* burnt sienna */
+  --accent:       #a0522f;   /* burnt sienna */
   --accent-fg:    #f8f3e7;   /* 置於 accent 上的文字（= bg-primary，同 kit btn-primary） */
 
   /* Focus ring — 鍵盤 a11y，全站單一規格，經 :focus-visible 套用
      （見 global.css）。與較柔和的 selected-state ring
      （--timeline-selected-ring）是兩件事。 */
-  --focus-ring-color:  #b05a34;
+  --focus-ring-color:  #a0522f;
   --focus-ring-width:  2px;
   --focus-ring-offset: 2px;
 
@@ -178,13 +178,13 @@
   --timeline-selected-ring:   rgba(176,90,52,0.3);
 
   /* Status — 暖色系功能色：橄欖/赭黃/磚紅/灰藍，色調沉在紙面上 */
-  --color-success:    #5f7d3b;
+  --color-success:    #587437;
   --color-success-bg: #eef1df;
-  --color-warning:    #ad7519;
+  --color-warning:    #906115;
   --color-warning-bg: #f6edd6;
   --color-error:      #a8482c;
   --color-error-bg:   #f4e4da;
-  --color-info:       #5f6a88;
+  --color-info:       #5c6683;
   --color-info-bg:    #e8e7ee;
 
   /* Unraveling DAG 節點狀態 */
