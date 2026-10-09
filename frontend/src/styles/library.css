@@ -153,8 +153,12 @@
 }
 
 /* 處理中任務：BookCard 處理中態，不另做任務卡。 */
-.lib-card-processing { opacity: 0.78; cursor: default; }
+/* 只淡化封面（裡面只有 loader、沒有文字）；整卡透明會把 badge、進度與 CTA 壓到 2.3–3:1。
+   卡本身不可點，hover 不變色（含 kit 的封面加深），只有「查看進度 →」是連結。 */
+.lib-card-processing { cursor: default; }
+.lib-card-processing .lib-cover { opacity: 0.6; }
 .lib-card-processing:hover { background: var(--bg-primary); }
+.lib-card-processing:hover .ss-bookcard-cover { background: var(--bg-secondary); }
 @media (prefers-reduced-motion: reduce) { .lib-card-processing .lib-spin { animation: none; } }
 .lib-card-cta { align-self: flex-start; font-size: var(--font-size-2xs); color: var(--accent); text-decoration: none; }
 .lib-card-cta:hover { text-decoration: underline; }
