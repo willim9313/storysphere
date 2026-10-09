@@ -470,7 +470,7 @@ export default function CharacterAnalysisPage() {
             )}
             {entityAnalysis.isStale && (
               <Tooltip label={t('character.stale.tooltip')}>
-                <span className="ss-badge ss-badge-warning" tabIndex={0}>
+                <span className="ss-badge ss-badge-info" tabIndex={0}>
                   {t('character.stale.badge')}
                 </span>
               </Tooltip>

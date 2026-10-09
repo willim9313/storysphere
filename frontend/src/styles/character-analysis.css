@@ -336,7 +336,11 @@
   flex: 1; max-width: 180px; height: 6px;
   background: var(--bg-tertiary); border-radius: 3px; overflow: hidden;
 }
-.ca-conf-fill { height: 100%; background: var(--accent); transition: width var(--transition-normal) ease; }
+.ca-conf-fill {
+  height: 100%; background: var(--accent);
+  /* Ratio via scaleX, not width: animating layout properties is off-limits (DESIGN.md). */
+  transform-origin: left; transition: transform var(--transition-normal) ease;
+}
 .ca-conf-pct {
   font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-primary);
   white-space: nowrap;
@@ -404,7 +408,7 @@
   display: flex; flex-direction: column; gap: var(--space-3);
 }
 .ca-trait-term { font-family: var(--font-serif); font-size: var(--font-size-xs); font-weight: 700; color: var(--fg-primary); }
-.ca-trait-desc { font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-secondary); }
+.ca-trait-desc { font-size: var(--font-size-xs); line-height: 1.7; color: var(--fg-secondary); }
 
 /* ─── Ego-network (relations pane) ─── */
 .ca-ego-wrap {
@@ -471,7 +475,7 @@
   border: var(--pill-border-width) solid; margin-bottom: var(--space-2);
 }
 .ca-rel-pill-dot { width: 5px; height: 5px; border-radius: 50%; flex-shrink: 0; }
-.ca-rel-card-desc { font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-secondary); font-family: var(--font-sans); }
+.ca-rel-card-desc { font-size: var(--font-size-xs); line-height: 1.7; color: var(--fg-secondary); font-family: var(--font-sans); }
 
 /* ─── Arc pane：章節軸（依 chapterCount 動態）、錯行色帶、事件圓點、階段卡 ─── */
 .ca-arc-axis {
@@ -536,7 +540,7 @@
 .ca-keyevent-head { display: flex; align-items: baseline; gap: var(--space-4); margin-bottom: var(--space-3); }
 .ca-keyevent-chapter { font-size: var(--font-size-2xs); color: var(--accent); font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
 .ca-keyevent-name { font-family: var(--font-serif); font-size: var(--font-size-xs); font-weight: 700; color: var(--fg-primary); }
-.ca-keyevent-sig { font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-secondary); margin-bottom: var(--space-3); }
+.ca-keyevent-sig { font-size: var(--font-size-xs); line-height: 1.7; color: var(--fg-secondary); margin-bottom: var(--space-3); }
 .ca-keyevent-link {
   display: inline-flex; align-items: center; gap: var(--space-2);
   font-size: var(--font-size-2xs); color: var(--accent); text-decoration: none;
@@ -702,12 +706,14 @@
   border-radius: var(--pill-radius);
   display: flex; align-items: center; justify-content: center;
   font-family: var(--font-mono); font-size: var(--font-size-2xs); font-weight: 700;
-  color: var(--bg-primary);
-  border: 2px solid var(--bg-secondary);
+  color: var(--fg-primary);
+  border: calc(var(--btn-border-width) + 0.5px) solid transparent;
   cursor: default; font-variant-numeric: tabular-nums;
 }
-.ca-epi-pill.known { background: var(--color-success); }
-.ca-epi-pill.unknown { background: var(--color-warning); }
+/* Status-badge vocabulary: tinted paper + ink text, the hue lives in the border
+   (paper-on-green/amber was 4.2 / 3.6:1). Ink keeps the two tracks apart by row. */
+.ca-epi-pill.known { background: var(--color-success-bg); border-color: var(--color-success); }
+.ca-epi-pill.unknown { background: var(--color-warning-bg); border-color: var(--color-warning); }
 .ca-epi-cursor {
   position: absolute; top: -8px; bottom: -8px;
   width: 2px; background: var(--accent);
@@ -798,7 +804,7 @@
   padding: var(--space-5);
   background: var(--color-error-bg);
   border-radius: var(--radius-sm);
-  font-size: var(--font-size-2xs); line-height: 1.6;
+  font-size: var(--font-size-xs); line-height: 1.6;
   display: flex; flex-direction: column; gap: var(--space-3);
 }
 .ca-misbelief .event-title { color: var(--fg-primary); font-family: var(--font-serif); font-weight: 600; }
@@ -989,7 +995,12 @@ button.ca-ov-legend-row:hover { background: var(--bg-secondary); }
 /* 色票：有派系＝填色；無＝只描邊（資料本身沒有歸屬）；ring＝已分析外環 */
 .ca-swatch { display: block; flex-shrink: 0; width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%; }
 .ca-swatch.none { background: transparent; border: var(--line-weight) var(--border-style) var(--cat-none); }
-.ca-swatch.is-ring { background: transparent; border: 1px solid var(--accent); }
+.ca-swatch.is-ring {
+  /* Ring around a dot, like an analyzed bubble on the plot — so it never looks
+     like the bare "no faction" outline (both are black rings in Ink). */
+  border: 1px solid var(--accent);
+  background: radial-gradient(circle, var(--fg-muted) 0 3px, transparent 3.5px);
+}
 .ca-ov-ranking .ca-swatch { width: 10px; height: 10px; }
 
 /* ─── Ranking view ─── */
@@ -1070,7 +1081,7 @@ button.ca-ov-legend-row:hover { background: var(--bg-secondary); }
 .ca-gen-pct { margin-left: auto; font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--accent); }
 .ca-gen-task { font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-muted); margin-bottom: var(--space-5); overflow-wrap: anywhere; }
 .ca-gen-progress-bar { height: 4px; border-radius: 3px; background: var(--bg-tertiary); overflow: hidden; margin-bottom: var(--space-6); }
-.ca-gen-progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width var(--transition-normal) ease; }
+.ca-gen-progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transform-origin: left; transition: transform var(--transition-normal) ease; }
 .ca-gen-stages { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--space-4); }
 .ca-gen-stage { display: flex; align-items: center; gap: var(--space-4); }
 .ca-gen-stage-bullet { width: 14px; height: 14px; flex: none; display: flex; align-items: center; justify-content: center; color: var(--fg-muted); }
