@@ -117,7 +117,9 @@ export function BookCard({ book }: Readonly<{ book: Book }>) {
               {book.chapterCount} {t('card.chapters')}
             </span>
             <span>
-              {book.entityCount ?? '—'} {t('card.entities')}
+              {/* Entities come from the KG step; until it has run, 0 would read
+                  as "this book has no characters". */}
+              {book.pipelineStatus?.knowledgeGraph === 'done' ? (book.entityCount ?? '—') : '—'} {t('card.entities')}
             </span>
           </div>
         </>

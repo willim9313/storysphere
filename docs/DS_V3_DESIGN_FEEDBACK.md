@@ -1926,6 +1926,7 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 | # | 類型 | 狀態 |
 |---|------|------|
 | LIB-1 | 遺漏 · 書卡刪除確認列的代價、失敗、取消與焦點 | 待同步 |
+| LIB-2 | 矛盾 · 最近開啟捷徑的去向與「觸發分析」字面、未建圖譜的實體數 | 待同步 |
 
 ### LIB-1 書卡刪除確認列的代價、失敗、取消與焦點
 
@@ -1939,3 +1940,11 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
   - 長句自成一行、「確認／取消」成組換到下一行。
   - 字串 `library.card.{deleteConfirmAnalyzed,deleteFailed}` 與改過的 `deleteBook` 為工程草稿。
 - **請設計端**：把代價句與失敗態補進 01 C 區刪除兩段式卡，並列入新字串清單；確認長句換行的排法。
+
+### LIB-2 最近開啟捷徑的去向與「觸發分析」字面、未建圖譜的實體數
+
+- **出處**：01 C 區最近開啟卡（ready：開始閱讀／觸發分析；error：查看錯誤，稿未標目標頁）；01 C 區書卡 meta「N 實體」；impeccable critique 書庫頁（2026-10-09）P2
+- **問題**：「觸發分析」與「開始閱讀」連到同一頁，按了不會觸發任何分析，字面卻像會花 token；「查看錯誤」連 `/upload`，上傳頁只列近期任務，通常已找不到這本書。未建知識圖譜的書後端回 `entityCount: 0`，卡上顯示「0 實體」，讀者會以為書裡沒有角色或抽取壞了。
+- **目前處置**（使用者 2026-10-09 裁決）：「觸發分析」改字為「前往建構概覽」並連 `/books/:id/unraveling`（與閱讀頁「尚未分析」入口同去向）；「查看錯誤」也連建構概覽（逐步驟狀態與重跑所在）。實體數在 `knowledgeGraph !== 'done'` 時顯示「—」。字串 `library.shortcuts.buildOverview` 為工程草稿（取代 `triggerAnalysis`）。
+- **請設計端**：01 C 區改字並標出兩顆捷徑的目標頁；書卡 meta 補「未建圖譜」的顯示。
+
