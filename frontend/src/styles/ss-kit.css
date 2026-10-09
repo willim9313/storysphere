@@ -630,6 +630,9 @@
 .ss-badge-info    { background: var(--color-info-bg);    color: var(--color-info); }
 .ss-badge-warning { background: var(--color-warning-bg); color: var(--color-warning); }
 .ss-badge-error   { background: var(--color-error-bg);   color: var(--color-error); }
+/* StatusBadge 的冗餘字符（✓ i ✕ …）。放 kit 而非 library.css：書籍總覽也用 StatusBadge，
+   直接進書籍頁時書庫的 lazy CSS 不會載入。 */
+.ss-badge-glyph { font-family: var(--font-mono); font-size: var(--font-size-2xs); }
 [data-theme="ink"] .ss-badge {
   background: var(--bg-tertiary); color: var(--fg-primary);
   border: var(--border-width) var(--border-style) var(--fg-primary);
