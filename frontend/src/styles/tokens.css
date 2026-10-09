@@ -278,11 +278,13 @@
   --card-border-width: var(--border-width);
   --card-shadow:       var(--shadow-sm);
   --card-selected-border-width: var(--card-border-width); /* 選中卡（如閱讀頁目前章）的框重 */
+  --card-attention-border-width: var(--card-border-width); /* 要人處理的卡（如書庫人工閘門）的框重 */
   --btn-radius:        var(--radius-md);
   --btn-border-width:  var(--border-width);
   --btn-shadow:        none;
   --pill-radius:       20px;
   --pill-border-width: 0.5px;
+  --chip-border-width: 0;     /* 篩選 chip：Warm 靠底色分層，不畫框 */
   --badge-radius:      20px;
   --control-radius:    var(--radius-md);
   --input-radius:       var(--control-radius); /* 文字框、搜尋、select 共用 */
@@ -431,11 +433,14 @@
   --card-shadow:       none;
   /* Ink 的 accent 與 border 幾乎同色，選中只能靠線重承載 */
   --card-selected-border-width: 2px;
+  /* 要人處理的卡要比選中更重：Ink 下 accent 框與一般卡框同色，只剩線重 */
+  --card-attention-border-width: 3px;
   --btn-radius:        var(--radius-sm);
   --btn-border-width:  1.5px;
   --btn-shadow:        none;
   --pill-radius:       4px;
   --pill-border-width: 1px;
+  --chip-border-width: 1px;   /* 線稿語彙：chip 也是有框的矩形 tag */
   --badge-radius:      4px;
   --control-radius:    var(--radius-sm);
   /* var() 在宣告處解析：:root 的別名會把 Warm 值凍結在這裡，所以 Ink 必須重新宣告 */
