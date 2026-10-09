@@ -19,8 +19,10 @@
   "card": {
     "chapters": "章",
     "entities": "實體",
-    "deleteBook": "刪除書籍",
-    "deleteConfirm": "刪除？"
+    "deleteBook": "刪除《{{title}}》",
+    "deleteConfirm": "刪除？",
+    "deleteConfirmAnalyzed": "刪除？分析結果會一併刪除",
+    "deleteFailed": "刪除失敗，請重試"
   },
   "shortcuts": {
     "continueReading": "繼續閱讀",

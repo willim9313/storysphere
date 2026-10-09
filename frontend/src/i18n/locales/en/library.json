@@ -19,8 +19,10 @@
   "card": {
     "chapters": "ch",
     "entities": "entities",
-    "deleteBook": "Delete Book",
-    "deleteConfirm": "Delete?"
+    "deleteBook": "Delete \"{{title}}\"",
+    "deleteConfirm": "Delete?",
+    "deleteConfirmAnalyzed": "Delete? Its analysis will be deleted too.",
+    "deleteFailed": "Delete failed. Try again."
   },
   "shortcuts": {
     "continueReading": "Continue Reading",
