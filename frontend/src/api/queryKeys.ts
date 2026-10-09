@@ -69,6 +69,13 @@ export const qk = {
       entityId: Id,
       upToChapter: number | null | undefined,
     ) => ['books', bookId, 'epistemic-state', entityId, upToChapter] as const,
+    // cached_only reads may answer "misbeliefs not inferred yet"; keep them off
+    // the full-read key so other pages never get that partial answer from cache.
+    atCached: (
+      bookId: Id,
+      entityId: Id,
+      upToChapter: number | null | undefined,
+    ) => ['books', bookId, 'epistemic-state', entityId, upToChapter, 'cached'] as const,
   },
 
   factionsPanel: (bookId: Id) => ['books', bookId, 'factions', 'panel'] as const,

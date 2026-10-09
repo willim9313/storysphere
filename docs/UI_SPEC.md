@@ -650,7 +650,7 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 |-----|------|
 | 人物概覽 (overview) | 4 個 sub-tab pill segmented control → 對應 4 個 pane |
 | 語音風格 (voice) | VoiceProfilingPanel — 進 tab 先以 #16a `cached_only=1` 探測（200→直接顯示 / 404→空狀態+「分析語音風格」鈕；不再使用 localStorage gate）；內容為 4 stat card + ToneDistribution 堆疊條 + SentenceHistogram 直方圖 + 質性 section。「覆蓋重新生成」走 #16a `force=true`（ENG-001，成功才覆蓋）：失敗時舊 profile 照常顯示，上方 503 接 LlmUnconfiguredNotice、其他錯誤顯示「重新生成失敗，已保留原有語音風格。」（**這 1 句是草稿・待設計定案**，i18n `analysis:character.voice.regenerateFailed`） |
-| 認知狀態 (epistemic) | EpistemicStateSection — Summary 列（「第 N 章」hero 計數 + 已知/未知/誤信 +「對照另一角色」鈕）+ 章節游標卡 + 已知/未知並排 + 誤信欄（三欄皆隨游標樂觀過濾） |
+| 認知狀態 (epistemic) | EpistemicStateSection — Summary 列（「第 N 章」hero 計數 + 已知/未知/誤信 +「對照另一角色」鈕）+ 章節游標卡 + 已知/未知並排 + 誤信欄（三欄皆隨游標樂觀過濾）。一律以 #12e `cached_only=1` 讀取：該章誤信未推論（`misbeliefsInferred=false`）時徽章與欄計數顯示「—」，欄內「截至第 N 章的誤信尚未推論。」＋「推論誤信」（`ss-btn-llm`，不開確認框）＋「會呼叫 LLM，消耗 token」；推論後仍未推論 → `LlmUnconfiguredNotice`（見 DS_V3_DESIGN_FEEDBACK CA-1）。**這 4 句是草稿・待設計定案**（i18n `analysis:character.epistemic.{misbeliefPending,inferMisbeliefs,inferringMisbeliefs,inferMisbeliefsFailed}`） |
 
 **Overview sub-tabs**（pill segmented control，2026-07 canvas 對稿重構）：
 
@@ -675,6 +675,7 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 - 第二角色下拉（列全部角色，預設未選；選了才打 #12e）；兩角色共用一條章節游標
 - 三欄集合差（**以 event id 運算**）：「只有 A 知道」(accent) /「都知道」(success) /「只有 B 知道」(info)，各欄計數 + 事件列
 - B 側資料 loading / `dataComplete=false` 時顯示對應提示不噴錯
+- 兩側皆以 #12e `cached_only=1` 讀取（抽屜只比對已知事件，不需誤信），開關抽屜、選第二角色、拖游標都不觸發 LLM；抽屜關閉時不發請求
 
 **Chapter Timeline（Epistemic tab，2026-07 重構）**：
 - 拖曳游標更新章節；**200ms debounce** 後才打 epistemic API；拖曳期間以最近一次的回應做樂觀更新（filter `chapter <= cursor`，三欄一致）

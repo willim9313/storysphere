@@ -151,8 +151,11 @@ export function fetchEpistemicState(
   bookId: string,
   entityId: string,
   upToChapter: number,
+  { cachedOnly = false }: { cachedOnly?: boolean } = {},
 ): Promise<EpistemicStateResponse> {
+  // cachedOnly: a cache miss answers known/unknown only and never calls the LLM.
+  const cached = cachedOnly ? '&cached_only=1' : '';
   return apiFetch<EpistemicStateResponse>(
-    `/books/${bookId}/entities/${entityId}/epistemic-state?up_to_chapter=${upToChapter}`,
+    `/books/${bookId}/entities/${entityId}/epistemic-state?up_to_chapter=${upToChapter}${cached}`,
   );
 }

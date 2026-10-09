@@ -215,6 +215,10 @@
       "knownEmpty": "No classified events known to the character by this chapter.",
       "unknownEmpty": "The character knows all events.",
       "misbeliefEmpty": "No significant misbeliefs detected.",
+      "misbeliefPending": "Misbeliefs up to chapter {{n}} have not been inferred yet.",
+      "inferMisbeliefs": "Infer misbeliefs",
+      "inferringMisbeliefs": "Inferring…",
+      "inferMisbeliefsFailed": "Inference failed. Please try again.",
       "characterBelieves": "Believes:",
       "actually": "Actually:"
     },
