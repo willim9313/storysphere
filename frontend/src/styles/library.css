@@ -105,7 +105,6 @@
 .lib-card { min-height: var(--lib-card-min); }
 .lib-cover { height: var(--lib-cover); }
 .lib-cover svg.lucide-file-text { width: var(--lib-cover-icon); height: var(--lib-cover-icon); }
-.ss-badge-glyph { font-family: var(--font-mono); font-size: var(--font-size-2xs); }
 .lib-mono { font-family: var(--font-mono); }
 
 /* 整張卡是一個連結：標題連結的 ::after 撐滿卡片，刪除控制項疊在上面。 */
