@@ -1027,7 +1027,7 @@ partial 時附「部分分析」徽章。其下為研究者導覽 ribbon。
 
 所有面板均為**暖白底**（`var(--bg-primary)`），`border-left: 1px solid var(--border)`、`border-radius: var(--radius-lg)`、`box-shadow: var(--shadow-sm)`。
 
-**空狀態**：當書籍尚無節點（`nodeCount === 0`）時，改顯示引導卡 `GraphOnboardingHero`——說明圖譜由章節實體與關係萃取而成，並提供「前往上傳」CTA；此時不渲染 Canvas 與各面板。
+**空狀態**：當書籍尚無節點（`nodeCount === 0`）時，改顯示引導卡 `GraphOnboardingHero`——說明圖譜由章節實體與關係萃取而成，並提供「前往建構概覽」CTA（`/books/:bookId/unraveling`，知識圖譜步驟在那裡執行；2026-10-09 起，原為「前往上傳」，書已存在、方向錯）；此時不渲染 Canvas 與各面板。
 
 #### 圖譜 Canvas
 
@@ -1036,6 +1036,9 @@ partial 時附「部分分析」徽章。其下為研究者導覽 ribbon。
 - **節點形狀依實體類型**（2026-10-08，`lib/cytoscapeConfig.ts` `NODE_SHAPES`）：角色＝圓、地點＝圓角方、組織＝六角、物品＝菱形、概念＝圓角三角、事件＝方塊、其他＝較小的圓（0.75 倍）。形狀是第一辨識通道——角色／事件／物品的 fill 幾乎同色，Ink 又把語意色壓平
 - 節點顏色依實體類型 — 使用 `--graph-{type}-fill / -stroke / -label` token（第二通道，兩主題共用）
 - **聚焦模式**（Phase 1）：選取 degree ≥ 5 的節點時，非鄰居 dim 至 ~0.1，聚焦焦點＋鄰居
+- **選取置中**：選取節點時縮放到 140%，置中在**右欄以外看得到的畫布**（扣掉右欄寬度），不被面板蓋住
+- **減少動態**：系統開啟 `prefers-reduced-motion` 時，置中／縮放／排版／淡入都直接到位不做動畫
+- 實體面板統計格的「關係數」＝「關係」清單筆數（已確認、同對象同類型去重，不含推斷邊）
 - **標籤策略**（Phase 1）：預設只顯示 degree top-N 標籤；聚焦時顯示焦點＋前 N 鄰居；事件標題單行截斷；低 zoom 隱藏
 - **孤兒節點**（degree 0）自畫布移除，改收進右上「未連結實體」抽屜（Phase 1）
 

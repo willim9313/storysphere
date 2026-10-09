@@ -584,14 +584,6 @@ export default function GraphPage() {
     return data.nodes.find((n) => n.id === selectedNodeId) ?? null;
   }, [selectedNodeId, data]);
 
-  // Relation count (graph degree) of the selected node in the current graph.
-  const selectedRelationCount = useMemo(() => {
-    if (!selectedNodeId || !data) return 0;
-    return data.edges.reduce(
-      (n, e) => n + (e.source === selectedNodeId || e.target === selectedNodeId ? 1 : 0),
-      0,
-    );
-  }, [selectedNodeId, data]);
 
   // Confirmed relations for the panel list. Flags the ones whose other end the
   // canvas currently hides (type chips / search / orphan drawer); not in cluster view.
@@ -658,7 +650,7 @@ export default function GraphPage() {
     !clusteredGraph && shown !== total ? `${shown}／${total}` : String(total);
 
   // No nodes yet → show an onboarding guide instead of a blank canvas.
-  if (nodeCount === 0) return <GraphOnboardingHero />;
+  if (nodeCount === 0) return <GraphOnboardingHero bookId={bookId ?? ''} />;
 
   // Right rail: one main panel (priority chain), plus at most one secondary
   // panel beside it — and only when the main one is the entity / event detail.
@@ -797,6 +789,7 @@ export default function GraphPage() {
             extraStylesheet={extraStylesheet}
             onViewportChange={handleViewportChange}
             summaryLabel={t('relations.canvasSummary', { nodes: shownNodeCount, edges: shownEdgeCount })}
+            rightInset={layout.occupied}
           />
         )}
 
@@ -1003,7 +996,8 @@ export default function GraphPage() {
                       key={selectedNode.id}
                       node={selectedNode}
                       bookId={bookId}
-                      relationCount={selectedRelationCount}
+                      // Same rows as the relations list (confirmed, deduplicated) so the tile and the list agree.
+                      relationCount={selectedRelations.length}
                       relations={selectedRelations}
                       onSelectRelated={(id) => handleNodeTap(id, { shift: false })}
                       isBookmarked={bookmarkedIds.includes(selectedNode.id)}

@@ -33,12 +33,19 @@ interface FlatResult {
 
 const MAX_PER_SECTION = 8;
 
+// Every type gets its own --graph-* swatch; organisation / object / other used
+// to fall through to the character colour, mislabelling them in the results.
+const DOT_KEY: Record<EntityType, string> = {
+  character: 'char',
+  location: 'loc',
+  organization: 'org',
+  object: 'obj',
+  concept: 'con',
+  event: 'evt',
+  other: 'other',
+};
 function dotKeyFor(type: EntityType): string {
-  if (type === 'concept') return 'con';
-  if (type === 'event') return 'evt';
-  if (type === 'location') return 'loc';
-  if (type === 'character') return 'char';
-  return 'char';
+  return DOT_KEY[type] ?? 'other';
 }
 
 function highlight(text: string, query: string) {

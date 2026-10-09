@@ -40,11 +40,39 @@ interface GraphCanvasProps {
   readonly onViewportChange?: (snap: ViewportSnapshot) => void;
   /** Screen-reader summary of what the canvas draws (it is a bitmap to AT). */
   readonly summaryLabel?: string;
+  /** Width the right rail covers on top of the canvas; selection centring
+   *  keeps the node in the part still visible. */
+  readonly rightInset?: number;
 }
+
+// prefers-reduced-motion: camera moves, layout and fade-ins jump straight to
+// their end state instead of animating (UI_SPEC §3.6). Read per call so a
+// change in OS settings applies without a reload.
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+const motionMs = (ms: number) => (prefersReducedMotion() ? 0 : ms);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const layout = (cy: cytoscape.Core, opts: Record<string, any>) =>
-  cy.layout({ ...layoutOptions, ...opts } as cytoscape.LayoutOptions).run();
+  cy
+    .layout({
+      ...layoutOptions,
+      ...opts,
+      ...(prefersReducedMotion() ? { animate: false } : {}),
+    } as cytoscape.LayoutOptions)
+    .run();
+
+/** Zoom to 1.4 on `node`, centred in the canvas area the right rail leaves
+ *  visible (`rightInset` px are covered by panels on the right). */
+const focusOnNode = (cy: cytoscape.Core, node: cytoscape.CollectionReturnValue, rightInset: number) => {
+  const zoom = 1.4;
+  const p = node.position();
+  const visibleWidth = Math.max(0, cy.width() - rightInset);
+  cy.animate(
+    { zoom, pan: { x: visibleWidth / 2 - p.x * zoom, y: cy.height() / 2 - p.y * zoom } },
+    { duration: motionMs(400) },
+  );
+};
 
 // ── Focus dim (KG redesign Phase 1) ─────────────────────────────────────
 // Stronger than the generic `.dimmed` class (opacity 0.35, defined in
@@ -132,6 +160,7 @@ function applyLabelVisibility(cy: cytoscape.Core, focusLabelIds: Set<string> | n
 }
 
 function animateIn(collection: cytoscape.Collection, mode: AnimationMode, delayMs = 0) {
+  if (prefersReducedMotion()) return; // elements are already at full opacity
   // Every animation MUST end by removing its opacity bypass — a leftover
   // inline `opacity: 1` permanently defeats stylesheet-level dims
   // (.dimmed / .focus-dimmed), which is exactly the latent bug that made
@@ -228,6 +257,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
     extraStylesheet = [],
     onViewportChange,
     summaryLabel,
+    rightInset = 0,
   },
   ref,
 ) {
@@ -249,6 +279,10 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
   // of truth for "how connected is this node".
   const degreesRef = useRef<Map<string, number>>(new Map());
   const pendingSelectRef = useRef<string | null>(null);
+  const rightInsetRef = useRef(rightInset);
+  useEffect(() => {
+    rightInsetRef.current = rightInset;
+  }, [rightInset]);
   // Current focus-mode label allowlist (null when not focused); read by the
   // cy 'zoom' handler above, which fires outside React's render cycle.
   const focusLabelIdsRef = useRef<Set<string> | null>(null);
@@ -271,7 +305,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
         const h = cy.height();
         cy.animate(
           { pan: { x: w / 2 - graphX * z, y: h / 2 - graphY * z } },
-          { duration: 250, easing: 'ease' },
+          { duration: motionMs(250), easing: 'ease' },
         );
       },
       panByGraph(dxGraph, dyGraph) {
@@ -283,7 +317,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
       fitView() {
         const cy = cyRef.current;
         if (!cy) return;
-        cy.animate({ fit: { eles: cy.elements(), padding: 48 } }, { duration: 300, easing: 'ease' });
+        cy.animate({ fit: { eles: cy.elements(), padding: 48 } }, { duration: motionMs(300), easing: 'ease' });
       },
       zoomBy(factor) {
         const cy = cyRef.current;
@@ -291,7 +325,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
         const level = Math.min(cy.maxZoom(), Math.max(cy.minZoom(), cy.zoom() * factor));
         cy.animate(
           { zoom: { level, renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 } } },
-          { duration: 150, easing: 'ease' },
+          { duration: motionMs(150), easing: 'ease' },
         );
       },
     }),
@@ -500,7 +534,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
     }
     pendingSelectRef.current = null;
     applyHighlight(cy, [selectedNodeId], degreesRef.current);
-    cy.animate({ center: { eles: node }, zoom: 1.4 }, { duration: 400 });
+    focusOnNode(cy, node, rightInsetRef.current);
   }, [selectedNodeId]);
 
   // Finish a selection whose node only arrived with a later elements update.
@@ -512,7 +546,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
     if (!node.length) return;
     pendingSelectRef.current = null;
     applyHighlight(cy, [id], degreesRef.current);
-    cy.animate({ center: { eles: node }, zoom: 1.4 }, { duration: 400 });
+    focusOnNode(cy, node, rightInsetRef.current);
   }, [elements, selectedNodeId]);
 
   // Multi-select highlight (Scenario E)
