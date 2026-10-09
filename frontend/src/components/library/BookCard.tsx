@@ -100,7 +100,6 @@ export function BookCard({ book }: Readonly<{ book: Book }>) {
         </div>
       ) : (
         <>
-          {book.author && <div className="ss-bookcard-author">{book.author}</div>}
           <StatusBadge status={book.status} />
           {/* The library's only analysis-quality signal: sits under the badge,
               ahead of the counts. Copy format unchanged. */}

@@ -86,14 +86,14 @@ interface PipelineStatus {
 interface Book {
   id: string;
   title: string;
-  author?: string;
+  author?: string;         // #1 不回傳（列表不查此欄）；只有 #2-a／#3 帶值。書庫刻意不顯示作者行
   // pipeline_status 推導：任一步 failed → error；四步全 done → analyzed；其餘 ready。
   // 沒有 'processing'：還在跑 ingestion 的書被 #1 濾掉（前端畫 ProcessingBookCard），
   // 且 StepStatus 沒有 running，後端分不出「正在跑」與「從沒跑過」。
   status: 'ready' | 'analyzed' | 'error';
   chapterCount: number;    // 只計 body 章；序/目次/後記不計入（與閱讀頁章節列表一致）
   entityCount?: number;
-  uploadedAt: string;
+  uploadedAt: string;      // #1 固定為空字串（列表不查處理時間）；#2-a／#3 為處理完成時間
   lastOpenedAt?: string;   // UTC ISO-8601（結尾 Z），由 #2-c 寫入；從未開啟則為 null。#1 / #2-a / #3 皆回傳
   pipelineStatus: PipelineStatus;
 }
@@ -137,7 +137,9 @@ interface Book {
 
 **Response 204**：刪除成功，無 body
 
-**UI 使用頁面**：首頁（刪除操作，待實作）
+**Response 404**：書籍不存在
+
+**UI 使用頁面**：首頁書卡刪除兩段式（`BookCard`）、章節審閱頁「放棄」、上傳頁處理卡「終止」
 
 ---
 
