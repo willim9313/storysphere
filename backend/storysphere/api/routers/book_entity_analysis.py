@@ -50,6 +50,28 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/books", tags=["books"])
 
 
+def _normalize_key_events(events: list[dict]) -> list[dict]:
+    """Coerce ``keyEvents[].chapter`` to ``int | None`` (#7a contract).
+
+    ``key_events`` is raw LLM JSON and the model often writes ``"chapter": "1"``;
+    a string chapter silently drops the event from every chapter-keyed view.
+    Done at response time so results already in the cache are fixed too.
+    """
+    out = []
+    for ev in events:
+        ch = ev.get("chapter")
+        if isinstance(ch, bool):
+            ch = None
+        elif isinstance(ch, float):
+            ch = int(ch) if ch.is_integer() else None
+        elif isinstance(ch, str):
+            ch = int(ch.strip()) if ch.strip().isdigit() else None
+        elif not isinstance(ch, int):
+            ch = None
+        out.append({**ev, "chapter": ch})
+    return out
+
+
 async def _entity_analysis(
     task_id: str, entity_name: str, document_id: str, agent, language: str = "en",
     retry_parts: list[str] | None = None, force_refresh: bool = False,
@@ -184,7 +206,7 @@ async def get_entity_analysis(
                     actions=result.cep.actions,
                     traits=result.cep.traits,
                     relations=result.cep.relations,
-                    key_events=result.cep.key_events,
+                    key_events=_normalize_key_events(result.cep.key_events),
                     quotes=result.cep.quotes,
                     top_terms=result.cep.top_terms,
                 ) if result.cep else None,

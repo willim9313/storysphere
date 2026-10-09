@@ -160,10 +160,14 @@ export function showToneLabel(value: number): boolean {
 
 // ── 弧線 ──────────────────────────────────────────────────────
 
+/** 「a-b」或單章「n」（後者視為 [n, n]，一章長的階段也要畫色帶）。 */
 export function parseChapterRange(range: string): [number, number] | null {
-  const parts = range.split(/[-–—]/).map((s) => Number(s.trim()));
-  if (parts.length !== 2 || parts.some((n) => !Number.isFinite(n))) return null;
-  return parts[0] <= parts[1] ? [parts[0], parts[1]] : [parts[1], parts[0]];
+  const raw = range.split(/[-–—]/).map((s) => s.trim());
+  if (raw.length > 2 || raw.some((s) => s === '')) return null;
+  const parts = raw.map(Number);
+  if (parts.some((n) => !Number.isFinite(n))) return null;
+  const [a, b = a] = parts;
+  return a <= b ? [a, b] : [b, a];
 }
 
 /**

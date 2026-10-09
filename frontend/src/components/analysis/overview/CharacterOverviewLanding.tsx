@@ -1,5 +1,8 @@
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { Users } from 'lucide-react';
+import { EmptyState } from '@/components/ui/EmptyState';
 import type { AnalysisListResponse } from '@/api/types';
 import { useFactions } from '@/hooks/useFactions';
 import { useCharacterMetrics } from '@/hooks/useCharacterMetrics';
@@ -26,6 +29,7 @@ export function CharacterOverviewLanding({
   generatingId,
 }: Readonly<CharacterOverviewLandingProps>) {
   const { t } = useTranslation('analysis');
+  const navigate = useNavigate();
   const [view, setView] = useState<LandingView>('quadrant');
 
   const { data: factions } = useFactions(bookId);
@@ -42,6 +46,29 @@ export function CharacterOverviewLanding({
   const analyzedCount = charData.analyzed.length;
   const unanalyzedCount = charData.unanalyzed.length;
   const totalCount = analyzedCount + unanalyzedCount;
+
+  // No characters at all is not "metrics unavailable": the cast comes from the
+  // knowledge-graph extraction, so point at the build step instead of drawing
+  // an empty chart and an empty ranking.
+  if (totalCount === 0) {
+    return (
+      <EmptyState
+        weight="prerequisite"
+        icon={<Users size={26} aria-hidden="true" />}
+        title={t('character.overview.empty.title')}
+        description={t('character.overview.empty.description')}
+        action={
+          <button
+            type="button"
+            className="ss-btn ss-btn-md ss-btn-primary"
+            onClick={() => navigate(`/books/${bookId}/unraveling`)}
+          >
+            {t('graph:onboarding.cta')}
+          </button>
+        }
+      />
+    );
+  }
 
   return (
     <div className="ca-ov-landing">

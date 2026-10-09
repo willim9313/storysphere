@@ -125,7 +125,15 @@ def _make_cached_character_result():
         entity_name="Alice",
         document_id="doc-1",
         profile=CharacterProfile(summary="Alice is brave."),
-        cep=CEPResult(actions=["fights"], traits=["brave"]),
+        cep=CEPResult(
+            actions=["fights"],
+            traits=["brave"],
+            key_events=[
+                {"event": "duel", "chapter": "3", "significance": "s"},
+                {"event": "flight", "chapter": 5, "significance": "s"},
+                {"event": "dream", "chapter": "unknown", "significance": "s"},
+            ],
+        ),
         archetypes=[
             ArchetypeResult(framework="jung", primary="hero", confidence=0.9, evidence=["e1"]),
             ArchetypeResult(framework="schmidt", primary="warrior", confidence=0.8, evidence=["e2"]),
@@ -265,6 +273,39 @@ class TestEntityAnalysisDetailArchetypes:
         # Confidence and evidence preserved
         assert jung["confidence"] == 0.9
         assert schmidt["evidence"] == ["e2"]
+
+
+class TestEntityAnalysisDetailKeyEvents:
+    """#7a keyEvents[].chapter is always int | None, even when the LLM wrote a string."""
+
+    def test_chapters_are_coerced_to_int_or_null(self, jung_schmidt_client):
+        resp = jung_schmidt_client.get("/api/v1/books/doc-1/entities/ent-alice/analysis")
+        assert resp.status_code == 200
+        chapters = [e["chapter"] for e in resp.json()["cep"]["keyEvents"]]
+        assert chapters == [3, 5, None]
+
+    def test_other_fields_are_kept(self, jung_schmidt_client):
+        resp = jung_schmidt_client.get("/api/v1/books/doc-1/entities/ent-alice/analysis")
+        first = resp.json()["cep"]["keyEvents"][0]
+        assert first["event"] == "duel"
+        assert first["significance"] == "s"
+
+
+class TestNormalizeKeyEvents:
+    def _norm(self, chapter):
+        from storysphere.api.routers.book_entity_analysis import _normalize_key_events
+        return _normalize_key_events([{"chapter": chapter}])[0]["chapter"]
+
+    def test_numeric_string_with_spaces_becomes_int(self):
+        assert self._norm(" 12 ") == 12
+
+    def test_whole_float_becomes_int(self):
+        assert self._norm(4.0) == 4
+
+    def test_fractional_float_bool_and_missing_become_none(self):
+        assert self._norm(4.5) is None
+        assert self._norm(True) is None
+        assert self._norm(None) is None
 
 
 class TestRunEntityAnalysisFrameworks:

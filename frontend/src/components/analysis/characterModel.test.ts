@@ -182,10 +182,15 @@ describe('parseChapterRange', () => {
     expect(parseChapterRange('1-3')).toEqual([1, 3]);
     expect(parseChapterRange('3 – 6')).toEqual([3, 6]);
   });
+  it('parses a single chapter as a one-chapter range', () => {
+    expect(parseChapterRange('5')).toEqual([5, 5]);
+    expect(parseChapterRange(' 1 ')).toEqual([1, 1]);
+  });
   it('returns null for unparseable input', () => {
     expect(parseChapterRange('Ch.1')).toBeNull();
     expect(parseChapterRange('')).toBeNull();
     expect(parseChapterRange('1-2-3')).toBeNull();
+    expect(parseChapterRange('1-')).toBeNull();
   });
 });
 
