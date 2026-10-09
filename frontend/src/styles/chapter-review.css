@@ -12,8 +12,6 @@
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: var(--focus-ring-offset);
 }
-/* kit 沒有 disabled 態；本頁三態按鈕（偵測中…／已套用 AI 建議）需要它 */
-.cr-root .ss-btn:disabled { opacity: 0.5; cursor: default; }
 .cr-spin { animation: cr-spin 1s linear infinite; }
 @keyframes cr-spin { to { transform: rotate(360deg); } }
 

@@ -589,11 +589,6 @@
   text-decoration: underline;
   cursor: pointer;
 }
-/* The kit has no :disabled look; scoped here like upload.css does. */
-.tl .ss-btn:disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-}
 
 /* ── View header (headline, shown only when comparing) ──── */
 .tl-view-head {

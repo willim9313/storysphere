@@ -24,30 +24,35 @@
 
 /* accent 填色：hover 0.9 / active 0.95 */
 .ss-btn-primary { background: var(--accent); color: var(--accent-fg); }
-.ss-btn-primary:hover  { opacity: 0.9; }
-.ss-btn-primary:active { opacity: 0.95; }
+.ss-btn-primary:hover:not(:disabled)  { opacity: 0.9; }
+.ss-btn-primary:active:not(:disabled) { opacity: 0.95; }
 
 /* 面色元件：hover 降一階、active 再降一階 */
 .ss-btn-secondary {
   background: var(--bg-primary); color: var(--fg-primary);
   border-color: var(--border); border-style: var(--border-style);
 }
-.ss-btn-secondary:hover  { background: var(--bg-secondary); }
-.ss-btn-secondary:active { background: var(--bg-tertiary); }
+.ss-btn-secondary:hover:not(:disabled)  { background: var(--bg-secondary); }
+.ss-btn-secondary:active:not(:disabled) { background: var(--bg-tertiary); }
 
 /* ghost：字轉 accent，active 同 hover */
 .ss-btn-ghost { background: transparent; color: var(--fg-secondary); }
-.ss-btn-ghost:hover,
-.ss-btn-ghost:active { color: var(--accent); }
+.ss-btn-ghost:hover:not(:disabled),
+.ss-btn-ghost:active:not(:disabled) { color: var(--accent); }
 
 /* 破壞性動作（描邊式）；Ink 不靠色相，改 fg-primary 描邊 */
 .ss-btn-danger {
   background: transparent; color: var(--color-error);
   border-color: var(--color-error); border-style: var(--border-style);
 }
-.ss-btn-danger:hover { background: var(--color-error-bg); }
+.ss-btn-danger:hover:not(:disabled) { background: var(--color-error-bg); }
 [data-theme="ink"] .ss-btn-danger { color: var(--fg-primary); border-color: var(--fg-primary); }
-[data-theme="ink"] .ss-btn-danger:hover { background: var(--bg-tertiary); }
+[data-theme="ink"] .ss-btn-danger:hover:not(:disabled) { background: var(--bg-tertiary); }
+
+/* 停用：一種樣子給全站（各頁原本各自補 0.4–0.55）。hover／active 都掛了
+   :not(:disabled)，所以停用鈕不會被 hover 的 opacity 0.9 蓋回來。
+   LLM 字符照樣顯示（見下）。 */
+.ss-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* ── LLM 成本字符 ─────────────────────────────────────────
    凡會呼叫 LLM、消耗 token 的控制項都要帶。可組合，不是變體：
