@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { X, Loader } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useEpistemicState } from '@/hooks/useEpistemicState';
 import { useSourceJump } from '@/hooks/useSourceJump';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useDialogFocus } from '@/hooks/useDialogFocus';
 import { Tooltip } from '@/components/ui/Tooltip';
 import type { EpistemicStateResponse } from '@/api/graph';
 import { ChapterTimeline } from './ChapterTimeline';
@@ -92,6 +93,8 @@ export function EpistemicCompareDrawer({
   }, [displayedChapter, queriedChapter]);
 
   useEscapeKey(open, onClose);
+  const dialogRef = useDialogFocus(open);
+  const titleId = useId();
 
   // Hooks run before the `!open` early return below, so gate the ids on `open`.
   // The drawer only diffs known events, so it reads cache-only: an uncached
@@ -176,9 +179,17 @@ export function EpistemicCompareDrawer({
   return (
     <>
       <div className="ca-compare-backdrop" onClick={onClose} />
-      <aside className="ca-compare-drawer ca-compare-drawer-wide" role="dialog" aria-modal="true">
+      <aside
+        ref={dialogRef}
+        className="ca-compare-drawer ca-compare-drawer-wide"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+      >
         <header className="ca-compare-head">
-          <h3>{t('character.epistemicCompare.title')}</h3>
+          <h3 id={titleId} tabIndex={-1}>
+            {t('character.epistemicCompare.title')}
+          </h3>
           <button type="button" className="ss-btn ss-btn-sm ss-btn-ghost" onClick={onClose}>
             <X size={14} /> {t('character.compare.close')}
           </button>

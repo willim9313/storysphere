@@ -1,7 +1,9 @@
+import { useId } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { ArchetypeDetail, CharacterAnalysisDetail } from '@/api/types';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useDialogFocus } from '@/hooks/useDialogFocus';
 import { ConfidenceMeter } from './ConfidenceMeter';
 import { archetypeDisplayName } from './characterModel';
 
@@ -15,6 +17,8 @@ export function FrameworkCompareDrawer({ open, data, onClose }: Props) {
   const { t } = useTranslation('analysis');
 
   useEscapeKey(open, onClose);
+  const dialogRef = useDialogFocus(open);
+  const titleId = useId();
 
   if (!open || !data) return null;
 
@@ -24,9 +28,17 @@ export function FrameworkCompareDrawer({ open, data, onClose }: Props) {
   return (
     <>
       <div className="ca-compare-backdrop" onClick={onClose} />
-      <aside className="ca-compare-drawer" role="dialog" aria-modal="true">
+      <aside
+        ref={dialogRef}
+        className="ca-compare-drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+      >
         <header className="ca-compare-head">
-          <h3>{t('character.compare.title', { name: data.entityName })}</h3>
+          <h3 id={titleId} tabIndex={-1}>
+            {t('character.compare.title', { name: data.entityName })}
+          </h3>
           <button type="button" className="ss-btn ss-btn-sm ss-btn-ghost" onClick={onClose}>
             <X size={14} /> {t('character.compare.close')}
           </button>

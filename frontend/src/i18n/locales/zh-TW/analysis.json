@@ -208,6 +208,7 @@
     },
     "epistemic": {
       "upToChapter": "截止章節",
+      "cursorHint": "拖曳或按 ← →",
       "chapterN": "第 {{n}} 章",
       "computing": "計算中…",
       "noVisibilityData": "此書尚無 visibility 資料（事件均為預設 public）",

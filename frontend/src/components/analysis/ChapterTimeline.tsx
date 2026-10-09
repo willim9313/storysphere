@@ -111,6 +111,7 @@ export function ChapterTimeline({ chapter, totalChapters, markers, onChange }: P
           </span>
         ))}
       </div>
+      <span className="ca-epi-cursor-hint">{t('character.epistemic.cursorHint')}</span>
     </div>
   );
 }

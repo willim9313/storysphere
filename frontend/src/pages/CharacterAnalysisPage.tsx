@@ -355,14 +355,20 @@ export default function CharacterAnalysisPage() {
 
   // #13 keyboard operation: ↑/↓ moves through the left list, / focuses search,
   // 1/2/3 switches primary tabs (only once an analyzed character is selected).
-  // Ignored entirely while focus is in an input/textarea/contenteditable so it
-  // never steals keys from the search box or the epistemic chapter slider.
+  // Ignored entirely while focus is in an input/textarea/select/contenteditable
+  // (search box, epistemic chapter slider, native <select> that uses ↑/↓ itself),
+  // on a role=tab (tablists own ←/→/↓ roving focus), or anywhere inside a
+  // role=dialog. While a compare drawer is open every shortcut is off, so ↓ in
+  // the drawer can't switch the primary character and close it underneath.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName;
-      const isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || !!target?.isContentEditable;
+      const isEditable =
+        tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || !!target?.isContentEditable;
       if (isEditable) return;
+      if (drawerOpen !== null) return;
+      if (target?.closest('[role="tab"], [role="dialog"]')) return;
 
       if (e.key === '/') {
         e.preventDefault();
@@ -394,7 +400,7 @@ export default function CharacterAnalysisPage() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [flatNavList, selectedEntityId, selectedAnalyzed, handleSelectEntity]);
+  }, [flatNavList, selectedEntityId, selectedAnalyzed, handleSelectEntity, drawerOpen]);
 
   if (isLoading) return <LoadingSpinner />;
 

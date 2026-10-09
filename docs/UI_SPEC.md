@@ -612,7 +612,9 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 - 已分析：依名字首字 hash 出 entity 配色頭像 + 名稱（serif）+ 名稱旁綠色狀態點（partial 為 warning 色），第二行為提及量迷你 bar（寬 `6+94·√(mentions/max)`%，accent）+ 右側 tabular 純數字提及數
 - 未分析：muted 頭像 + 名稱（淡色），第二行為 muted bar + 純數字提及數，右側「建立」按鈕
 - 兩組皆依 `mentionCount` 降冪排序；搜尋同時比對名稱與當前框架原型名
-- 鍵盤：`↑/↓` 移動選取並載入、`/` 聚焦搜尋、`1/2/3` 切 primary tab（焦點在輸入框時不攔截）
+- 鍵盤：`↑/↓` 移動選取並載入、`/` 聚焦搜尋、`1/2/3` 切 primary tab（焦點在 input／textarea／select、`role=tab`、任一 `role=dialog` 內時不攔截；比對抽屜開著時全部停用）
+- 清單列與排行列：列本身不可互動，內層 `button.ca-row-main` 負責選取（選中 `aria-current`），「建立」為其兄弟節點（不巢狀）
+- 兩個比對抽屜（`useDialogFocus`）：開啟時焦點移到抽屜標題（`aria-labelledby`）、Tab 只在抽屜內循環、關閉後焦點還給觸發鈕；刻意不用原生 `<dialog>`（只蓋內容區，左欄保持可見）
 
 #### 第 5 批 · 批次面板（09 角色，與 10 事件共用同一套四態）
 
@@ -685,6 +687,7 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 - 拖曳游標更新章節；**200ms debounce** 後才打 epistemic API；拖曳期間以最近一次的回應做樂觀更新（filter `chapter <= cursor`，三欄一致）
 - 雙軌 marker：已知綠 pill 於上軌、未知 warning pill 於下軌，**同章多事件聚合為一顆帶數字的 pill**（hover title 列事件名）；只顯示 ch ≤ 游標的 marker
 - 拖曳用原生 `<input type="range">` overlay（保留鍵盤/aria 可存取性，canvas 的 pointermove 版之有意偏差）
+- **可拖曳的外觀（2026-10-09，CA-4）**：游標為 18px 把手（紙底、accent 框＝`--btn-border-width`＋1px、`--pill-radius`，中間兩條握把線），軸上 `cursor: grab`／按住 `grabbing`、hover 換 `--bg-tertiary` 底；range 取得 `:focus-visible` 時把手畫全站焦點環。軸下一行 muted「拖曳或按 ← →」（**草稿・待設計定案**，i18n `analysis:character.epistemic.cursorHint`）
 - 切換角色時自動 reset 到 totalChapters
 
 #### 狀態流程
