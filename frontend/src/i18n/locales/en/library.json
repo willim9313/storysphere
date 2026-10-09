@@ -11,7 +11,7 @@
   },
   "empty": {
     "title": "No books in library",
-    "description": "Drop in a PDF — the story starts here",
+    "description": "Upload a novel — the story starts here",
     "processingTitle": "No uploads in progress",
     "processingBody": "This filter only lists uploads that are still being processed.",
     "processingAwaiting": "{{count}} more waiting for chapter review — see above.",
@@ -30,7 +30,7 @@
     "deleteConfirmAnalyzed": "Delete? Its analysis will be deleted too.",
     "deleteFailed": "Delete failed. Try again.",
     "listSep": ", ",
-    "unavailable": "unavailable"
+    "unavailableSteps": "<nw>Unavailable:</nw> {{steps}}"
   },
   "shortcuts": {
     "continueReading": "Continue Reading",

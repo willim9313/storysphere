@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { FileText, Trash2, AlertTriangle } from 'lucide-react';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import type { Book, PipelineStatus } from '@/api/types';
 import { StatusBadge } from './StatusBadge';
 import { useDeleteBook } from '@/hooks/useDeleteBook';
@@ -108,7 +108,14 @@ export function BookCard({ book }: Readonly<{ book: Book }>) {
               <AlertTriangle size={13} />
               <div className="lib-card-degraded-body">
                 <span>
-                  {failedSteps.join(t('card.listSep'))} <span className="lib-nowrap">{t('card.unavailable')}</span>
+                  {/* Word order is per language (zh: steps first; en: label first);
+                      the 不可用 / Unavailable part never breaks across lines. */}
+                  <Trans
+                    i18nKey="card.unavailableSteps"
+                    ns="library"
+                    values={{ steps: failedSteps.join(t('card.listSep')) }}
+                    components={{ nw: <span className="lib-nowrap" /> }}
+                  />
                 </span>
                 {/* An error book's only way forward: 建構概覽 shows which step
                     failed and reruns it (LIB-3). */}

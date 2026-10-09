@@ -11,7 +11,7 @@
   },
   "empty": {
     "title": "書庫尚無書籍",
-    "description": "把一本 PDF 拖進來，故事就從這裡開始",
+    "description": "上傳一本小說，故事就從這裡開始",
     "processingTitle": "沒有正在處理的上傳任務",
     "processingBody": "這個篩選只列出正在處理的上傳任務。",
     "processingAwaiting": "另有 {{count}} 本等待章節審閱，見上方。",
@@ -29,7 +29,7 @@
     "deleteConfirmAnalyzed": "刪除？分析結果會一併刪除",
     "deleteFailed": "刪除失敗，請重試",
     "listSep": "、",
-    "unavailable": "不可用"
+    "unavailableSteps": "{{steps}} <nw>不可用</nw>"
   },
   "shortcuts": {
     "continueReading": "繼續閱讀",
