@@ -36,7 +36,7 @@ export function RankingView({
   return (
     <div className="ca-ov-ranking">
       <div className="ca-ov-ranking-head">
-        <h3 className="ca-ov-ranking-title">{t('character.overview.viewRanking')}</h3>
+        <h2 className="ca-ov-ranking-title">{t('character.overview.viewRanking')}</h2>
         <span className="ca-ov-caption">{t('character.overview.rankingCaption')}</span>
       </div>
 

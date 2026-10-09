@@ -64,7 +64,7 @@ export function PersonaPane({
       <section className="ca-section">
         <header className="ca-section-head">
           <div>
-            <h3 className="ca-section-title">{t('character.sections.profile')}</h3>
+            <h2 className="ca-section-title">{t('character.sections.profile')}</h2>
             <div className="ca-section-sub">{t('character.persona.profileSub')}</div>
           </div>
         </header>
@@ -76,7 +76,7 @@ export function PersonaPane({
       {/* Archetype */}
       <section className="ca-section">
         <header className="ca-section-head">
-          <h3 className="ca-section-title">{archetypeTitle}</h3>
+          <h2 className="ca-section-title">{archetypeTitle}</h2>
           {archetype && (
             <button type="button" className="ca-persona-switch-link" onClick={onOpenCompare}>
               {t('character.compare.switchTo')} <ChevronRight size={11} />
@@ -163,7 +163,7 @@ export function PersonaPane({
       <section className="ca-section">
         <header className="ca-section-head">
           <div>
-            <h3 className="ca-section-title">{t('character.sections.traits')}</h3>
+            <h2 className="ca-section-title">{t('character.sections.traits')}</h2>
             <div className="ca-section-sub">{t('character.persona.traitsCount', { count: traits.length })}</div>
           </div>
         </header>

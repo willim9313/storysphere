@@ -60,7 +60,7 @@ export function ArcPane({ data, chapterCount }: Readonly<Props>) {
     <section className="ca-section">
       <header className="ca-section-head">
         <div>
-          <h3 className="ca-section-title">{t('character.sections.arc')}</h3>
+          <h2 className="ca-section-title">{t('character.sections.arc')}</h2>
           <div className="ca-section-sub">{t('character.arcPane.stagesCount', { count: arc.length })}</div>
         </div>
       </header>

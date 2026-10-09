@@ -562,6 +562,7 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 
 > **DS v3 第 3 批（3-2）改版現況**（以下為準，後文舊描述與其衝突處以此為準）：
 > - **密度 B 檢視**：內容區 padding 24／區塊間距 16／卡片內距 12／列間距 8、max-w 1280、下內距 32；左欄 268 固定。樣式 `character-analysis.css` 只用 `--space-1…8`。
+> - **文案與結構（2026-10-09，使用者定稿）**：區塊標題一律 h2（頁面 h1＝角色名／「角色群像」）；清單群組標頭只顯示人數（篩選中「顯示 / 總數」，`character.list.groupMeta` 已刪）；已分析列 `isStale` 時狀態點前加 info 小點＋Tooltip；引文已自帶「」『』“”時不再外包（`isQuoted`）；語音卡標頭鈕「重新生成語音風格」（`character.voice.regenerate`，與標題列「覆蓋重新生成」區分）；`persona.profileSub`「整體描繪」；`voice.sentenceLength`「句長分布（字）」；`character.stale.tooltip`／`event.stale.tooltip` 改白話：「這份分析做完後，系統又重新整理過書中的證據段落。內容仍可參考，但可能和目前的資料有些出入；需要時可以覆蓋重新生成。」
 > - **窄寬（2026-10-09）**：象限圖與 ego 關係網的 SVG 以容器實際像素寬為 viewBox（`useElementWidth`），文字維持 CSS 字級不隨寬度縮放；象限高＝寬×0.47（320–470）、泡泡半徑隨寬度縮放（0.5–1 倍）；ego 橢圓橫半徑＝寬/2−46（90–380）。象限主欄放不下 480＋圖例就換行（圖例落到圖下）。內容欄 ≤600px（container query `ca-content`）時語音四格改 2×2、質性欄全寬。
 > - **左欄**：框架 chip（pill）＋說明句固定最上、搜尋、原型篩選、「對照 Jung vs Schmidt」；清單為動作列（姓名／長條＋數值＋「建立」，第二行 28px；長條 px＝6+94√(m/max)）；
 >   群組標頭在搜尋或篩選縮減時顯示「顯示 / 總數」。選中態＝底色＋加粗。partial 狀態點為空心環（Ink 靠形狀）。

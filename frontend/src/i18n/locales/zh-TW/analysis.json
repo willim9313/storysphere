@@ -60,7 +60,7 @@
       "secondaryLabel": "次：{{name}}"
     },
     "persona": {
-      "profileSub": "一句話總結",
+      "profileSub": "整體描繪",
       "archetypeLabelJung": "Jung 原型 — {{name}}",
       "archetypeLabelSchmidt": "Schmidt 類型 — {{name}}",
       "archetypeNotGenerated": "未生成",
@@ -93,7 +93,6 @@
     },
     "list": {
       "searchPlaceholder": "搜尋 {{count}} 位角色",
-      "groupMeta": "{{total}} · 已析 {{analyzed}}",
       "frameworkLabel": "分析框架",
       "mentionCount": "提及 {{count}} 次",
       "createBtn": "建立",
@@ -194,7 +193,8 @@
       "paragraphsAnalyzed": "已分析 {{count}} 個段落",
       "toneDistribution": "語氣分布",
       "toneDistributionSub": "句法分類比例",
-      "sentenceLength": "句長分布",
+      "sentenceLength": "句長分布（字）",
+      "regenerate": "重新生成語音風格",
       "sentenceLengthSub": "字數區間頻次",
       "speechStyleSub": "質性描述",
       "dominantToneSub": "一句話描述",
@@ -265,7 +265,7 @@
     },
     "stale": {
       "badge": "證據已更新",
-      "tooltip": "此分析建立在 feature-extraction 重跑前的向量證據與關鍵字上。內容仍可讀，但已不反映目前的資料；需要時可覆蓋重新生成。"
+      "tooltip": "這份分析做完後，系統又重新整理過書中的證據段落。內容仍可參考，但可能和目前的資料有些出入；需要時可以覆蓋重新生成。"
     },
     "error": {
       "backToBook": "回書籍總覽"
@@ -452,7 +452,7 @@
     },
     "stale": {
       "badge": "證據已更新",
-      "tooltip": "此分析建立在 feature-extraction 重跑前的向量證據與關鍵字上。內容仍可讀，但已不反映目前的資料；需要時可覆蓋重新生成。"
+      "tooltip": "這份分析做完後，系統又重新整理過書中的證據段落。內容仍可參考，但可能和目前的資料有些出入；需要時可以覆蓋重新生成。"
     }
   },
   "batch": {
