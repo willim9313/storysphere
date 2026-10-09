@@ -14,6 +14,7 @@
     "description": "把一本 PDF 拖進來，故事就從這裡開始",
     "processingTitle": "沒有正在處理的上傳任務",
     "processingBody": "這個篩選只列出正在處理的上傳任務。",
+    "processingAwaiting": "另有 {{count}} 本等待章節審閱，見上方。",
     "filtered": {
       "analyzed": "沒有已分析的書籍",
       "ready": "沒有已就緒的書籍"
