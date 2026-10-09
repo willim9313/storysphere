@@ -77,7 +77,6 @@ function ReviewGate({ tasks }: Readonly<{ tasks: TaskStatus[] }>) {
           </div>
           <div className="lib-gate-main">
             <div className="lib-gate-title">{taskBookTitle(task) ?? t('processing.fallbackTitle')}</div>
-            <div className="lib-gate-sub">{t('processing.awaitingReview')}</div>
           </div>
           <Link
             to={`/upload/review/${bookIdOf(task)}?taskId=${task.taskId}`}
@@ -94,7 +93,9 @@ function ReviewGate({ tasks }: Readonly<{ tasks: TaskStatus[] }>) {
 function LibrarySkeleton() {
   const { t: tc } = useTranslation('common');
   return (
-    <div className="lib-page lib-page-full" aria-busy="true">
+    // Sparse density: most libraries load into it, so the page doesn't jump
+    // when the books arrive (only a > 8 library switches to full).
+    <div className="lib-page" aria-busy="true">
       <span className="sr-only" role="status">
         {tc('loading')}
       </span>
