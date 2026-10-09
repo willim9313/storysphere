@@ -81,7 +81,9 @@
       "quotesCount": "{{count}} 句",
       "segmentCount": "{{count}} 段",
       "egoCaption": "關係圖譜 · 以 {{name}} 為中心",
-      "egoLegendNote": "點節點載入該角色 · 角標＝多段關係"
+      "egoLegendNote": "點節點載入該角色 · 角標＝多段關係",
+      "types": {"enemy": "敵人", "ally": "盟友", "subordinate": "下屬", "member": "成員", "other": "其他"},
+      "typesShort": {"enemy": "敵", "ally": "盟", "subordinate": "屬", "member": "員", "other": "他"}
     },
     "arcPane": {
       "stagesCount": "{{count}} 個階段",

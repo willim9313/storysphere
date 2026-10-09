@@ -666,6 +666,8 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 
 **Framework 切換**：唯一入口在左清單頂部 chip；切換只影響顯示（archetype 跟著切換），不重打 API。標題列 badge 僅顯示當前框架，不可點擊。
 
+**原型名稱語言**：#6a／#7a 回的原型名是**書本語言**。前端以中英兩套原型表共用的 id 對照（`characterModel.archetypeIdOf`），標題列 badge、人格原型卡、框架對照抽屜、清單搜尋都**依介面語言**顯示；原型篩選以 id 計數與比對。對不到 id 的名稱（LLM 變體）照原名顯示、以原名篩選。
+
 **框架對照 Drawer**（右側 640px 抽屜）：
 - 觸發點：標題列「框架對照」按鈕、PersonaPane 內 archetype section 的「切到對照」連結、左清單下方「對照 Jung vs Schmidt」連結
 - 內容：2 欄並排，Jung 12 / Schmidt 45，各欄顯示 primary（accent serif）/ secondary / 信心度條 + % / 證據（左框 items）

@@ -31,7 +31,11 @@ import { Tooltip } from '@/components/ui/Tooltip';
 import { AnalyzedItem, UnanalyzedItem } from '@/components/analysis/AnalysisListItems';
 import { ArchetypeFilterDropdown } from '@/components/analysis/ArchetypeFilterDropdown';
 import { CharacterOverviewLanding } from '@/components/analysis/overview/CharacterOverviewLanding';
-import { archetypeState } from '@/components/analysis/characterModel';
+import {
+  archetypeDisplayName,
+  archetypeKey,
+  archetypeState,
+} from '@/components/analysis/characterModel';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useAsyncTask } from '@/hooks/useAsyncTask';
@@ -64,7 +68,7 @@ export default function CharacterAnalysisPage() {
   const { bookId } = useParams<{ bookId: string }>();
   const { setPageContext } = useChatDispatch();
   const { data: book } = useBook(bookId);
-  const { t } = useTranslation('analysis');
+  const { t, i18n } = useTranslation('analysis');
   const { push } = useToast();
   const { t: tc } = useTranslation('common');
   const { t: tn } = useTranslation('nav');
@@ -286,10 +290,18 @@ export default function CharacterAnalysisPage() {
   const filteredAnalyzed = useMemo(
     () =>
       (failedFilterOn ? [] : (charData?.analyzed ?? []))
-        .filter((a) => matchesQuery(searchQuery, a.title, a.archetypes?.[framework]))
-        .filter((a) => archFilter.length === 0 || archFilter.includes(a.archetypes?.[framework] ?? ''))
+        .filter((a) =>
+          matchesQuery(
+            searchQuery,
+            a.title,
+            archetypeDisplayName(framework, a.archetypes?.[framework], i18n.language),
+          ),
+        )
+        .filter(
+          (a) => archFilter.length === 0 || archFilter.includes(archetypeKey(framework, a.archetypes?.[framework])),
+        )
         .sort((a, b) => b.mentionCount - a.mentionCount),
-    [charData, searchQuery, framework, archFilter, failedFilterOn],
+    [charData, searchQuery, framework, archFilter, failedFilterOn, i18n.language],
   );
   const filteredUnanalyzed = useMemo(
     () =>
@@ -392,7 +404,11 @@ export default function CharacterAnalysisPage() {
     if (!entityAnalysis) return null;
     const state = archetypeState(entityAnalysis, framework);
     if (state === 'ready') {
-      const primary = entityAnalysis.archetypes.find((a) => a.framework === framework)?.primary;
+      const primary = archetypeDisplayName(
+        framework,
+        entityAnalysis.archetypes.find((a) => a.framework === framework)?.primary,
+        i18n.language,
+      );
       return { cls: 'ss-badge ss-badge-info', text: `${fwName} · ${primary}` };
     }
     if (state === 'failed') {

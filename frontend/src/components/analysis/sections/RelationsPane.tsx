@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { ChevronRight } from 'lucide-react';
 import type { CharacterAnalysisDetail } from '@/api/types';
 import type { NameIdEntry } from '../CharacterAnalysisDetail';
@@ -36,30 +37,31 @@ const TYPE_TOKEN: Record<string, string> = {
   成員: 'con',
   其他: 'other',
 };
-const TYPE_LABEL: Record<string, string> = {
-  enemy: '敵人',
-  ally: '盟友',
-  subordinate: '下屬',
-  member: '成員',
-  other: '其他',
-};
-const MID_LABEL: Record<string, string> = {
-  敵人: '敵',
-  盟友: '盟',
-  下屬: '屬',
-  成員: '員',
-  其他: '他',
+// Relation type -> canonical code; the visible label comes from i18n
+// (`character.relations.types.*` / `typesShort.*`) so the en UI isn't zh.
+const TYPE_CODE: Record<string, string> = {
+  enemy: 'enemy',
+  ally: 'ally',
+  subordinate: 'subordinate',
+  member: 'member',
+  other: 'other',
+  敵人: 'enemy',
+  盟友: 'ally',
+  下屬: 'subordinate',
+  成員: 'member',
+  其他: 'other',
 };
 
 function tokenFor(type: string): string {
   return TYPE_TOKEN[type] ?? 'other';
 }
-function labelFor(type: string): string {
-  return TYPE_LABEL[type] ?? type;
+function labelFor(type: string, t: TFunction<'analysis'>): string {
+  const code = TYPE_CODE[type];
+  return code ? t(`character.relations.types.${code}`) : type;
 }
-function midLabelFor(type: string): string {
-  const label = labelFor(type);
-  return MID_LABEL[label] ?? label.charAt(0) ?? '';
+function midLabelFor(type: string, t: TFunction<'analysis'>): string {
+  const code = TYPE_CODE[type];
+  return code ? t(`character.relations.typesShort.${code}`) : type.charAt(0);
 }
 
 const EGO_BADGE_W = 30;
@@ -235,7 +237,7 @@ export function RelationsPane({ data, bookId, characterRoster, onSelectCharacter
                               paintOrder: 'stroke',
                             }}
                           >
-                            {midLabelFor(r.type)}
+                            {midLabelFor(r.type, t)}
                           </text>
                         </g>
                       );
@@ -291,7 +293,7 @@ export function RelationsPane({ data, bookId, characterRoster, onSelectCharacter
                 Clickable nodes are real buttons — keyboard reachable too. */}
             {nodes.map((n) => {
               const r = nodeRadius(n.target);
-              const label = `${n.target} · ${n.rels.map((x) => labelFor(x.type)).join(' / ')}`;
+              const label = `${n.target} · ${n.rels.map((x) => labelFor(x.type, t)).join(' / ')}`;
               const id = rosterByName.get(n.target);
               return (
                 <div
@@ -331,7 +333,7 @@ export function RelationsPane({ data, bookId, characterRoster, onSelectCharacter
                         borderColor: `var(--entity-${token}-dot)`,
                       }}
                     />
-                    {labelFor(ty)}
+                    {labelFor(ty, t)}
                   </span>
                 );
               })}
@@ -388,7 +390,7 @@ export function RelationsPane({ data, bookId, characterRoster, onSelectCharacter
                               className="ca-rel-pill-dot"
                               style={{ background: `var(--entity-${token}-dot)` }}
                             />
-                            {labelFor(r.type)}
+                            {labelFor(r.type, t)}
                           </span>
                           <div className="ca-rel-card-desc">{r.description}</div>
                         </div>

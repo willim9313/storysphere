@@ -81,7 +81,9 @@
       "quotesCount": "{{count}} quotes",
       "segmentCount": "{{count}} segments",
       "egoCaption": "Relationship graph · centered on {{name}}",
-      "egoLegendNote": "Click a node to load that character · badge = multiple relation segments"
+      "egoLegendNote": "Click a node to load that character · badge = multiple relation segments",
+      "types": {"enemy": "Enemy", "ally": "Ally", "subordinate": "Subordinate", "member": "Member", "other": "Other"},
+      "typesShort": {"enemy": "E", "ally": "A", "subordinate": "S", "member": "M", "other": "O"}
     },
     "arcPane": {
       "stagesCount": "{{count}} stages",
@@ -129,7 +131,7 @@
         "metricsError": "Character structural-importance data is temporarily unavailable, so the quadrant view can't render.",
         "bubbleDetail": "· {{mentions}} mentions · {{degree}} relations",
         "legendHead": "Faction · colour coding",
-        "legendRow": "{{names}} and {{count}} more",
+        "legendRow": "{{names}} and {{rest}} more",
         "unaffiliated": "No faction · {{count}}",
         "footnote": "Cross-hairs mark both axes' medians · only the top 8 are always labelled, others show on hover · the {{count}} unaffiliated characters render as low-saturation outlined rings · click a bubble to load that character",
         "legendNote": "Colours are assigned by faction size rank, up to 5; from the 6th faction on they are merged into \"Other\". Click a legend entry to light up just that faction.",
