@@ -160,7 +160,7 @@ hover 底 `--bg-secondary`；標籤 `settings:guidance.title`「研究者導覽�
 4. **篩選 chip** 四顆單選：全部／已分析／已就緒／處理中。「處理中」是結構性空集合——`GET /books` 不含 ingest 中的書，
    它只列 in-flight 任務；不 disable、不加 0 徽章。
 5. **書卡格線**：處理中任務（`GET /tasks` 共用輪詢，pending／running 的 ingestion）排最前，用 BookCard 處理中態——
-   warning badge「… 處理中」、旋轉 `loader`、透明度 0.78、`{stage} · {progress}%`、進度 > 0 才畫進度條、「查看進度 →」。
+   warning badge「… 處理中」、旋轉 `loader`、只淡化封面（0.6，文字維持正常對比；卡不可點、hover 不變色）、`{stage} · {progress}%`、進度 > 0 才畫進度條、「查看進度 →」。
    最後一格「上傳新書」虛線卡。
 
 #### BookCard
