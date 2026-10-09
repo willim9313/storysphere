@@ -14,11 +14,15 @@
     "description": "Drop in a PDF — the story starts here",
     "processingTitle": "No uploads in progress",
     "processingBody": "This filter only lists uploads that are still being processed.",
-    "filteredTitle": "No {{status}} books",
+    "filtered": {
+      "analyzed": "No analyzed books",
+      "ready": "No ready books"
+    },
     "clearFilter": "Clear filter"
   },
   "card": {
-    "chapters": "ch",
+    "chapterCount_one": "{{count}} chapter",
+    "chapterCount_other": "{{count}} chapters",
     "entities": "entities",
     "deleteBook": "Delete \"{{title}}\"",
     "deleteConfirm": "Delete?",
@@ -43,6 +47,10 @@
   },
   "summary": {
     "books_one": "{{count}} book",
-    "books_other": "{{count}} books"
+    "books_other": "{{count}} books",
+    "analyzed": "{{count}} analyzed",
+    "ready": "{{count}} ready",
+    "error_one": "{{count}} error",
+    "error_other": "{{count}} errors"
   }
 }

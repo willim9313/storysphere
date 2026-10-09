@@ -126,7 +126,6 @@ export default function LibraryPage() {
   const { data: books, isLoading, error, refetch } = useBooks();
   const [filter, setFilter] = useState<LibraryFilter>('all');
   const { t } = useTranslation('library');
-  const { t: tc } = useTranslation('common');
 
   // Shares the app-level task poll (useTaskNotifications) — same key, same
   // cadence; no extra traffic.
@@ -208,7 +207,7 @@ export default function LibraryPage() {
     t('summary.books', { count: counts.total }),
     ...(['analyzed', 'ready', 'error'] as const)
       .filter((k) => counts[k] > 0)
-      .map((k) => `${counts[k]} ${tc(`status.${k}`)}`),
+      .map((k) => t(`summary.${k}`, { count: counts[k] })),
   ].join(' · ');
   const recent = recentBooks(safeBooks);
   const filtered = filterBooks(safeBooks, filter);
@@ -233,7 +232,7 @@ export default function LibraryPage() {
     grid = (
       <EmptyState
         weight="filtered"
-        title={t('empty.filteredTitle', { status: tc(`status.${filter}`) })}
+        title={t(`empty.filtered.${filter}`)}
         action={
           <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary" onClick={() => setFilter('all')}>
             {t('empty.clearFilter')}

@@ -14,11 +14,14 @@
     "description": "把一本 PDF 拖進來，故事就從這裡開始",
     "processingTitle": "沒有正在處理的上傳任務",
     "processingBody": "這個篩選只列出正在處理的上傳任務。",
-    "filteredTitle": "沒有{{status}}的書籍",
+    "filtered": {
+      "analyzed": "沒有已分析的書籍",
+      "ready": "沒有已就緒的書籍"
+    },
     "clearFilter": "清除篩選"
   },
   "card": {
-    "chapters": "章",
+    "chapterCount": "{{count}} 章",
     "entities": "實體",
     "deleteBook": "刪除《{{title}}》",
     "deleteConfirm": "刪除？",
@@ -42,6 +45,9 @@
     "fallbackTitle": "書籍處理中"
   },
   "summary": {
-    "books": "{{count}} 本書"
+    "books": "{{count}} 本書",
+    "analyzed": "{{count}} 已分析",
+    "ready": "{{count}} 已就緒",
+    "error": "{{count}} 錯誤"
   }
 }
