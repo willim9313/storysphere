@@ -3,6 +3,7 @@
   "allBooks": "書庫",
   "uploadNew": "上傳新書",
   "filters": {
+    "label": "篩選書籍",
     "all": "全部",
     "analyzed": "已分析",
     "ready": "已就緒",

@@ -39,6 +39,7 @@
 .lib-title-failure { font-size: var(--font-size-2xl); }
 .lib-summary { font-size: var(--font-size-2xs); color: var(--fg-muted); }
 .lib-section-head {
+  margin: 0; line-height: inherit;
   font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 600; color: var(--fg-primary);
 }
 
@@ -48,6 +49,7 @@
   display: flex; align-items: center; gap: var(--space-4);
   font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 600; color: var(--fg-primary);
 }
+.lib-gate-heading { margin: 0; font: inherit; }
 .lib-gate-rule { flex: 1; height: var(--line-weight); background: var(--accent); opacity: 0.3; }
 .lib-gate-card {
   display: flex; align-items: center; gap: var(--space-6);
@@ -146,6 +148,7 @@
 /* 處理中任務：BookCard 處理中態，不另做任務卡。 */
 .lib-card-processing { opacity: 0.78; cursor: default; }
 .lib-card-processing:hover { background: var(--bg-primary); }
+@media (prefers-reduced-motion: reduce) { .lib-card-processing .lib-spin { animation: none; } }
 .lib-card-cta { align-self: flex-start; font-size: var(--font-size-2xs); color: var(--accent); text-decoration: none; }
 .lib-card-cta:hover { text-decoration: underline; }
 .ss-bookcard-upload.lib-card { gap: var(--space-3); }
