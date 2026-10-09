@@ -1,4 +1,4 @@
-import { useState, type CSSProperties, type ReactNode } from 'react';
+import { useCallback, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import {
   Search,
   RotateCcw,
@@ -8,7 +8,9 @@ import {
   ArrowRight,
 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useDismissOverlay } from '@/hooks/useDismissOverlay';
 import type { EntityType } from '@/api/types';
+import { SEARCH_LISTBOX_ID } from '@/components/graph/SearchDropdown';
 
 // Kept for GraphCanvas's animateIn() — the toolbar no longer exposes a UI
 // control for this (C7: 移除「淡入/逐個」動畫模式 toggle), GraphPage now
@@ -28,6 +30,9 @@ interface GraphToolbarProps {
   readonly searchQuery: string;
   readonly onSearchChange: (q: string) => void;
   readonly onSearchFocus?: () => void;
+  /** Combobox state for the search input (a11y). */
+  readonly searchExpanded?: boolean;
+  readonly searchActiveOptionId?: string | null;
   /** Rendered anchored under the search box (the results dropdown). */
   readonly searchDropdown?: ReactNode;
   readonly onReset: () => void;
@@ -89,6 +94,8 @@ export function GraphToolbar({
   searchQuery,
   onSearchChange,
   onSearchFocus,
+  searchExpanded = false,
+  searchActiveOptionId = null,
   searchDropdown,
   onReset,
   visibleTypes,
@@ -140,6 +147,12 @@ export function GraphToolbar({
             value={searchQuery}
             onChange={(e) => onSearchChange(e.target.value)}
             onFocus={onSearchFocus}
+            role="combobox"
+            aria-expanded={searchExpanded}
+            aria-controls={SEARCH_LISTBOX_ID}
+            aria-activedescendant={searchExpanded ? (searchActiveOptionId ?? undefined) : undefined}
+            aria-autocomplete="list"
+            aria-label={t('searchA11y.inputLabel')}
             placeholder={t('v1.toolbar.searchPlaceholder')}
           />
         </div>
@@ -224,6 +237,14 @@ function InferenceControls({
   const { t } = useTranslation('graph');
   const [popoverOpen, setPopoverOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  // Only one of the idle popover / ready menu is ever mounted, so they share refs.
+  const inferRef = useRef<HTMLDivElement>(null);
+  const inferTriggerRef = useRef<HTMLButtonElement>(null);
+  const closeInferOverlay = useCallback(() => {
+    setPopoverOpen(false);
+    setMenuOpen(false);
+  }, []);
+  useDismissOverlay(popoverOpen || menuOpen, closeInferOverlay, inferRef, inferTriggerRef);
 
   if (inferenceState === 'running') {
     return (
@@ -236,9 +257,10 @@ function InferenceControls({
 
   if (inferenceState === 'idle') {
     return (
-      <div className="kg-infer">
+      <div className="kg-infer" ref={inferRef}>
         <button
           type="button"
+          ref={inferTriggerRef}
           onClick={() => setPopoverOpen((v) => !v)}
           aria-expanded={popoverOpen}
           className="ss-btn ss-btn-sm ss-btn-secondary"
@@ -293,9 +315,10 @@ function InferenceControls({
   // each an independently-actuated control (brief §4: 執行/顯示分離).
   return (
     <div className="kg-infer-row">
-      <div className="kg-infer">
+      <div className="kg-infer" ref={inferRef}>
         <button
           type="button"
+          ref={inferTriggerRef}
           onClick={() => setMenuOpen((v) => !v)}
           aria-expanded={menuOpen}
           className="ss-btn ss-btn-sm ss-btn-secondary"

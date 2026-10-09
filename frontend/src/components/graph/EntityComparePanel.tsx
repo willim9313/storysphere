@@ -66,7 +66,7 @@ export function EntityComparePanel({ bookId, a, b, onClose, onEnterPairMode }: E
     <div className="kg-panel">
       <div className="kg-panel-head">
         <h3 className="kg-panel-title">{t('v1.compare.title')}</h3>
-        <button type="button" onClick={onClose} className="kg-icon-btn" aria-label="Close">
+        <button type="button" onClick={onClose} className="kg-icon-btn" aria-label={t('a11y.close')}>
           <X size={14} />
         </button>
       </div>

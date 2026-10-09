@@ -999,6 +999,7 @@ partial 時附「部分分析」徽章。其下為研究者導覽 ribbon。
 - **群集概觀**：「此檢視範圍」「怎麼分的」兩卡在社群面板**頂端**常駐；列尾無「⋯更多」；無派系／非角色宣告保留；進階群集設定四項（偵測算法只顯示現值 `greedy_modularity`，後端不收參數），重新運算零成本、不掛字符、旁註「零成本」。
 - **右欄**：共用 `GraphRightRail`（主面板統一 320），頂端 11px「目前顯示 · {name}」＋四點（純標示、不可點）。優先鏈 compare > inferred > cluster > entity（`resolveRailPanel`）。次級面板（深度分析 360、相關段落 400）**往左疊**在主面板左側（主面板固定貼右、保持 320 不關閉；使用者 2026-10 裁決照稿 14 D 區／README §3.4）、一次一個，**只在實體／事件面板為主面板時存在**（修掉與審查面板重疊）。右下角 stats／迷你地圖／縮放讀實際欄寬定位（修掉寫死 280）。
 - **窄舞台（最小支援 720px，2026-10-09，`graphPanelModel.railLayout`／`cornerStackCompact`）**：畫布放不下「主面板＋次級面板＋至少 280px 畫布」時，次級面板**改為蓋在主面板上**（貼右，不往左推、不裁切），關掉即回到主面板；角落元件（統計／迷你地圖／縮放）與左下 Lens 卡會相撞時改**精簡**——拿掉迷你地圖，統計＋縮放移到畫布右上角，與導覽條同列放不下時排到導覽條下方。浮動導覽條最寬 430，但不伸進右欄底下（跟著畫布剩餘寬度縮）。
+- **浮層關閉與無障礙**：推論 popover／重新推論選單、Lens 角色選單、未連結實體抽屜皆可按 Esc 或在外面按下滑鼠關閉（`hooks/useDismissOverlay`），Esc 關閉後焦點回到開啟它的按鈕。Lens 分頁為 `role="tablist"`／`tab`／`tabpanel`，左右方向鍵（Home／End）切換並以 roving tabindex 管理焦點。面板關閉鈕、縮放鈕、群集步進鈕的 aria-label 走 i18n（`graph.json` 的 `a11y.*`）。
 - **事件面板**：參與者只渲染 `<型別> <名稱>` chip；location 死碼刪除。**比較面板**：三欄表＋「建議推斷關係」顯示 `type · 共同鄰居 N 個 · Adamic-Adar x`；採用不再送 `relationType`（修 422）。「展開全部 N 段」用既有「查看相關段落 →」。
 - **推論**：執行中只有轉圈＋「推論中…」、無進度條；採用／否決零成本不掛字符；重跑選單安全＝一般列、強制＝危險色＋警示符號；強制重跑改 `ConfirmDialog danger`（無字符），內文沿用原稿（原稿錯字「重跡」已依 FINAL_RULINGS #9 改為「重跑」）。
 - **Lens 卡**：故事模式不可用改為**可見文字**（`v1.lens.storyModeLocked`）；Lens 卡與未連結實體抽屜同在左下堆疊、同一條底邊，抽屜往上展開。**收合態 272／展開態 296**：分頁列右端 chevron 切換；預設收合、**不記憶**（見 FEEDBACK 4-KG-R1）；收合態＝分頁＋閱讀／故事 segmented＋「逐章成長播放（F3）」＋細滑桿＋全域註記；點分頁即展開。控制項走 DS v3：純文字底線分頁（active `--fg-primary` 600＋accent 底線）、`.ss-seg`、26×15 switch（`.kg-switch-*`）、書籤＝型別色 `.ss-pill`＋✕、分類可見性在底部 border-top 之後；聚合鏡頭下的認知視角分頁說明盒下方有一行時間軸註記。
@@ -1111,7 +1112,7 @@ swatch 為該類型的**節點形狀**（12px SVG，`--graph-*-fill` 底 + `--gr
 
 **第三層面板**（AnalysisPanel / ParagraphsPanel）行為不變，從 EntityDetailPanel 觸發。
 
-**EntityDetailPanel 版面**（280px）：serif 標題 → meta 列（type pill＋**僅角色**顯示的 `陣營·錨點名` pill）→ **3 格 stat tiles**（登場次數／關係數＝degree／首次登場章＝chunks 最小章號）→ **`加入比較`＋`標記` 兩顆 ghost 外框按鈕**（加入比較＝把當前實體設為比較第一位，下一次點節點湊成對開比較）→ `深度分析`（僅角色；覆蓋重生成 link，空狀態為 ghost CTA 非實心）→ `相關段落`（章節·Chunk 預覽卡＋查看連結）。動作語彙統一為 ghost 按鈕＋文字連結，無實心強調色塊。
+**EntityDetailPanel 版面**（280px）：serif 標題 → meta 列（type pill＋**僅角色**顯示的 `陣營·錨點名` pill）→ **3 格 stat tiles**（登場次數／關係數＝degree／首次登場章＝chunks 最小章號）→ **`加入比較`＋`標記` 兩顆 ghost 外框按鈕**（加入比較＝把當前實體設為比較第一位，下一次點節點湊成對開比較）→ `關係`（稿外新增 KG-1：非推斷邊的清單，每列一顆 `<button>`＝對象名 serif＋關係類型 sans＋合作實線／敵對虛線 glyph〔另有隱藏文字〕；依權重由高到低，預設 8 筆、其餘「顯示全部 N 筆」；對象目前被型別 chip／搜尋／未連結抽屜隱藏者標「（畫布已隱藏）」；按下＝選取該實體，同點畫布節點。畫布容器 `role="img"`＋`aria-label`「知識圖譜：N 個節點、M 條關係」）→ `深度分析`（僅角色；覆蓋重生成 link，空狀態為 ghost CTA 非實心）→ `相關段落`（章節·Chunk 預覽卡＋查看連結）。動作語彙統一為 ghost 按鈕＋文字連結，無實心強調色塊。
 
 #### 多選比較（Scenario E，cap 2）
 
@@ -1141,7 +1142,7 @@ Toolbar 搜尋欄輸入 → 下拉框出現（360px wide）：
 - **章節**：matching chapter titles
 - **段落內文**：placeholder「全文搜尋待後端實作」
 
-鍵盤：↑↓ 選擇、↵ 開啟、Esc 關閉。Debounce 200ms。
+鍵盤：↑↓ 選擇、↵ 開啟、Esc 關閉，**僅在焦點位於搜尋 input 時生效**；點外面或焦點離開搜尋框即關閉。搜尋框為標準 combobox（`role="combobox"`＋`aria-activedescendant`，列為 `role="option"`）。「加入比較」已 arm 時，從搜尋選到的實體等同點畫布第二個節點，直接完成比較。Debounce 200ms。
 
 #### 實體對模式（Phase 5 / F1·F2，PairModeOverlay）
 

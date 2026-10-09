@@ -27,7 +27,7 @@ export function EventDetailPanel({ node, bookId, onClose, onShowAnalysis }: Even
     <div className="kg-panel">
       <div className="kg-panel-head">
         <h3 className="kg-panel-title">{node.name}</h3>
-        <button type="button" onClick={onClose} className="kg-icon-btn" aria-label="Close">
+        <button type="button" onClick={onClose} className="kg-icon-btn" aria-label={t('a11y.close')}>
           <X size={14} />
         </button>
       </div>

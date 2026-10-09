@@ -1,9 +1,10 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent } from 'react';
 import { Bookmark, ChevronDown, Pause, Play, Settings, X } from 'lucide-react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { detectTimeline, fetchTimelineConfig } from '@/api/graph';
 import { useLocalStorage } from '@/hooks/useLocalStorage';
+import { useDismissOverlay } from '@/hooks/useDismissOverlay';
 import { useEpistemicState } from '@/hooks/useEpistemicState';
 import { ClassifyVisibilityButton } from '@/components/epistemic/ClassifyVisibilityButton';
 import { Tooltip } from '@/components/ui/Tooltip';
@@ -165,6 +166,10 @@ export function LensCard({
   const [epEnabled, setEpEnabled] = useLocalStorage(`graph:${bookId}:epistemic:enabled`, false);
   const [epMisbelief, setEpMisbelief] = useLocalStorage(`graph:${bookId}:epistemic:misbelief`, false);
   const [epPickerOpen, setEpPickerOpen] = useState(false);
+  const epPickerRef = useRef<HTMLDivElement>(null);
+  const epPickerTriggerRef = useRef<HTMLButtonElement>(null);
+  const closeEpPicker = useCallback(() => setEpPickerOpen(false), []);
+  useDismissOverlay(epPickerOpen, closeEpPicker, epPickerRef, epPickerTriggerRef);
 
   const characterNodes = useMemo(
     () => nodes.filter((n) => n.type === 'character'),
@@ -256,6 +261,21 @@ export function LensCard({
     setCollapsed(false);
   };
 
+  // WAI-ARIA tabs (automatic activation): Left/Right wrap, Home/End jump.
+  const LENS_TABS: readonly LensTab[] = ['timeline', 'epistemic', 'bookmarks'];
+  const onTabKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    const i = LENS_TABS.indexOf(shownTab);
+    let next = i;
+    if (e.key === 'ArrowRight') next = (i + 1) % LENS_TABS.length;
+    else if (e.key === 'ArrowLeft') next = (i - 1 + LENS_TABS.length) % LENS_TABS.length;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = LENS_TABS.length - 1;
+    else return;
+    e.preventDefault();
+    pickTab(LENS_TABS[next]);
+    document.getElementById(`kg-lens-tab-${LENS_TABS[next]}`)?.focus();
+  };
+
   const positionLabel =
     tlPosition === 0
       ? t('v1.lens.allChapters')
@@ -311,22 +331,34 @@ export function LensCard({
     <div className={collapsed ? 'kg-lens is-collapsed' : 'kg-lens'}>
       {/* Tab bar（純文字分頁＋收合 chevron） */}
       <div className="kg-lens-tabs">
-        {(
-          [
-            ['timeline', 'v1.lens.tabTimeline'],
-            ['epistemic', 'v1.lens.tabEpistemic'],
-            ['bookmarks', 'v1.lens.tabBookmarks'],
-          ] as const
-        ).map(([tab, key]) => (
-          <button
-            key={tab}
-            type="button"
-            onClick={() => pickTab(tab)}
-            className={shownTab === tab ? 'kg-lens-tab is-active' : 'kg-lens-tab'}
-          >
-            {t(key)}
-          </button>
-        ))}
+        <div
+          role="tablist"
+          aria-label={t('a11y.lensTabs')}
+          onKeyDown={onTabKeyDown}
+          style={{ display: 'contents' }}
+        >
+          {(
+            [
+              ['timeline', 'v1.lens.tabTimeline'],
+              ['epistemic', 'v1.lens.tabEpistemic'],
+              ['bookmarks', 'v1.lens.tabBookmarks'],
+            ] as const
+          ).map(([tab, key]) => (
+            <button
+              key={tab}
+              id={`kg-lens-tab-${tab}`}
+              type="button"
+              role="tab"
+              aria-selected={shownTab === tab}
+              aria-controls="kg-lens-panel"
+              tabIndex={shownTab === tab ? 0 : -1}
+              onClick={() => pickTab(tab)}
+              className={shownTab === tab ? 'kg-lens-tab is-active' : 'kg-lens-tab'}
+            >
+              {t(key)}
+            </button>
+          ))}
+        </div>
         <span className="kg-lens-tabs-spacer" />
         <button
           type="button"
@@ -339,6 +371,14 @@ export function LensCard({
         </button>
       </div>
 
+      {/* One shared panel: its content swaps with the selected tab.
+          display:contents keeps the children in .kg-lens's flex column. */}
+      <div
+        role="tabpanel"
+        id="kg-lens-panel"
+        aria-labelledby={`kg-lens-tab-${shownTab}`}
+        style={{ display: 'contents' }}
+      >
       {/* ── 收合態：分頁 + 閱讀/故事 + 細滑桿 + 全域註記 ───────────────── */}
       {collapsed &&
         (anyTimelineAvailable ? (
@@ -402,9 +442,10 @@ export function LensCard({
       {!collapsed && lensTab === 'epistemic' && !isAggregateMode && (
         <>
           <span className="kg-label">{t('v1.lens.epistemicIntro')}</span>
-          <div className="kg-lens-select-wrap">
+          <div className="kg-lens-select-wrap" ref={epPickerRef}>
             <button
               type="button"
+              ref={epPickerTriggerRef}
               onClick={() => setEpPickerOpen((v) => !v)}
               className="kg-lens-select"
               aria-expanded={epPickerOpen}
@@ -524,6 +565,8 @@ export function LensCard({
           <div className="kg-lens-foot kg-lens-note">{t('v1.lens.bookmarkStorageNote')}</div>
         </>
       )}
+
+      </div>
 
       {pendingDetection && (
         <TimelineConfigModal

@@ -35,7 +35,7 @@ export function InferredEdgePanel({ bookId, focusInferredId, onClose }: Inferred
     <div className="kg-panel">
       <div className="kg-panel-head">
         <h3 className="kg-panel-title">{t('v1.inferred.review.title', { n: items.length })}</h3>
-        <button type="button" onClick={onClose} className="kg-icon-btn" aria-label="Close">
+        <button type="button" onClick={onClose} className="kg-icon-btn" aria-label={t('a11y.close')}>
           <X size={14} />
         </button>
       </div>

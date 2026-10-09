@@ -494,3 +494,24 @@
 .kg-br.is-compact { bottom: auto; }
 /* 導覽條最寬 430，但不得伸進右欄底下：跟著畫布剩餘寬度縮（--kg-free 由 GraphPage 量測）。 */
 .kg-stage .ss-guidance.is-float { max-width: min(430px, calc(var(--kg-free, 100%) - 2 * var(--space-5))); }
+
+/* 實體面板「關係」清單：每列是 button；合作／敵對以線型 glyph 承載（實線／虛線），不只靠色 */
+.kg-rel-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.kg-rel-row {
+  display: flex; align-items: center; gap: var(--space-3); width: 100%;
+  padding: var(--space-2) var(--space-2); background: none; border: 0; border-radius: var(--radius-sm);
+  color: var(--fg-secondary); text-align: left; cursor: pointer; position: relative;
+}
+.kg-rel-row:hover { background: var(--bg-secondary); color: var(--fg-primary); }
+.kg-rel-row:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.kg-rel-glyph { flex: none; }
+.kg-rel-name {
+  flex: 1; min-width: 0; font-family: var(--font-serif); font-size: var(--font-size-2xs); color: var(--fg-primary);
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.kg-rel-type { flex: none; font-size: var(--font-size-2xs); color: var(--fg-muted); white-space: nowrap; }
+.kg-rel-off { flex: none; font-size: var(--font-size-2xs); color: var(--fg-muted); font-style: italic; white-space: nowrap; }
+.kg-vh {
+  position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden;
+  clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
