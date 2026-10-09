@@ -20,8 +20,6 @@
 .up-hidden { display: none; }
 .up-spacer { flex: 1; }
 
-/* kit 沒有 disabled 樣式；本頁的 disabled 照 03 H 區（0.5、not-allowed）。 */
-.up-page .ss-btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 .up-icon-btn {
   display: inline-flex; flex-shrink: 0; padding: 0;

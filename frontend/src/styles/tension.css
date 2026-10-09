@@ -41,8 +41,6 @@
 }
 .tn-link:hover { opacity: 0.9; text-decoration: underline; }
 
-/* kit 的 .ss-btn 沒有 :disabled 樣式，比照時間軸在頁面內補 */
-.tn-shell .ss-btn:disabled { opacity: 0.55; cursor: not-allowed; }
 .tn-shell .ss-btn[aria-pressed="true"].tn-toggle-btn {
   background: var(--bg-tertiary); font-weight: 600; border-color: var(--fg-muted);
 }

@@ -272,6 +272,7 @@ StorySphere 是一張攤在書桌上的暖象牙紙，分析結果是用細墨�
 - **Secondary:** 紙底、墨字、毛邊框；hover 降一階紙、active 再降一階。
 - **Ghost:** 透明底、褪墨字；hover 字轉焦赭。
 - **Danger:** 描邊式磚紅；Ink 下改墨色描邊。
+- **Disabled:** 所有變體一致：透明度 0.5、`not-allowed` 游標，hover／active 不反應（kit 統一，頁面不另補）。
 - **LLM 成本標記:** 任何會呼叫 LLM、消耗 token 的控制項前面帶一顆 sparkles 字符（`.ss-btn-llm`，以 mask＋currentColor 繪製）。停用時仍在；零成本動作不加。
 
 ### Chips（Entity pills）
