@@ -8,6 +8,7 @@ import { useSourceJump } from '@/hooks/useSourceJump';
 import { SourceJumpText } from '../SourceJumpText';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { useElementWidth } from '@/hooks/useElementWidth';
+import { isQuoted } from '../characterModel';
 
 interface Props {
   data: CharacterAnalysisDetail;
@@ -135,7 +136,7 @@ export function RelationsPane({ data, bookId, characterRoster, onSelectCharacter
         <section className="ca-section">
           <header className="ca-section-head">
             <div>
-              <h3 className="ca-section-title">{t('character.sections.relations')}</h3>
+              <h2 className="ca-section-title">{t('character.sections.relations')}</h2>
               <div className="ca-section-sub">
                 {t('character.relations.relationsCount', { count: 0 })}
               </div>
@@ -155,7 +156,7 @@ export function RelationsPane({ data, bookId, characterRoster, onSelectCharacter
       <section className="ca-section">
         <header className="ca-section-head">
           <div>
-            <h3 className="ca-section-title">{t('character.sections.quotes')}</h3>
+            <h2 className="ca-section-title">{t('character.sections.quotes')}</h2>
             <div className="ca-section-sub">
               {t('character.relations.quotesCount', { count: quotes.length })}
             </div>
@@ -169,13 +170,13 @@ export function RelationsPane({ data, bookId, characterRoster, onSelectCharacter
               const key = `quote-${i}`;
               return (
                 <blockquote key={key} className="ca-quote">
-                  「
+                  {!isQuoted(q) && '「'}
                   <SourceJumpText
                     text={q}
                     pending={pendingKey === key}
                     onJump={() => void jump(key, q)}
                   />
-                  」
+                  {!isQuoted(q) && '」'}
                 </blockquote>
               );
             })
@@ -190,7 +191,7 @@ export function RelationsPane({ data, bookId, characterRoster, onSelectCharacter
       <section className="ca-section">
         <header className="ca-section-head">
           <div>
-            <h3 className="ca-section-title">{t('character.sections.relations')}</h3>
+            <h2 className="ca-section-title">{t('character.sections.relations')}</h2>
             <div className="ca-section-sub">
               {t('character.relations.relationsSummary', {
                 targets: groups.size,

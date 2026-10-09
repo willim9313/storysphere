@@ -55,17 +55,28 @@ export function AnalyzedItem({
             </span>
           )}
         </span>
-        {partial ? (
-          <Tooltip label={t("event.partialBadge")}>
-            <span
-              className="ca-row-dot partial"
-              role="img"
-              aria-label={t("event.partialBadge")}
-            />
-          </Tooltip>
-        ) : (
-          <span className="ca-row-dot" />
-        )}
+        <span className="ca-row-flags">
+          {item.isStale && (
+            <Tooltip label={t("character.stale.tooltip")}>
+              <span
+                className="ca-row-stale"
+                role="img"
+                aria-label={t("character.stale.tooltip")}
+              />
+            </Tooltip>
+          )}
+          {partial ? (
+            <Tooltip label={t("event.partialBadge")}>
+              <span
+                className="ca-row-dot partial"
+                role="img"
+                aria-label={t("event.partialBadge")}
+              />
+            </Tooltip>
+          ) : (
+            <span className="ca-row-dot" />
+          )}
+        </span>
       </button>
     </div>
   );

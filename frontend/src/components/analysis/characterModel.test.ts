@@ -10,6 +10,7 @@ import {
   confidenceBand,
   factionToken,
   isDimmed,
+  isQuoted,
   mentionBarWidth,
   orderTones,
   parseChapterRange,
@@ -314,3 +315,23 @@ describe('archetype names across languages', () => {
   });
 });
 
+
+describe('isQuoted', () => {
+  it('detects text already wrapped in paired quotes', () => {
+    expect(isQuoted('「你好」')).toBe(true);
+    expect(isQuoted('『你好』')).toBe(true);
+    expect(isQuoted('“Hello”')).toBe(true);
+    expect(isQuoted('"Hello"')).toBe(true);
+  });
+  it('is false for unquoted text', () => {
+    expect(isQuoted('你好')).toBe(false);
+    expect(isQuoted('')).toBe(false);
+  });
+  it('is false when only the opening quote is present', () => {
+    expect(isQuoted('「你好')).toBe(false);
+    expect(isQuoted('「')).toBe(false);
+  });
+  it('ignores surrounding whitespace', () => {
+    expect(isQuoted('  「你好」\n')).toBe(true);
+  });
+});

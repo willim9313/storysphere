@@ -170,6 +170,12 @@
   display: block; width: 8px; height: 8px; box-sizing: border-box; border-radius: 50%;
   background: var(--color-success);
 }
+/* 狀態點前的旗標群：stale 小點（info 色，說明走 Tooltip，同事件頁 .ea-row-stale） */
+.ca-row-flags { display: flex; align-items: center; gap: var(--space-3); }
+.ca-row-stale {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--color-info); flex: none;
+}
 .ca-row-dot.partial { background: transparent; border: 2px solid var(--color-warning); }
 /* 批次失敗：菱形實心。Ink 下四個 status 色同為墨色，靠形狀（圓／空心環／菱形）區分。 */
 .ca-row-dot.failed { background: var(--color-error); border-radius: 1px; transform: rotate(45deg) scale(0.85); }

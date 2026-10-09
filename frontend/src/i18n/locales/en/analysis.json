@@ -60,7 +60,7 @@
       "secondaryLabel": "Secondary: {{name}}"
     },
     "persona": {
-      "profileSub": "One-line summary",
+      "profileSub": "Overall portrait",
       "archetypeLabelJung": "Jung Archetype — {{name}}",
       "archetypeLabelSchmidt": "Schmidt Type — {{name}}",
       "archetypeNotGenerated": "Not generated",
@@ -93,7 +93,6 @@
     },
     "list": {
       "searchPlaceholder": "Search {{count}} characters",
-      "groupMeta": "{{total}} · {{analyzed}} analyzed",
       "frameworkLabel": "Analysis framework",
       "mentionCount": "{{count}} mentions",
       "createBtn": "Create",
@@ -194,7 +193,8 @@
       "paragraphsAnalyzed": "{{count}} passages analyzed",
       "toneDistribution": "Tone Distribution",
       "toneDistributionSub": "Sentence-type breakdown",
-      "sentenceLength": "Sentence Length",
+      "sentenceLength": "Sentence Length (characters)",
+      "regenerate": "Regenerate voice profile",
       "sentenceLengthSub": "Word-count buckets",
       "speechStyleSub": "Qualitative description",
       "dominantToneSub": "One-line summary",
@@ -265,7 +265,7 @@
     },
     "stale": {
       "badge": "Evidence moved",
-      "tooltip": "Built on the vector evidence and keywords from before a feature-extraction rerun. Still readable, but no longer reflects the current data — regenerate if you need it current."
+      "tooltip": "The book's evidence passages were reprocessed after this analysis was made. It is still worth reading, but may not fully match the current data; regenerate it if you need an up-to-date version."
     },
     "error": {
       "backToBook": "Back to book overview"
@@ -452,7 +452,7 @@
     },
     "stale": {
       "badge": "Evidence moved",
-      "tooltip": "Built on the vector evidence and keywords from before a feature-extraction rerun. Still readable, but no longer reflects the current data — regenerate if you need it current."
+      "tooltip": "The book's evidence passages were reprocessed after this analysis was made. It is still worth reading, but may not fully match the current data; regenerate it if you need an up-to-date version."
     }
   },
   "batch": {

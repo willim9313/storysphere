@@ -13,7 +13,7 @@ import { PageFailure } from '@/components/ui/PageFailure';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { useSourceJump } from '@/hooks/useSourceJump';
 import { SourceJumpText } from './SourceJumpText';
-import { orderTones, showToneLabel } from './characterModel';
+import { isQuoted, orderTones, showToneLabel } from './characterModel';
 import { qk } from '@/api/queryKeys';
 
 interface Props {
@@ -87,7 +87,7 @@ export function VoiceProfilingPanel({ bookId, entityId }: Readonly<Props>) {
         <span className="ca-voice-empty-icon">
           <Mic size={24} />
         </span>
-        <h3 className="ca-voice-empty-title">{t('character.voice.noData')}</h3>
+        <h2 className="ca-voice-empty-title">{t('character.voice.noData')}</h2>
         {analyzeMutation.isError &&
           (isLlmUnconfigured(analyzeMutation.error) ? (
             <LlmUnconfiguredNotice />
@@ -134,7 +134,7 @@ export function VoiceProfilingPanel({ bookId, entityId }: Readonly<Props>) {
         <section className="ca-voice-data">
           <header className="ca-voice-head">
             <div className="ca-voice-head-main">
-              <h3 className="ca-voice-title">{t('character.tabs.voice')}</h3>
+              <h2 className="ca-voice-title">{t('character.tabs.voice')}</h2>
               <span className="ca-voice-sub">
                 {t('character.voice.paragraphsAnalyzed', { count: data.paragraphsAnalyzed })}
               </span>
@@ -148,7 +148,7 @@ export function VoiceProfilingPanel({ bookId, entityId }: Readonly<Props>) {
               onClick={() => setConfirmRegenerate(true)}
               disabled={regenerateMutation.isPending}
             >
-              {t('regenerate')}
+              {t('character.voice.regenerate')}
             </button>
           </header>
 
@@ -196,13 +196,13 @@ export function VoiceProfilingPanel({ bookId, entityId }: Readonly<Props>) {
                 const key = `quote-${i}`;
                 return (
                   <p key={key} className="ca-voice-qual-text ca-voice-quote">
-                    「
+                    {!isQuoted(q) && '「'}
                     <SourceJumpText
                       text={q}
                       pending={pendingKey === key}
                       onJump={() => void jump(key, q)}
                     />
-                    」
+                    {!isQuoted(q) && '」'}
                   </p>
                 );
               })}

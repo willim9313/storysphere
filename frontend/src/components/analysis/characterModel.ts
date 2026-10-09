@@ -263,3 +263,13 @@ export function archetypeDisplayName(
   return item?.name ?? name ?? '';
 }
 
+
+const QUOTE_PAIRS: Record<string, string> = { '「': '」', '『': '』', '“': '”', '"': '"' };
+
+/** 引文是否已自帶成對引號（資料常已含「」）；是則顯示時不再外包一層。 */
+export function isQuoted(text: string): boolean {
+  const t = text.trim();
+  if (t.length < 2) return false;
+  const close = QUOTE_PAIRS[t[0]];
+  return close !== undefined && t[t.length - 1] === close;
+}

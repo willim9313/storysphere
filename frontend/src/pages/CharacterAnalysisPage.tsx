@@ -754,10 +754,7 @@ export default function CharacterAnalysisPage() {
                 <div className="ca-list-group-head">
                   <span>{t('analyzed')}</span>
                   <span className="count">
-                    {t('character.list.groupMeta', {
-                      total: groupCount(filteredAnalyzed.length, charData?.analyzed.length ?? 0),
-                      analyzed: charData?.analyzed.length ?? 0,
-                    })}
+                    {groupCount(filteredAnalyzed.length, charData?.analyzed.length ?? 0)}
                   </span>
                 </div>
                 <div className="ca-list-rows">
@@ -779,10 +776,7 @@ export default function CharacterAnalysisPage() {
                 <div className="ca-list-group-head">
                   <span>{t('notAnalyzed')}</span>
                   <span className="count">
-                    {t('character.list.groupMeta', {
-                      total: groupCount(filteredUnanalyzed.length, charData?.unanalyzed.length ?? 0),
-                      analyzed: 0,
-                    })}
+                    {groupCount(filteredUnanalyzed.length, charData?.unanalyzed.length ?? 0)}
                   </span>
                 </div>
                 <div className="ca-list-rows">

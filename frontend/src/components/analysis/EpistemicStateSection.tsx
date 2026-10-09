@@ -172,7 +172,7 @@ export function EpistemicStateSection({
     <div>
       {/* Summary row */}
       <div className="ca-epi-summary">
-        <h3 className="ca-epi-summary-title">{t('character.tabs.epistemic')}</h3>
+        <h2 className="ca-epi-summary-title">{t('character.tabs.epistemic')}</h2>
         <span className="ca-epi-summary-chapter">
           {t('character.epistemic.upToChapter')} {t('character.epistemic.chapterN', { n: displayedChapter })}
         </span>

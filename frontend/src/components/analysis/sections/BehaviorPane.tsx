@@ -43,7 +43,7 @@ export function BehaviorPane({ data, bookId, eventRoster }: Props) {
       <section className="ca-section">
         <header className="ca-section-head">
           <div>
-            <h3 className="ca-section-title">{t('character.sections.actions')}</h3>
+            <h2 className="ca-section-title">{t('character.sections.actions')}</h2>
             <div className="ca-section-sub">
               {t('character.behavior.actionsCount', { count: actions.length })}
             </div>
@@ -64,7 +64,7 @@ export function BehaviorPane({ data, bookId, eventRoster }: Props) {
       <section className="ca-section">
         <header className="ca-section-head">
           <div>
-            <h3 className="ca-section-title">{t('character.sections.keyEvents')}</h3>
+            <h2 className="ca-section-title">{t('character.sections.keyEvents')}</h2>
             <div className="ca-section-sub">
               {t('character.behavior.keyEventsSub', { count: keyEvents.length })}
             </div>
