@@ -65,12 +65,16 @@
 }
 .lib-gate-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
 .lib-gate-title { font-family: var(--font-serif); font-size: var(--font-size-base); font-weight: 600; color: var(--fg-primary); }
-.lib-gate-sub { font-size: var(--font-size-2xs); color: var(--fg-secondary); }
 .lib-gate-card .ss-btn { flex-shrink: 0; }
 
 /* ── 最近開啟軌（C 區卡片；位置見 DS_V3_DESIGN_FEEDBACK 1-C）── */
-.lib-recent { display: flex; flex-direction: column; gap: var(--space-4); }
-.lib-recent-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--lib-row); }
+.lib-recent { display: flex; flex-direction: column; gap: var(--space-4); container: lib-recent / inline-size; }
+/* 最多 3 本，固定 3 欄，不折成 2+1 吃掉首屏。 */
+.lib-recent-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--lib-row); }
+/* 窄（720 寬加釘選側欄）時每卡只留主捷徑，卡高不被換行的按鈕撐高。 */
+@container lib-recent (max-width: 639px) {
+  .lib-recent-actions > :not(:first-child) { display: none; }
+}
 .lib-recent-card {
   display: flex; flex-direction: column; gap: var(--space-4);
   padding: var(--space-5);
@@ -171,12 +175,12 @@
 .lib-skel-title { width: 120px; height: 32px; }
 .lib-skel-chip { height: 24px; border-radius: var(--pill-radius); background: var(--bg-secondary); }
 .lib-skel-card {
-  display: flex; flex-direction: column; gap: var(--space-4); min-height: 180px;
-  padding: var(--space-5);
+  display: flex; flex-direction: column; gap: var(--space-4); min-height: var(--lib-card-min);
+  padding: var(--bc-pad);
   border: var(--card-border-width) var(--border-style) var(--border);
   border-radius: var(--card-radius);
 }
-.lib-skel-cover { height: 76px; border-radius: var(--radius-md); background: var(--bg-secondary); }
+.lib-skel-cover { height: var(--lib-cover); border-radius: var(--radius-md); background: var(--bg-secondary); }
 .lib-skel-line { height: 14px; }
 .lib-skel-badge { height: 18px; width: 52px; border-radius: var(--badge-radius); }
 .lib-skel-meta { height: 11px; margin-top: auto; }

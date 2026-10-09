@@ -152,11 +152,11 @@ hover 底 `--bg-secondary`；標籤 `settings:guidance.title`「研究者導覽�
 
 1. **標題「書庫」** serif 3xl ＋右側計數「{n} 本書 · {a} 已分析 · {r} 已就緒 · {e} 錯誤」（為 0 的狀態不列）。
 2. **人工閘門帶**（只在有 `awaiting_review` 的 ingestion 任務時）：標頭「等待章節審閱」＋accent 細線；每個任務一張卡——
-   BookOpen 40px 方塊、書名 serif base、「等待章節審閱」、primary「審閱章節 →」連 `/upload/review/:bookId?taskId=…`。
+   BookOpen 40px 方塊、書名 serif base（不再重複「等待章節審閱」副標，標頭已說）、primary「審閱章節 →」連 `/upload/review/:bookId?taskId=…`。
    位在篩選列之上，獨立成帶。
 3. **最近開啟**（有 `lastOpenedAt` 的書才出現，前 3 本、新到舊）：`--bg-secondary` 卡、書名 serif sm、
    依 `status` 的捷徑組（analyzed：繼續閱讀／知識圖譜／深度分析；ready：開始閱讀／前往建構概覽；error：查看錯誤——後兩者都連 `/books/:id/unraveling`），
-   全是導覽、都不帶 LLM 字符。`lastOpenedAt` 由 `BookLayout` 進書時 `POST /books/:id/opened` 寫入。
+   全是導覽、都不帶 LLM 字符。固定 3 欄；區塊內寬 < 640px 時每卡只留第一顆主捷徑（container query）。`lastOpenedAt` 由 `BookLayout` 進書時 `POST /books/:id/opened` 寫入。
 4. **篩選 chip** 四顆單選：全部／已分析／已就緒／處理中。「處理中」是結構性空集合——`GET /books` 不含 ingest 中的書，
    它只列 in-flight 任務；不 disable、不加 0 徽章。
 5. **書卡格線**：處理中任務（`GET /tasks` 共用輪詢，pending／running 的 ingestion）排最前，用 BookCard 處理中態——
@@ -179,7 +179,7 @@ hover 底 `--bg-secondary`；標籤 `settings:guidance.title`「研究者導覽�
 
 #### 狀態
 
-- **載入**：骨架（標題塊、四顆 chip 塊、12 張卡塊），無微光動畫。
+- **載入**：骨架（標題塊、四顆 chip 塊、12 張卡塊），無微光動畫；用稀疏密度（多數書庫載入後不跳版），卡塊尺寸取同一組密度變數。
 - **空**（三種份量，`EmptyState`）：書庫為空＝`ready`（BookOpen 28、「書庫尚無書籍」、手寫字副標、primary「上傳新書」，無頁標題）；
   「處理中」篩選為空＝`prerequisite`（upload 26、「沒有正在處理的上傳任務」／「這個篩選只列出正在處理的上傳任務。」、
   accent 描邊「上傳新書」）；其他篩選為空＝`filtered`（「沒有{狀態}的書籍」＋「清除篩選」）。
