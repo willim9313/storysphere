@@ -1848,6 +1848,7 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 |---|------|------|
 | TD-1 | 缺陷 · Ink 下閱讀頁選中章幾乎看不出來 | 待同步 |
 | TD-2 | 缺陷 · 圖譜節點類型無法辨識（推翻 V1「不用形狀」） | 待同步 |
+| TD-3 | 缺陷 · Ink 下書庫人工閘門卡與書卡同框、篩選 chip 無框 | 待同步 |
 
 ### TD-1 Ink 下閱讀頁選中章幾乎看不出來
 
@@ -1862,6 +1863,13 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 - **問題**：角色／事件／物品的 `--graph-*-fill` 為 `#ffe8d9`／`#ffe0de`／`#ffe3dc`，幾乎同色，描邊也相近；形狀一律圓。Warm 下就分不出類型，違反 Glyph Not Hue Rule。
 - **目前處置**：使用者裁決（2026-10-08，方向 A：兩主題都「形狀＋顏色」，保留 Shared Taxonomy Rule）：角色＝圓、地點＝圓角方、組織＝六角、物品＝菱形、概念＝圓角三角、事件＝方塊、其他＝較小的圓；圖例 swatch 同步畫形狀。後續可能改走方向 B（Ink 無色、純形狀＋線型），待使用者看過效果再定。
 - **請設計端**：認可形狀對應並補進 14 稿與圖例規格；評估 Ink 是否要走「無色純形狀」。
+
+### TD-3 Ink 下書庫人工閘門卡與書卡同框、篩選 chip 無框
+
+- **出處**：01 A／B 區人工閘門帶（accent 細框卡）與篩選 chip；impeccable audit 書庫頁（2026-10-09）P2／P3
+- **問題**：Ink 的 accent `#111` 與 border `#1a1a1a` 幾乎同色、同為 1.5px，全站唯一卡住流程的閘門卡與一般書卡長得一樣。Ink 的未選 chip 是無框 `#f6f6f4` 塊，在白紙上幾乎看不見，與周圍墨線卡片、badge 語彙不一致（DESIGN.md：Ink 下 pill 改矩形 tag）。
+- **目前處置**（使用者 2026-10-09 裁決）：新增 shape token `--card-attention-border-width`（Warm 同卡框、Ink 3px）給閘門卡；`--chip-border-width`（Warm 0、Ink 1px，框色 `--border`）給篩選 chip。Warm 外觀不變。
+- **請設計端**：認可兩個 token 並補進 Ink 稿；確認「要人處理」比「選中」更重的線重階序。
 
 ## 稿外新增 · 知識圖譜
 

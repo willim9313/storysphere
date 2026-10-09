@@ -306,11 +306,13 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 | `--card-border-width` | `1px` | `1.5px` | 卡片與 panel 外框 |
 | `--card-shadow` | `var(--shadow-sm)` | `none` | 卡片 elevation（Ink 全平面） |
 | `--card-selected-border-width` | `var(--card-border-width)`（1px） | `2px` | 選中卡的框重（閱讀頁目前章）。Ink 的 accent `#111` 與 border `#1a1a1a` 幾乎同色，選中只能靠線重承載 |
+| `--card-attention-border-width` | `var(--card-border-width)`（1px） | `3px` | 要人處理的卡的框重（書庫人工閘門帶）。Warm 由 accent 框色承載；Ink 下 accent 與 border 同色，只能靠比「選中」更重的線 |
 | `--btn-radius` | `var(--radius-md)`（8px） | `var(--radius-sm)`（4px） | 按鈕 |
 | `--btn-border-width` | `1px` | `1.5px` | 按鈕外框 |
 | `--btn-shadow` | `none` | `none` | 按鈕 elevation |
 | `--pill-radius` | `20px`（全圓 lozenge） | `4px`（矩形 tag） | entity / symbol pill |
 | `--pill-border-width` | `0.5px` | `1px` | pill 外框 |
+| `--chip-border-width` | `0` | `1px` | 篩選 chip 外框（書庫）。Warm 靠底色分層不畫框；Ink 的未選 chip 底 `#f6f6f4` 在白紙上幾乎看不見，改成有框的矩形 tag |
 | `--badge-radius` | `20px` | `4px` | status badge |
 | `--control-radius` | `var(--radius-md)` | `var(--radius-sm)` | input、toggle、select |
 | `--input-radius` | `var(--control-radius)` | `var(--control-radius)` | 文字框、搜尋、select 共用的框 |
