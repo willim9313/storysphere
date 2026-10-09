@@ -7,13 +7,6 @@ import { StatusBadge } from './StatusBadge';
 import { useDeleteBook } from '@/hooks/useDeleteBook';
 import { useDismissOverlay } from '@/hooks/useDismissOverlay';
 
-const STEP_LABELS: Record<keyof PipelineStatus, string> = {
-  summarization: '摘要',
-  featureExtraction: '特徵',
-  knowledgeGraph: '知識圖譜',
-  symbolDiscovery: '符號',
-};
-
 /**
  * DS v3 book card. The whole card is one link (stretched over the card by
  * `.lib-card-link::after`) so the delete controls can sit inside it without
@@ -26,11 +19,14 @@ export function BookCard({ book }: Readonly<{ book: Book }>) {
   const trashRef = useRef<HTMLButtonElement>(null);
   const { t } = useTranslation('library');
   const { t: tc } = useTranslation('common');
+  // Step names are the ones 建構概覽 and the reader's rerun menu use, so the
+  // card names the same step the user finds on the page it links to.
+  const { t: tr } = useTranslation('reader');
 
   const failedSteps = book.pipelineStatus
     ? (Object.entries(book.pipelineStatus) as [keyof PipelineStatus, string][])
         .filter(([, v]) => v === 'failed')
-        .map(([k]) => STEP_LABELS[k])
+        .map(([k]) => tr(`rerun.steps.${k}`))
     : [];
 
   const cancelDelete = useCallback(() => {
@@ -109,7 +105,16 @@ export function BookCard({ book }: Readonly<{ book: Book }>) {
           {failedSteps.length > 0 && (
             <div className="lib-card-degraded">
               <AlertTriangle size={13} />
-              <span>{failedSteps.join('、')} 不可用</span>
+              <div className="lib-card-degraded-body">
+                <span>
+                  {failedSteps.join(t('card.listSep'))} <span className="lib-nowrap">{t('card.unavailable')}</span>
+                </span>
+                {/* An error book's only way forward: 建構概覽 shows which step
+                    failed and reruns it (LIB-3). */}
+                <Link to={`/books/${book.id}/unraveling`} className="lib-card-degraded-link">
+                  {t('shortcuts.viewError')} →
+                </Link>
+              </div>
             </div>
           )}
           <div className="ss-bookcard-meta">
