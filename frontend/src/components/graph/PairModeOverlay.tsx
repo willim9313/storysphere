@@ -133,13 +133,13 @@ export function PairModeOverlay({
   let evoSideBody: ReactElement;
   if (addedThisChapter.length === 0) {
     evoSideBody = (
-      <p className="text-xs" style={{ color: 'var(--fg-muted)' }}>
+      <p className="kg-pair-side-empty">
         {t('v1.pair.noNewThisChapter')}
       </p>
     );
   } else {
     evoSideBody = (
-      <ul className="flex flex-col" style={{ gap: 'var(--space-3)' }}>
+      <ul className="kg-pair-list">
         {addedThisChapter.map((id) => {
           const n = nodeById.get(id);
           if (!n) return null;
@@ -150,7 +150,7 @@ export function PairModeOverlay({
   }
 
   const pathSideBody = (
-    <ul className="flex flex-col" style={{ gap: 'var(--space-3)' }}>
+    <ul className="kg-pair-list">
       {pathNodes.map((n) => (
         <SidePanelPill key={n.id} node={n} />
       ))}
@@ -158,50 +158,18 @@ export function PairModeOverlay({
   );
 
   return (
-    <div
-      className="absolute inset-0"
-      style={{ zIndex: 30, backgroundColor: 'var(--bg-primary)' }}
-    >
-      <style>
-        {`@keyframes pairNodeFadeIn {
-          from { opacity: 0; transform: scale(0.55); }
-          to { opacity: 1; transform: scale(1); }
-        }`}
-      </style>
+    <div className="kg-pair">
 
       {/* Top-center card: title + evo/path toggle */}
-      <div
-        className="absolute flex items-center"
-        style={{
-          top: 'var(--space-6)',
-          left: '50%',
-          transform: 'translateX(-50%)',
-          gap: 'var(--space-4)',
-          padding: 'var(--space-4) var(--space-5)',
-          backgroundColor: 'var(--bg-primary)',
-          border: '1px solid var(--border)',
-          borderRadius: 'var(--radius-md)',
-          boxShadow: 'var(--shadow-md)',
-        }}
-      >
-        <h3
-          className="text-sm font-semibold whitespace-nowrap"
-          style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)' }}
-        >
+      <div className="kg-pair-top">
+        <h3 className="kg-pair-title">
           {t('v1.pair.title', { a: a.name, b: b.name })}
         </h3>
 
         <div
           role="radiogroup"
           aria-label={t('v1.pair.modeLabel')}
-          className="inline-flex"
-          style={{
-            backgroundColor: 'var(--bg-secondary)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-md)',
-            padding: 'var(--space-1)',
-            gap: 'var(--space-1)',
-          }}
+          className="kg-pair-toggle"
         >
           {(['evo', 'path'] as const).map((mode) => {
             const active = subMode === mode;
@@ -211,15 +179,7 @@ export function PairModeOverlay({
                 role="radio"
                 aria-checked={active}
                 onClick={() => onSubModeChange(mode)}
-                className="inline-flex items-center"
-                style={{
-                  padding: 'var(--space-2) var(--space-5)',
-                  borderRadius: 'var(--radius-sm)',
-                  fontSize: 'var(--font-size-2xs)',
-                  backgroundColor: active ? 'var(--bg-primary)' : 'transparent',
-                  color: active ? 'var(--accent)' : 'var(--fg-secondary)',
-                  boxShadow: active ? 'var(--shadow-sm)' : 'none',
-                }}
+                className={`kg-pair-mode${active ? ' is-active' : ''}`}
               >
                 {mode === 'evo' ? t('v1.pair.modeEvo') : t('v1.pair.modePath')}
               </button>
@@ -241,40 +201,18 @@ export function PairModeOverlay({
 
       {/* Bottom-center step control (evo only) */}
       {showStepControl && (
-        <div
-          className="absolute flex flex-col items-center"
-          style={{
-            bottom: 'var(--space-6)',
-            left: '50%',
-            transform: 'translateX(-50%)',
-            gap: 'var(--space-4)',
-            padding: 'var(--space-4) var(--space-6)',
-            backgroundColor: 'var(--bg-primary)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-md)',
-            boxShadow: 'var(--shadow-md)',
-          }}
-        >
-          <div className="flex items-center" style={{ gap: 'var(--space-3)' }}>
+        <div className="kg-pair-steps">
+          <div className="kg-pair-dots">
             {Array.from({ length: totalChapters }, (_, i) => i + 1).map((n) => (
               <button
                 key={n}
                 aria-label={t('v1.pair.chapterStep', { n, total: totalChapters })}
                 onClick={() => onStepChange(n)}
-                className="rounded-full"
-                style={{
-                  width: n === step ? 10 : 7,
-                  height: n === step ? 10 : 7,
-                  backgroundColor: n === step ? 'var(--accent)' : 'var(--border)',
-                  transition: 'all var(--transition-fast, 150ms) ease',
-                }}
+                className={`kg-pair-dot${n === step ? ' is-active' : ''}`}
               />
             ))}
           </div>
-          <span
-            className="tabular-nums"
-            style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}
-          >
+          <span className="kg-pair-progress">
             {t('v1.pair.chapterProgress', { n: step, total: totalChapters })}
           </span>
         </div>
@@ -283,24 +221,9 @@ export function PairModeOverlay({
       {/* Right side panel */}
       {(showEvoSidePanel || showPathSidePanel) && (
         <div
-          className="absolute flex flex-col"
-          style={{
-            top: 76,
-            right: 16,
-            bottom: showStepControl ? 96 : 16,
-            width: 260,
-            backgroundColor: 'var(--bg-primary)',
-            border: '1px solid var(--border)',
-            borderRadius: 'var(--radius-md)',
-            boxShadow: 'var(--shadow-md)',
-            padding: 'var(--space-5)',
-            overflowY: 'auto',
-          }}
+          className={`kg-pair-side${showStepControl ? ' has-steps' : ''}`}
         >
-          <div
-            className="text-xs font-semibold uppercase mb-2"
-            style={{ color: 'var(--fg-muted)', letterSpacing: '0.06em' }}
-          >
+          <div className="kg-pair-side-title">
             {showEvo ? t('v1.pair.sideTitleEvo') : t('v1.pair.sideTitlePath')}
           </div>
 
@@ -315,13 +238,8 @@ export function PairModeOverlay({
 
 function EmptyStateMessage({ text }: { readonly text: string }) {
   return (
-    <div
-      className="text-center"
-      style={{ maxWidth: 320, padding: 'var(--space-7)', color: 'var(--fg-muted)' }}
-    >
-      <p className="text-sm" style={{ fontFamily: 'var(--font-serif)' }}>
-        {text}
-      </p>
+    <div className="kg-pair-empty">
+      <p>{text}</p>
     </div>
   );
 }
@@ -330,30 +248,16 @@ function SidePanelPill({ node }: { readonly node: GraphNode }) {
   const { t } = useTranslation('graph');
   const key = dotKey(node.type);
   return (
-    <li
-      className="flex items-center"
-      style={{
-        gap: 'var(--space-3)',
-        padding: 'var(--space-3) var(--space-4)',
-        borderRadius: 'var(--pill-radius, 999px)',
-        border: '1px solid var(--border)',
-      }}
-    >
+    <li className="kg-pair-pill">
       <span
-        className="inline-block rounded-full flex-shrink-0"
+        className="kg-pair-pill-dot"
         style={{
-          width: 8,
-          height: 8,
           backgroundColor: `var(--graph-${key}-fill)`,
-          border: `1px solid var(--graph-${key}-stroke)`,
+          borderColor: `var(--graph-${key}-stroke)`,
         }}
       />
-      <span className="text-xs flex-1 truncate" style={{ color: 'var(--fg-primary)' }}>
-        {node.name}
-      </span>
-      <span className="flex-shrink-0" style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}>
-        {t(`entityTypes.${node.type}`)}
-      </span>
+      <span className="kg-pair-pill-name">{node.name}</span>
+      <span className="kg-pair-pill-type">{t(`entityTypes.${node.type}`)}</span>
     </li>
   );
 }
@@ -371,12 +275,7 @@ function EndpointNode({ pos, node }: { readonly pos: Vec2; readonly node: GraphN
       <text
         textAnchor="middle"
         y={ENDPOINT_R + 18}
-        style={{
-          fontSize: 'var(--font-size-sm)',
-          fontFamily: 'var(--font-serif)',
-          fontWeight: 700,
-          fill: 'var(--fg-primary)',
-        }}
+        className="kg-pair-end-label"
       >
         {node.name}
       </text>
@@ -463,7 +362,7 @@ function EvoSvg({
     <svg
       viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
       preserveAspectRatio="xMidYMid meet"
-      style={{ width: '100%', height: '100%', maxWidth: VIEW_W, maxHeight: VIEW_H }}
+      className="kg-pair-svg"
     >
       {edges}
       <EndpointNode pos={aPos} node={a} />
@@ -477,7 +376,7 @@ function EvoSvg({
           <g
             key={n.id}
             transform={`translate(${pos.x} ${pos.y})`}
-            style={isNew ? { animation: 'pairNodeFadeIn 480ms ease-out' } : undefined}
+            className={isNew ? 'kg-pair-fade-in' : undefined}
           >
             <circle
               r={NEIGHBOR_R}
@@ -489,11 +388,7 @@ function EvoSvg({
               textAnchor="middle"
               x={pos.x + NEIGHBOR_R + 6 > VIEW_W - 20 ? -(NEIGHBOR_R + 8) : NEIGHBOR_R + 8}
               y={4}
-              style={{
-                fontSize: 'var(--font-size-2xs)',
-                fill: 'var(--fg-primary)',
-                fontFamily: 'var(--font-sans)',
-              }}
+              className="kg-pair-nb-label"
             >
               {n.name}
             </text>
@@ -513,11 +408,7 @@ function EvoSvg({
           <text
             textAnchor="middle"
             y={4}
-            style={{
-              fontSize: 'var(--font-size-2xs)',
-              fill: 'var(--fg-secondary)',
-              fontFamily: 'var(--font-mono)',
-            }}
+            className="kg-pair-overflow-label"
           >
             {t('v1.pair.overflowLabel', { n: overflow })}
           </text>
@@ -538,7 +429,7 @@ function PathSvg({ nodes }: { readonly nodes: GraphNode[] }) {
     <svg
       viewBox={`0 0 ${VIEW_W} ${VIEW_H}`}
       preserveAspectRatio="xMidYMid meet"
-      style={{ width: '100%', height: '100%', maxWidth: VIEW_W, maxHeight: VIEW_H }}
+      className="kg-pair-svg"
     >
       {xs.slice(1).map((x, i) => (
         <line
@@ -566,12 +457,7 @@ function PathSvg({ nodes }: { readonly nodes: GraphNode[] }) {
             <text
               textAnchor="middle"
               y={(isEndpoint ? ENDPOINT_R : NEIGHBOR_R) + 18}
-              style={{
-                fontSize: 'var(--font-size-2xs)',
-                fontFamily: 'var(--font-sans)',
-                fontWeight: isEndpoint ? 700 : 400,
-                fill: 'var(--fg-primary)',
-              }}
+              className={`kg-pair-path-label${isEndpoint ? ' is-end' : ''}`}
             >
               {n.name}
             </text>
