@@ -54,7 +54,9 @@ export function BookCard({ book }: Readonly<{ book: Book }>) {
       <div className="ss-bookcard-cover lib-cover">
         <FileText size={28} />
       </div>
-      <Link to={`/books/${book.id}`} className="ss-bookcard-title lib-card-link">
+      {/* title: the name is clamped to two lines; long or near-duplicate draft
+          titles need the full text to tell apart. */}
+      <Link to={`/books/${book.id}`} className="ss-bookcard-title lib-card-link" title={book.title}>
         {book.title}
       </Link>
 

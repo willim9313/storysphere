@@ -33,7 +33,9 @@ export function RecentBookCard({ book }: Readonly<{ book: Book }>) {
 
   return (
     <div className="lib-recent-card">
-      <div className="lib-recent-title">{book.title}</div>
+      <div className="lib-recent-title" title={book.title}>
+        {book.title}
+      </div>
       <div className="lib-recent-actions">
         {statusShortcuts().map(({ label, to }) => (
           <Link key={label} to={to} className="ss-btn ss-btn-sm ss-btn-secondary">
