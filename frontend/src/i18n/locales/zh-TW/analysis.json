@@ -2,7 +2,6 @@
   "search": "搜尋…",
   "analyzed": "已分析",
   "notAnalyzed": "尚未分析",
-  "noAnalysis": "尚未進行深度分析",
   "generate": "生成分析",
   "regenerate": "覆蓋重新生成",
   "analyzing": "分析中",
@@ -16,6 +15,25 @@
   "regenerateTitle": "覆蓋重新生成",
   "regenerateMessage": "此操作將覆蓋現有結果並消耗 token，確認後執行？",
   "character": {
+      "unanalyzed": {
+        "mentions": "提及次數",
+        "relations": "關係",
+        "faction": "派系",
+        "noFaction": "無派系歸屬",
+        "factionWith": "與 {{names}} 同派系",
+        "factionWithMore": "與 {{names}} 等 {{others}} 人同派系",
+        "factionSize": "所屬派系共 {{count}} 人",
+        "nameJoiner": "、",
+        "lead": "尚未進行深度分析。生成後會得到：",
+        "yields": {
+          "persona": "人格與原型（Jung 12／Schmidt 45）",
+          "behavior": "行為與關鍵事件",
+          "relations": "關係網與代表引言",
+          "arc": "發展弧線"
+        },
+        "later": "語音風格與認知狀態在分析完成後另外生成。",
+        "create": "建立角色分析"
+      },
     "sections": {
       "profile": "角色簡介",
       "traits": "個性特質",

@@ -923,6 +923,30 @@
 .ca-empty-title { margin: 0; font-family: var(--font-serif); font-size: var(--font-size-lg); font-weight: 700; color: var(--fg-primary); }
 .ca-empty-sub { margin: 0; font-size: var(--font-size-2xs); color: var(--fg-secondary); max-width: 42ch; line-height: 1.7; }
 
+/* ─── Unanalyzed character detail（CA-5）：免費資料＋生成後會得到什麼＋唯一花 token 的鈕 ─── */
+.ca-unanalyzed { display: flex; flex-direction: column; gap: var(--space-6); max-width: 760px; }
+.ca-unanalyzed-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-5); flex-wrap: wrap; }
+.ca-unanalyzed-graph { display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--font-size-xs); color: var(--fg-secondary); }
+.ca-unanalyzed-graph:hover { color: var(--accent); }
+.ca-unanalyzed-stats { display: grid; grid-template-columns: 1fr 1fr 2fr; gap: var(--space-5); }
+.ca-unanalyzed-faction-text { font-size: var(--font-size-xs); font-weight: 600; color: var(--fg-primary); line-height: 1.5; }
+.ca-unanalyzed-body {
+  background: var(--bg-primary);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius); box-shadow: var(--card-shadow);
+  padding: var(--space-6);
+  display: flex; flex-direction: column; gap: var(--space-4);
+}
+.ca-unanalyzed-lead { margin: 0; font-size: var(--font-size-sm); color: var(--fg-primary); }
+.ca-unanalyzed-list { margin: 0; padding-left: var(--space-7); font-size: var(--font-size-xs); line-height: 1.8; color: var(--fg-secondary); }
+.ca-unanalyzed-note { margin: 0; font-size: var(--font-size-xs); color: var(--fg-secondary); }
+.ca-unanalyzed-action { display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap; margin-top: var(--space-3); }
+.ca-unanalyzed-cost { font-size: var(--font-size-2xs); color: var(--fg-secondary); }
+@container ca-content (max-width: 600px) {
+  .ca-unanalyzed-stats { grid-template-columns: 1fr 1fr; }
+  .ca-unanalyzed-faction { grid-column: 1 / -1; }
+}
+
 /* ─── Inline banner (trigger failures, batch errors) ─── */
 .ca-inline-banner {
   display: flex; align-items: center; justify-content: space-between; gap: var(--space-5);

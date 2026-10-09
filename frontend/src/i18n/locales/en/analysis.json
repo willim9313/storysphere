@@ -2,7 +2,6 @@
   "search": "Search…",
   "analyzed": "Analyzed",
   "notAnalyzed": "Not Analyzed",
-  "noAnalysis": "No analysis yet",
   "generate": "Generate Analysis",
   "regenerate": "Regenerate",
   "analyzing": "Analyzing",
@@ -16,6 +15,25 @@
   "regenerateTitle": "Regenerate Analysis",
   "regenerateMessage": "This will overwrite the existing result and consume tokens. Proceed?",
   "character": {
+      "unanalyzed": {
+        "mentions": "Mentions",
+        "relations": "Relations",
+        "faction": "Faction",
+        "noFaction": "No faction",
+        "factionWith": "Same faction as {{names}}",
+        "factionWithMore": "Same faction as {{names}} and {{rest}} more",
+        "factionSize": "In a faction of {{count}}",
+        "nameJoiner": ", ",
+        "lead": "Not analyzed in depth yet. Generating gives you:",
+        "yields": {
+          "persona": "Persona and archetypes (Jung 12 / Schmidt 45)",
+          "behavior": "Actions and key events",
+          "relations": "Relationship network and representative quotes",
+          "arc": "Development arc"
+        },
+        "later": "Voice profile and epistemic state are generated separately once the analysis is done.",
+        "create": "Create character analysis"
+      },
     "sections": {
       "profile": "Character Profile",
       "traits": "Personality Traits",
