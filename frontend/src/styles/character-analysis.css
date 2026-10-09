@@ -246,6 +246,9 @@
 }
 .ca-content-inner {
   max-width: 1280px; margin: 0 auto;
+  /* Panes adapt to the content column, not the window: the 268 left column
+     takes a different share at every window width. */
+  container: ca-content / inline-size;
   display: flex; flex-direction: column; gap: var(--space-6);
 }
 
@@ -541,7 +544,7 @@
 .ca-voice-error { margin-bottom: var(--space-6); }
 .ca-voice-layout { display: flex; gap: var(--space-6); align-items: flex-start; flex-wrap: wrap; }
 .ca-voice-data {
-  flex: 1; min-width: 460px;
+  flex: 1 1 460px; min-width: 0;
   background: var(--bg-primary);
   border: var(--card-border-width) var(--border-style) var(--border);
   border-radius: var(--card-radius); box-shadow: var(--card-shadow);
@@ -891,7 +894,8 @@
 
 /* ─── Quadrant view ─── */
 .ca-ov-quadrant-row { display: flex; gap: var(--space-6); align-items: stretch; flex-wrap: wrap; }
-.ca-ov-quadrant-main { flex: 1; min-width: 440px; display: flex; flex-direction: column; gap: var(--space-5); }
+/* Below 480 + legend the legend wraps under the plot and the plot takes the full row. */
+.ca-ov-quadrant-main { flex: 1 1 480px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-5); }
 .ca-ov-plot {
   background: var(--bg-secondary);
   border: var(--card-border-width) var(--border-style) var(--border);
@@ -1044,3 +1048,10 @@ button.ca-ov-legend-row:hover { background: var(--bg-secondary); }
 .ca-gen-fail-head span { color: var(--fg-primary); }
 .ca-gen-fail-msg { font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-secondary); line-height: 1.6; overflow-wrap: anywhere; }
 .ca-gen-fail-id { font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-muted); overflow-wrap: anywhere; }
+
+/* ─── Narrow content column (720 window ≈ 356px of content) ─── */
+@container ca-content (max-width: 600px) {
+  .ca-voice-stats { grid-template-columns: repeat(2, 1fr); }
+  .ca-voice-qual { width: 100%; }
+  .ca-voice-head { flex-wrap: wrap; }
+}

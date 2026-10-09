@@ -7,6 +7,7 @@ import type { NameIdEntry } from '../CharacterAnalysisDetail';
 import { useSourceJump } from '@/hooks/useSourceJump';
 import { SourceJumpText } from '../SourceJumpText';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { useElementWidth } from '@/hooks/useElementWidth';
 
 interface Props {
   data: CharacterAnalysisDetail;
@@ -78,16 +79,24 @@ function groupByTarget(relations: Relation[]): Map<string, Relation[]> {
   return groups;
 }
 
-const EGO_CX = 320;
+// The svg is drawn at its real pixel width (see useElementWidth): the ellipse
+// stretches with the card, nodes and text stay at fixed px. A fixed 640-wide
+// viewBox scaled names from ~4.6px (720 window) to ~16px (1440).
+const EGO_FALLBACK_W = 640;
 const EGO_CY = 146;
-const EGO_RX = 274;
 const EGO_RY = 116;
-const EGO_W = EGO_CX * 2;
 const EGO_H = EGO_CY * 2 + 14;
+const EGO_SIDE = 46; // room for the outermost node + its badge
+const EGO_MIN_RX = 90;
+const EGO_MAX_RX = 380;
 
 export function RelationsPane({ data, bookId, characterRoster, onSelectCharacter }: Props) {
   const { t } = useTranslation('analysis');
   const { jump, pendingKey } = useSourceJump(bookId);
+  const [stageRef, measuredW] = useElementWidth<HTMLDivElement>();
+  const EGO_W = measuredW > 0 ? measuredW : EGO_FALLBACK_W;
+  const EGO_CX = EGO_W / 2;
+  const EGO_RX = Math.min(EGO_MAX_RX, Math.max(EGO_MIN_RX, EGO_CX - EGO_SIDE));
   const cepRelations = data.cep?.relations;
   const relations = useMemo(() => (cepRelations ?? []) as Relation[], [cepRelations]);
   const quotes = data.cep?.quotes ?? [];
@@ -118,7 +127,7 @@ export function RelationsPane({ data, bookId, characterRoster, onSelectCharacter
         clickable: rosterByName.has(target),
       };
     });
-  }, [targets, groups, rosterByName]);
+  }, [targets, groups, rosterByName, EGO_CX, EGO_RX]);
 
   if (relations.length === 0) {
     return (
@@ -196,7 +205,7 @@ export function RelationsPane({ data, bookId, characterRoster, onSelectCharacter
             <div className="ca-ego-caption">
               {t('character.relations.egoCaption', { name: data.entityName })}
             </div>
-            <div className="ca-ego-stage">
+            <div className="ca-ego-stage" ref={stageRef}>
             <svg viewBox={`0 0 ${EGO_W} ${EGO_H}`} width="100%" className="ca-ego-svg">
               {nodes.map((n, i) => {
                 const m = n.rels.length;
@@ -289,7 +298,7 @@ export function RelationsPane({ data, bookId, characterRoster, onSelectCharacter
             {/* The native SVG <title> is replaced by the DS Tooltip. A Tooltip is
                 an HTML portal anchored on a DOM element and cannot wrap an SVG
                 <g>, so each node gets a transparent HTML hit target laid over
-                it (positioned in % of the viewBox, so it scales with the svg).
+                it (positioned in % of the svg box, which matches the viewBox 1:1).
                 Clickable nodes are real buttons — keyboard reachable too. */}
             {nodes.map((n) => {
               const r = nodeRadius(n.target);

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { FactionAnalysisResponse } from '@/api/factions';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { useElementWidth } from '@/hooks/useElementWidth';
 import {
   DIMMED_OPACITY,
   buildFactionLegend,
@@ -25,8 +26,17 @@ interface QuadrantViewProps {
   onSelect: (entityId: string) => void;
 }
 
-const VB_W = 1000;
-const VB_H = 470;
+// The viewBox is the plot's real pixel width, so labels keep their CSS font
+// size at every window width (a fixed 1000-wide viewBox shrank them to ~6px
+// at 1024 and below). Height follows width within these bounds.
+const FALLBACK_W = 1000;
+const MIN_H = 320;
+const MAX_H = 470;
+const H_RATIO = 0.47;
+// Bubble radii were tuned for the old 1000-unit viewBox; scale them with the
+// plot width (as the stretched viewBox did) but never below half, so narrow
+// plots don't drown in bubbles while text stays full size.
+const MIN_BUBBLE_SCALE = 0.5;
 // Minimum padding on each side even when every bubble is small.
 const MIN_PAD = { left: 70, right: 40, top: 30, bottom: 44 };
 const TOP_LABELED_COUNT = 8;
@@ -47,6 +57,10 @@ export function QuadrantView({
   const [hoveredId, setHoveredId] = useState<string | null>(null);
   // 點圖例單獨亮出（新行為）：其餘泡泡降到 0.3，再點同一項取消。
   const [selection, setSelection] = useState<FactionSelection>(null);
+  const [plotRef, measuredW] = useElementWidth<HTMLDivElement>();
+  const VB_W = measuredW > 0 ? measuredW : FALLBACK_W;
+  const VB_H = Math.min(MAX_H, Math.max(MIN_H, Math.round(VB_W * H_RATIO)));
+  const bubbleScale = Math.min(1, Math.max(MIN_BUBBLE_SCALE, VB_W / FALLBACK_W));
 
   const plotted = useMemo(() => {
     const withMetrics = characters.filter((c) => c.pagerank !== undefined);
@@ -70,10 +84,10 @@ export function QuadrantView({
       const x = (Math.log10(c.mentionCount + 1) - minLog) / (maxLog - minLog || 1);
       const y = ((c.pagerank ?? 0) - minP) / (maxP - minP || 1);
       const cappedDegree = Math.min(c.degree ?? 0, MAX_DEGREE_FOR_RADIUS);
-      const r = 5 + cappedDegree * 1.5;
+      const r = (5 + cappedDegree * 1.5) * bubbleScale;
       return { c, x, y, r, alwaysLabel: top8.has(c.entityId) };
     });
-  }, [characters]);
+  }, [characters, bubbleScale]);
 
   // Padding is data-driven: it must fit the largest bubble on screen (plus
   // its analyzed-ring and a small gap) on every side, otherwise a bubble
@@ -143,8 +157,8 @@ export function QuadrantView({
     <div className="ca-ov-quadrant">
       <div className="ca-ov-quadrant-row">
         <div className="ca-ov-quadrant-main">
-          <div className="ca-ov-plot">
-            <svg viewBox={`0 0 ${VB_W} ${VB_H}`} width="100%" height={470} role="img" aria-label={t('character.overview.quadrant.ariaLabel')}>
+          <div className="ca-ov-plot" ref={plotRef}>
+            <svg viewBox={`0 0 ${VB_W} ${VB_H}`} width="100%" height={VB_H} role="img" aria-label={t('character.overview.quadrant.ariaLabel')}>
               {/* median cross-hairs */}
               <line
                 x1={cx(medX)} x2={cx(medX)}
