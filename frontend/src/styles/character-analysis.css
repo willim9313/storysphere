@@ -115,13 +115,21 @@
 /* 動作列·行內按鈕變體：上行姓名；下行長條＋數值＋「建立」（第二行固定 28px）。
    選中態：底色＋加粗，不用 inset／左緣強調。 */
 .ca-row {
+  position: relative;
+  margin: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  background: transparent;
+  transition: background-color var(--transition-fast) ease;
+}
+/* 整列可點：內距在主按鈕上，焦點環貼齊整列；「建立」是它的兄弟節點，絕對定位疊在第二行右側。 */
+.ca-row-main {
   display: grid; grid-template-columns: 24px minmax(0, 1fr) auto;
   column-gap: var(--space-4); align-items: center;
-  margin: 0 var(--space-3); padding: var(--space-4) var(--space-5);
-  border: none; border-radius: var(--radius-md);
-  background: transparent; text-align: left; cursor: pointer;
-  font-family: var(--font-sans); color: var(--fg-primary);
-  transition: background-color var(--transition-fast) ease;
+  width: 100%; box-sizing: border-box; margin: 0;
+  padding: var(--space-4) var(--space-5);
+  border: none; border-radius: inherit;
+  background: none; text-align: left; cursor: pointer;
+  font-family: var(--font-sans); font-size: inherit; color: var(--fg-primary);
 }
 .ca-row:hover { background: color-mix(in srgb, var(--bg-secondary) 60%, transparent); }
 .ca-row.selected { background: var(--bg-secondary); }
@@ -151,7 +159,12 @@
   flex: none; font-size: var(--font-size-2xs); color: var(--fg-muted);
   font-variant-numeric: tabular-nums;
 }
-.ca-row-create { margin-left: auto; flex-shrink: 0; white-space: nowrap; }
+.ca-row-create {
+  position: absolute; right: var(--space-5);
+  bottom: calc(var(--space-4) + 14px); transform: translateY(50%); /* 對齊第二行（28px）的垂直中心 */
+  white-space: nowrap;
+}
+.ca-row.pending.is-failed .ca-row-create { right: calc(var(--space-5) + 8px + var(--space-4)); }
 /* 狀態點與「建立」二擇一。partial 用空心環：Ink 下 success／warning 同色，要靠形狀分。 */
 .ca-row-dot {
   display: block; width: 8px; height: 8px; box-sizing: border-box; border-radius: 50%;
@@ -654,7 +667,7 @@
   position: relative;
   /* Left padding is a gutter for the row labels. Sized for the longest label
      across locales (en "Unknown"), not the shortest. */
-  padding: 28px 12px 22px 84px;
+  padding: 40px 12px 40px 84px;
   background: var(--bg-secondary);
   border: var(--card-border-width) var(--border-style) var(--border);
   border-radius: var(--card-radius);
@@ -700,14 +713,33 @@
   width: 2px; background: var(--accent);
   transform: translateX(-50%); pointer-events: none;
 }
+/* Drag handle: paper fill + accent frame (Warm 2px, Ink 2.5px via the button
+   border token) with two grip lines. The real drag target is the transparent
+   range input over the axis; this is only its visible stand-in. */
 .ca-epi-cursor::before {
   content: ''; position: absolute; left: 50%; top: 0;
-  width: 14px; height: 14px; border-radius: 50%;
-  background: var(--accent); border: 3px solid var(--bg-secondary);
-  transform: translate(-50%, -50%); box-shadow: var(--shadow-sm);
+  width: 18px; height: 18px; box-sizing: border-box;
+  border-radius: var(--pill-radius);
+  background: var(--bg-primary);
+  border: calc(var(--btn-border-width) + 1px) solid var(--accent);
+  transform: translate(-50%, -50%);
+  transition: background-color 0.15s;
+}
+.ca-epi-cursor::after {
+  content: ''; position: absolute; left: 50%; top: 0;
+  width: 4px; height: 8px;
+  border-left: 1px solid var(--accent); border-right: 1px solid var(--accent);
+  box-sizing: border-box;
+  transform: translate(-50%, -50%);
+}
+.ca-epi-axis:has(input:hover) .ca-epi-cursor::before { background: var(--bg-tertiary); }
+.ca-epi-axis:has(input:focus-visible) .ca-epi-cursor::before {
+  outline: var(--focus-ring-width) solid var(--accent);
+  outline-offset: var(--focus-ring-offset);
 }
 .ca-epi-cursor-label {
-  position: absolute; bottom: 100%; left: 50%; transform: translate(-50%, -2px);
+  /* Clears the 18px handle (half above the axis) plus its focus ring. */
+  position: absolute; bottom: 100%; left: 50%; transform: translate(-50%, -14px);
   font-family: var(--font-serif); font-weight: 700; font-size: var(--font-size-xs);
   color: var(--accent); white-space: nowrap; font-variant-numeric: tabular-nums;
 }
@@ -719,7 +751,14 @@
 }
 .ca-epi-axis input[type="range"] {
   position: absolute; left: 0; right: 0; top: 0; bottom: 0;
-  width: 100%; height: 100%; opacity: 0; cursor: pointer; margin: 0;
+  width: 100%; height: 100%;
+  opacity: 0; cursor: grab; margin: 0;
+}
+.ca-epi-axis input[type="range"]:active { cursor: grabbing; }
+.ca-epi-cursor-hint {
+  position: absolute; left: 84px; bottom: var(--space-4);
+  font-family: var(--font-sans); font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
 }
 
 /* Epistemic blocks: 三欄（已知／未知／誤信）。欄標題帶圖示與文字，Ink 下不靠色相。 */
@@ -986,8 +1025,13 @@ button.ca-ov-legend-row:hover { background: var(--bg-secondary); }
 .ca-ov-rank-list { display: flex; flex-direction: column; gap: var(--space-4); }
 .ca-ov-rank-row {
   display: flex; align-items: center; gap: var(--space-5);
-  padding: var(--space-1) var(--space-3); margin: 0 calc(var(--space-3) * -1);
-  border-radius: var(--radius-sm); cursor: pointer;
+  padding: 0 var(--space-3) 0 0; margin: 0 calc(var(--space-3) * -1);
+  border-radius: var(--radius-sm);
+}
+.ca-ov-rank-row .ca-row-main {
+  display: flex; align-items: center; gap: var(--space-5);
+  flex: 1; min-width: 0; width: auto;
+  padding: var(--space-1) 0 var(--space-1) var(--space-3);
 }
 .ca-ov-rank-row:hover { background: var(--bg-secondary); }
 .ca-ov-rank-n { flex: none; width: 28px; font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-muted); }

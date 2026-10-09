@@ -73,46 +73,33 @@ export function RankingView({
 
       <div className="ca-ov-rank-list">
         {shown.map((c, i) => (
-          <div
-            key={c.entityId}
-            className="ca-ov-rank-row"
-            role="button"
-            tabIndex={0}
-            onClick={() => onSelect(c.entityId)}
-            onKeyDown={(e) => {
-              if (e.target !== e.currentTarget) return;
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onSelect(c.entityId);
-              }
-            }}
-          >
-            <span className="ca-ov-rank-n">{`#${i + 2}`}</span>
-            <FactionSwatch token={factionToken(c.factionIndex, rankedFactions)} />
-            <span className={'ca-ov-rank-name' + (c.analyzed ? '' : ' muted')}>{c.name}</span>
-            <span className={'ca-ov-rank-dot' + (c.analyzed ? ' on' : '')} />
-            <div className="ca-ov-rank-bar-track">
-              <div
-                className={'ca-ov-rank-bar-fill' + (c.analyzed ? '' : ' muted')}
-                style={{ width: `${(c.mentionCount / maxMentions) * 100}%` }}
-              />
-            </div>
-            <span className="ca-ov-rank-count">{c.mentionCount}</span>
-            <span className="ca-ov-rank-action">
-              {!c.analyzed && (
+          <div key={c.entityId} className="ca-ov-rank-row">
+            <button type="button" className="ca-row-main" onClick={() => onSelect(c.entityId)}>
+              <span className="ca-ov-rank-n">{`#${i + 2}`}</span>
+              <FactionSwatch token={factionToken(c.factionIndex, rankedFactions)} />
+              <span className={'ca-ov-rank-name' + (c.analyzed ? '' : ' muted')}>{c.name}</span>
+              <span className={'ca-ov-rank-dot' + (c.analyzed ? ' on' : '')} />
+              <div className="ca-ov-rank-bar-track">
+                <div
+                  className={'ca-ov-rank-bar-fill' + (c.analyzed ? '' : ' muted')}
+                  style={{ width: `${(c.mentionCount / maxMentions) * 100}%` }}
+                />
+              </div>
+              <span className="ca-ov-rank-count">{c.mentionCount}</span>
+              {c.analyzed && <span className="ca-ov-rank-action" aria-hidden="true" />}
+            </button>
+            {!c.analyzed && (
+              <span className="ca-ov-rank-action">
                 <button
                   type="button"
                   className="ss-btn ss-btn-sm ss-btn-ghost ss-btn-llm"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onGenerate(c.entityId);
-                  }}
+                  onClick={() => onGenerate(c.entityId)}
                   disabled={generatingId === c.entityId}
                 >
                   {generatingId === c.entityId ? '…' : t('character.list.createBtn')}
                 </button>
-              )}
-            </span>
+              </span>
+            )}
           </div>
         ))}
       </div>

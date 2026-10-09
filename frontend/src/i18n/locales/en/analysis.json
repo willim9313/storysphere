@@ -208,6 +208,7 @@
     },
     "epistemic": {
       "upToChapter": "Up to Chapter",
+      "cursorHint": "Drag or press ← →",
       "chapterN": "Chapter {{n}}",
       "computing": "Computing…",
       "noVisibilityData": "No visibility data for this book (all events default to public)",

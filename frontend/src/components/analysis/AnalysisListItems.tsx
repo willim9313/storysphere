@@ -1,7 +1,7 @@
-import { useTranslation } from 'react-i18next';
-import type { AnalysisItem, UnanalyzedEntity } from '@/api/types';
-import { Tooltip } from '@/components/ui/Tooltip';
-import { mentionBarWidth } from './characterModel';
+import { useTranslation } from "react-i18next";
+import type { AnalysisItem, UnanalyzedEntity } from "@/api/types";
+import { Tooltip } from "@/components/ui/Tooltip";
+import { mentionBarWidth } from "./characterModel";
 
 /**
  * 左欄清單列（動作列·行內按鈕變體，DS v3 第 3 批 · 09）。
@@ -23,41 +23,51 @@ export function AnalyzedItem({
   maxMentionCount?: number;
   itemId?: string;
 }>) {
-  const { t } = useTranslation('analysis');
-  const partial = item.status === 'partial';
+  const { t } = useTranslation("analysis");
+  const partial = item.status === "partial";
   return (
-    <button
-      id={itemId}
-      type="button"
-      className={'ca-row' + (isSelected ? ' selected' : '')}
-      onClick={onSelect}
-    >
-      <span className="ca-row-avatar">{item.title[0]}</span>
-      <span className="ca-row-body">
-        <span className="ca-row-name">{item.title}</span>
-        {maxMentionCount !== undefined && (
-          <span className="ca-row-meta">
-            <span
-              className="ca-row-bar"
-              style={{ width: mentionBarWidth(item.mentionCount, maxMentionCount) }}
-            />
-            <span
-              className="ca-row-count"
-              aria-label={t('character.list.mentionCount', { count: item.mentionCount })}
-            >
-              {item.mentionCount}
+    <div id={itemId} className={"ca-row" + (isSelected ? " selected" : "")}>
+      <button
+        type="button"
+        className="ca-row-main"
+        aria-current={isSelected ? "true" : undefined}
+        onClick={onSelect}
+      >
+        <span className="ca-row-avatar">{item.title[0]}</span>
+        <span className="ca-row-body">
+          <span className="ca-row-name">{item.title}</span>
+          {maxMentionCount !== undefined && (
+            <span className="ca-row-meta">
+              <span
+                className="ca-row-bar"
+                style={{
+                  width: mentionBarWidth(item.mentionCount, maxMentionCount),
+                }}
+              />
+              <span
+                className="ca-row-count"
+                aria-label={t("character.list.mentionCount", {
+                  count: item.mentionCount,
+                })}
+              >
+                {item.mentionCount}
+              </span>
             </span>
-          </span>
+          )}
+        </span>
+        {partial ? (
+          <Tooltip label={t("event.partialBadge")}>
+            <span
+              className="ca-row-dot partial"
+              role="img"
+              aria-label={t("event.partialBadge")}
+            />
+          </Tooltip>
+        ) : (
+          <span className="ca-row-dot" />
         )}
-      </span>
-      {partial ? (
-        <Tooltip label={t('event.partialBadge')}>
-          <span className="ca-row-dot partial" role="img" aria-label={t('event.partialBadge')} />
-        </Tooltip>
-      ) : (
-        <span className="ca-row-dot" />
-      )}
-    </button>
+      </button>
+    </div>
   );
 }
 
@@ -82,60 +92,65 @@ export function UnanalyzedItem({
   maxMentionCount?: number;
   itemId?: string;
 }>) {
-  const { t } = useTranslation('analysis');
+  const { t } = useTranslation("analysis");
 
   return (
     <div
       id={itemId}
-      className={'ca-row pending' + (failed ? ' is-failed' : '') + (isSelected ? ' selected' : '')}
-      onClick={onSelect}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        // The inline 建立 button handles its own keys; only react to the row itself.
-        if (e.target !== e.currentTarget) return;
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onSelect();
-        }
-      }}
+      className={
+        "ca-row pending" +
+        (failed ? " is-failed" : "") +
+        (isSelected ? " selected" : "")
+      }
     >
-      <span className="ca-row-avatar">{item.name[0]}</span>
-      <span className="ca-row-body">
-        <span className="ca-row-name">{item.name}</span>
-        <span className="ca-row-meta">
-          {maxMentionCount !== undefined && (
-            <>
-              <span
-                className="ca-row-bar"
-                style={{ width: mentionBarWidth(item.mentionCount, maxMentionCount) }}
-              />
-              <span
-                className="ca-row-count"
-                aria-label={t('character.list.mentionCount', { count: item.mentionCount })}
-              >
-                {item.mentionCount}
-              </span>
-            </>
-          )}
-          <button
-            type="button"
-            className="ss-btn ss-btn-sm ss-btn-ghost ss-btn-llm ca-row-create"
-            onClick={(e) => {
-              e.stopPropagation();
-              onGenerate();
-            }}
-            disabled={isGenerating}
-          >
-            {isGenerating ? '…' : t('character.list.createBtn')}
-          </button>
+      <button
+        type="button"
+        className="ca-row-main"
+        aria-current={isSelected ? "true" : undefined}
+        onClick={onSelect}
+      >
+        <span className="ca-row-avatar">{item.name[0]}</span>
+        <span className="ca-row-body">
+          <span className="ca-row-name">{item.name}</span>
+          <span className="ca-row-meta">
+            {maxMentionCount !== undefined && (
+              <>
+                <span
+                  className="ca-row-bar"
+                  style={{
+                    width: mentionBarWidth(item.mentionCount, maxMentionCount),
+                  }}
+                />
+                <span
+                  className="ca-row-count"
+                  aria-label={t("character.list.mentionCount", {
+                    count: item.mentionCount,
+                  })}
+                >
+                  {item.mentionCount}
+                </span>
+              </>
+            )}
+          </span>
         </span>
-      </span>
-      {failed && (
-        <Tooltip label={t('character.batch.stat.failed')}>
-          <span className="ca-row-dot failed" role="img" aria-label={t('character.batch.stat.failed')} />
-        </Tooltip>
-      )}
+        {failed && (
+          <Tooltip label={t("character.batch.stat.failed")}>
+            <span
+              className="ca-row-dot failed"
+              role="img"
+              aria-label={t("character.batch.stat.failed")}
+            />
+          </Tooltip>
+        )}
+      </button>
+      <button
+        type="button"
+        className="ss-btn ss-btn-sm ss-btn-ghost ss-btn-llm ca-row-create"
+        onClick={onGenerate}
+        disabled={isGenerating}
+      >
+        {isGenerating ? "…" : t("character.list.createBtn")}
+      </button>
     </div>
   );
 }
