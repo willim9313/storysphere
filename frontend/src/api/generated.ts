@@ -2903,6 +2903,8 @@ export interface components {
             }[];
             /** Misbeliefs */
             misbeliefs: components["schemas"]["MisbeliefItemSchema"][];
+            /** Misbeliefsinferred */
+            misbeliefsInferred: boolean;
             /** Datacomplete */
             dataComplete: boolean;
         };
@@ -5677,6 +5679,7 @@ export interface operations {
         parameters: {
             query: {
                 up_to_chapter: number;
+                cached_only?: boolean;
             };
             header?: never;
             path: {

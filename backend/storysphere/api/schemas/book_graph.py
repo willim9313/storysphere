@@ -73,6 +73,7 @@ class EpistemicStateResponse(BaseModel):
     known_events: list[dict[str, Any]]
     unknown_events: list[dict[str, Any]]
     misbeliefs: list[MisbeliefItemSchema]
+    misbeliefs_inferred: bool
     data_complete: bool
 
 

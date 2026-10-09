@@ -597,8 +597,35 @@ class TestEpistemicStateEndpoint:
         )
         assert resp.status_code == 200
         data = resp.json()
-        for field in ("characterId", "characterName", "upToChapter", "knownEvents", "unknownEvents", "misbeliefs", "dataComplete"):
+        for field in ("characterId", "characterName", "upToChapter", "knownEvents", "unknownEvents", "misbeliefs", "misbeliefsInferred", "dataComplete"):
             assert field in data, f"Missing field: {field}"
+
+    def test_cached_only_defaults_to_false(self, epistemic_client):
+        epistemic_client.get(
+            "/api/v1/books/doc-1/entities/ent-alice/epistemic-state?up_to_chapter=3"
+        )
+        kwargs = epistemic_client._mock_epistemic.get_character_knowledge.await_args.kwargs
+        assert kwargs["cached_only"] is False
+
+    def test_cached_only_is_passed_to_the_service(self, epistemic_client):
+        epistemic_client._mock_epistemic.get_character_knowledge.return_value = (
+            CharacterEpistemicState(
+                character_id="ent-alice",
+                character_name="Alice",
+                up_to_chapter=3,
+                misbeliefs_inferred=False,
+            )
+        )
+
+        resp = epistemic_client.get(
+            "/api/v1/books/doc-1/entities/ent-alice/epistemic-state"
+            "?up_to_chapter=3&cached_only=1"
+        )
+
+        assert resp.status_code == 200
+        kwargs = epistemic_client._mock_epistemic.get_character_knowledge.await_args.kwargs
+        assert kwargs["cached_only"] is True
+        assert resp.json()["misbeliefsInferred"] is False
 
     def test_data_complete_false_when_all_events_public(self, epistemic_client, mock_kg):
         """data_complete is False when no event has a non-public visibility."""

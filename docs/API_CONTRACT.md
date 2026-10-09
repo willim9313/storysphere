@@ -60,7 +60,7 @@
   章節審閱的 #22 系列另有自己的 503（見該節），語意相同。
   **沒有 provider 時後端照常啟動**（零成本端點全部可用）：服務拿到一個「用到才報錯」的替身 LLM；
   聊天 WebSocket `WS /ws/chat` 保持連線、每則訊息回 `{"type":"error","detail":"LLM provider is not configured: …"}`；
-  #12e 認知狀態照常回已知／未知，`misbeliefs` 為空陣列且**不寫快取**（設定 provider 後重查即補上）。
+  #12e 認知狀態照常回已知／未知，`misbeliefs` 為空陣列、`misbeliefsInferred: false` 且**不寫快取**（設定 provider 後重查即補上）。
 
 ---
 
@@ -1155,11 +1155,15 @@ interface EventDetail {
 
 取得角色在指定章節前的認知狀態。
 
-**Query Params**：`up_to_chapter=<number>`（必填）
+**Query Params**：
+- `up_to_chapter=<number>`（必填）
+- `cached_only` (boolean, optional, default `false`) — 該 (角色, 章) 無快取時，只回零成本的已知／未知，**不呼叫 LLM 推論誤信、不寫快取**；有快取時與一般行為相同。
+  `false`（省略）維持既有行為：無快取且有 provider 時會呼叫 LLM 推論誤信並寫快取（**會花 token**）。與 #16a 的 `cached_only` 不同，這裡快取未命中**不回 404**——已知／未知本來就不花錢，照常回。
 
-**Response 200**：`EpistemicStateResponse`（見 generated.ts）
+**Response 200**：`EpistemicStateResponse`（見 generated.ts）。`misbeliefsInferred: boolean`——`false` 表示誤信這一步沒有跑
+（`cached_only` 未命中快取，或未設定 provider），此時 `misbeliefs` 的空陣列代表「尚未推論」而非「沒有誤信」。
 
-**UI 使用頁面**：知識圖譜頁 EpistemicOverlay、閱讀頁 EpistemicSidePanel
+**UI 使用頁面**：知識圖譜頁 EpistemicOverlay、閱讀頁 EpistemicSidePanel、角色分析頁認知狀態分頁與認知對照抽屜
 
 ---
 
