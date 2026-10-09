@@ -30,7 +30,7 @@
     "knowledgeGraph": "Knowledge Graph",
     "deepAnalysis": "Deep Analysis",
     "startReading": "Start Reading",
-    "triggerAnalysis": "Trigger Analysis",
+    "buildOverview": "Go to Build Overview",
     "viewError": "View Error"
   },
   "processing": {

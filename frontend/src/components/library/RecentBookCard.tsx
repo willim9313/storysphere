@@ -5,8 +5,9 @@ import type { Book } from '@/api/types';
 /**
  * 最近開啟 card (01 決議紀錄 C 區). The shortcut set follows `book.status` —
  * a recommended next step, not a fixed link row (§6). Every shortcut is
- * navigation, 觸發分析 included (it only opens the book page), so none carries
- * the LLM glyph (DS_V3_DESIGN_FEEDBACK 1-C).
+ * navigation, so none carries the LLM glyph (DS_V3_DESIGN_FEEDBACK 1-C). Both
+ * the unfinished and the failed book point at 建構概覽: it is where steps are
+ * started, and where a failed step shows and can be rerun (LIB-2).
  */
 export function RecentBookCard({ book }: Readonly<{ book: Book }>) {
   const { t } = useTranslation('library');
@@ -23,10 +24,10 @@ export function RecentBookCard({ book }: Readonly<{ book: Book }>) {
       case 'ready':
         return [
           { label: t('shortcuts.startReading'), to: base },
-          { label: t('shortcuts.triggerAnalysis'), to: base },
+          { label: t('shortcuts.buildOverview'), to: `${base}/unraveling` },
         ];
       case 'error':
-        return [{ label: t('shortcuts.viewError'), to: '/upload' }];
+        return [{ label: t('shortcuts.viewError'), to: `${base}/unraveling` }];
     }
   }
 

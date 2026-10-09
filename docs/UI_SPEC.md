@@ -155,7 +155,7 @@ hover 底 `--bg-secondary`；標籤 `settings:guidance.title`「研究者導覽�
    BookOpen 40px 方塊、書名 serif base、「等待章節審閱」、primary「審閱章節 →」連 `/upload/review/:bookId?taskId=…`。
    位在篩選列之上，獨立成帶。
 3. **最近開啟**（有 `lastOpenedAt` 的書才出現，前 3 本、新到舊）：`--bg-secondary` 卡、書名 serif sm、
-   依 `status` 的捷徑組（analyzed：繼續閱讀／知識圖譜／深度分析；ready：開始閱讀／觸發分析；error：查看錯誤），
+   依 `status` 的捷徑組（analyzed：繼續閱讀／知識圖譜／深度分析；ready：開始閱讀／前往建構概覽；error：查看錯誤——後兩者都連 `/books/:id/unraveling`），
    全是導覽、都不帶 LLM 字符。`lastOpenedAt` 由 `BookLayout` 進書時 `POST /books/:id/opened` 寫入。
 4. **篩選 chip** 四顆單選：全部／已分析／已就緒／處理中。「處理中」是結構性空集合——`GET /books` 不含 ingest 中的書，
    它只列 in-flight 任務；不 disable、不加 0 徽章。
@@ -168,6 +168,7 @@ hover 底 `--bg-secondary`；標籤 `settings:guidance.title`「研究者導覽�
 - 封面 `--bg-secondary` 方塊＋accent `FileText`。整張卡是一個連結（標題連結 `::after` 撐滿）。
 - **StatusBadge** 三態色彩不變，加字符冗餘編碼：✓ 已分析、i 已就緒、✕ 錯誤（Ink 下 status 色都收成同一黑）。
   `StatusBadge` 為共用元件，書籍總覽頁一併換新外觀。
+- **實體數**：知識圖譜步驟未完成（`pipelineStatus.knowledgeGraph !== 'done'`）時顯示「— 實體」，不顯示後端回的 0。
 - **降級告警**：`failedSteps.join('、') + ' 不可用'`＋`AlertTriangle`、warning 底，位在 badge 之下、meta 之上。
 - **刪除兩段式**：hover／focus 才出現 28px 垃圾桶（名稱「刪除《書名》」）；點了只進確認態——error 底列「刪除？」＋danger「確認」＋ghost「取消」。
   已分析的書句子改「刪除？分析結果會一併刪除」；刪除失敗時列不收起、句子換「刪除失敗，請重試」（`role="status"`）。
