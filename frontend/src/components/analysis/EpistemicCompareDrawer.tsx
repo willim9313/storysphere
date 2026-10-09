@@ -93,10 +93,12 @@ export function EpistemicCompareDrawer({
 
   useEscapeKey(open, onClose);
 
-  const { data: stateA } = useEpistemicState(bookId, characterAId, queriedChapter);
+  // Hooks run before the `!open` early return below, so gate the ids on `open`:
+  // an uncached (character, chapter) pair makes the backend call the LLM.
+  const { data: stateA } = useEpistemicState(bookId, open ? characterAId : null, queriedChapter);
   const { data: stateB, isFetching: isFetchingB } = useEpistemicState(
     bookId,
-    characterBId || null,
+    open && characterBId ? characterBId : null,
     queriedChapter,
   );
 
