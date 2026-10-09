@@ -215,6 +215,10 @@
       "knownEmpty": "此章節前，角色尚未經歷任何已分類事件。",
       "unknownEmpty": "角色已知所有事件。",
       "misbeliefEmpty": "未發現顯著誤信。",
+      "misbeliefPending": "截至第 {{n}} 章的誤信尚未推論。",
+      "inferMisbeliefs": "推論誤信",
+      "inferringMisbeliefs": "推論中…",
+      "inferMisbeliefsFailed": "推論失敗，請再試一次。",
       "characterBelieves": "角色相信：",
       "actually": "實際："
     },

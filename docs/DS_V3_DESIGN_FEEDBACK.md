@@ -1875,3 +1875,16 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 - **問題**：關係只存在於畫布線條，鍵盤使用者無法走訪鄰居，讀屏看不到任何圖譜內容；stat tile 只有關係「數」，沒有「是誰、什麼關係」。
 - **目前處置**（使用者選定方案 A）：stat tiles 之後新增「關係」區塊：全部非推斷邊（含被型別 chip／搜尋隱藏者，標「（畫布已隱藏）」）、依權重降冪，每列＝可聚焦按鈕（對象名 serif＋類型 sans＋合作實線／敵對虛線 glyph 與隱藏文字），預設 8 筆＋「顯示全部 N 筆」；按下選取該實體。畫布容器 `role="img"`＋`aria-label`「知識圖譜：N 個節點、M 條關係」。字串在 `graph.relations.*`，為工程草稿。
 - **請設計端**：把關係區塊（含 8 筆截斷、隱藏標記、glyph）補進 14 稿實體面板；確認列內是否要顯示方向（隸屬／擁有等有向關係目前不分方向）與畫布摘要文案。
+
+## 稿外新增 · 角色分析
+
+| # | 類型 | 狀態 |
+|---|------|------|
+| CA-1 | 缺口 · 認知狀態「誤信尚未推論」狀態（瀏覽章節不再暗中花 token） | 待同步 |
+
+### CA-1 認知狀態「誤信尚未推論」狀態
+
+- **出處**：09 角色分析稿認知狀態分頁（Summary 列「誤信 N」徽章、誤信欄）；impeccable critique／audit 角色分析頁（2026-10-09）P1-1
+- **問題**：誤信是 LLM 推論，以 (角色, 章) 快取；拖章節游標、認知對照選第二角色，只要該章未快取就會在背景呼叫 LLM，違反 PRODUCT 原則 3「花 token 之前說清楚」。稿只有「有誤信」與「未發現顯著誤信」兩態，沒有「尚未推論」。
+- **目前處置**（使用者 2026-10-09 裁決 1a／2a／3a）：認知分頁與認知對照一律以 #12e `cached_only=1` 讀取（已知／未知照常、零成本）。未推論時 Summary 徽章顯示「誤信 —」、誤信欄計數「—」，欄內一句「截至第 N 章的誤信尚未推論。」＋ `ss-btn-secondary ss-btn-llm`「推論誤信」＋ muted 提示「會呼叫 LLM，消耗 token」；**不開確認框**（同單件「建立」）。推論後仍未推論（無 provider）→ 欄內換成 `LlmUnconfiguredNotice`。字串 `analysis:character.epistemic.{misbeliefPending,inferMisbeliefs,inferringMisbeliefs,inferMisbeliefsFailed}` 為工程草稿。
+- **請設計端**：把「尚未推論」態補進 09 稿認知分頁與字串表；確認「—」作為未推論計數、按鈕放欄內而非 Summary 列。

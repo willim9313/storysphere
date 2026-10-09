@@ -93,13 +93,20 @@ export function EpistemicCompareDrawer({
 
   useEscapeKey(open, onClose);
 
-  // Hooks run before the `!open` early return below, so gate the ids on `open`:
-  // an uncached (character, chapter) pair makes the backend call the LLM.
-  const { data: stateA } = useEpistemicState(bookId, open ? characterAId : null, queriedChapter);
+  // Hooks run before the `!open` early return below, so gate the ids on `open`.
+  // The drawer only diffs known events, so it reads cache-only: an uncached
+  // (character, chapter) pair would otherwise make the backend call the LLM.
+  const { data: stateA } = useEpistemicState(
+    bookId,
+    open ? characterAId : null,
+    queriedChapter,
+    { cachedOnly: true },
+  );
   const { data: stateB, isFetching: isFetchingB } = useEpistemicState(
     bookId,
     open && characterBId ? characterBId : null,
     queriedChapter,
+    { cachedOnly: true },
   );
 
   const characterBName = roster.find((r) => r.id === characterBId)?.name ?? '';

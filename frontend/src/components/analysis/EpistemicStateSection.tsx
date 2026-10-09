@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Eye, EyeOff, AlertTriangle, Clock, Users, Loader } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEpistemicState } from '@/hooks/useEpistemicState';
+import { fetchEpistemicState } from '@/api/graph';
 import { useSourceJump } from '@/hooks/useSourceJump';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { PageFailure } from '@/components/ui/PageFailure';
+import { LlmUnconfiguredNotice } from '@/components/ui/LlmUnconfiguredNotice';
 import { failureKind, techDetailOf } from '@/api/failureKind';
 import { ClassifyVisibilityButton } from '@/components/epistemic/ClassifyVisibilityButton';
 import { ChapterTimeline, type TimelineMarker } from './ChapterTimeline';
@@ -55,7 +57,30 @@ export function EpistemicStateSection({
     return () => clearTimeout(tid);
   }, [displayedChapter, queriedChapter]);
 
-  const { data: state, isFetching, error, refetch } = useEpistemicState(bookId, characterId, queriedChapter);
+  // Cache-only: moving the cursor to an uncached chapter answers known/unknown
+  // for free; misbeliefs (the LLM step) wait for an explicit button press.
+  const { data: state, isFetching, error, refetch } = useEpistemicState(
+    bookId,
+    characterId,
+    queriedChapter,
+    { cachedOnly: true },
+  );
+  const inferMisbeliefs = useMutation({
+    mutationFn: (v: { characterId: string; chapter: number }) =>
+      fetchEpistemicState(bookId, v.characterId, v.chapter),
+    onSuccess: (full, v) => {
+      queryClient.setQueryData(qk.epistemic.atCached(bookId, v.characterId, v.chapter), full);
+    },
+  });
+  // The mutation outlives cursor moves and character switches; only report
+  // its state for the (character, chapter) currently on screen.
+  const inferTarget = inferMisbeliefs.variables;
+  const inferIsCurrent =
+    inferTarget?.characterId === characterId && inferTarget.chapter === state?.upToChapter;
+  const misbeliefsPending = state != null && !state.misbeliefsInferred;
+  // Still not inferred after an explicit request → no LLM provider configured.
+  const inferUnconfigured =
+    inferIsCurrent && inferMisbeliefs.data != null && !inferMisbeliefs.data.misbeliefsInferred;
   const { jump, pendingKey } = useSourceJump(bookId);
 
   // Backend already partitions events into known/unknown by the character's
@@ -160,7 +185,8 @@ export function EpistemicStateSection({
           {t('character.epistemic.unknownLabel')} {optimistic?.unknown.length ?? 0}
         </span>
         <span className="ss-badge ss-badge-error">
-          {t('character.epistemic.misbeliefShortLabel')} {optimistic?.misbeliefs.length ?? 0}
+          {t('character.epistemic.misbeliefShortLabel')}{' '}
+          {misbeliefsPending ? '—' : optimistic?.misbeliefs.length ?? 0}
         </span>
         <span className="ca-epi-summary-note">
           {isFetching ? t('character.epistemic.computing') : t('character.epistemic.summarySubtitle')}
@@ -259,9 +285,39 @@ export function EpistemicStateSection({
                 <AlertTriangle size={12} />
                 {t('character.epistemic.misbeliefTitle')}
               </span>
-              <span className="ca-epi-block-count">{optimistic.misbeliefs.length}</span>
+              <span className="ca-epi-block-count">
+                {misbeliefsPending ? '—' : optimistic.misbeliefs.length}
+              </span>
             </div>
-            {optimistic.misbeliefs.length === 0 ? (
+            {misbeliefsPending ? (
+              inferUnconfigured ? (
+                <LlmUnconfiguredNotice />
+              ) : (
+                <div>
+                  <p style={{ margin: 0, fontSize: 'var(--font-size-xs)', color: 'var(--fg-secondary)' }}>
+                    {t('character.epistemic.misbeliefPending', { n: state.upToChapter })}
+                  </p>
+                  <button
+                    type="button"
+                    className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+                    style={{ marginTop: 'var(--space-4)' }}
+                    disabled={inferIsCurrent && inferMisbeliefs.isPending}
+                    onClick={() =>
+                      inferMisbeliefs.mutate({ characterId, chapter: state.upToChapter })
+                    }
+                  >
+                    {inferIsCurrent && inferMisbeliefs.isPending
+                      ? t('character.epistemic.inferringMisbeliefs')
+                      : t('character.epistemic.inferMisbeliefs')}
+                  </button>
+                  <p style={{ margin: 'var(--space-2) 0 0', fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)' }}>
+                    {inferIsCurrent && inferMisbeliefs.isError
+                      ? t('character.epistemic.inferMisbeliefsFailed')
+                      : t('tension.state.tokenHintShort')}
+                  </p>
+                </div>
+              )
+            ) : optimistic.misbeliefs.length === 0 ? (
               <p style={{ margin: 0, fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)' }}>
                 {t('character.epistemic.misbeliefEmpty')}
               </p>
