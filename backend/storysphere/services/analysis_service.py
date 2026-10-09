@@ -454,7 +454,7 @@ class AnalysisService:
                 parts.append(f"== Knowledge Graph Relations ==\n{rel_text}")
             if not isinstance(events_r, Exception) and events_r:
                 evt_text = "\n".join(
-                    f"- Ch.{getattr(e, 'chapter_number', '?')}: {e.description}"
+                    f"- Ch.{e.chapter}: {e.description}"
                     for e in events_r[:15]
                 )
                 parts.append(f"== Timeline Events ==\n{evt_text}")
