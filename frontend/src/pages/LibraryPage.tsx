@@ -221,7 +221,13 @@ export default function LibraryPage() {
         weight="prerequisite"
         icon={<Upload size={26} />}
         title={t('empty.processingTitle')}
-        description={t('empty.processingBody')}
+        description={
+          // Awaiting-review uploads live in the gate band above the filters,
+          // not in this grid — point there instead of saying nothing is in flight.
+          awaiting.length > 0
+            ? t('empty.processingAwaiting', { count: awaiting.length })
+            : t('empty.processingBody')
+        }
         action={
           <Link to="/upload" className="ss-btn ss-btn-md ss-btn-secondary lib-btn-accent">
             {t('uploadNew')}
