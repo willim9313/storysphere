@@ -450,6 +450,7 @@ async def get_entity_epistemic_state(
     book_id: str,
     entity_id: str,
     up_to_chapter: int = Query(..., ge=1),
+    cached_only: bool = Query(False),
     epistemic_svc: EpistemicStateServiceDep = None,
     doc: DocServiceDep = None,
     kg: KGServiceDep = None,
@@ -467,6 +468,7 @@ async def get_entity_epistemic_state(
         character_id=entity_id,
         document_id=book_id,
         up_to_chapter=up_to_chapter,
+        cached_only=cached_only,
     )
 
     # data_complete = False when the book was ingested before F-03 added visibility.
@@ -490,6 +492,7 @@ async def get_entity_epistemic_state(
             )
             for m in state.misbeliefs
         ],
+        misbeliefs_inferred=state.misbeliefs_inferred,
         data_complete=data_complete,
     ).model_dump(by_alias=True)
 

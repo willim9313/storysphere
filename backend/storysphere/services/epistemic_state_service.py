@@ -91,8 +91,14 @@ class EpistemicStateService:
         document_id: str,
         up_to_chapter: int,
         language: str = "en",
+        cached_only: bool = False,
     ) -> CharacterEpistemicState:
-        """Return what character knows and doesn't know up to a given chapter."""
+        """Return what character knows and doesn't know up to a given chapter.
+
+        ``cached_only`` answers a cache miss with the zero-cost known/unknown
+        partition and skips the LLM misbelief step, so browsing chapters never
+        spends tokens behind the user's back.
+        """
         set_llm_service_context("analysis", book_id=document_id)
         cache = self._get_cache()
         key = f"epistemic:{document_id}:{character_id}:{up_to_chapter}"
@@ -128,10 +134,10 @@ class EpistemicStateService:
         # the misbeliefs fill in once a provider is configured.
         from storysphere.core.llm_client import UnconfiguredLLM  # noqa: PLC0415
 
-        llm_available = not isinstance(self._llm, UnconfiguredLLM)
+        infer = not cached_only and not isinstance(self._llm, UnconfiguredLLM)
         misbeliefs = (
             await self._infer_misbeliefs(character, known, unknown, language)
-            if llm_available
+            if infer
             else []
         )
 
@@ -142,9 +148,10 @@ class EpistemicStateService:
             known_events=known,
             unknown_events=unknown,
             misbeliefs=misbeliefs,
+            misbeliefs_inferred=infer,
         )
 
-        if llm_available:
+        if infer:
             await cache.set(key, _serialize_state(result))
         return result
 
