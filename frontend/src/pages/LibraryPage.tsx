@@ -33,7 +33,7 @@ function ProcessingBookCard({ task }: Readonly<{ task: TaskStatus }>) {
   return (
     <div className="ss-bookcard lib-card lib-card-processing">
       <div className="ss-bookcard-cover lib-cover">
-        <Loader size={16} className="animate-spin" />
+        <Loader size={16} className="animate-spin lib-spin" />
       </div>
       <div className="ss-bookcard-title">{taskBookTitle(task) ?? t('processing.fallbackTitle')}</div>
       <span className="ss-badge ss-badge-warning">
@@ -67,7 +67,7 @@ function ReviewGate({ tasks }: Readonly<{ tasks: TaskStatus[] }>) {
   return (
     <section className="lib-gate">
       <div className="lib-gate-head">
-        <span>{t('processing.awaitingReview')}</span>
+        <h2 className="lib-gate-heading">{t('processing.awaitingReview')}</h2>
         <span className="lib-gate-rule" />
       </div>
       {tasks.map((task) => (
@@ -92,8 +92,12 @@ function ReviewGate({ tasks }: Readonly<{ tasks: TaskStatus[] }>) {
 }
 
 function LibrarySkeleton() {
+  const { t: tc } = useTranslation('common');
   return (
     <div className="lib-page lib-page-full" aria-busy="true">
+      <span className="sr-only" role="status">
+        {tc('loading')}
+      </span>
       <div className="lib-inner">
         <div className="lib-skel lib-skel-title" />
         <div className="lib-filters">
@@ -264,7 +268,7 @@ export default function LibraryPage() {
 
         {recent.length > 0 && (
           <section className="lib-recent">
-            <div className="lib-section-head">{t('recentlyOpened')}</div>
+            <h2 className="lib-section-head">{t('recentlyOpened')}</h2>
             <div className="lib-recent-row">
               {recent.map((book) => (
                 <RecentBookCard key={book.id} book={book} />
@@ -273,13 +277,12 @@ export default function LibraryPage() {
           </section>
         )}
 
-        <div className="lib-filters" role="tablist">
+        <div className="lib-filters" role="group" aria-label={t('filters.label')}>
           {FILTERS.map((key) => (
             <button
               key={key}
               type="button"
-              role="tab"
-              aria-selected={filter === key}
+              aria-pressed={filter === key}
               className={filter === key ? 'lib-chip active' : 'lib-chip'}
               onClick={() => setFilter(key)}
             >

@@ -3,6 +3,7 @@
   "allBooks": "Library",
   "uploadNew": "Upload Book",
   "filters": {
+    "label": "Filter books",
     "all": "All",
     "analyzed": "Analyzed",
     "ready": "Ready",
