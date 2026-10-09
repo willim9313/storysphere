@@ -31,6 +31,7 @@ import { Tooltip } from '@/components/ui/Tooltip';
 import { AnalyzedItem, UnanalyzedItem } from '@/components/analysis/AnalysisListItems';
 import { ArchetypeFilterDropdown } from '@/components/analysis/ArchetypeFilterDropdown';
 import { CharacterOverviewLanding } from '@/components/analysis/overview/CharacterOverviewLanding';
+import { UnanalyzedCharacterDetail } from '@/components/analysis/UnanalyzedCharacterDetail';
 import {
   archetypeDisplayName,
   archetypeKey,
@@ -597,18 +598,14 @@ export default function CharacterAnalysisPage() {
     );
   } else if (selectedUnanalyzed) {
     body = (
-      <div className="ca-empty">
-        <h2 className="ca-empty-title">{selectedUnanalyzed.name}</h2>
-        <p className="ca-empty-sub">{t('noAnalysis')}</p>
-        <button
-          type="button"
-          className="ss-btn ss-btn-sm ss-btn-primary ss-btn-llm"
-          onClick={() => handleGenerate(selectedUnanalyzed.id)}
-          disabled={triggerMutation.isPending}
-        >
-          {t('generate')}
-        </button>
-      </div>
+      <UnanalyzedCharacterDetail
+        bookId={bookId!}
+        entityId={selectedUnanalyzed.id}
+        name={selectedUnanalyzed.name}
+        mentionCount={selectedUnanalyzed.mentionCount}
+        onGenerate={() => handleGenerate(selectedUnanalyzed.id)}
+        generating={triggerMutation.isPending}
+      />
     );
   } else if (selectedEntityId && analysisError && selectedAnalyzed) {
     body = (

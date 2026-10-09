@@ -647,6 +647,8 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 - **提及量排行**：Hero 卡（提及最高者，已分析→「查看分析」/ 未分析→「建立核心角色分析」）+ 排行列（預設 11 列 + 展開/收合）
 - 元件：`frontend/src/components/analysis/overview/`（`CharacterOverviewLanding.tsx` / `QuadrantView.tsx` / `RankingView.tsx`）
 
+**未分析角色（`UnanalyzedCharacterDetail`，2026-10-09，CA-5）**：角色名 h1＋「在圖譜中查看 ↗」；三格免費資料（提及次數 #6a／關係 #6e degree／派系 #6d：「與 A、B 等 N 人同派系」或「無派系歸屬」，載入中「—」）；卡片列「生成後會得到」四項（人格與原型、行為與關鍵事件、關係網與代表引言、發展弧線）＋「語音風格與認知狀態在分析完成後另外生成。」＋ primary `ss-btn-llm`「建立角色分析」＋「會呼叫 LLM，消耗 token」。不新增請求。**新字串為草稿・待設計定案**（i18n `analysis:character.unanalyzed.*`）。
+
 **標題列**：角色名（serif 28px）+ Framework badge（顯示當前 framework + primary archetype，不可點擊切換）+「提及 N 次」meta（取代舊版 `Ch.X`，2026-07 隨 #0 提及數修復同步更新）+「在圖譜中查看 ↗」+「框架對照」+「覆蓋重新生成」按鈕
 
 **Primary Tab**（標題列下方，三選一，underline 樣式）：
