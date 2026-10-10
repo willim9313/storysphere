@@ -794,6 +794,8 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
   群組標頭帶 `aria-expanded`；搜尋欄 `aria-label` 同 placeholder。
   上下文位置分頁點相鄰事件逐跳時停留在該分頁（從左欄、總覽、對比等其他入口換事件仍回「概覽」）；「因果與影響」「證據」分頁內區塊全空時顯示一行空態（`event.detail.tabEmpty`，沿用 `.ea-context-empty`），不留空白。
 - **減少動態**（`prefers-reduced-motion: reduce`）：生成中點改靜態實心、完成時放大與 landing fade-in 拿掉、spinner 放慢到 3s、骨幹節點 hover 不放大。
+- **字級（2026-10-10）**：整句說明升 `--font-size-xs`（12px）——前後狀態 `.ea-state-text`、參與者影響 `.ea-participant-impact`、批次狀態行 `.ea-batch-status`（角色頁、象徵頁共用一併生效）、零分析橫幅 `.ea-ov-empty-text`；meta、標籤、章號、chip、caption、圖例、計數維持 11px。
+  對比抽屜背板改用 token `--scrim-light`（Warm／Ink 皆 12%，原寫死 `rgb(0 0 0 / 12%)`）。
 - **窄寬（2026-10-10）**：故事骨幹圖以 `useElementWidth` 量繪圖區實際寬度，每章欄寬＝寬 ÷ 章數（`fitNode`）。圓點直徑不超過欄寬 − 4（最小 8px，各帶行距不變）；
   核心帶標籤寬上限＝欄寬 − 6（最多 80px、超出省略號），容不下 40px 就不畫標籤（靠 Tooltip 與節點 `aria-label`）。名字的潮汐（10 章）：1024 標籤約 4 字、720 無標籤；
   標籤重疊 720／1024 由 88／46 對降為 0、圓點重疊 720 由 49 對降為 0。左欄 268px 維持常駐（同角色頁，見 B-123；收合模式待全站一起定）。

@@ -100,7 +100,7 @@
 /* 狀態行（待生成數 · 估時 · 自動跳過／本批次共處理 N） */
 .ea-batch-status {
   margin: 0; font-family: var(--font-sans);
-  font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-secondary);
+  font-size: var(--font-size-xs); line-height: 1.6; color: var(--fg-secondary);
 }
 .ea-batch-status .is-error { color: var(--color-error); }
 
