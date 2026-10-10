@@ -34,6 +34,12 @@ export interface SymbolUrlState {
   openCluster: (seedId: string) => void;
   setSortAxis: (axis: SortAxis) => void;
   setTypeFilter: (type: string | null) => void;
+  /**
+   * Back to the full list on the map: drops the type filter and any open symbol
+   * or cluster in a single write. Two setters called in the same tick both read
+   * the same stale params, so the second would put back what the first removed.
+   */
+  showAll: () => void;
 }
 
 /**
@@ -137,6 +143,15 @@ export function useSymbolUrlState(): SymbolUrlState {
     [update],
   );
 
+  const showAll = useCallback(() => {
+    const leavingView = params.has('symbol') || params.has('cluster');
+    update((next) => {
+      next.delete('type');
+      next.delete('symbol');
+      next.delete('cluster');
+    }, leavingView);
+  }, [params, update]);
+
   return {
     symbolId,
     clusterSeedId,
@@ -148,5 +163,6 @@ export function useSymbolUrlState(): SymbolUrlState {
     openCluster,
     setSortAxis,
     setTypeFilter,
+    showAll,
   };
 }

@@ -32,6 +32,8 @@ interface Props {
   setSortAxis: (v: SortAxis) => void;
   typeFilter: string | null;
   setTypeFilter: (v: string | null) => void;
+  /** The 「全部」 chip: clears the type filter and returns to the map. */
+  onShowAll: () => void;
   /** Behaviour group picked on the map. Screen-local, deliberately not in the URL. */
   shapeFilter: DistributionShape | null;
   setShapeFilter: (v: DistributionShape | null) => void;
@@ -122,6 +124,7 @@ export function SymbolList({
   setSortAxis,
   typeFilter,
   setTypeFilter,
+  onShowAll,
   shapeFilter,
   setShapeFilter,
   search,
@@ -317,13 +320,10 @@ export function SymbolList({
             className={
               'sym-chip-all' + (typeFilter === null && selectedId === null ? ' is-active' : '')
             }
-            onClick={() => {
-              setTypeFilter(null);
-              // Still the only route back to the overview until the detail view
-              // grows a breadcrumb. The behaviour filter is cleared there, since
-              // that is where it was set.
-              onSelect(null);
-            }}
+            // Still the only route back to the overview until the detail view
+            // grows a breadcrumb. The behaviour filter is cleared there, since
+            // that is where it was set.
+            onClick={onShowAll}
           >
             {t('symbol.all')} {loaded && <span className="sym-chip-count">{total}</span>}
           </button>
