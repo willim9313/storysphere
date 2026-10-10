@@ -998,9 +998,8 @@
 }
 
 /* ── Chapter distribution (D7) ───────────────────────────── */
-.sym-dist {
-  min-width: 420px;
-}
+/* No min-width: the chart fills its card and thins its axis numbers instead of
+   overflowing (ChapterDistChart.visibleBodyLabels). */
 .sym-dist-plot {
   display: flex;
   align-items: flex-end;
@@ -1050,6 +1049,8 @@
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
   color: var(--fg-secondary);
   font-variant-numeric: tabular-nums;
   min-width: 0;
