@@ -2045,7 +2045,10 @@ interface SEP {
 
 **Response 202**：`TaskStatus`（含 taskId）
 
-**Response 503**：未設定 LLM provider（見「通用規則」）；404（意象不存在）優先於 503
+**Response 404**：意象不存在，或不屬於 `book_id` 這本書（2026-10-10 起；先前會以該書的語言替別本書的意象生成並寫入快取）
+**Response 503**：未設定 LLM provider（見「通用規則」）；404 優先於 503
+**Response 409**：同一個意象的詮釋已在執行中 —— body `{ "detail": string, "code": "analysis_running" }`，**不建立 task**。
+在 404／503 之後檢查。只擋同一個意象：別的意象、以及 #15j 整本批次都不互擋（批次執行中的單件鈕由前端停用）。前端改以 #15l 取回進行中的 taskId 接手。
 
 **說明**：polling 走 #15f（不走 #8）。完成後結果存入快取，可由 #15g 取得。
 
@@ -2108,6 +2111,24 @@ interface SEP {
 記錄存在後端進程內（與任務取消同一套 registry）：單一 worker 有效，後端重啟後為 `null`（背景任務本身也已中止）。
 
 **UI 使用頁面**：象徵意象頁批次面板——進頁面時恢復「執行中」，觸發回 409 時接手（`useBatchTask` 的 `resume`）
+
+---
+
+### #15l GET /symbols/analyses/running
+
+這本書目前執行中的單件象徵詮釋（#15e）。唯讀、不花 token。
+
+**Query**：`book_id`（必填）
+
+**Response 200**
+```ts
+{ running: Array<{ imageryId: string; taskId: string }> }  // 沒有時為 []（不回 404）
+```
+
+**說明**：頁面重新掛載（或另一個分頁已開始）時用它接手進行中的生成，而不是再給一次「生成詮釋」；#15e 回 409 `analysis_running` 時亦同。
+回清單而非單筆：不同分頁可能同時在跑不同意象。記錄與 #15k 同一套進程內 registry：單一 worker 有效，後端重啟後為 `[]`。
+
+**UI 使用頁面**：無（前端於下一個 PR 接上）
 
 ---
 
