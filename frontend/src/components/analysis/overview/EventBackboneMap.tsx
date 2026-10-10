@@ -2,7 +2,8 @@ import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@/components/ui/Tooltip';
 import type { NarrativeMode, OverviewEvent } from './eventTypes';
-import { BAND_PAD, bandHeight, truncateNodeLabel } from './eventBackboneModel';
+import { useElementWidth } from '@/hooks/useElementWidth';
+import { BAND_PAD, bandHeight, fitNode, truncateNodeLabel } from './eventBackboneModel';
 
 interface EventBackboneMapProps {
   events: OverviewEvent[];
@@ -53,6 +54,9 @@ interface PositionedNode {
 
 export function EventBackboneMap({ events, onSelectEvent }: Readonly<EventBackboneMapProps>) {
   const { t } = useTranslation('analysis');
+  // Columns are percentages of the plot, so the real column width is only
+  // known in px once measured: dots and labels fit inside it (#191 pattern).
+  const [plotRef, plotWidth] = useElementWidth<HTMLDivElement>();
   // Only kernel nodes carry a visible label; every node needs a name of its own
   // for a screen reader (the Tooltip exists only while hovered).
   const nodeLabel = (e: OverviewEvent) =>
@@ -131,7 +135,7 @@ export function EventBackboneMap({ events, onSelectEvent }: Readonly<EventBackbo
               )}
             </div>
           ))}
-          <div className="ea-ov-map-plot">
+          <div className="ea-ov-map-plot" ref={plotRef}>
             {chapters.slice(1).map((c, i) => (
               <div
                 key={c}
@@ -139,43 +143,48 @@ export function EventBackboneMap({ events, onSelectEvent }: Readonly<EventBackbo
                 style={{ left: `${((i + 1) / chapters.length) * 100}%` }}
               />
             ))}
-            {nodes.map((n) => (
-              <div
-                key={n.event.id}
-                className="ea-ov-map-node-pos"
-                style={{ left: `${n.x}%`, top: `${n.y}px` }}
-              >
-                <Tooltip
-                  label={`${n.event.title} · ${t('event.list.chapterShort', { n: n.event.chapter })}`}
+            {nodes.map((n) => {
+              const fit = fitNode(plotWidth / Math.max(1, chapters.length), n.size, n.labelled);
+              return (
+                <div
+                  key={n.event.id}
+                  className="ea-ov-map-node-pos"
+                  style={{ left: `${n.x}%`, top: `${n.y}px` }}
                 >
-                  <button
-                    type="button"
-                    className="ea-ov-map-node"
-                    aria-label={nodeLabel(n.event)}
-                    onClick={() => onSelectEvent(n.event.id)}
+                  <Tooltip
+                    label={`${n.event.title} · ${t('event.list.chapterShort', { n: n.event.chapter })}`}
                   >
-                    <span
-                      className={'ea-ov-map-dot' + (n.event.analyzed ? '' : ' is-unanalyzed')}
-                      style={{
-                        width: `${n.size}px`,
-                        height: `${n.size}px`,
-                        ...(n.event.analyzed
-                          ? {
-                              background: `var(--narrative-${n.event.narrativeMode}-bg)`,
-                              borderColor: `var(--narrative-${n.event.narrativeMode}-border)`,
-                            }
-                          : {
-                              borderColor: `var(--narrative-${n.event.narrativeMode}-border)`,
-                            }),
-                      }}
-                    />
-                    {n.labelled && (
-                      <span className="ea-ov-map-node-label">{truncateNodeLabel(n.event.title)}</span>
-                    )}
-                  </button>
-                </Tooltip>
-              </div>
-            ))}
+                    <button
+                      type="button"
+                      className="ea-ov-map-node"
+                      aria-label={nodeLabel(n.event)}
+                      onClick={() => onSelectEvent(n.event.id)}
+                    >
+                      <span
+                        className={'ea-ov-map-dot' + (n.event.analyzed ? '' : ' is-unanalyzed')}
+                        style={{
+                          width: `${fit.size}px`,
+                          height: `${fit.size}px`,
+                          ...(n.event.analyzed
+                            ? {
+                                background: `var(--narrative-${n.event.narrativeMode}-bg)`,
+                                borderColor: `var(--narrative-${n.event.narrativeMode}-border)`,
+                              }
+                            : {
+                                borderColor: `var(--narrative-${n.event.narrativeMode}-border)`,
+                              }),
+                        }}
+                      />
+                      {fit.labelWidth !== null && (
+                        <span className="ea-ov-map-node-label" style={{ maxWidth: `${fit.labelWidth}px` }}>
+                          {truncateNodeLabel(n.event.title)}
+                        </span>
+                      )}
+                    </button>
+                  </Tooltip>
+                </div>
+              );
+            })}
           </div>
         </div>
 
