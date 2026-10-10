@@ -294,6 +294,7 @@
 
   /* 對話框遮罩：單一種、無模糊（components-dialog 卡） */
   --scrim: rgba(42,38,32,0.40);
+  --scrim-light: rgba(42,38,32,0.12); /* 輕量背板：對比抽屜等非模態遮罩 */
 
   /* Tension intensity — 焦赭單色 ramp 三階 */
   --tension-intensity-low-bg:    #f1e8d5;
@@ -451,6 +452,7 @@
   --input-bg:           var(--bg-primary);
 
   --scrim: rgba(0,0,0,0.40);
+  --scrim-light: rgba(0,0,0,0.12);
 
   /* Shadows — 中性化為純黑（線稿不帶暖影） */
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.08);

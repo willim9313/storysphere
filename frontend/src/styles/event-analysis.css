@@ -293,7 +293,7 @@
 }
 .ea-state.after { border-color: var(--accent); }
 .ea-state-label { font-size: var(--font-size-2xs); color: var(--fg-muted); }
-.ea-state-text { font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-primary); margin: 0; text-wrap: pretty; }
+.ea-state-text { font-size: var(--font-size-xs); line-height: 1.7; color: var(--fg-primary); margin: 0; text-wrap: pretty; }
 .ea-state-arrow { display: flex; align-items: center; justify-content: center; color: var(--accent); }
 /* 結構角色／重要性：兩行，降級註記緊貼值之後 */
 .ea-state-meta { display: flex; flex-direction: column; gap: var(--space-3); padding-top: var(--space-4); }
@@ -340,7 +340,7 @@
   font-size: var(--font-size-2xs); padding: 1px var(--space-3); border-radius: var(--pill-radius);
   background: var(--ea-role-bg); border: var(--line-weight) solid var(--ea-role-dot); color: var(--fg-primary);
 }
-.ea-participant-impact { font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-secondary); margin: 0; }
+.ea-participant-impact { font-size: var(--font-size-xs); line-height: 1.7; color: var(--fg-secondary); margin: 0; }
 
 /* ─── 因果與影響／證據／上下文：平卡（F） ─── */
 .ea-section {
@@ -478,7 +478,7 @@
   display: flex; align-items: center; justify-content: space-between; gap: var(--space-5); flex-wrap: wrap;
   padding: var(--space-5); background: var(--color-info-bg); border-radius: var(--radius-sm);
 }
-.ea-ov-empty-text { font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-primary); }
+.ea-ov-empty-text { font-size: var(--font-size-xs); line-height: 1.7; color: var(--fg-primary); }
 .ea-ov-head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-6); flex-wrap: wrap; }
 .ea-ov-head-main { display: flex; flex-direction: column; gap: var(--space-3); }
 .ea-ov-title { font-family: var(--font-serif); font-size: var(--font-size-2xl); font-weight: 700; margin: 0; color: var(--fg-primary); }
@@ -713,7 +713,7 @@
 }
 
 /* ─── 對比抽屜（H）760 ─── */
-.ea-compare-backdrop { position: fixed; inset: 0; z-index: 30; background: rgb(0 0 0 / 12%); }
+.ea-compare-backdrop { position: fixed; inset: 0; z-index: 30; background: var(--scrim-light); }
 .ea-compare-drawer {
   position: fixed; top: 0; right: 0; bottom: 0; z-index: 31;
   width: 760px; max-width: 92vw; overflow-y: auto;

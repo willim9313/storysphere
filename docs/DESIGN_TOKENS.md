@@ -320,6 +320,7 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 | `--input-border-width` | `1px` | `1.5px` | 同上 |
 | `--input-bg` | `var(--bg-primary)` | `var(--bg-primary)` | 同上 |
 | `--scrim` | `rgba(42,38,32,0.40)` | `rgba(0,0,0,0.40)` | 對話框遮罩（單一種、無模糊） |
+| `--scrim-light` | `rgba(42,38,32,0.12)` | `rgba(0,0,0,0.12)` | 輕量背板（事件頁對比抽屜等非模態遮罩） |
 
 兩主題需要進一步分化時在此層加 token（如 `--tab-radius`），保持 palette 層與 shape 層分離。
 
