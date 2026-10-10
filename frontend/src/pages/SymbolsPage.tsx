@@ -354,6 +354,14 @@ export default function SymbolsPage() {
   // the generate button held off by `pending` so two runs never spend at once.
   const taskIsHere = selectedId !== null && interpretationTask.imageryId === selectedId;
   const isGenerating = interpretationTask.running && taskIsHere;
+  // One paid run at a time per symbol page: another symbol's run holds every
+  // trigger (it would be abandoned, not stopped), a batch holds single generation
+  // but not regeneration — the batch skips symbols that already have one.
+  const singleBlockedReason =
+    interpretationTask.running && !taskIsHere ? t('symbol.generating.blockedBySingle') : null;
+  const generateBlockedReason =
+    singleBlockedReason ??
+    (batch.running || batch.pending ? t('symbol.generating.blockedByBatch') : null);
 
   let interpretationBlock: React.ReactNode;
   if (isGenerating) {
@@ -386,6 +394,7 @@ export default function SymbolsPage() {
         onSubmitModify={handleSubmitModify}
         onReject={handleReject}
         onRegenerate={handleRegenerate}
+        regenerateBlockedReason={singleBlockedReason}
       />
     );
   } else {
@@ -395,6 +404,7 @@ export default function SymbolsPage() {
         rank={selectedRank}
         onGenerate={() => handleGenerate(false)}
         pending={interpretationTask.running}
+        blockedReason={generateBlockedReason}
         error={taskIsHere ? interpretationTask.error : null}
       />
     ) : null;
@@ -471,6 +481,9 @@ export default function SymbolsPage() {
           setShapeFilter={setShapeFilter}
           onSelect={handleSelect}
           onOpenCluster={openCluster}
+          blockedReason={
+            interpretationTask.running ? t('symbol.generating.blockedBySingle') : null
+          }
         />
       );
     } else {

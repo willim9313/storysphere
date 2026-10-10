@@ -1313,7 +1313,9 @@
         "review": "Persist for review"
       },
       "stageRunning": "In progress",
-      "cancelFailed": "Could not cancel — the task is still running."
+      "cancelFailed": "Could not cancel — the task is still running.",
+      "blockedBySingle": "Another symbol interpretation is being generated. Try again when it finishes.",
+      "blockedByBatch": "A batch run is in progress. Try again when it finishes."
     },
     "error": {
       "generic": "Operation failed. Please try again.",

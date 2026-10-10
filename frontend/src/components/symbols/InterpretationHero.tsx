@@ -49,6 +49,8 @@ interface Props {
   onReject: () => void;
   /** Opens the regenerate confirmation; also the target of 「再試一次」 under a block. */
   onRegenerate: () => void;
+  /** Why regenerating is held (another symbol's run is going), or null. */
+  regenerateBlockedReason?: string | null;
 }
 
 /**
@@ -72,6 +74,7 @@ export function InterpretationHero({
   onSubmitModify,
   onReject,
   onRegenerate,
+  regenerateBlockedReason = null,
 }: Readonly<Props>) {
   const { t } = useTranslation('analysis');
   const { t: tf } = useTranslation('frameworks');
@@ -124,14 +127,16 @@ export function InterpretationHero({
               {t('symbol.interpretation.cta.blockedHint')}
             </span>
           </div>
-          <button
-            type="button"
-            className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
-            onClick={onRegenerate}
-            disabled={pending}
-          >
-            {t('symbol.interpretation.cta.blockedButton')}
-          </button>
+          <Tooltip label={regenerateBlockedReason ?? ''} disabled={!regenerateBlockedReason}>
+            <button
+              type="button"
+              className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+              onClick={onRegenerate}
+              disabled={pending || !!regenerateBlockedReason}
+            >
+              {t('symbol.interpretation.cta.blockedButton')}
+            </button>
+          </Tooltip>
         </div>
       )}
 
@@ -337,14 +342,16 @@ export function InterpretationHero({
         )}
         <div className="sym-interp-actions">
           <span className="sym-interp-cost">{t('tension.state.tokenHintShort')}</span>
-          <button
-            type="button"
-            className="ss-btn ss-btn-sm ss-btn-danger ss-btn-llm"
-            onClick={onRegenerate}
-            disabled={pending || editing}
-          >
-            {t('symbol.interpretation.regenerate')}
-          </button>
+          <Tooltip label={regenerateBlockedReason ?? ''} disabled={!regenerateBlockedReason}>
+            <button
+              type="button"
+              className="ss-btn ss-btn-sm ss-btn-danger ss-btn-llm"
+              onClick={onRegenerate}
+              disabled={pending || editing || !!regenerateBlockedReason}
+            >
+              {t('symbol.interpretation.regenerate')}
+            </button>
+          </Tooltip>
         </div>
       </div>
     </section>

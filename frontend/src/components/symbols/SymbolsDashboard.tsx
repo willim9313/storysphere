@@ -36,6 +36,12 @@ type Props = {
   serverRowCount: number;
   batch: SymbolBatch;
   check: SymbolCheck;
+  /**
+   * Why the batch buttons are held, or null. Set while a single interpretation
+   * runs: a batch started then would reach that symbol before its result is
+   * cached and pay for it a second time.
+   */
+  blockedReason: string | null;
   /** Heatmap rows follow the sidebar's axis, so the two never disagree on order. */
   sortAxis: SortAxis;
   shapeFilter: DistributionShape | null;
@@ -73,12 +79,14 @@ function OverviewHeader({
   totalOccurrences,
   batch,
   check,
+  blockedReason,
 }: Readonly<{
   analysis: SymbolAnalysis | null;
   serverRowCount: number;
   totalOccurrences: number;
   batch: SymbolBatch;
   check: SymbolCheck;
+  blockedReason: string | null;
 }>) {
   const { t } = useTranslation('analysis');
   const all = analysis?.all ?? [];
@@ -103,7 +111,12 @@ function OverviewHeader({
         <h2 className="sym-ov-title">{t('symbol.overview.title')}</h2>
         <p className="sym-ov-meta">{meta.join(t('symbol.overview.meta.separator'))}</p>
       </div>
-      <BatchButtons analysis={analysis} batch={batch} check={check} />
+      <BatchButtons
+        analysis={analysis}
+        batch={batch}
+        check={check}
+        blockedReason={blockedReason}
+      />
     </header>
   );
 }
@@ -126,7 +139,13 @@ function BatchButtons({
   analysis,
   batch,
   check,
-}: Readonly<{ analysis: SymbolAnalysis | null; batch: SymbolBatch; check: SymbolCheck }>) {
+  blockedReason,
+}: Readonly<{
+  analysis: SymbolAnalysis | null;
+  batch: SymbolBatch;
+  check: SymbolCheck;
+  blockedReason: string | null;
+}>) {
   const { t } = useTranslation('analysis');
   const [pendingRun, setPendingRun] = useState<PendingRun | null>(null);
   const main = analysis?.main ?? [];
@@ -143,20 +162,22 @@ function BatchButtons({
   if (check.active) {
     buttons = (
       <>
-        <button
-          type="button"
-          className="ss-btn ss-btn-sm ss-btn-primary ss-btn-llm"
-          disabled={batch.pending || check.ids.length === 0}
-          onClick={() =>
-            setPendingRun({
-              message: t('symbol.overview.batch.confirmChecked', { count: check.ids.length }),
-              ids: check.ids,
-              onStarted: check.exit,
-            })
-          }
-        >
-          {t('symbol.overview.batch.checked', { count: check.ids.length })}
-        </button>
+        <Tooltip label={blockedReason ?? ''} disabled={!blockedReason}>
+          <button
+            type="button"
+            className="ss-btn ss-btn-sm ss-btn-primary ss-btn-llm"
+            disabled={batch.pending || check.ids.length === 0 || !!blockedReason}
+            onClick={() =>
+              setPendingRun({
+                message: t('symbol.overview.batch.confirmChecked', { count: check.ids.length }),
+                ids: check.ids,
+                onStarted: check.exit,
+              })
+            }
+          >
+            {t('symbol.overview.batch.checked', { count: check.ids.length })}
+          </button>
+        </Tooltip>
         {/* Switching mode costs nothing, so it carries no glyph. */}
         <button type="button" className="ss-btn ss-btn-sm ss-btn-ghost" onClick={check.toggleMode}>
           {t('symbol.overview.batch.checkOff')}
@@ -167,33 +188,37 @@ function BatchButtons({
     buttons = (
       <>
         {topN.length > 1 && (
+          <Tooltip label={blockedReason ?? ''} disabled={!blockedReason}>
+            <button
+              type="button"
+              className="ss-btn ss-btn-sm ss-btn-primary ss-btn-llm"
+              disabled={batch.pending || !!blockedReason}
+              onClick={() =>
+                setPendingRun({
+                  message: t('symbol.overview.batch.confirmTopN', { count: topN.length }),
+                  ids: topN.map((s) => s.id),
+                })
+              }
+            >
+              {t('symbol.overview.batch.topN', { count: topN.length })}
+            </button>
+          </Tooltip>
+        )}
+        <Tooltip label={blockedReason ?? ''} disabled={!blockedReason}>
           <button
             type="button"
-            className="ss-btn ss-btn-sm ss-btn-primary ss-btn-llm"
-            disabled={batch.pending}
+            className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+            disabled={batch.pending || !!blockedReason}
             onClick={() =>
               setPendingRun({
-                message: t('symbol.overview.batch.confirmTopN', { count: topN.length }),
-                ids: topN.map((s) => s.id),
+                message: t('symbol.overview.batch.confirmAll', { count: main.length }),
+                ids: main.map((s) => s.id),
               })
             }
           >
-            {t('symbol.overview.batch.topN', { count: topN.length })}
+            {t('symbol.overview.batch.all', { count: main.length })}
           </button>
-        )}
-        <button
-          type="button"
-          className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
-          disabled={batch.pending}
-          onClick={() =>
-            setPendingRun({
-              message: t('symbol.overview.batch.confirmAll', { count: main.length }),
-              ids: main.map((s) => s.id),
-            })
-          }
-        >
-          {t('symbol.overview.batch.all', { count: main.length })}
-        </button>
+        </Tooltip>
         <button type="button" className="ss-btn ss-btn-sm ss-btn-ghost" onClick={check.toggleMode}>
           {t('symbol.overview.batch.check')}
         </button>
@@ -726,6 +751,7 @@ export function SymbolsDashboard({
   setShapeFilter,
   onSelect,
   onOpenCluster,
+  blockedReason,
 }: Readonly<Props>) {
   const totalOccurrences = useMemo(
     () => (analysis?.all ?? []).reduce((sum, s) => sum + s.frequency, 0),
@@ -740,6 +766,7 @@ export function SymbolsDashboard({
         totalOccurrences={totalOccurrences}
         batch={batch}
         check={check}
+        blockedReason={blockedReason}
       />
       <BatchProgress batch={batch} />
       <StartHere analysis={analysis} onSelect={onSelect} />

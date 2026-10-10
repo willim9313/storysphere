@@ -1,6 +1,7 @@
 import { AlertCircle, AlertTriangle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 
+import { Tooltip } from '@/components/ui/Tooltip';
 import { interpretationAdvice, type SymbolSignals } from './symbolSignals';
 
 interface Props {
@@ -9,6 +10,11 @@ interface Props {
   rank: number | null;
   onGenerate: () => void;
   pending: boolean;
+  /**
+   * Why generating is held right now (another symbol's run, or a batch), or null.
+   * Shown as the button's tooltip so a greyed button says what it is waiting for.
+   */
+  blockedReason?: string | null;
   /** A run that started and then failed, in the task's own words. */
   error?: string | null;
 }
@@ -33,6 +39,7 @@ export function InterpretationCta({
   rank,
   onGenerate,
   pending,
+  blockedReason = null,
   error,
 }: Readonly<Props>) {
   const { t } = useTranslation('analysis');
@@ -93,17 +100,19 @@ export function InterpretationCta({
           </div>
         )}
       </div>
-      <button
-        type="button"
-        className={
-          'ss-btn ss-btn-md ss-btn-llm ' +
-          (advice === 'recommended' ? 'ss-btn-primary' : 'ss-btn-secondary')
-        }
-        onClick={onGenerate}
-        disabled={pending}
-      >
-        {t(`symbol.interpretation.cta.${advice}Button`)}
-      </button>
+      <Tooltip label={blockedReason ?? ''} disabled={!blockedReason}>
+        <button
+          type="button"
+          className={
+            'ss-btn ss-btn-md ss-btn-llm ' +
+            (advice === 'recommended' ? 'ss-btn-primary' : 'ss-btn-secondary')
+          }
+          onClick={onGenerate}
+          disabled={pending || !!blockedReason}
+        >
+          {t(`symbol.interpretation.cta.${advice}Button`)}
+        </button>
+      </Tooltip>
     </section>
   );
 }
