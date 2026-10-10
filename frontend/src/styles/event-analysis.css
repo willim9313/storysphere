@@ -523,6 +523,18 @@
   transition: transform var(--transition-fast) ease;
 }
 .ea-ov-map-dot.is-unanalyzed { background: transparent; border-style: dashed; }
+/* 敘事模式字形：Warm 靠色相；Ink（近單色）五種模式只差灰階，改由字形承載。
+   顯示與否只看 shape token --narrative-glyph-display，同一份 markup。順敘不加（同詳情「順敘不出 chip」）。 */
+.ea-ov-map-dot.has-glyph { display: flex; align-items: center; justify-content: center; }
+.ea-ov-map-dot.has-glyph[data-mode]::after,
+.ea-narr-glyph::before {
+  display: var(--narrative-glyph-display);
+  font-family: var(--font-sans); font-size: var(--font-size-2xs); line-height: 1; color: var(--fg-primary);
+}
+.ea-ov-map-dot.has-glyph[data-mode='flashback']::after,    .ea-narr-glyph[data-mode='flashback']::before    { content: '←'; }
+.ea-ov-map-dot.has-glyph[data-mode='flashforward']::after, .ea-narr-glyph[data-mode='flashforward']::before { content: '→'; }
+.ea-ov-map-dot.has-glyph[data-mode='parallel']::after,     .ea-narr-glyph[data-mode='parallel']::before     { content: '∥'; }
+.ea-ov-map-dot.has-glyph[data-mode='unknown']::after,      .ea-narr-glyph[data-mode='unknown']::before      { content: '?'; }
 .ea-ov-map-node:hover .ea-ov-map-dot { transform: scale(1.15); }
 .ea-ov-map-node-label {
   max-width: 80px; font-size: var(--font-size-2xs); line-height: 1.3; color: var(--fg-secondary);
