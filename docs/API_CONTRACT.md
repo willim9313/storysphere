@@ -557,7 +557,7 @@ interface BatchAnalysisRequest {
 **Response 409**：同一本書已有角色批次執行中 —— body `{ "detail": string, "code": "batch_running" }`，**不建立 task**。
 再開一輪會讓兩輪對同一批尚未寫入快取的項目各呼叫一次 LLM。在 404／400／503 之後檢查；前端改以 #7j 取回進行中的 taskId 接手。
 
-**說明**：TaskStatus.result 的進度格式與事件批次共用 `BatchEepResult`（見 #7g）；`total` 為實際執行的角色數（有 `entityIds` 時為子集大小，非全書角色數）。`entityIds` 中不存在的 id 直接排除，不計入任何統計欄位（不算 skipped/failed）。仍會 skip 已分析角色（cache hit）。polling #8。
+**說明**：TaskStatus.result 的進度格式與事件批次共用 `BatchEepResult`（見 #7g）；`total` 為實際執行的角色數（有 `entityIds` 時為子集大小，非全書角色數）。`entityIds` 中不存在的 id 直接排除，不計入任何統計欄位（不算 skipped/failed）。仍會 skip 已分析角色（cache hit）。polling #8。`stepKey`（`batch_progress`／`rate_limited`）語意同 #7g。
 
 **UI 使用頁面**：角色分析頁「一鍵生成全部角色分析」、分層批次「先生成前 10 位要角」（#11）
 
@@ -636,6 +636,8 @@ interface EventEvidenceProfile {
 
 **Response 409**：同一件事件已有分析在執行中（任一 `mode`）—— body `{ "detail": string, "code": "analysis_running" }`，**不建立 task**。
 兩輪會對同一件事件各呼叫一次 LLM。在 404／503 之後檢查；進行中的 taskId 由 #7l 取得。只擋同一件事件：別件事件、以及整本批次（#7g）都不互擋。
+
+**說明**：polling #8 時，`TaskStatus.stepKey` 依序為 `eep`（5%）→ `causality`（30%）→ `summary`（75%）→ `coverage`（95%）；`retryFailed` 沿用 cached EEP 時不經 `eep`。前端以 i18n 顯示階段名，`stage` 仍為英文字串供 log 使用。
 
 **UI 使用頁面**：事件分析頁「建立」按鈕
 
@@ -744,7 +746,7 @@ interface EventSourceResponse {
 **Response 409**：同一本書已有事件批次執行中 —— body `{ "detail": string, "code": "batch_running" }`，**不建立 task**。
 再開一輪會讓兩輪對同一批尚未寫入快取的項目各呼叫一次 LLM。在 404／400／503 之後檢查；前端改以 #7k 取回進行中的 taskId 接手。
 
-**說明**：TaskStatus.result 的進度格式見下方 BatchEepResult。polling #8。
+**說明**：TaskStatus.result 的進度格式見下方 BatchEepResult。polling #8。執行中 `stepKey = "batch_progress"`、`subProgress`／`subTotal` 為已處理／總件數；遇 rate limit 中止時先回報一次 `stepKey = "rate_limited"`（同帶件數）再讓任務 `status = "error"`，`stepKey` 與 `sub*` 在 error 後保留，前端據此以 i18n 組「已處理 N/M 件」，`error` 仍是後端中文字串。
 
 ```ts
 interface BatchEepResult {
@@ -818,6 +820,10 @@ interface TaskStatus {
                            // pdfParsing | languageDetect | summarization | featureExtraction
                            // | knowledgeGraph | symbolExploration | dataStorage
                            // 前端 ProcessingTimeline 優先以此判斷步驟狀態，缺省時 fallback 百分比區間
+                           // 批次分析任務（#7g／#7h／#15j）：batch_progress（逐件進度，帶 subProgress／subTotal）
+                           // | rate_limited（rate limit 中止，帶已處理／總數；任務隨後 status=error，stepKey 與 sub* 保留）
+                           // 事件單件分析（#7e）：eep | causality | summary | coverage
+                           // 有 stepKey 時前端以 i18n 組字顯示；stage／error 仍是後端中文，作為向後相容與 log 用
   subProgress?: number;    // 子任務進度（批次任務使用）
   subTotal?: number;
   subStage?: string;
@@ -2073,6 +2079,7 @@ interface SEP {
   這裡**只有 id 沒有名稱**——與事件／角色批次不同，這個迴圈拿到的就只有 id。
   rate limit 中止時回傳的摘要同樣帶著這份清單，那正是最需要知道「哪些已經跑掉」的時候。
 - 遇到 rate limit **整批中止**並回報已完成數，不繼續消耗額度。
+  進度 `stepKey = "batch_progress"`；中止前回報一次 `stepKey = "rate_limited"`（語意同 #7g），前端據此在地化。
 - `TaskStatus.result` 用與角色／事件批次共通的 `BatchEepResult`（見 #7g）；
   進度另填 `sub_progress` / `sub_total`，讓 BatchEepPanel 顯示件數而非百分比。
 - polling 走 **#8**（不是 #15f —— #15f 是單一意象的專用 polling）。

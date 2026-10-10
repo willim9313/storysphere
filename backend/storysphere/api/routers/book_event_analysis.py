@@ -557,6 +557,7 @@ async def _batch_event_analysis(
         report(
             int(done / total * 100) if total else 0,
             f"分析事件 {done}/{total}",
+            step_key="batch_progress",
             # The panel needs the item count, not just the percentage — it
             # renders "已分析 N/M" alongside the bar.
             sub_progress=done,
@@ -582,6 +583,15 @@ async def _batch_event_analysis(
         except Exception as exc:
             if _is_rate_limit_error(exc):
                 logger.warning("Batch event analysis aborted — rate limit: %s", exc)
+                # step_key survives set_failed, so the panel can word the
+                # abort itself from sub_progress / sub_total.
+                report(
+                    int(done / total * 100) if total else 0,
+                    f"分析事件 {done}/{total}",
+                    step_key="rate_limited",
+                    sub_progress=done,
+                    sub_total=total,
+                )
                 # Not a ``return``: the supervisor completes a task that
                 # returns, which would report an aborted run as a success.
                 raise task_runner.TaskAborted(

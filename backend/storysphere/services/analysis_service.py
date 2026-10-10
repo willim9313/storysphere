@@ -652,7 +652,7 @@ class AnalysisService:
         event_id: str,
         document_id: str,
         language: str = "en",
-        progress_callback: Callable[[int, str], None] | None = None,
+        progress_callback: Callable[..., None] | None = None,
         retry_parts: list[str] | None = None,
         base_result: EventAnalysisResult | None = None,
     ) -> EventAnalysisResult:
@@ -680,7 +680,7 @@ class AnalysisService:
             eep = base_result.eep
         else:
             if progress_callback:
-                progress_callback(5, "extracting event evidence profile (EEP)")
+                progress_callback(5, "extracting event evidence profile (EEP)", step_key="eep")
             eep = await self._extract_eep(event, document_id, language)
 
         # causality and impact as named parts.
@@ -695,7 +695,7 @@ class AnalysisService:
         }
 
         if progress_callback:
-            progress_callback(30, "analyzing causality and impact")
+            progress_callback(30, "analyzing causality and impact", step_key="causality")
         from storysphere.core.gather_parts import gather_parts  # noqa: PLC0415
         results, failed = await gather_parts(wanted)
 
@@ -723,10 +723,10 @@ class AnalysisService:
             failed_parts = failed
 
         if progress_callback:
-            progress_callback(75, "generating event summary")
+            progress_callback(75, "generating event summary", step_key="summary")
         event_summary = await self._generate_event_summary(event, eep, causality, impact, language)
         if progress_callback:
-            progress_callback(95, "computing event coverage")
+            progress_callback(95, "computing event coverage", step_key="coverage")
         coverage = self._compute_event_coverage(eep)
 
         return EventAnalysisResult(

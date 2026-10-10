@@ -230,6 +230,7 @@ export default function CharacterAnalysisPage() {
 
   const [batchLlmBlocked, setBatchLlmBlocked] = useState(false);
   const batch = useBatchTask<string[]>({
+    i18nPrefix: 'character.batch',
     trigger: async (entityIds) => {
       setBatchLlmBlocked(false);
       try {
@@ -659,6 +660,7 @@ export default function CharacterAnalysisPage() {
                 analyzedCount={charData.analyzed.length}
                 totalCount={totalCharacters}
                 batchTask={batch.task}
+                stage={batch.stage}
                 isBatchRunning={batch.running}
                 batchError={batchLlmBlocked ? null : batch.error}
                 batchSummary={batch.summary}

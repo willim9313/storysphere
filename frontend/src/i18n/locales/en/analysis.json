@@ -180,6 +180,7 @@
       "running": "Analyzing",
       "allDone": "All characters analyzed ✓",
       "triggerAll": "Generate all",
+      "progress": "Analyzing characters {{done}}/{{total}}",
       "topSubset": "Generate top 10 leads first",
       "remaining": "{{count}} pending",
       "statusLine": "{{count}} pending · Already-analyzed characters will be skipped",
@@ -380,7 +381,13 @@
       "title": "Analyzing event",
       "stage": "{{stage}} · {{progress}}%",
       "blockedBySingle": "Another event is being generated — try again once it finishes.",
-      "blockedByBatch": "A batch run is in progress and will include this event."
+      "blockedByBatch": "A batch run is in progress and will include this event.",
+      "stages": {
+        "eep": "Extracting event evidence",
+        "causality": "Analyzing causality and impact",
+        "summary": "Generating event summary",
+        "coverage": "Computing coverage"
+      }
     },
     "overview": {
       "title": "Event Landscape",
@@ -487,6 +494,8 @@
     "header": "Event Analysis",
     "running": "Analyzing",
     "allDone": "All events analyzed ✓",
+    "progress": "Analyzing events {{done}}/{{total}}",
+    "rateLimited": "API quota reached. Processed {{done}}/{{total}} so far. Please try again later.",
     "triggerAll": "Generate All EEP",
     "autoSkip": "Already-analyzed events will be skipped",
     "remaining": "{{count}} pending",
@@ -502,8 +511,6 @@
     "failedShort": "{{count}} failed",
     "showFailures": "Show failures only ({{count}}) →",
     "runningWithCount": "Analyzing {{current}}/{{total}}…",
-    "kernelOnly": "Kernel only ({{count}})",
-    "kernelOnlyDisabled": "Importance is only assigned during analysis, so no kernel events are known to be pending",
     "chapterOnly": "This chapter only",
     "chapterOnlyDisabled": "Select an event first so the chapter is known",
     "checkModeOn": "Select multiple",
@@ -1428,6 +1435,7 @@
         "chapterBack": "back"
       },
       "batch": {
+        "progress": "Interpreting symbols {{done}}/{{total}}",
         "topN": "Interpret the strongest {{count}}…",
         "all": "All {{count}}…",
         "confirmTopN": "This will interpret the {{count}} symbols with the highest narrative load. Each one spends tokens and enters HITL review. Continue?",
