@@ -419,3 +419,14 @@
 /* 專注態＝安靜查證：段落頂部 chip 與段末關鍵字都收起，只留正文與（角色）標註。 */
 .rd-chunks-inner[data-mode='focus'] .rd-chunk .chunk-chips,
 .rd-chunks-inner[data-mode='focus'] .rd-chunk-kw { display: none; }
+
+/* Word marked after a jump from a symbol's 「跳到原文」 (SegmentRenderer markTerms).
+   A tinted block, not an underline: underlines already mean "KG entity" here, and
+   the tint plus weight still reads in Ink, where the accent is black. */
+.rd-term-mark {
+  background: color-mix(in oklab, var(--accent) 18%, transparent);
+  color: var(--fg-primary);
+  font-weight: 700;
+  font-style: normal;
+  border-radius: 2px;
+}

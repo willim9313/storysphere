@@ -465,6 +465,8 @@ chevron 有自己的 hover 底（`--bg-tertiary`，展開時也是）。選中�
 **純分隔符段落**（只有標點／符號，如「✦✦✦」，且無實體；`readerModel.isSeparatorText`）：保留 `#order`，畫成一條置中細線，不畫整張卡。
 標註密度以容器 `data-annotation-mode` 控制（`global.css`）：「角色」＝非角色 mark／chip 取消底線與 hover 色塊並**拿掉 pointer-events**；「關」＝chips 整列隱藏、正文純散文；`#order` 三段都留。
 
+**從象徵頁跳入時標出該詞**（2026-10-10）：router state 除 `{ paragraphId, chapterNumber }` 外帶 `markTerms`（意象詞＋異體），目標段落內符合的字以 `.rd-term-mark`（accent 18% 底＋粗體，與實體的底線區隔；Ink 下 accent 為黑仍可辨）標出，直到離開該段；比對容許字中空白（PDF 抽出的 CJK 常有字中空白）。詞本身也是 KG 實體時，加在實體 mark 上而不拆開。其他頁的跳段不帶 `markTerms`，行為不變。
+
 **章末導航只放右側「下一章 {章名} →」**（`.ss-btn-sm.ss-btn-secondary`）；最後一章沒有，也沒有「上一章」。
 
 **閱讀非正文章時**：標題列的「第 N / M 章」改為角色名徽章；正文強制純文字（無實體 mark、無 chip，等同標註「關」但不改使用者的標註偏好）；
@@ -1656,6 +1658,7 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 
 - 搜尋框 `aria-label` 同 placeholder；「全部」與類型 chip 帶 `aria-pressed`。
 - 出現紀錄「跳到原文」的可及名稱帶章與序號（「跳到原文 · 第 3 章 #2」），畫面文字不變。
+- 「跳到原文」到閱讀頁後，目標段落內的意象詞與異體會被標出（見 3.3「從象徵頁跳入時標出該詞」）。
 - 修訂編輯框：主題、證據摘要以 `aria-labelledby` 指向欄位標籤；極性選項為 `role="group"`＋`aria-pressed`；按「修訂」後焦點移到主題輸入框。
 - 播報：批次進度與完成面板 `role="status"`、批次失敗 `role="alert"`、`<progress>` 名稱同「LLM 批次生成中」；單件生成覆蓋層只把標題與意象名放在 `role="status"`（百分比不進播報區，免得每 2 秒朗讀）；CTA 與詮釋卡的錯誤列 `role="alert"`。
 - 減少動態（`prefers-reduced-motion: reduce`）：批次 spinner 放慢到 3s。
