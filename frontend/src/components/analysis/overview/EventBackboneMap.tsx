@@ -3,7 +3,13 @@ import { useTranslation } from 'react-i18next';
 import { Tooltip } from '@/components/ui/Tooltip';
 import type { NarrativeMode, OverviewEvent } from './eventTypes';
 import { useElementWidth } from '@/hooks/useElementWidth';
-import { BAND_PAD, bandHeight, fitNode, truncateNodeLabel } from './eventBackboneModel';
+import {
+  BAND_PAD,
+  bandHeight,
+  dominantImportance,
+  fitNode,
+  truncateNodeLabel,
+} from './eventBackboneModel';
 
 interface EventBackboneMapProps {
   events: OverviewEvent[];
@@ -60,6 +66,7 @@ export function EventBackboneMap({ events, onSelectEvent }: Readonly<EventBackbo
   // Columns are percentages of the plot, so the real column width is only
   // known in px once measured: dots and labels fit inside it (#191 pattern).
   const [plotRef, plotWidth] = useElementWidth<HTMLDivElement>();
+  const dominant = useMemo(() => dominantImportance(events), [events]);
   // Only kernel nodes carry a visible label; every node needs a name of its own
   // for a screen reader (the Tooltip exists only while hovered).
   const nodeLabel = (e: OverviewEvent) =>
@@ -210,6 +217,16 @@ export function EventBackboneMap({ events, onSelectEvent }: Readonly<EventBackbo
       </div>
 
       <p className="ea-ov-caption">{t('event.overview.map.caption')}</p>
+      {dominant && (
+        <p className="ea-ov-caption" role="note">
+          {t(
+            dominant.importance === 'KERNEL'
+              ? 'event.overview.map.importanceUnreliableKernel'
+              : 'event.overview.map.importanceUnreliableSatellite',
+            { count: dominant.count, analyzed: dominant.analyzed },
+          )}
+        </p>
+      )}
 
       <div className="ea-ov-map-legend">
         {MODE_ORDER.map((m) => (

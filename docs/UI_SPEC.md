@@ -797,6 +797,10 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
   標籤重疊 720／1024 由 88／46 對降為 0、圓點重疊 720 由 49 對降為 0。左欄 268px 維持常駐（同角色頁，見 B-123；收合模式待全站一起定）。
 - **主題分化：敘事模式字形（2026-10-10）**：shape token `--narrative-glyph-display`（Warm `none`／Ink `block`）。Ink 下骨幹圖非順敘的已分析節點中央畫 `←` 倒敘、`→` 預敘、`∥` 平行、`?` 未知，
   圖例色塊後同樣帶字形；圓點 < 16px 不畫。Warm 不變（見 DS_V3_DESIGN_FEEDBACK EV-3）。
+- **重要度分不開時（2026-10-10）**：篩選 chip 帶全書件數（`.ea-chip-count`，muted 數字），**0 件時 disabled**（已選中的仍可取消）。
+  已分析 ≥ 10 件且單一重要度佔 ≥ 90%（`dominantImportance`）時，骨幹圖 caption 下多一行 `role="note"`
+  「已分析的 N 件中有 M 件判為核心——這本書的核心／衛星區分不可靠，上下分帶僅供參考。」（`event.overview.map.importanceUnreliableKernel`／`…Satellite`，**草稿**，見 DS_V3_DESIGN_FEEDBACK EV-4）。
+  K 方塊外觀不變。成因是 EEP 提示詞未定義 kernel／satellite、逐件單獨判斷（兩本書 64/64 全判 KERNEL），另由提示詞修正處理。
 - **回到原文（2026-10-10）**：
   - 證據分頁的關鍵引言以 #7m 對回段落：對到唯一段落者用 `SourceJumpText`（虛線底線，Tooltip「點擊跳至閱讀頁對應段落」＝`character.sourceJump.cta`），點擊 `navigate('/books/:id', { state: { paragraphId, chapterNumber } })`；
     對不到者維持純文字、不加標記（使用者裁決）。樣式 `.ca-srcjump*` 已移到 `ss-kit.css`（角色頁、事件頁共用）。

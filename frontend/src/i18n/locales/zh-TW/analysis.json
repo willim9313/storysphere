@@ -417,7 +417,9 @@
         "legendKernel": "大圈 = 核心事件",
         "legendUnanalyzed": "虛線圈 = 尚未分析",
         "legendAxis": "橫軸 = 章節順序",
-        "undated": "另有 {{count}} 件事件無章節資訊，未顯示於圖中。"
+        "undated": "另有 {{count}} 件事件無章節資訊，未顯示於圖中。",
+        "importanceUnreliableKernel": "已分析的 {{analyzed}} 件中有 {{count}} 件判為核心——這本書的核心／衛星區分不可靠，上下分帶僅供參考。",
+        "importanceUnreliableSatellite": "已分析的 {{analyzed}} 件中有 {{count}} 件判為衛星——這本書的核心／衛星區分不可靠，上下分帶僅供參考。"
       },
       "viewFlow": "事件脈絡",
       "flow": {

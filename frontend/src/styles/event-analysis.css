@@ -648,6 +648,9 @@
 }
 .ea-chip:hover:not(.active) { background: var(--bg-secondary); }
 .ea-chip.active { background: var(--bg-tertiary); color: var(--fg-primary); font-weight: 600; }
+.ea-chip-count { margin-left: var(--space-2); font-variant-numeric: tabular-nums; color: var(--fg-muted); font-weight: 400; }
+/* 全書 0 件的篩選：點了只會得到空清單，先停用（已選中的仍可取消） */
+.ea-chip:disabled { opacity: 0.5; cursor: not-allowed; }
 /* 全寬 .ss-seg */
 .ss-seg.ea-seg-full { display: flex; }
 .ss-seg.ea-seg-full .ss-seg-item { flex: 1; text-align: center; }
