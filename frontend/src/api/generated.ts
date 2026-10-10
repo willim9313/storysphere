@@ -775,6 +775,31 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/books/{book_id}/events/{event_id}/quote-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Event Quote Sources
+         * @description Pin each cached key quote (#7d ``eep.keyQuotes``) to its paragraph.
+         *
+         *     Deterministic text matching against the book, no LLM and no embedding: the
+         *     quotes are meant to be verbatim, and a semantic nearest neighbour lands on
+         *     the wrong paragraph about half the time. Unmatched quotes come back with
+         *     ``paragraphId: null`` and stay plain text on the page.
+         */
+        get: operations["get_event_quote_sources_api_v1_books__book_id__events__event_id__quote_sources_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/books/{book_id}/events/{event_id}/analysis": {
         parameters: {
             query?: never;
@@ -3116,6 +3141,25 @@ export interface components {
             name: string;
             /** Type */
             type: string;
+        };
+        /** EventQuoteSource */
+        EventQuoteSource: {
+            /** Text */
+            text: string;
+            /** Paragraphid */
+            paragraphId?: string | null;
+            /** Chapternumber */
+            chapterNumber?: number | null;
+        };
+        /**
+         * EventQuoteSourcesResponse
+         * @description Where each of an analyzed event's key quotes sits in the book (#7m).
+         */
+        EventQuoteSourcesResponse: {
+            /** Eventid */
+            eventId: string;
+            /** Quotes */
+            quotes?: components["schemas"]["EventQuoteSource"][];
         };
         /** EventSourcePassage */
         EventSourcePassage: {
@@ -6228,6 +6272,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["RunningEventAnalysesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_event_quote_sources_api_v1_books__book_id__events__event_id__quote_sources_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventQuoteSourcesResponse"];
                 };
             };
             /** @description Validation Error */

@@ -9,6 +9,7 @@ import type { components } from './generated';
 
 type ActiveBatchResponse = components['schemas']['ActiveBatchResponse'];
 type RunningEventAnalysesResponse = components['schemas']['RunningEventAnalysesResponse'];
+type EventQuoteSourcesResponse = components['schemas']['EventQuoteSourcesResponse'];
 
 // #6 — Trigger full-book analysis
 // #6a — Character analysis list
@@ -85,6 +86,14 @@ export function fetchActiveEventBatch(bookId: string): Promise<ActiveBatchRespon
 // #7l — Single-event analyses still running for this book (to resume after a remount).
 export function fetchRunningEventAnalyses(bookId: string): Promise<RunningEventAnalysesResponse> {
   return apiFetch<RunningEventAnalysesResponse>(`/books/${bookId}/events/analyses/running`);
+}
+
+// #7m — Where each key quote of an analyzed event sits in the book (null = not pinned).
+export function fetchEventQuoteSources(
+  bookId: string,
+  eventId: string,
+): Promise<EventQuoteSourcesResponse> {
+  return apiFetch<EventQuoteSourcesResponse>(`/books/${bookId}/events/${eventId}/quote-sources`);
 }
 
 // #7h — Batch entity analysis (analyze all unanalyzed characters, or a subset

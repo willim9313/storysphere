@@ -1,7 +1,12 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { fetchEventQuoteSources } from '@/api/analysis';
+import { qk } from '@/api/queryKeys';
 import { EventContextTab } from './EventContextTab';
+import { SourceJumpText } from './SourceJumpText';
 import type {
   EventAnalysisDetail as EventAnalysisDetailType,
   ParticipantRole,
@@ -320,9 +325,17 @@ function FactorsSection({ data }: { data: EventAnalysisDetailType }) {
   );
 }
 
-function QuotesSection({ data }: { data: EventAnalysisDetailType }) {
+function QuotesSection({ data, bookId }: { data: EventAnalysisDetailType; bookId?: string }) {
   const { t } = useTranslation('analysis');
+  const navigate = useNavigate();
   const quotes = data.eep.keyQuotes ?? [];
+  // #7m pins each quote to its paragraph by exact text; a quote it could not
+  // pin to exactly one paragraph stays plain text rather than jump somewhere wrong.
+  const { data: sources } = useQuery({
+    queryKey: qk.event.quoteSources(bookId, data.eventId),
+    queryFn: () => fetchEventQuoteSources(bookId!, data.eventId),
+    enabled: !!bookId && quotes.length > 0,
+  });
   if (quotes.length === 0) return null;
   return (
     <div className="ea-section">
@@ -331,11 +344,27 @@ function QuotesSection({ data }: { data: EventAnalysisDetailType }) {
         sub={t('event.labels.keyQuotesCount', { count: quotes.length })}
       />
       <div className="ea-quotes">
-        {quotes.map((q, i) => (
-          <p key={i} className="ea-quote">
-            {q}
-          </p>
-        ))}
+        {quotes.map((q, i) => {
+          const src = sources?.quotes?.[i];
+          const pinned = src?.text === q && src.paragraphId ? src : null;
+          return (
+            <p key={i} className="ea-quote">
+              {pinned ? (
+                <SourceJumpText
+                  text={q}
+                  pending={false}
+                  onJump={() =>
+                    navigate(`/books/${bookId}`, {
+                      state: { paragraphId: pinned.paragraphId, chapterNumber: pinned.chapterNumber },
+                    })
+                  }
+                />
+              ) : (
+                q
+              )}
+            </p>
+          );
+        })}
       </div>
     </div>
   );
@@ -445,7 +474,7 @@ export function EventAnalysisDetail({
 
         {tab === 'evidence' && (
           <>
-            <QuotesSection data={data} />
+            <QuotesSection data={data} bookId={bookId} />
             <TermsSection data={data} />
           </>
         )}

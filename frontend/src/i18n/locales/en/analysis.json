@@ -456,7 +456,8 @@
       "title": "Source passages · judge before generating",
       "empty": "No sufficiently similar passage found in this chapter.",
       "similarity": "similarity {{score}}",
-      "caveat": "Retrieved by vector search over this chapter using the event's title and description — not a canonical source reference. Treat low-similarity hits with suspicion."
+      "caveat": "Retrieved by vector search over this chapter using the event's title and description — not a canonical source reference. Treat low-similarity hits with suspicion.",
+      "openInReader": "Open in reader →"
     },
     "context": {
       "title": "Position in context",

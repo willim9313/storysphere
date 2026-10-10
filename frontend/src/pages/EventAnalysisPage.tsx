@@ -718,6 +718,13 @@ export default function EventAnalysisPage() {
                           <span className="ea-source-score">
                             {t('event.source.similarity', { score: p.score.toFixed(2) })}
                           </span>
+                          <Link
+                            to={`/books/${bookId}`}
+                            state={{ paragraphId: p.id, chapterNumber: p.chapterNumber }}
+                            className="ss-btn ss-btn-sm ss-btn-ghost"
+                          >
+                            {t('event.source.openInReader')}
+                          </Link>
                         </div>
                         <p className="ea-source-text">{p.text}</p>
                       </div>

@@ -388,21 +388,6 @@
 }
 .ca-evidence-num { flex-shrink: 0; font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-muted); }
 
-/* ─── Source-jump citation affordance：底線＝可跳、spinner＝定位中（稽核鏈，不做 blockquote 裝飾）─── */
-.ca-srcjump-wrap { display: inline; }
-.ca-srcjump-wrap > .ss-tooltip-anchor { display: inline; }
-.ca-srcjump {
-  display: inline; cursor: pointer;
-  border: none; background: none; padding: 0; margin: 0;
-  font: inherit; color: inherit; text-align: left;
-  text-decoration: underline; text-decoration-color: var(--border);
-  text-decoration-thickness: 1px; text-underline-offset: 3px;
-  transition: background-color var(--transition-fast) ease, text-decoration-color var(--transition-fast) ease;
-}
-.ca-srcjump:hover:not(:disabled) { background: var(--bg-secondary); text-decoration-color: var(--accent); }
-.ca-srcjump:disabled { cursor: default; opacity: 0.7; }
-.ca-srcjump-spinner { margin-left: var(--space-2); vertical-align: middle; color: var(--fg-muted); }
-
 .ca-trait-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
   gap: var(--space-5);

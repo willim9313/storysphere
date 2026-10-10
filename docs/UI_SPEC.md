@@ -785,6 +785,10 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
     皆 disabled，`Tooltip`「另一件事件正在生成，完成後再試。」（`event.generating.blockedBySingle`）——頁面一次只追蹤一件，第二件會在背後跑卻沒人看。
     **批次執行中**，未分析事件的「生成分析」「建立分析」disabled，`Tooltip`「批次正在執行，這件會包含在內。」（`event.generating.blockedByBatch`）；
     已分析事件的「覆蓋重新生成」照常可用。兩句是**草稿・待設計定案**（見 DS_V3_DESIGN_FEEDBACK EV-2）。
+- **回到原文（2026-10-10）**：
+  - 證據分頁的關鍵引言以 #7m 對回段落：對到唯一段落者用 `SourceJumpText`（虛線底線，Tooltip「點擊跳至閱讀頁對應段落」＝`character.sourceJump.cta`），點擊 `navigate('/books/:id', { state: { paragraphId, chapterNumber } })`；
+    對不到者維持純文字、不加標記（使用者裁決）。樣式 `.ca-srcjump*` 已移到 `ss-kit.css`（角色頁、事件頁共用）。
+  - 未分析事件「原文段落 · 生成前先判斷」每段標頭（章號、相似度後）加 `ss-btn-ghost`「在閱讀頁開啟 →」（`event.source.openInReader`，**草稿**），以 #7i 的段落 id 直接跳轉。
 - **原生 `title=`** 全部換成 `Tooltip`（14 處；值為 "·" 的那個直接拿掉）。
 - **新字串**：無。
 - **維持現況（記 feedback）**：landing 沒有對比入口（3-EV-2）、victim 顯示「承受者」（3-EV-3）。
