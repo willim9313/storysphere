@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { fetchEventAnalysisDetail } from '@/api/analysis';
 import type { AnalysisItem, EventAnalysisDetail } from '@/api/types';
+import { useDialogFocus } from '@/hooks/useDialogFocus';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { qk } from '@/api/queryKeys';
 
@@ -50,6 +51,8 @@ export function EventCompareDrawer({
   /* eslint-enable react-hooks/set-state-in-effect */
 
   useEscapeKey(open, onClose);
+  // Focus in on open, Tab kept inside, back to 「對比」 on close.
+  const dialogRef = useDialogFocus(open);
 
   const a = useEventDetail(bookId, open ? aId : null);
   const b = useEventDetail(bookId, open ? bId : null);
@@ -59,10 +62,18 @@ export function EventCompareDrawer({
   return (
     <>
       <div className="ea-compare-backdrop" onClick={onClose} />
-      <aside className="ea-compare-drawer" role="dialog" aria-modal="true">
+      <aside
+        ref={dialogRef}
+        className="ea-compare-drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ea-compare-title"
+      >
         <header className="ea-compare-head">
           <div>
-            <h3 className="ea-compare-title">{t('event.compare.title')}</h3>
+            <h3 id="ea-compare-title" className="ea-compare-title" tabIndex={-1}>
+              {t('event.compare.title')}
+            </h3>
             <p className="ea-compare-sub">{t('event.compare.subtitle')}</p>
           </div>
           <button

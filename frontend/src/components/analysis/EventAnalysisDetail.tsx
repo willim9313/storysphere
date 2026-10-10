@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -427,17 +427,36 @@ export function EventAnalysisDetail({
   useEffect(() => setTab('overview'), [data.eventId]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
+  const tabs = DETAIL_TABS.filter((dt) => dt.key !== 'context' || bookId);
+  // WAI-ARIA tabs (automatic activation, same as the graph LensCard): only the
+  // selected tab is in the Tab order; ←/→ wrap, Home/End jump.
+  const onTabKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    const i = tabs.findIndex((dt) => dt.key === tab);
+    let next = i;
+    if (e.key === 'ArrowRight') next = (i + 1) % tabs.length;
+    else if (e.key === 'ArrowLeft') next = (i - 1 + tabs.length) % tabs.length;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = tabs.length - 1;
+    else return;
+    e.preventDefault();
+    setTab(tabs[next].key);
+    document.getElementById(`ea-detail-tab-${tabs[next].key}`)?.focus();
+  };
+
   return (
     <>
       <div className="ea-detail-head">
         {header}
-        <div className="ss-utabs" role="tablist">
-          {DETAIL_TABS.filter((dt) => dt.key !== 'context' || bookId).map((dt) => (
+        <div className="ss-utabs" role="tablist" onKeyDown={onTabKeyDown}>
+          {tabs.map((dt) => (
             <button
               key={dt.key}
+              id={`ea-detail-tab-${dt.key}`}
               type="button"
               role="tab"
               aria-selected={tab === dt.key}
+              aria-controls="ea-detail-panel"
+              tabIndex={tab === dt.key ? 0 : -1}
               className={'ss-utab' + (tab === dt.key ? ' active' : '')}
               onClick={() => setTab(dt.key)}
             >
@@ -447,7 +466,12 @@ export function EventAnalysisDetail({
         </div>
       </div>
 
-      <div className="ea-detail-body">
+      <div
+        className="ea-detail-body"
+        id="ea-detail-panel"
+        role="tabpanel"
+        aria-labelledby={`ea-detail-tab-${tab}`}
+      >
         {tab === 'overview' && (
           <>
             {showHero && <EventHero data={data} />}

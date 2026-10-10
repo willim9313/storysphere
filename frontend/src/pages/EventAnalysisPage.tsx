@@ -433,6 +433,7 @@ export default function EventAnalysisPage() {
               <input
                 type="text"
                 placeholder={t('event.list.searchPlaceholder', { count: totalCount })}
+                aria-label={t('event.list.searchPlaceholder', { count: totalCount })}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />

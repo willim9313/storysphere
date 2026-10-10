@@ -724,3 +724,16 @@
 .ea-compare-loading { font-size: var(--font-size-2xs); color: var(--fg-muted); }
 .ea-compare-list { margin: 0; padding-left: var(--space-6); display: flex; flex-direction: column; gap: var(--space-2); }
 .ea-compare-empty { margin: 0; font-size: var(--font-size-2xs); color: var(--fg-muted); }
+
+/* 減少動態：狀態仍要看得出來，只拿掉循環與位移——
+   生成中點改靜態實心（顏色已區分），spinner 放慢到 3s（仍表示「在動」），
+   fade-in 與完成時的放大、節點 hover 放大都拿掉。 */
+@media (prefers-reduced-motion: reduce) {
+  .ea-row-dot.running,
+  .ea-row-dot.is-just-done,
+  .ea-ov-landing { animation: none; }
+  .ea-spinner,
+  .ea-mini-spinner { animation-duration: 3s; }
+  .ea-ov-map-dot { transition: none; }
+  .ea-ov-map-node:hover .ea-ov-map-dot { transform: none; }
+}

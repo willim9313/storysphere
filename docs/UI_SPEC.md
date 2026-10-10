@@ -788,6 +788,10 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
     左欄列與排行列的「生成分析」停用時用 `aria-disabled`（不是 `disabled`）：仍可聚焦、Tooltip 照常，點擊改為**選取該事件**、不觸發生成（2026-10-10 裁決）。
 - **列結構（a11y，2026-10-10）**：左欄動作列與排行列本身不可互動，內含一顆選取鈕（`.ea-row-main`／`.ea-ov-rank-main`，整列可點、左欄帶 `aria-current`）；
   「生成分析」是**兄弟節點**（左欄疊在第二行右側），不再巢狀在可點的列裡。故事骨幹圖每個節點帶 `aria-label`「標題 · Ch.N · 重要度 · 已分析／尚未分析（· 敘事模式）」，皆既有字串。
+- **鍵盤與狀態（a11y，2026-10-10）**：詳情分頁為 WAI-ARIA tabs（roving tabindex，←／→ 循環、Home／End，`aria-controls` → `role=tabpanel`）；
+  對比抽屜用 `useDialogFocus`（開啟時焦點到標題、Tab 只在抽屜內循環、關閉後回「對比」，`aria-labelledby`）；篩選 chip、分組與三視圖切換帶 `aria-pressed`，
+  群組標頭帶 `aria-expanded`；搜尋欄 `aria-label` 同 placeholder。
+- **減少動態**（`prefers-reduced-motion: reduce`）：生成中點改靜態實心、完成時放大與 landing fade-in 拿掉、spinner 放慢到 3s、骨幹節點 hover 不放大。
 - **回到原文（2026-10-10）**：
   - 證據分頁的關鍵引言以 #7m 對回段落：對到唯一段落者用 `SourceJumpText`（虛線底線，Tooltip「點擊跳至閱讀頁對應段落」＝`character.sourceJump.cta`），點擊 `navigate('/books/:id', { state: { paragraphId, chapterNumber } })`；
     對不到者維持純文字、不加標記（使用者裁決）。樣式 `.ca-srcjump*` 已移到 `ss-kit.css`（角色頁、事件頁共用）。
