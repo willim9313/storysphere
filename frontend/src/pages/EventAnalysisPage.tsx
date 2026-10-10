@@ -11,6 +11,7 @@ import {
   triggerEventAnalysis,
   triggerBatchEventAnalysis,
   fetchActiveEventBatch,
+  fetchRunningEventAnalyses,
   fetchEventAnalysisDetail,
   fetchEventSourcePassages,
 } from '@/api/analysis';
@@ -22,6 +23,7 @@ import { EventOverviewLanding } from '@/components/analysis/overview/EventOvervi
 import { EventGroupedList } from '@/components/analysis/EventGroupedList';
 import { failedCountOf, failureIdOf, liveFailedIds } from '@/components/analysis/batchPanelModel';
 import { EventCompareDrawer } from '@/components/analysis/EventCompareDrawer';
+import { ApiError } from '@/api/client';
 import { failureKind, isLlmUnconfigured, techDetailOf } from '@/api/failureKind';
 import { GuidanceRibbon } from '@/components/ui/GuidanceRibbon';
 import { LlmUnconfiguredNotice } from '@/components/ui/LlmUnconfiguredNotice';
@@ -81,7 +83,10 @@ export default function EventAnalysisPage() {
   }, [legacySelectId, selectedEntityId, setSelectedEntityId]);
 
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
+  // The event the single-event task (`gen`) belongs to, and the mode it ran
+  // with — kept after a failure so 「重試」 re-runs the same thing.
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [genMode, setGenMode] = useState<'full' | 'retryFailed'>('full');
   const [triggerError, setTriggerError] = useState<string | null>(null);
   // A 503 carrying the app's own body = no LLM provider configured (shown in place).
   const [llmBlocked, setLlmBlocked] = useState(false);
@@ -126,14 +131,18 @@ export default function EventAnalysisPage() {
     defaultError: t('triggerFailed'),
     onDone: (_task, { reset }) => {
       queryClient.invalidateQueries({ queryKey: qk.analysis.events(bookId) });
-      queryClient.invalidateQueries({
-        queryKey: qk.event.analysis(bookId, selectedEntityId),
-      });
-      if (generatingId) markJustDone(generatingId);
+      // The event that was generated — not whichever one is selected now: the
+      // reader may have moved on while it ran.
+      if (generatingId) {
+        queryClient.invalidateQueries({ queryKey: qk.event.analysis(bookId, generatingId) });
+        markJustDone(generatingId);
+      }
       reset();
       setGeneratingId(null);
     },
   });
+  // Only the event being generated is parked; every other one stays browsable.
+  const selectedIsGenerating = !!gen.taskId && selectedEntityId === generatingId;
 
   const {
     data: eventDetail,
@@ -143,7 +152,7 @@ export default function EventAnalysisPage() {
   } = useQuery({
     queryKey: qk.event.analysis(bookId, selectedEntityId),
     queryFn: () => fetchEventAnalysisDetail(bookId!, selectedEntityId!),
-    enabled: !!bookId && !!selectedEntityId && !gen.taskId && isSelectedAnalyzed,
+    enabled: !!bookId && !!selectedEntityId && !selectedIsGenerating && isSelectedAnalyzed,
   });
 
   // #7i — retrieved source passages, only useful while the event is still
@@ -151,7 +160,7 @@ export default function EventAnalysisPage() {
   const { data: sourceData, isLoading: sourceLoading } = useQuery({
     queryKey: qk.event.source(bookId, selectedEntityId),
     queryFn: () => fetchEventSourcePassages(bookId!, selectedEntityId!, 2),
-    enabled: !!bookId && !!selectedEntityId && !isSelectedAnalyzed && !gen.taskId,
+    enabled: !!bookId && !!selectedEntityId && !isSelectedAnalyzed && !selectedIsGenerating,
   });
 
   const markJustDone = (id: string) => {
@@ -197,26 +206,69 @@ export default function EventAnalysisPage() {
     }
   };
 
+  // A run is already going (another tab, or one started before a remount):
+  // follow it instead of offering to start it again — on mount, and when #7e
+  // refuses a trigger with 409 `analysis_running` (#7l lists the runs).
+  const { adopt: adoptGen } = gen;
+  const followRun = (run: { eventId: string; taskId: string }) => {
+    setGeneratingId(run.eventId);
+    setGenMode('full');
+    adoptGen(run.taskId);
+  };
+  useEffect(() => {
+    if (!bookId) return;
+    let alive = true;
+    fetchRunningEventAnalyses(bookId)
+      .then(({ running = [] }) => {
+        const run = running[0];
+        if (!alive || !run) return;
+        setGeneratingId(run.eventId);
+        setGenMode('full');
+        adoptGen(run.taskId);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [bookId, adoptGen]);
+
+  const onSingleTriggerFailed = async (err: unknown, id: string) => {
+    if (err instanceof ApiError && err.status === 409 && err.code === 'analysis_running') {
+      const run = await fetchRunningEventAnalyses(bookId!)
+        .then(({ running = [] }) => running.find((r) => r.eventId === id))
+        .catch(() => undefined);
+      if (run) return followRun(run);
+    }
+    setGeneratingId(null);
+    onTriggerFailed(err);
+  };
+
   const triggerMutation = useMutation({
     mutationFn: (id: string) => triggerEventAnalysis(bookId!, id),
-    onMutate: onTriggerStart,
-    onSuccess: (data) => gen.adopt(data.taskId),
-    onError: (err) => {
-      setGeneratingId(null);
-      onTriggerFailed(err);
+    onMutate: (id) => {
+      onTriggerStart();
+      setGeneratingId(id);
+      setGenMode('full');
     },
+    onSuccess: (data) => gen.adopt(data.taskId),
+    onError: (err, id) => onSingleTriggerFailed(err, id),
   });
 
   // Retry only the failed parts of a partial result (reuses cached EEP).
   const retryFailedMutation = useMutation({
     mutationFn: (id: string) => triggerEventAnalysis(bookId!, id, 'retryFailed'),
-    onMutate: onTriggerStart,
+    onMutate: (id) => {
+      onTriggerStart();
+      setGeneratingId(id);
+      setGenMode('retryFailed');
+    },
     onSuccess: (data) => gen.adopt(data.taskId),
-    onError: onTriggerFailed,
+    onError: (err, id) => onSingleTriggerFailed(err, id),
   });
+  // Something is being generated right now (trigger in flight or task running).
+  const genActive = triggerMutation.isPending || retryFailedMutation.isPending || gen.running;
 
   const handleGenerate = (id: string) => {
-    setGeneratingId(id);
     setSelectedEntityId(id);
     triggerMutation.mutate(id);
   };
@@ -387,7 +439,7 @@ export default function EventAnalysisPage() {
               selectedEntityId={selectedEntityId}
               onSelect={(id) => setSelectedEntityId(id)}
               onGenerate={handleGenerate}
-              generatingId={generatingId}
+              generatingId={genActive ? generatingId : null}
               justDoneIds={justDoneIds}
               failedIds={failedIds}
               failedOnly={failedFilterOn}
@@ -562,7 +614,7 @@ export default function EventAnalysisPage() {
                   </div>
                 </div>
               )
-            ) : gen.task?.status === 'error' ? (
+            ) : gen.task?.status === 'error' && selectedEntityId === generatingId ? (
               <div className="ea-empty">
                 <div className="ea-empty-icon error">
                   <AlertTriangle size={24} />
@@ -571,19 +623,37 @@ export default function EventAnalysisPage() {
                 <p className="ea-empty-sub">
                   {gen.task.error ? gen.task.error : t('triggerFailed')}
                 </p>
-                <button
-                  type="button"
-                  className="ss-btn ss-btn-md ss-btn-secondary"
-                  onClick={() => {
-                    gen.reset();
-                    triggerMutation.reset();
-                    setTriggerError(null);
-                  }}
-                >
-                  {tc('retry')}
-                </button>
+                <div className="ss-state-actions">
+                  <button
+                    type="button"
+                    className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm"
+                    onClick={() => {
+                      const id = generatingId;
+                      gen.reset();
+                      setTriggerError(null);
+                      if (!id) return;
+                      if (genMode === 'retryFailed') retryFailedMutation.mutate(id);
+                      else triggerMutation.mutate(id);
+                    }}
+                  >
+                    {tc('retry')}
+                  </button>
+                  <button
+                    type="button"
+                    className="ss-btn ss-btn-md ss-btn-secondary"
+                    onClick={() => {
+                      gen.reset();
+                      triggerMutation.reset();
+                      retryFailedMutation.reset();
+                      setTriggerError(null);
+                      setGeneratingId(null);
+                    }}
+                  >
+                    {tc('close')}
+                  </button>
+                </div>
               </div>
-            ) : gen.taskId && gen.task && gen.task.status !== 'done' ? (
+            ) : selectedIsGenerating && gen.task && gen.task.status !== 'done' ? (
               <div className="ea-empty">
                 <div className="ea-spinner" />
                 <p className="ea-empty-title" style={{ fontSize: 'var(--font-size-base)' }}>
@@ -678,7 +748,7 @@ export default function EventAnalysisPage() {
                 evtData={evtData}
                 onSelectEvent={(id) => setSelectedEntityId(id)}
                 onGenerate={handleGenerate}
-                generatingId={generatingId}
+                generatingId={genActive ? generatingId : null}
                 onBatchAll={() => setConfirmBatchEep(true)}
                 isBatchRunning={batch.running}
               />

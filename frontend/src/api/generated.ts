@@ -752,6 +752,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/books/{book_id}/events/analyses/running": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Running Event Analyses
+         * @description Single-event analyses (#7e) still running for this book.
+         *
+         *     Read-only: lets the page show a generation started before a remount (or in
+         *     another tab) instead of offering to start it again, which #7e refuses with 409.
+         */
+        get: operations["get_running_event_analyses_api_v1_books__book_id__events_analyses_running_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/books/{book_id}/events/{event_id}/analysis": {
         parameters: {
             query?: never;
@@ -3837,6 +3860,21 @@ export interface components {
             forceRefresh: boolean;
         };
         /**
+         * RunningEventAnalysesResponse
+         * @description Single-event analyses (#7e) currently running for a book (#7l).
+         */
+        RunningEventAnalysesResponse: {
+            /** Running */
+            running?: components["schemas"]["RunningEventAnalysis"][];
+        };
+        /** RunningEventAnalysis */
+        RunningEventAnalysis: {
+            /** Eventid */
+            eventId: string;
+            /** Taskid */
+            taskId: string;
+        };
+        /**
          * SEP
          * @description Symbol Evidence Profile — structured evidence for an imagery entity.
          *
@@ -6150,6 +6188,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaskIdResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_running_event_analyses_api_v1_books__book_id__events_analyses_running_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunningEventAnalysesResponse"];
                 };
             };
             /** @description Validation Error */

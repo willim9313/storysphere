@@ -8,6 +8,7 @@ import type {
 import type { components } from './generated';
 
 type ActiveBatchResponse = components['schemas']['ActiveBatchResponse'];
+type RunningEventAnalysesResponse = components['schemas']['RunningEventAnalysesResponse'];
 
 // #6 — Trigger full-book analysis
 // #6a — Character analysis list
@@ -79,6 +80,11 @@ export function triggerBatchEventAnalysis(
 // #7k — The event batch running for this book, if any (to resume after a remount).
 export function fetchActiveEventBatch(bookId: string): Promise<ActiveBatchResponse> {
   return apiFetch<ActiveBatchResponse>(`/books/${bookId}/events/analyze-all/active`);
+}
+
+// #7l — Single-event analyses still running for this book (to resume after a remount).
+export function fetchRunningEventAnalyses(bookId: string): Promise<RunningEventAnalysesResponse> {
+  return apiFetch<RunningEventAnalysesResponse>(`/books/${bookId}/events/analyses/running`);
 }
 
 // #7h — Batch entity analysis (analyze all unanalyzed characters, or a subset
