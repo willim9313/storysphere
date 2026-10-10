@@ -30,9 +30,12 @@ function extractEntities(segments: Segment[]) {
 export function ChunkCard({
   chunk,
   onEntityClick,
+  markTerms,
 }: {
   readonly chunk: Chunk;
   readonly onEntityClick?: (payload: EntityMarkClickPayload) => void;
+  /** Words to mark in the text (see SegmentRenderer). */
+  readonly markTerms?: readonly string[];
 }) {
   const entities = useMemo(() => extractEntities(chunk.segments), [chunk.segments]);
   const keywords = useMemo(
@@ -103,7 +106,7 @@ export function ChunkCard({
         )}
       </div>
       <p className="rd-chunk-text">
-        <SegmentRenderer segments={chunk.segments} />
+        <SegmentRenderer segments={chunk.segments} markTerms={markTerms} />
       </p>
       {keywords.length > 0 && (
         <div className="rd-chunk-kw">

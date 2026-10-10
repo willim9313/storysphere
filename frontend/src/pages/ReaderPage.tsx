@@ -136,7 +136,14 @@ export default function ReaderPage() {
   // specific paragraph. Caller passes { paragraphId, chapterNumber } via
   // location.state — paragraphId matches Chunk.id on the wire.
   const location = useLocation();
-  const jumpTarget = (location.state as { paragraphId?: string; chapterNumber?: number } | null) ?? null;
+  // markTerms: the symbol page also sends the word (and its variants) it jumped
+  // for, so the paragraph marks it instead of only flashing the whole card.
+  const jumpTarget =
+    (location.state as {
+      paragraphId?: string;
+      chapterNumber?: number;
+      markTerms?: string[];
+    } | null) ?? null;
   const jumpHandledRef = useRef<string | null>(null);
 
   // Column 3 scroll container is reused across chapters, so switching
@@ -710,7 +717,13 @@ export default function ReaderPage() {
                         data-chunk-id={chunk.id}
                         className={readerPrefs.fade ? 'rd-fade' : undefined}
                       >
-                        <ChunkCard chunk={chunk} onEntityClick={handleEntityMarkClick} />
+                        <ChunkCard
+                          chunk={chunk}
+                          onEntityClick={handleEntityMarkClick}
+                          markTerms={
+                            chunk.id === jumpTarget?.paragraphId ? jumpTarget.markTerms : undefined
+                          }
+                        />
                       </div>
                     ))}
                   </EntityMarkClickProvider>

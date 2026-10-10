@@ -167,7 +167,11 @@ export function OccurrencesTimeline({
   // right chapter before scrolling to the paragraph.
   const jump = (item: SymbolTimelineEntry) =>
     navigate(`/books/${bookId}`, {
-      state: { paragraphId: item.paragraph_id, chapterNumber: item.chapter_number },
+      state: {
+        paragraphId: item.paragraph_id,
+        chapterNumber: item.chapter_number,
+        markTerms: [term, ...aliases],
+      },
     });
 
   const frontCount = front.reduce((sum, g) => sum + g.items.length, 0);
