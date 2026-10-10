@@ -386,6 +386,7 @@ export default function SymbolsPage() {
         // 後端算的排除數，不是前端自己從 chapter_roles 推的（B-101）：這句
         // 話講的是「LLM 沒看到幾筆」，而那個答案只有排除的那一方知道。
         frontCount={selectedSignals?.item.excluded_front_matter_count ?? 0}
+        occurrenceCount={timeline.length}
         resolvedCharacters={resolvedCharacters}
         resolvedEvents={resolvedEvents}
         pending={reviewMutation.isPending}

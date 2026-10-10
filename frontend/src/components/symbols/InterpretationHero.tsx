@@ -35,6 +35,8 @@ interface Props {
   block: InterpretationBlockStatus | null;
   /** Front-matter occurrences that went into this interpretation's evidence. */
   frontCount: number;
+  /** Occurrences listed in the timeline card below; 0/undefined hides 「看 N 筆出處」. */
+  occurrenceCount?: number;
   resolvedCharacters: ResolvedItem[];
   resolvedEvents: ResolvedItem[];
   pending: boolean;
@@ -66,6 +68,7 @@ export function InterpretationHero({
   interpretation,
   block,
   frontCount,
+  occurrenceCount = 0,
   resolvedCharacters,
   resolvedEvents,
   pending,
@@ -100,6 +103,16 @@ export function InterpretationHero({
     setDraftEvidence(interpretation.evidence_summary ?? '');
     setDraftPolarity(interpretation.polarity);
     setEditing(true);
+  };
+
+  // The evidence summary carries no paragraph provenance; the occurrences card
+  // below is the road back to the text, so this hands the reader over to it.
+  const scrollToOccurrences = () => {
+    const target = document.getElementById('sym-occurrences-title');
+    if (!target) return;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    target.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' });
+    target.focus({ preventScroll: true });
   };
 
   return (
@@ -223,9 +236,16 @@ export function InterpretationHero({
 
         {(editing || interpretation.evidence_summary) && (
           <div className="sym-interp-field">
-            <span className="sym-interp-label" id={`${fieldId}-evidence`}>
-              {t('symbol.interpretation.field.evidence')}
-            </span>
+            <div className="sym-interp-label-row">
+              <span className="sym-interp-label" id={`${fieldId}-evidence`}>
+                {t('symbol.interpretation.field.evidence')}
+              </span>
+              {!editing && occurrenceCount > 0 && (
+                <button type="button" className="sym-interp-srclink" onClick={scrollToOccurrences}>
+                  {t('symbol.interpretation.toSources', { count: occurrenceCount })}
+                </button>
+              )}
+            </div>
             {editing ? (
               <textarea
                 aria-labelledby={`${fieldId}-evidence`}

@@ -1260,6 +1260,7 @@
     },
     "interpretation": {
       "tag": "LLM interpretation",
+      "toSources": "Sources ({{count}}) ↓",
       "linkedEmpty": "No linked records",
       "regenerate": "Regenerate",
       "regenerateConfirm": "Regenerating will overwrite the existing interpretation and review status. Continue?",
