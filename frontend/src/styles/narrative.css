@@ -1739,3 +1739,12 @@ a.nl-sd-ev:hover {
   0%, 40% { box-shadow: 0 0 0 3px var(--accent); }
   100% { box-shadow: 0 0 0 3px transparent; }
 }
+/* Reduced motion: no spin, and the pointer ring stays solid while the class is
+   on (the script drops it after ~1.7s) instead of fading. */
+@media (prefers-reduced-motion: reduce) {
+  .nl-progress-spin { animation: none; }
+  .nl-flash {
+    animation: none;
+    box-shadow: 0 0 0 3px var(--accent);
+  }
+}

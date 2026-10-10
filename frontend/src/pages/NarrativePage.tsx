@@ -350,7 +350,8 @@ export default function NarrativePage() {
   const goToRerun = () => {
     const el = document.getElementById('nl-hero-run');
     if (!el) return;
-    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    el.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'center' });
     el.focus({ preventScroll: true });
     el.classList.remove('nl-flash');
     void el.offsetWidth; // restart the animation if it is already running
