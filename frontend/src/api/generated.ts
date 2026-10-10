@@ -1966,6 +1966,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/symbols/analyses/running": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Running Symbol Analyses
+         * @description Single-symbol interpretations (#15e) still running for this book (#15l).
+         *
+         *     Read-only: lets the page show a generation started before a remount (or in
+         *     another tab) instead of offering to start it again, which #15e refuses with 409.
+         */
+        get: operations["get_running_symbol_analyses_api_v1_symbols_analyses_running_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/symbols/analyze-all": {
         parameters: {
             query?: never;
@@ -3915,6 +3938,28 @@ export interface components {
         RunningEventAnalysis: {
             /** Eventid */
             eventId: string;
+            /** Taskid */
+            taskId: string;
+        };
+        /**
+         * RunningSymbolAnalysesResponse
+         * @description Single-symbol interpretations (#15e) currently running for a book (#15l).
+         */
+        RunningSymbolAnalysesResponse: {
+            /** Running */
+            running?: components["schemas"]["RunningSymbolAnalysis"][];
+        };
+        /**
+         * RunningSymbolAnalysis
+         * @description One single-symbol interpretation (#15e) still running (#15l).
+         *
+         *     camelCase, unlike the rest of this module: it sits next to #15k
+         *     (``ActiveBatchResponse``) and mirrors #7l, and the page reads all three the
+         *     same way.
+         */
+        RunningSymbolAnalysis: {
+            /** Imageryid */
+            imageryId: string;
             /** Taskid */
             taskId: string;
         };
@@ -8006,6 +8051,15 @@ export interface operations {
                     "application/json": components["schemas"]["TaskStatus"];
                 };
             };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -8036,6 +8090,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ActiveBatchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_running_symbol_analyses_api_v1_symbols_analyses_running_get: {
+        parameters: {
+            query: {
+                /** @description Book identifier */
+                book_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunningSymbolAnalysesResponse"];
                 };
             };
             /** @description Validation Error */
