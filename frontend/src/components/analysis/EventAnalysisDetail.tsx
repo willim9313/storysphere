@@ -7,6 +7,13 @@ import { fetchEventQuoteSources } from '@/api/analysis';
 import { qk } from '@/api/queryKeys';
 import { EventContextTab } from './EventContextTab';
 import { SourceJumpText } from './SourceJumpText';
+import {
+  causalityEmpty,
+  causeTabEmpty,
+  evidenceTabEmpty,
+  factorsEmpty,
+  impactEmpty,
+} from './eventDetailModel';
 import type {
   EventAnalysisDetail as EventAnalysisDetailType,
   ParticipantRole,
@@ -208,7 +215,7 @@ function CausalitySection({
 }) {
   const { t } = useTranslation('analysis');
   const c = data.causality;
-  const isEmpty = !c.rootCause && c.causalChain.length === 0 && !c.chainSummary;
+  const isEmpty = causalityEmpty(data);
   if (isEmpty && !failed) return null;
   if (isEmpty && failed) {
     return (
@@ -247,8 +254,7 @@ function CausalitySection({
 function ImpactSection({ data, failed = false }: { data: { impact: ImpactAnalysis }; failed?: boolean }) {
   const { t } = useTranslation('analysis');
   const i = data.impact;
-  const isEmpty =
-    !i.impactSummary && i.participantImpacts.length === 0 && i.relationChanges.length === 0;
+  const isEmpty = impactEmpty(data);
   if (isEmpty && !failed) return null;
   if (isEmpty && failed) {
     return (
@@ -292,7 +298,7 @@ function FactorsSection({ data }: { data: EventAnalysisDetailType }) {
   const { t } = useTranslation('analysis');
   const factors = data.eep.causalFactors ?? [];
   const consequences = data.eep.consequences ?? [];
-  if (factors.length === 0 && consequences.length === 0) return null;
+  if (factorsEmpty(data)) return null;
   return (
     <div className="ea-section">
       <SectionHead
@@ -400,7 +406,15 @@ function TermsSection({ data }: Readonly<{ data: EventAnalysisDetailType }>) {
 
 const TERM_LIMIT = 12;
 
+function TabEmpty() {
+  const { t } = useTranslation('analysis');
+  return <p className="ea-context-empty">{t('event.detail.tabEmpty')}</p>;
+}
+
 type DetailTab = 'overview' | 'cause' | 'context' | 'evidence';
+
+/** The event a 上下文位置 hop is heading to; see the tab-reset effect below. */
+let contextHopTarget: string | null = null;
 
 const DETAIL_TABS: { key: DetailTab; labelKey: string }[] = [
   { key: 'overview', labelKey: 'event.tabs.overview' },
@@ -419,13 +433,30 @@ export function EventAnalysisDetail({
 }: Props) {
   const { t } = useTranslation('analysis');
   const failedParts = data.failedParts ?? [];
-  const [tab, setTab] = useState<DetailTab>('overview');
-
   // Switching events should land on the overview, not wherever the previous
-  // event was left.
+  // event was left — except when the hop came from the 上下文位置 tab itself,
+  // where staying put lets the reader walk the chain neighbour by neighbour.
+  // Module-level, keyed by the target event: the page unmounts this component
+  // while the next event's detail loads, so a ref or state would not survive.
+  const [tab, setTab] = useState<DetailTab>(() =>
+    contextHopTarget === data.eventId ? 'context' : 'overview',
+  );
   /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => setTab('overview'), [data.eventId]);
+  useEffect(() => {
+    if (contextHopTarget === data.eventId) {
+      setTab('context');
+    } else {
+      contextHopTarget = null;
+      setTab('overview');
+    }
+  }, [data.eventId]);
   /* eslint-enable react-hooks/set-state-in-effect */
+  const selectFromContext = onSelectEvent
+    ? (id: string) => {
+        contextHopTarget = id;
+        onSelectEvent(id);
+      }
+    : undefined;
 
   const tabs = DETAIL_TABS.filter((dt) => dt.key !== 'context' || bookId);
   // WAI-ARIA tabs (automatic activation, same as the graph LensCard): only the
@@ -482,6 +513,7 @@ export function EventAnalysisDetail({
 
         {tab === 'cause' && (
           <>
+            {causeTabEmpty(data, failedParts) && <TabEmpty />}
             <CausalitySection
               data={data}
               variant={causalVariant}
@@ -493,11 +525,12 @@ export function EventAnalysisDetail({
         )}
 
         {tab === 'context' && bookId && (
-          <EventContextTab bookId={bookId} eventId={data.eventId} onSelectEvent={onSelectEvent} />
+          <EventContextTab bookId={bookId} eventId={data.eventId} onSelectEvent={selectFromContext} />
         )}
 
         {tab === 'evidence' && (
           <>
+            {evidenceTabEmpty(data) && <TabEmpty />}
             <QuotesSection data={data} bookId={bookId} />
             <TermsSection data={data} />
           </>

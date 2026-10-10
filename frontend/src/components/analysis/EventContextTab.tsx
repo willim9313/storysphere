@@ -95,7 +95,11 @@ function NeighbourColumn({
             >
               <span className="ea-context-card-head">
                 <span className={'ea-imp is-sm ' + importanceClass(n.event.importance)}>
-                  {n.event.importance === 'KERNEL' ? 'K' : n.event.importance === 'SATELLITE' ? 'S' : '·'}
+                  {n.event.importance === 'KERNEL'
+                    ? t('event.list.kernelAbbr')
+                    : n.event.importance === 'SATELLITE'
+                      ? t('event.list.satelliteAbbr')
+                      : '·'}
                 </span>
                 <span className="ea-context-card-ch">
                   {t('event.list.chapterShort', { n: n.event.chapter })}
@@ -103,7 +107,7 @@ function NeighbourColumn({
               </span>
               <span className="ea-context-card-title">{n.event.title}</span>
               <span className="ea-context-card-shared">
-                {t('event.context.shared', { names: n.shared.slice(0, 3).join('、') })}
+                {t('event.context.shared', { names: n.shared.slice(0, 3).join(t('event.context.nameJoiner')) })}
               </span>
             </button>
           ))}

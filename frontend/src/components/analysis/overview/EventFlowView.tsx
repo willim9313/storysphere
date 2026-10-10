@@ -24,7 +24,7 @@ export function EventFlowView({ events, timeline, onSelectEvent }: Readonly<Even
   const sharedNames = (chain: OverviewEvent[], j: number): string => {
     const [from, to] = j === 0 ? [chain[0], chain[1]] : [chain[j - 1], chain[j]];
     const hit = adjacency.subsequent(from.id).find((n) => n.event.id === to.id);
-    return hit ? hit.shared.slice(0, 3).join('、') : '';
+    return hit ? hit.shared.slice(0, 3).join(t('event.context.nameJoiner')) : '';
   };
 
   return (
