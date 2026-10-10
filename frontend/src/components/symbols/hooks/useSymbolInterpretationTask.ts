@@ -12,6 +12,12 @@ export interface UseSymbolInterpretationTaskResult {
   task: TaskStatus | undefined;
   /** The running task's id, for display. */
   taskId: string | null;
+  /**
+   * The imagery item the task belongs to — not necessarily the one on screen.
+   * The reader can move to another symbol while a run is going, and the overlay,
+   * its cancel button and any failure belong to this one only.
+   */
+  imageryId: string | null;
   /** A task that ran and failed, in the task's own words. */
   error: string | null;
   /**
@@ -47,7 +53,8 @@ export interface UseSymbolInterpretationTaskResult {
  * stays and `cancelFailed` says why.
  */
 export function useSymbolInterpretationTask(
-  onDone: (task: TaskStatus) => void,
+  /** Called with the imagery id the finished task belongs to. */
+  onDone: (task: TaskStatus, imageryId: string | null) => void,
   defaultError: string,
 ): UseSymbolInterpretationTaskResult {
   const [imageryId, setImageryId] = useState<string | null>(null);
@@ -67,7 +74,9 @@ export function useSymbolInterpretationTask(
   const { task, taskId, error, running, adopt, setError, reset: resetTask } = useAsyncTask({
     fetcher,
     defaultError,
-    onDone,
+    // Read through useAsyncTask's ref on completion, so this sees the id of the
+    // run that just finished rather than the one current when polling began.
+    onDone: (finished) => onDone(finished, imageryId),
   });
 
   const trigger = useCallback(
@@ -119,6 +128,7 @@ export function useSymbolInterpretationTask(
   return {
     task,
     taskId,
+    imageryId,
     error,
     triggerFailure,
     running,

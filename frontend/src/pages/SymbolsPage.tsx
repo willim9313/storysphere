@@ -279,16 +279,18 @@ export default function SymbolsPage() {
    * looking uninterpreted forever: the overview still reports null, the query
    * stays disabled, and nothing ever asks the server.
    */
-  const refetchInterpretation = () => {
+  const refetchInterpretation = (imageryId: string | null = selectedId) => {
     if (!bookId) return;
     void queryClient.invalidateQueries({ queryKey: qk.symbols.overview(bookId) });
-    if (selectedId) {
-      void queryClient.invalidateQueries({ queryKey: qk.symbols.interpretation(bookId, selectedId) });
+    if (imageryId) {
+      void queryClient.invalidateQueries({ queryKey: qk.symbols.interpretation(bookId, imageryId) });
     }
   };
 
+  // A run finishes for the symbol it was started on, which the reader may have
+  // left by now — refresh that one, not whichever is open.
   const interpretationTask = useSymbolInterpretationTask(
-    refetchInterpretation,
+    (_task, imageryId) => refetchInterpretation(imageryId),
     t('symbol.error.generic'),
   );
 
@@ -317,7 +319,7 @@ export default function SymbolsPage() {
         evidenceSummary: vars.evidenceSummary,
         polarity: vars.polarity,
       }),
-    onSuccess: refetchInterpretation,
+    onSuccess: () => refetchInterpretation(),
   });
 
   const reviewError = reviewMutation.isError ? t('symbol.error.reviewFailed') : null;
@@ -329,7 +331,11 @@ export default function SymbolsPage() {
 
   // ── Computed ─────────────────────────────────────────────────
   const selected = entities.find((e) => e.id === selectedId) ?? null;
-  const isGenerating = interpretationTask.running && selectedId !== null;
+  // The task may belong to a symbol the reader has since left. Its overlay, cancel
+  // button and failure stay with that symbol; this one shows its own state, with
+  // the generate button held off by `pending` so two runs never spend at once.
+  const taskIsHere = selectedId !== null && interpretationTask.imageryId === selectedId;
+  const isGenerating = interpretationTask.running && taskIsHere;
 
   let interpretationBlock: React.ReactNode;
   if (isGenerating) {
@@ -371,7 +377,7 @@ export default function SymbolsPage() {
         rank={selectedRank}
         onGenerate={() => handleGenerate(false)}
         pending={interpretationTask.running}
-        error={interpretationTask.error}
+        error={taskIsHere ? interpretationTask.error : null}
       />
     ) : null;
   }
