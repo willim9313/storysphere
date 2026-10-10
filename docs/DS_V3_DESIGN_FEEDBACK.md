@@ -2009,3 +2009,15 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 - **目前處置**（使用者 2026-10-10 裁決）：chip 帶全書件數、0 件時停用；已分析 ≥ 10 件且單一重要度 ≥ 90% 時，骨幹圖 caption 下加一行「已分析的 N 件中有 M 件判為核心——這本書的核心／衛星區分不可靠，上下分帶僅供參考。」（工程草稿）。K 方塊外觀不變。資料面的成因（EEP 提示詞未定義 kernel／satellite）另案修正。
 - **請設計端**：chip 件數的樣式、停用態；退化提示的位置與字句。
 
+## 稿外新增 · 敘事結構
+
+| # | 類型 | 狀態 |
+|---|------|------|
+| NL-1 | 缺陷 · 整句說明文字用 `fg-muted` 與 11px，低於可讀門檻 | 待同步 |
+
+### NL-1 整句說明文字的字級與對比
+
+- **出處**：16 敘事結構稿各區說明句（階段詳情的敘事功能、事件框提示、交叉證據判斷依據、「無核心事件」、版面副標）；impeccable critique／audit 敘事結構頁（2026-10-10）P1
+- **問題**：`DESIGN_TOKENS.md` 語意層級規定 11px（`--font-size-2xs`）只給「註記・計數・eyebrow」，次要說明用 12px；`DESIGN.md` 規定 `fg-muted` 只給註記、計數、placeholder。稿上的整句說明卻畫成 11px 或 `fg-muted`（對比約 2.9–3.4:1，未達 4.5:1）。
+- **目前處置**（使用者 2026-10-10 裁決）：僅本頁——整句說明（`nl-sd-note`、`nl-sd-shared`、`nl-band-note`、`nl-cross-body`、`nl-cross-meta`、`nl-cross-peak-note`、`nl-unclass-fact-v`）升到 `--font-size-xs`；承載資訊的 `fg-muted` 文字（`nl-sd-body.is-muted`、`nl-evbox-hint`、`nl-ev-empty`、`nl-cross-meta`、`nl-seg-hint`）改 `--fg-secondary`，兩主題皆換。標籤、章號、徽章維持 11px／muted。不改 token。
+- **請設計端**：16 稿把整句說明改 12px、承載資訊文字改 secondary；全站其他頁同樣用法（`2xs` 約六百處、`fg-muted` 數百處）尚未清點，請決定是否整體套用此規則。
