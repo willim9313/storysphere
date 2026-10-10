@@ -93,15 +93,23 @@
 }
 
 /* 動作列·行內按鈕變體：24 徽章 · 1fr 本文 · 12 狀態點；第二行固定 28px。
-   選中態：底色＋加粗，不用邊框／inset 強調。 */
+   選中態：底色＋加粗，不用邊框／inset 強調。
+   列本身不可互動：.ea-row-main 是選取鈕（整列可點），「生成分析」是兄弟節點，疊在第二行右側。 */
 .ea-row {
+  position: relative;
+  margin: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  background: transparent;
+  transition: background-color var(--transition-fast) ease;
+}
+.ea-row-main {
   display: grid; grid-template-columns: 24px minmax(0, 1fr) 12px;
   column-gap: var(--space-4); align-items: center;
-  margin: 0 var(--space-3); padding: var(--space-4) var(--space-5);
-  border-radius: var(--radius-md);
-  background: transparent; cursor: pointer;
-  font-family: var(--font-sans); color: var(--fg-primary);
-  transition: background-color var(--transition-fast) ease;
+  width: 100%; box-sizing: border-box; margin: 0;
+  padding: var(--space-4) var(--space-5);
+  border: none; border-radius: inherit;
+  background: none; text-align: left; cursor: pointer;
+  font-family: var(--font-sans); font-size: inherit; color: var(--fg-primary);
 }
 .ea-row:hover { background: color-mix(in srgb, var(--bg-secondary) 60%, transparent); }
 .ea-row.selected { background: var(--bg-secondary); }
@@ -123,7 +131,15 @@
   width: 2px; height: 2px; border-radius: 50%;
   background: var(--fg-muted); opacity: 0.6; flex: none;
 }
-.ea-row-create { margin-left: auto; flex-shrink: 0; white-space: nowrap; }
+.ea-row-create-slot {
+  position: absolute; right: var(--space-5);
+  bottom: calc(var(--space-4) + 14px); transform: translateY(50%); /* 對齊第二行（28px）的垂直中心 */
+}
+.ea-row.is-failed .ea-row-create-slot { right: calc(var(--space-5) + 12px + var(--space-4)); }
+.ea-row-create { white-space: nowrap; }
+/* 停用但仍可聚焦、可點（點了改為選取該件）：外觀同 .ss-btn:disabled */
+.ea-row-create[aria-disabled='true'],
+.ea-ov-rank-row .ss-btn[aria-disabled='true'] { opacity: 0.5; cursor: not-allowed; }
 
 /* Importance badge — letter (K / S) */
 .ea-imp {
@@ -546,8 +562,15 @@
 .ea-ov-hero-sub { font-size: var(--font-size-2xs); color: var(--fg-muted); }
 .ea-ov-rank-list { display: flex; flex-direction: column; gap: var(--space-4); }
 .ea-ov-rank-row {
-  display: flex; align-items: center; gap: var(--space-4); cursor: pointer;
+  display: flex; align-items: center; gap: var(--space-4);
   border-radius: var(--radius-sm);
+}
+/* 選取鈕：#N 到人數；「生成分析」是兄弟節點 */
+.ea-ov-rank-main {
+  display: flex; align-items: center; gap: var(--space-4);
+  flex: 1; min-width: 0; margin: 0; padding: 0;
+  border: none; border-radius: inherit; background: none;
+  font: inherit; color: inherit; text-align: left; cursor: pointer;
 }
 .ea-ov-rank-row:hover { background: var(--bg-secondary); }
 .ea-ov-rank-n {
@@ -560,7 +583,7 @@
 .ea-ov-rank-name.muted { color: var(--fg-secondary); }
 .ea-ov-rank-ch { flex: none; font-variant-numeric: tabular-nums; font-size: var(--font-size-2xs); color: var(--fg-muted); }
 .ea-ov-rank-bar-track { width: 70px; height: 5px; flex: none; border-radius: 3px; background: var(--bg-secondary); overflow: hidden; }
-.ea-ov-rank-bar-fill { height: 100%; background: var(--accent); opacity: 0.8; }
+.ea-ov-rank-bar-fill { display: block; height: 100%; background: var(--accent); opacity: 0.8; }
 .ea-ov-rank-bar-fill.muted { opacity: 0.4; }
 .ea-ov-rank-count {
   min-width: 26px; flex: none; text-align: right;

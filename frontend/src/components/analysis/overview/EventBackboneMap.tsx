@@ -53,6 +53,20 @@ interface PositionedNode {
 
 export function EventBackboneMap({ events, onSelectEvent }: Readonly<EventBackboneMapProps>) {
   const { t } = useTranslation('analysis');
+  // Only kernel nodes carry a visible label; every node needs a name of its own
+  // for a screen reader (the Tooltip exists only while hovered).
+  const nodeLabel = (e: OverviewEvent) =>
+    [
+      e.title,
+      t('event.list.chapterShort', { n: e.chapter }),
+      e.importance === 'KERNEL'
+        ? t('event.importance.kernel')
+        : e.importance === 'SATELLITE'
+          ? t('event.importance.satellite')
+          : t('event.overview.undetermined'),
+      e.analyzed ? t('analyzed') : t('notAnalyzed'),
+      ...(e.analyzed ? [t(`event.narrative.${e.narrativeMode}`)] : []),
+    ].join(' · ');
 
   const { nodes, bandRows, chapters, height, undatedCount } = useMemo(() => {
     const placed = events.filter((e) => e.chapter !== null);
@@ -137,6 +151,7 @@ export function EventBackboneMap({ events, onSelectEvent }: Readonly<EventBackbo
                   <button
                     type="button"
                     className="ea-ov-map-node"
+                    aria-label={nodeLabel(n.event)}
                     onClick={() => onSelectEvent(n.event.id)}
                   >
                     <span
