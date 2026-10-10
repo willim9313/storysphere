@@ -6,6 +6,8 @@ GET   /api/v1/symbols/{imagery_id}/timeline     — occurrences sorted by chapte
 GET   /api/v1/symbols/{imagery_id}/co-occurrences — top-k co-occurring terms
 GET   /api/v1/symbols/{imagery_id}/sep          — Symbol Evidence Profile (B-022)
 POST  /api/v1/symbols/analyze-all               — batch LLM symbol interpretation (#15j)
+GET   /api/v1/symbols/analyze-all/active        — running batch for a book (#15k)
+GET   /api/v1/symbols/analyses/running          — running single interpretations (#15l)
 POST  /api/v1/symbols/{imagery_id}/analyze      — start LLM symbol interpretation (B-040)
 GET   /api/v1/symbols/{imagery_id}/analyze/{task_id} — poll interpretation task
 GET   /api/v1/symbols/{imagery_id}/interpretation — cached SymbolInterpretation (B-040)
@@ -42,6 +44,8 @@ from storysphere.api.schemas.symbols import (
     CoOccurrenceEntry,
     ImageryEntityResponse,
     ImageryListResponse,
+    RunningSymbolAnalysesResponse,
+    RunningSymbolAnalysis,
     SymbolTimelineEntry,
 )
 from storysphere.api.store import get_task, task_store
@@ -113,14 +117,18 @@ async def get_symbol_overview(
     Interpretation status is overlaid here rather than cached with the structural
     aggregate, because HITL review changes it without invalidating anything else.
     """
-    overview = await symbol_svc.assemble_overview(
-        book_id=book_id,
-        doc_service=doc_service,
-        kg_service=kg_service,
-        symbol_graph=symbol_graph,
-        cache=cache,
-        force=force,
-    )
+    try:
+        overview = await symbol_svc.assemble_overview(
+            book_id=book_id,
+            doc_service=doc_service,
+            kg_service=kg_service,
+            symbol_graph=symbol_graph,
+            cache=cache,
+            force=force,
+        )
+    except ValueError as exc:
+        # assemble_overview's only documented ValueError: the book does not exist.
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found") from exc
 
     interpretations, blocks = await asyncio.gather(
         symbol_analysis_svc.list_interpretations(book_id),
@@ -257,7 +265,10 @@ async def _symbol_analysis(
 
 
 @router.post(
-    "/{imagery_id}/analyze", response_model=TaskStatus, status_code=202
+    "/{imagery_id}/analyze",
+    response_model=TaskStatus,
+    status_code=202,
+    responses={409: {"model": ErrorResponse}},
 )
 async def analyze_symbol(
     imagery_id: str,
@@ -273,18 +284,25 @@ async def analyze_symbol(
     ``status`` is ``"completed"`` or ``"failed"``.
     """
     entity = await symbol_svc.get_imagery_by_id(imagery_id)
-    if entity is None:
+    # An imagery id from another book would be interpreted in this book's
+    # language and cached under this book — same 404 as a missing one.
+    if entity is None or entity.book_id != req.book_id:
         raise HTTPException(
-            status_code=404, detail=f"Imagery '{imagery_id}' not found"
+            status_code=404,
+            detail=f"Imagery '{imagery_id}' not found in book '{req.book_id}'",
         )
 
     language = await doc.get_document_language(req.book_id)
     req = req.model_copy(update={"language": language})
 
     require_llm_provider()
+    # No await between the check and the claim (see batch_guard).
+    if (busy := batch_guard.conflict("symbol", req.book_id, imagery_id)) is not None:
+        return busy
     task_id = str(uuid4())
     task_store.create(task_id, kind="symbol", title="符號意象抽取")
     task_runner.launch(task_id, _symbol_analysis(task_id, imagery_id, req, agent))
+    batch_guard.hold("symbol", req.book_id, task_id, item_id=imagery_id)
     return TaskStatus(task_id=task_id, status="pending")
 
 
@@ -356,6 +374,23 @@ async def get_active_symbol_batch(
     instead of offering to start a second one (which #15j refuses with 409).
     """
     return ActiveBatchResponse(task_id=batch_guard.running("symbol", book_id))
+
+
+@router.get("/analyses/running", response_model=RunningSymbolAnalysesResponse)
+async def get_running_symbol_analyses(
+    book_id: str = Query(..., description="Book identifier"),
+) -> dict:
+    """Single-symbol interpretations (#15e) still running for this book (#15l).
+
+    Read-only: lets the page show a generation started before a remount (or in
+    another tab) instead of offering to start it again, which #15e refuses with 409.
+    """
+    running = batch_guard.running_items("symbol", book_id)
+    return RunningSymbolAnalysesResponse(
+        running=[
+            RunningSymbolAnalysis(imagery_id=iid, task_id=tid) for iid, tid in running.items()
+        ],
+    ).model_dump(by_alias=True)
 
 
 @router.post(

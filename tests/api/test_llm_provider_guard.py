@@ -101,7 +101,7 @@ def guard_client(mock_kg, mock_doc, mock_analysis_agent):
     mock_voice = AsyncMock()
     mock_voice.get_voice_profile = AsyncMock(side_effect=_voice)
 
-    imagery = SimpleNamespace(id="img-1", frequency=2)
+    imagery = SimpleNamespace(id="img-1", book_id="doc-1", frequency=2)
     mock_symbol = AsyncMock()
     mock_symbol.get_imagery_by_id = AsyncMock(return_value=imagery)
     mock_symbol.get_imagery_list = AsyncMock(return_value=[imagery])
