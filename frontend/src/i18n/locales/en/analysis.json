@@ -1442,7 +1442,7 @@
         "topN": "Interpret the strongest {{count}}…",
         "all": "All {{count}}…",
         "confirmTopN": "This will interpret the {{count}} symbols with the highest narrative load. Each one spends tokens and enters HITL review. Continue?",
-        "confirmAll": "This will interpret all {{count}} ranked symbols, skipping any already done. Each one spends tokens and enters HITL review. Continue?",
+        "confirmAll": "This will interpret {{count}} symbols that have no interpretation yet ({{skipped}} already done, skipped automatically). Each one spends tokens and enters HITL review. Continue?",
         "running": "Batch interpretation running",
         "hint": "You can leave the page; the run continues.",
         "statGenerated": "generated",

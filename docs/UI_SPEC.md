@@ -1648,6 +1648,9 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 > `interpretation` 與 `interpretation_block` **彼此獨立**，可同時非 null。詳情區以
 > `interpretation` 優先；側欄兩個徽章都顯示。批次勾選排除已被拒絕者，與 #15j 後端預設跳過一致。
 
+> 生成中五段的分界以後端進度 10／40／90 為準：10 是尚未載入 SEP，前三步（彙整／採樣／連結）到 40 才完成，LLM 段由 40 映射到 90。
+> 「全部」確認框寫實際生成數與跳過數（已有詮釋或被供應商拒絕者），按鈕文字仍為「全部 N 個」。共現卡不外露欄位名（`entity_type` 等一律用中文類型名）。
+
 #### 無障礙（2026-10-10）
 
 - 搜尋框 `aria-label` 同 placeholder；「全部」與類型 chip 帶 `aria-pressed`。

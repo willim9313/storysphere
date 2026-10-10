@@ -89,11 +89,12 @@ export interface Stage {
 /**
  * Derive 5 UI stages from the backend's 3 real progress events.
  *
- * Backend pipeline (src/services/symbol_analysis_service.py:115-130) emits
- * exactly three progress callbacks:
- *   10 → "loading SEP"
- *   40 → "calling LLM for interpretation"
- *   90 → "saving interpretation"
+ * Backend pipeline (src/services/symbol_analysis_service.py) emits exactly
+ * three progress callbacks:
+ *   10 → emitted BEFORE the SEP is loaded (work is just starting)
+ *   40 → emitted once the SEP is fully assembled (sampled paragraphs and KG
+ *        event / entity links included), right before the LLM call
+ *   90 → emitted after the LLM returns, while saving the interpretation
  *
  * The design splits the first phase (assemble_sep) into 3 narrative sub-steps
  * for UX clarity, even though they happen inside one atomic in-memory call:
@@ -101,21 +102,21 @@ export interface Stage {
  *   2. 採樣段落脈絡 (N/N)
  *   3. 連結 KG 角色 / 事件
  * These three are treated as a single block in the UI: running until progress
- * reaches 10, then all marked done together — they share one `sepState`, so they
- * are always in the same state. The N/N counter shows the symbol's total
- * occurrence count (not a live counter) because that's what `assemble_sep`
- * actually packs into the SEP — the loop runs to completion before progress=40
- * fires.
+ * reaches 40 (the SEP is only complete then; 10 means it has not even loaded),
+ * then all marked done together — they share one `sepState`, so they are always
+ * in the same state. The N/N counter shows the symbol's total occurrence count
+ * (not a live counter) because that's what `assemble_sep` actually packs into
+ * the SEP — the loop runs to completion before progress=40 fires.
  *
  * Steps 4 and 5 map cleanly to the remaining two progress events:
- *   4. LLM 詮釋 · 生成主題命題  (progress 10 → 90)
+ *   4. LLM 詮釋 · 生成主題命題  (progress 40 → 90)
  *   5. 寫入待審紀錄              (progress 90 → 100)
  *
  * Three states, not two: 完成 / 進行中 / 等待. Without the middle one, the stage
  * being worked on read as 「等待」 — the same word as the stages not yet started.
  */
 export function deriveStages(progress: number, occurrenceCount?: number): Stage[] {
-  const sepDone = progress >= 10;
+  const sepDone = progress >= 40;
   const llmDone = progress >= 90;
   const reviewDone = progress >= 100;
 
@@ -127,9 +128,9 @@ export function deriveStages(progress: number, occurrenceCount?: number): Stage[
   if (reviewDone) reviewState = 'done';
   else if (llmDone) reviewState = 'running';
 
-  // Map backend's 10–90 range to a 0–100 progress for the LLM step display.
+  // Map backend's 40–90 range to a 0–100 progress for the LLM step display.
   const llmPct =
-    llmState === 'running' ? Math.max(0, Math.min(100, Math.round(((progress - 10) / 80) * 100))) : 0;
+    llmState === 'running' ? Math.max(0, Math.min(100, Math.round(((progress - 40) / 50) * 100))) : 0;
 
   return [
     { key: 'sep', state: sepState },
