@@ -60,6 +60,9 @@ export const qk = {
       ['books', bookId, 'events', eventId, 'analysis'] as const,
     source: (bookId: Id, eventId: Id) =>
       ['books', bookId, 'events', eventId, 'source'] as const,
+    // Under `analysis` so a regenerated analysis refreshes its quote links too.
+    quoteSources: (bookId: Id, eventId: Id) =>
+      ['books', bookId, 'events', eventId, 'analysis', 'quote-sources'] as const,
   },
 
   epistemic: {
