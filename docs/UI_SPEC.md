@@ -1619,6 +1619,8 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 3. **詮釋區**（三選一：CTA／生成中／已生成）：
    - **CTA 四階**（`InterpretationCta`）：同框同按鈕尺寸，只靠按鈕變體（recommended＝primary，其餘 secondary）與一句話區分；全部 `.ss-btn-llm`；框頭無字符；error 階（供應商阻擋）框用 `--color-error`＋警示圖示，附 `blockedHint` 與 `error.blockedInline`。`blocked` 判定優先於 load 門檻；按鈕保持可點。
    - **生成中**（`InterpretationGenerating`）：五段 stage，三態「完成／進行中／等待」；前三格共用同一 sepState；整體進度取後端打點值；不給 ETA；「每 2 秒輪詢狀態」；**取消**呼叫 `POST /tasks/{id}/cancel`，成功後才關遮罩，失敗留遮罩並顯示 `generating.cancelFailed`。
+   - **一次只跑一件、接手進行中**（2026-10-10）：生成任務綁定它所屬的意象——生成中切到別的意象，那個意象照常顯示自己的 CTA／詮釋，覆蓋層、取消與失敗只留在生成中那個。進頁面查 #15l，有進行中的單件就接手；#15e 回 409 `analysis_running` 時同樣靜默接手。
+     別的意象生成中：CTA「生成詮釋」、「重新生成」、「再試一次」與總覽三顆批次鈕停用，Tooltip「有一個意象正在生成詮釋，完成後再試。」；批次執行中：CTA 停用，Tooltip「批次正在執行，完成後再試。」，「重新生成」「再試一次」照常（批次不帶 force，會跳過已有詮釋與被拒者）。兩句為工程草稿（SY-2）。
    - **已生成詮釋**（`InterpretationHero`，DS v3 第 5 批 5-4，依 11 補稿 A／B／C 區；位置在行為摘要之下、章節分布之上）：`--bg-primary` 卡（`.sym-interp`，`--card-*`、內距 `--space-6`、區塊間距 `--space-6`），無左緣強調。
      - **區塊頭**：12px 行內 `.ss-llm-glyph`（標示內容為 LLM 生成，不是按鈕）＋「LLM 詮釋」（連到 `/methodology?framework=sep_methodology`）＋審核 badge（`ReviewBadge`）＋被阻擋時的 `BlockBadge`；右側 mono provenance＝API 實值 `assembled_by · assembled_at`（`YYYY-MM-DD HH:mm`）。
      - **欄位**：主題（serif lg／1.6）→ 極性 chip（`--polarity-*`＋圓點，Ink 靠填色）與信心（●●●／●●○／●○○＋層級名＋數值 `0.00`＋固定區間「（0.55 – 0.79）」；層級與區間取 `frameworks:tier.*`，分數→層級界線 0.80／0.55 與方法論頁 `TierLegend` 一致，邏輯在 `interpretationModel.confidenceTier`；`TierLegend` 是方法論頁私有元件，這裡以文字圓點頁內實作、未抽共用）→ 證據摘要（serif sm／1.85）→ 連結角色 · {n}（`.ss-pill-character` 可點）／連結事件 · {n}（「第 N 章」mono＋標題，可點）。id 解析不到名稱者以 mono 虛線 chip 顯示截短 id（`truncateId`），不丟掉、不可點、Tooltip 顯示完整 id。

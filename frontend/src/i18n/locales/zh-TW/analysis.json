@@ -1313,7 +1313,9 @@
         "review": "寫入待審紀錄"
       },
       "stageRunning": "進行中",
-      "cancelFailed": "取消失敗，任務仍在進行。"
+      "cancelFailed": "取消失敗，任務仍在進行。",
+      "blockedBySingle": "有一個意象正在生成詮釋，完成後再試。",
+      "blockedByBatch": "批次正在執行，完成後再試。"
     },
     "error": {
       "generic": "操作失敗，請稍後再試。",
