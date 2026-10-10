@@ -285,6 +285,7 @@
   --pill-radius:       20px;
   --pill-border-width: 0.5px;
   --chip-border-width: 0;     /* 篩選 chip：Warm 靠底色分層，不畫框 */
+  --narrative-glyph-display: none; /* 敘事模式字形（←→∥?）：Warm 靠色相區分，不畫 */
   --badge-radius:      20px;
   --control-radius:    var(--radius-md);
   --input-radius:       var(--control-radius); /* 文字框、搜尋、select 共用 */
@@ -441,6 +442,7 @@
   --pill-radius:       4px;
   --pill-border-width: 1px;
   --chip-border-width: 1px;   /* 線稿語彙：chip 也是有框的矩形 tag */
+  --narrative-glyph-display: block; /* 近單色：五種敘事模式的灰階分不開，改由字形承載 */
   --badge-radius:      4px;
   --control-radius:    var(--radius-sm);
   /* var() 在宣告處解析：:root 的別名會把 Warm 值凍結在這裡，所以 Ink 必須重新宣告 */

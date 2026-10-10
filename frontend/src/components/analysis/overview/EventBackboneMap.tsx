@@ -10,6 +10,9 @@ interface EventBackboneMapProps {
   onSelectEvent: (id: string) => void;
 }
 
+// Below this a glyph no longer fits inside the dot (narrow columns shrink dots, #227).
+const GLYPH_MIN_SIZE = 16;
+
 const MODE_ORDER: NarrativeMode[] = ['present', 'flashback', 'flashforward', 'parallel', 'unknown'];
 
 type BandKey = 'KERNEL' | 'UNDETERMINED' | 'SATELLITE';
@@ -161,7 +164,12 @@ export function EventBackboneMap({ events, onSelectEvent }: Readonly<EventBackbo
                       onClick={() => onSelectEvent(n.event.id)}
                     >
                       <span
-                        className={'ea-ov-map-dot' + (n.event.analyzed ? '' : ' is-unanalyzed')}
+                        className={
+                          'ea-ov-map-dot' +
+                          (n.event.analyzed ? '' : ' is-unanalyzed') +
+                          (fit.size >= GLYPH_MIN_SIZE ? ' has-glyph' : '')
+                        }
+                        data-mode={n.event.analyzed ? n.event.narrativeMode : undefined}
                         style={{
                           width: `${fit.size}px`,
                           height: `${fit.size}px`,
@@ -213,6 +221,7 @@ export function EventBackboneMap({ events, onSelectEvent }: Readonly<EventBackbo
                 borderColor: `var(--narrative-${m}-border)`,
               }}
             />
+            <span className="ea-narr-glyph" data-mode={m} aria-hidden="true" />
             {t(`event.narrative.${m}`)}
           </span>
         ))}
