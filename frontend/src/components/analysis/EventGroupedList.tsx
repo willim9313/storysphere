@@ -157,6 +157,18 @@ export function EventGroupedList({
 
   const chipClass = (active: boolean) => 'ea-chip' + (active ? ' active' : '');
 
+  // A book with no events at all: every filter and grouping is a no-op, and
+  // "no events match these filters" would blame a filter nobody set.
+  if (evtData.analyzed.length + evtData.unanalyzed.length === 0) {
+    return (
+      <div className="ea-list">
+        <div className="ea-list-empty">
+          <span>{t('event.list.empty')}</span>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <>
       <div className="ea-list-controls">
