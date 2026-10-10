@@ -492,7 +492,6 @@ export default function NarrativePage() {
 
         {!loading && !pageError && !hasHeroJourney && (
           <>
-          {staleBanner}
           <div className="nl-empty">
             <div className="nl-empty-icon">
               <Compass size={36} />
