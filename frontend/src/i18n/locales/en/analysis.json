@@ -186,7 +186,6 @@
       "statusLine": "{{count}} pending · Already-analyzed characters will be skipped",
       "summaryProgress": "Processed {{count}} this batch",
       "runningWithCount": "Analyzing {{current}}/{{total}}…",
-      "errorFallback": "Batch run failed",
       "failedShort": "{{count}} failed",
       "showFailures": "Show failures only ({{count}}) →",
       "stat": {
@@ -508,7 +507,6 @@
     "summaryProgress": "Processed {{count}} this batch",
     "toastTitle": "Batch EEP Complete",
     "toastBody": "Generated {{generated}} · Skipped {{skipped}} · Failed {{failed}}",
-    "errorFallback": "Batch run failed",
     "failedShort": "{{count}} failed",
     "showFailures": "Show failures only ({{count}}) →",
     "runningWithCount": "Analyzing {{current}}/{{total}}…",

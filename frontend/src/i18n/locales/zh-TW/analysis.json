@@ -186,7 +186,6 @@
       "statusLine": "{{count}} 位待生成 · 已分析的角色會自動跳過",
       "summaryProgress": "本批次共處理 {{count}} 位",
       "runningWithCount": "分析中 {{current}}/{{total}}…",
-      "errorFallback": "批次執行失敗",
       "failedShort": "失敗 {{count}}",
       "showFailures": "只看失敗 ({{count}}) →",
       "stat": {
@@ -508,7 +507,6 @@
     "summaryProgress": "本批次共處理 {{count}} 件",
     "toastTitle": "批次 EEP 分析完成",
     "toastBody": "已生成 {{generated}} 件 · 跳過 {{skipped}} · 失敗 {{failed}}",
-    "errorFallback": "批次執行失敗",
     "failedShort": "失敗 {{count}}",
     "showFailures": "只看失敗 ({{count}}) →",
     "runningWithCount": "分析中 {{current}}/{{total}}…",

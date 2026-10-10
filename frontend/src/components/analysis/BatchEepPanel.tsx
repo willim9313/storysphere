@@ -211,7 +211,7 @@ export function BatchEepPanel({
             ) : (
               <p className="ea-batch-status">
                 {batchError && !llmBlocked ? (
-                  <span className="is-error">{batchError || t(k('errorFallback'))}</span>
+                  <span className="is-error">{batchError}</span>
                 ) : state === 'attention' && batchSummary ? (
                   t(k('summaryProgress'), { count: batchSummary.progress })
                 ) : (

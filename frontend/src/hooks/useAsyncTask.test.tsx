@@ -6,7 +6,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ApiError } from '@/api/client';
 import type { TaskStatus } from '@/api/types';
 import { useAsyncTask } from './useAsyncTask';
-import { useBatchTask } from './useBatchTask';
+import { parseBatchResult, useBatchTask } from './useBatchTask';
 import { qk } from '@/api/queryKeys';
 
 /** useBatchTask polls through the default fetcher, so that one gets mocked. */
@@ -322,5 +322,43 @@ describe('useBatchTask', () => {
       await waitFor(() => expect(result.current.error).toBe('批次失敗'));
       expect(fetchActive).toHaveBeenCalledTimes(1); // the mount lookup only
     });
+  });
+});
+
+describe('parseBatchResult', () => {
+  it('accepts a summary without failures', () => {
+    expect(parseBatchResult({ progress: 5, total: 5, failed: 0, skipped: 1 })).toEqual({
+      progress: 5,
+      total: 5,
+      failed: 0,
+      skipped: 1,
+    });
+  });
+
+  it.each([
+    ['event_id', { reason: 'x', event_id: 'e1' }],
+    ['entity_id', { reason: 'x', entity_id: 'c1' }],
+    ['imagery_id', { reason: 'x', imagery_id: 'i1' }],
+  ])('keeps %s failures', (_name, failure) => {
+    const got = parseBatchResult({ progress: 1, total: 2, failed: 1, skipped: 0, failures: [failure] });
+    expect(got?.failures).toEqual([failure]);
+  });
+
+  it('rejects a missing or non-numeric counter', () => {
+    expect(parseBatchResult({ progress: 1, total: 2, failed: 0 })).toBeNull();
+    expect(parseBatchResult({ progress: '1', total: 2, failed: 0, skipped: 0 })).toBeNull();
+  });
+
+  it('rejects non-objects', () => {
+    expect(parseBatchResult(null)).toBeNull();
+    expect(parseBatchResult(undefined)).toBeNull();
+    expect(parseBatchResult('done')).toBeNull();
+    expect(parseBatchResult([1, 2, 3, 4])).toBeNull();
+  });
+
+  it('treats non-array failures as absent', () => {
+    const got = parseBatchResult({ progress: 1, total: 1, failed: 0, skipped: 0, failures: 'oops' });
+    expect(got).toEqual({ progress: 1, total: 1, failed: 0, skipped: 0 });
+    expect(got).not.toHaveProperty('failures');
   });
 });
