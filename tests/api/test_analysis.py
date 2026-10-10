@@ -785,6 +785,73 @@ class TestBatchMutex:
         event_batch_client.post(f"/api/v1/tasks/{task_id}/cancel")
 
 
+class TestSingleEventMutex:
+    """Two #7e runs on the same event pay for the same analysis twice; the page
+    tracks one run at a time and forgets it on remount, so the backend refuses
+    the second and #7l lists what is still running."""
+
+    @pytest.fixture
+    def single_client(self, event_batch_client, mock_kg, mock_analysis_agent):
+        events = {ev.id: ev for ev in _make_events()}
+        mock_kg.get_event = AsyncMock(side_effect=lambda eid: events.get(eid))
+        mock_analysis_agent.analyze_event.side_effect = hanging_call()
+        return event_batch_client
+
+    def _start(self, client, event_id="evt-1") -> str:
+        resp = client.post(f"/api/v1/books/doc-1/events/{event_id}/analyze", json={})
+        assert resp.status_code == 200
+        return resp.json()["taskId"]
+
+    def _running(self, client) -> list[dict]:
+        resp = client.get("/api/v1/books/doc-1/events/analyses/running")
+        assert resp.status_code == 200
+        return resp.json()["running"]
+
+    def test_running_is_empty_when_idle(self, single_client):
+        assert self._running(single_client) == []
+
+    def test_second_run_on_same_event_returns_409(self, single_client):
+        task_id = self._start(single_client)
+
+        resp = single_client.post("/api/v1/books/doc-1/events/evt-1/analyze", json={})
+        assert resp.status_code == 409
+        assert resp.json()["code"] == "analysis_running"
+        assert self._running(single_client) == [{"eventId": "evt-1", "taskId": task_id}]
+
+        single_client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+    def test_another_event_is_not_blocked(self, single_client):
+        first = self._start(single_client, "evt-1")
+        second = self._start(single_client, "evt-2")
+
+        running = {r["eventId"]: r["taskId"] for r in self._running(single_client)}
+        assert running == {"evt-1": first, "evt-2": second}
+
+        for task_id in (first, second):
+            single_client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+    def test_finished_run_frees_the_event(self, single_client, mock_analysis_agent):
+        task_id = self._start(single_client)
+        single_client.post(f"/api/v1/tasks/{task_id}/cancel")
+        poll_until_terminal(single_client, task_id)
+
+        assert self._running(single_client) == []
+        mock_analysis_agent.analyze_event.side_effect = None
+        self._start(single_client)
+
+    def test_a_single_run_does_not_block_the_batch(self, single_client):
+        task_id = self._start(single_client)
+
+        resp = single_client.post("/api/v1/books/doc-1/events/analyze-all")
+        assert resp.status_code == 202
+        assert single_client.get(
+            "/api/v1/books/doc-1/events/analyze-all/active"
+        ).json() == {"taskId": resp.json()["taskId"]}
+
+        single_client.post(f"/api/v1/tasks/{task_id}/cancel")
+        single_client.post(f"/api/v1/tasks/{resp.json()['taskId']}/cancel")
+
+
 # ── Batch event analysis: cancellation and abort ─────────────────────────────
 
 

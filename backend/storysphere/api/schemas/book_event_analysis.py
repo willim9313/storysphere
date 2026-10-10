@@ -126,3 +126,18 @@ class EventSourceResponse(BaseModel):
 
     event_id: str
     passages: list[EventSourcePassage] = Field(default_factory=list)
+
+
+class RunningEventAnalysis(BaseModel):
+    model_config = _CAMEL
+
+    event_id: str
+    task_id: str
+
+
+class RunningEventAnalysesResponse(BaseModel):
+    """Single-event analyses (#7e) currently running for a book (#7l)."""
+
+    model_config = _CAMEL
+
+    running: list[RunningEventAnalysis] = Field(default_factory=list)

@@ -32,6 +32,8 @@ from storysphere.api.schemas.book_event_analysis import (
     EventParticipant,
     EventSourcePassage,
     EventSourceResponse,
+    RunningEventAnalysesResponse,
+    RunningEventAnalysis,
 )
 from storysphere.api.schemas.books import (
     AnalysisItem,
@@ -195,6 +197,7 @@ async def _event_analysis(
 @router.post(
     "/{book_id}/events/{event_id}/analyze",
     response_model=TaskIdResponse,
+    responses={409: {"model": ErrorResponse}},
 )
 async def trigger_event_analysis(
     book_id: str,
@@ -231,6 +234,9 @@ async def trigger_event_analysis(
         event.title, event_id, book_id, language, body.mode,
     )
     require_llm_provider()
+    # No await between the check and the claim (see batch_guard).
+    if (busy := batch_guard.conflict("event", book_id, event_id)) is not None:
+        return busy
     task_id = str(uuid4())
     task_store.create(task_id, kind="event", title="事件分析")
     task_runner.launch(
@@ -239,8 +245,30 @@ async def trigger_event_analysis(
             task_id, event_id, book_id, agent, language, retry_parts, force_refresh
         ),
     )
+    batch_guard.hold("event", book_id, task_id, item_id=event_id)
 
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
+
+
+# ── #7l GET /books/:bookId/events/analyses/running ──────────────────────────
+
+
+@router.get(
+    "/{book_id}/events/analyses/running",
+    response_model=RunningEventAnalysesResponse,
+)
+async def get_running_event_analyses(book_id: str) -> dict:
+    """Single-event analyses (#7e) still running for this book.
+
+    Read-only: lets the page show a generation started before a remount (or in
+    another tab) instead of offering to start it again, which #7e refuses with 409.
+    """
+    running = batch_guard.running_items("event", book_id)
+    return RunningEventAnalysesResponse(
+        running=[
+            RunningEventAnalysis(event_id=eid, task_id=tid) for eid, tid in running.items()
+        ],
+    ).model_dump(by_alias=True)
 
 
 # ── #7d-get GET /books/:bookId/events/:eventId/analysis ──────────────────────
