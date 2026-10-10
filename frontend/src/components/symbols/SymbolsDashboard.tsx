@@ -150,6 +150,10 @@ function BatchButtons({
   const [pendingRun, setPendingRun] = useState<PendingRun | null>(null);
   const main = analysis?.main ?? [];
   const pending = main.filter((s) => !s.hasInterpretation);
+  // The backend skips symbols that already have an interpretation or were
+  // refused by the provider, so the confirm text counts only what will run.
+  const allCount = main.filter((s) => !s.hasInterpretation && !s.block).length;
+  const allSkipped = main.length - allCount;
   if (batch.running || pending.length === 0) return null;
 
   const topN = pending.slice(0, BATCH_TOP_N);
@@ -211,7 +215,7 @@ function BatchButtons({
             disabled={batch.pending || !!blockedReason}
             onClick={() =>
               setPendingRun({
-                message: t('symbol.overview.batch.confirmAll', { count: main.length }),
+                message: t('symbol.overview.batch.confirmAll', { count: allCount, skipped: allSkipped }),
                 ids: main.map((s) => s.id),
               })
             }

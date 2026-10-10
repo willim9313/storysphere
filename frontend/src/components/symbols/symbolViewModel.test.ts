@@ -6,6 +6,7 @@ import {
   analyzedCount,
   computableSignals,
   densityLegend,
+  deriveStages,
   isBelowTrustFloor,
   tailIsMuted,
   tailSize,
@@ -24,6 +25,33 @@ describe('trust floor', () => {
     // 海: (正文 5 + 後記 0) / 總出現 7 = 71%
     expect(trustPct({ trust: 5 / 7 })).toBe(71);
     expect(trustPct({ trust: 1 })).toBe(100);
+  });
+});
+
+describe('deriveStages', () => {
+  const st = (p: number) => Object.fromEntries(deriveStages(p).map((x) => [x.key, x]));
+
+  it('keeps the first three steps running at progress 10 (SEP not assembled yet)', () => {
+    const s = st(10);
+    expect([s.sep.state, s.context.state, s.link.state]).toEqual(['running', 'running', 'running']);
+    expect(s.llm.state).toBe('pending');
+  });
+
+  it('marks them done at 40 and starts the LLM step at 0%', () => {
+    const s = st(40);
+    expect([s.sep.state, s.context.state, s.link.state]).toEqual(['done', 'done', 'done']);
+    expect(s.llm.state).toBe('running');
+    expect(s.llm.pct).toBe(0);
+  });
+
+  it('maps 40-90 onto the LLM step 0-100%', () => {
+    expect(st(65).llm.pct).toBe(50);
+  });
+
+  it('runs review from 90 and finishes at 100', () => {
+    expect(st(90).llm.state).toBe('done');
+    expect(st(90).review.state).toBe('running');
+    expect(st(100).review.state).toBe('done');
   });
 });
 
