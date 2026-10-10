@@ -1,7 +1,7 @@
 import { useCallback, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
-import { analyzeAllSymbols } from '@/api/symbols';
+import { analyzeAllSymbols, fetchActiveSymbolBatch } from '@/api/symbols';
 import { isLlmUnconfigured } from '@/api/failureKind';
 import { useBatchTask, type BatchTask } from '@/hooks/useBatchTask';
 import { qk } from '@/api/queryKeys';
@@ -31,6 +31,7 @@ export function useSymbolBatch(bookId: string | undefined, failureMessage: strin
   }, [bookId, queryClient]);
 
   const batch = useBatchTask<string[]>({
+    i18nPrefix: 'symbol.overview.batch',
     trigger: async (imageryIds) => {
       setLlmBlocked(false);
       try {
@@ -44,6 +45,7 @@ export function useSymbolBatch(bookId: string | undefined, failureMessage: strin
     onProgress: refreshOverview,
     onDone: refreshOverview,
     failureMessage,
+    resume: { key: bookId, fetch: () => fetchActiveSymbolBatch(bookId!) },
   });
 
   const { dismiss } = batch;

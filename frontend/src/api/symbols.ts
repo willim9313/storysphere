@@ -10,6 +10,7 @@ export type CoOccurrenceEntry = components['schemas']['CoOccurrenceEntry'];
 export type SEP = components['schemas']['SEP'];
 export type SEPOccurrenceContext = components['schemas']['SEPOccurrenceContext'];
 export type SymbolInterpretation = components['schemas']['SymbolInterpretation'];
+type ActiveBatchResponse = components['schemas']['ActiveBatchResponse'];
 export type SymbolOverview = components['schemas']['SymbolOverview'];
 export type SymbolOverviewItem = components['schemas']['SymbolOverviewItem'];
 export type CoOccurringEntityRef = components['schemas']['CoOccurringEntityRef'];
@@ -68,6 +69,12 @@ export interface AnalyzeAllSymbolsOpts {
   imageryIds?: string[];
   language?: string;
   forceRefresh?: boolean;
+}
+
+/** The symbol batch running for this book, if any (#15k) — to resume after a remount. */
+export function fetchActiveSymbolBatch(bookId: string): Promise<ActiveBatchResponse> {
+  const params = new URLSearchParams({ book_id: bookId });
+  return apiFetch<ActiveBatchResponse>(`/symbols/analyze-all/active?${params}`);
 }
 
 /** Batch LLM interpretation (#15j). Poll via #8, not the per-symbol #15f. */

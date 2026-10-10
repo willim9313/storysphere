@@ -554,14 +554,33 @@ interface BatchAnalysisRequest {
 **Response 404**：書本不存在
 **Response 400**：書本內無 character 類型實體（含 `entityIds` 提供但子集內無任何有效角色的情況——視為同一種空結果）
 **Response 503**：未設定 LLM provider（見「通用規則」）；在 404／400 之後檢查
+**Response 409**：同一本書已有角色批次執行中 —— body `{ "detail": string, "code": "batch_running" }`，**不建立 task**。
+再開一輪會讓兩輪對同一批尚未寫入快取的項目各呼叫一次 LLM。在 404／400／503 之後檢查；前端改以 #7j 取回進行中的 taskId 接手。
 
-**說明**：TaskStatus.result 的進度格式與事件批次共用 `BatchEepResult`（見 #7g）；`total` 為實際執行的角色數（有 `entityIds` 時為子集大小，非全書角色數）。`entityIds` 中不存在的 id 直接排除，不計入任何統計欄位（不算 skipped/failed）。仍會 skip 已分析角色（cache hit）。polling #8。
+**說明**：TaskStatus.result 的進度格式與事件批次共用 `BatchEepResult`（見 #7g）；`total` 為實際執行的角色數（有 `entityIds` 時為子集大小，非全書角色數）。`entityIds` 中不存在的 id 直接排除，不計入任何統計欄位（不算 skipped/failed）。仍會 skip 已分析角色（cache hit）。polling #8。`stepKey`（`batch_progress`／`rate_limited`）語意同 #7g。
 
 **UI 使用頁面**：角色分析頁「一鍵生成全部角色分析」、分層批次「先生成前 10 位要角」（#11）
 
 ---
 
+### #7j GET /books/:bookId/entities/analyze-all/active
+
+取回這本書目前執行中的角色批次（#7h）的 taskId。唯讀、不花 token。
+
+**Response 200**：`{ taskId: string | null }` —— 沒有執行中的批次時為 `null`（不回 404）
+
+**說明**：頁面重新掛載時用它接手進行中的批次（繼續 polling #8），而不是再給一次「開始」；#7h 回 409 `batch_running` 時亦同。
+記錄存在後端進程內（與任務取消同一套 registry）：單一 worker 有效，後端重啟後為 `null`（背景任務本身也已中止）。
+
+**UI 使用頁面**：角色分析頁批次面板——進頁面時恢復「執行中」，觸發回 409 時接手（`useBatchTask` 的 `resume`）
+
+---
+
 ## 深度分析（事件層級）
+
+**章節欄位命名**：#6b、#7d 的章號欄位叫 `chapter`，#7m、#7i（`EventSourcePassage`）叫 `chapterNumber`，兩者同義（1-based 章號）；為避免 breaking change 不改名。
+
+**事件歸屬**：本節所有單件事件端點（#7d／#7e／#7f／#7i／#7m）對「事件存在但屬於別本書」一律回 404，與事件不存在無異。
 
 ### #7d GET /books/:bookId/events/:eventId/analysis
 
@@ -578,7 +597,7 @@ interface EventAnalysisDetail {
   summary: { summary: string };
   status: 'complete' | 'partial';   // partial = causality / impact 子步驟生成失敗
   failedParts: string[];            // 失敗 part，如 ['impact']
-  analyzedAt: string;
+  analyzedAt: string | null;
   chapter?: number | null;        // 事件所在章節
   chunk?: number | null;          // 事件在章節內的位置（目前對應 Event.narrative_position，未來改用 chunk_id 時不變動此欄位語意）
   narrativeMode?: string | null;  // present | flashback | flashforward | parallel | unknown
@@ -603,7 +622,7 @@ interface EventEvidenceProfile {
 }
 ```
 
-**Response 404**：尚未生成
+**Response 404**：事件不存在、不屬於這本書，或尚未生成
 
 **UI 使用頁面**：事件分析頁內容區
 
@@ -617,9 +636,58 @@ interface EventEvidenceProfile {
 
 **Response 200**：`{ taskId: string }`
 
-**Response 503**：未設定 LLM provider（見「通用規則」）；404（事件不存在）優先於 503
+**Response 503**：未設定 LLM provider（見「通用規則」）；404（事件不存在或不屬於這本書）優先於 503
+
+**Response 409**：同一件事件已有分析在執行中（任一 `mode`）—— body `{ "detail": string, "code": "analysis_running" }`，**不建立 task**。
+兩輪會對同一件事件各呼叫一次 LLM。在 404／503 之後檢查；進行中的 taskId 由 #7l 取得。只擋同一件事件：別件事件、以及整本批次（#7g）都不互擋。
+
+**說明**：polling #8 時，`TaskStatus.stepKey` 依序為 `eep`（5%）→ `causality`（30%）→ `summary`（75%）→ `coverage`（95%）；`retryFailed` 沿用 cached EEP 時不經 `eep`。前端以 i18n 顯示階段名，`stage` 仍為英文字串供 log 使用。
 
 **UI 使用頁面**：事件分析頁「建立」按鈕
+
+---
+
+### #7l GET /books/:bookId/events/analyses/running
+
+這本書目前執行中的單件事件分析（#7e）。唯讀、不花 token。
+
+**Response 200**
+```ts
+{ running: Array<{ eventId: string; taskId: string }> }  // 沒有時為 []（不回 404）
+```
+
+**說明**：頁面重新掛載（或另一個分頁已開始）時用它接手進行中的生成，而不是再給一次「建立」；#7e 回 409 `analysis_running` 時亦同。
+回清單而非單筆：不同分頁可能同時在跑不同事件。記錄與 #7k 同一套進程內 registry：單一 worker 有效，後端重啟後為 `[]`。
+
+**UI 使用頁面**：事件分析頁——進頁面時恢復單件「生成中」（列上的生成中點），#7e 回 409 時接手
+
+---
+
+### #7m GET /books/:bookId/events/:eventId/quote-sources
+
+把已分析事件的關鍵引言（#7d `eep.keyQuotes`）逐句對到它在書中的段落。唯讀、不花 token（不呼叫 LLM、不用向量檢索）。
+
+**Response 200**
+```ts
+{
+  eventId: string;
+  quotes: Array<{
+    text: string;                  // 與 keyQuotes 同序、同字
+    paragraphId: string | null;    // 對不到唯一段落時為 null
+    chapterNumber: number | null;  // 該段落所在章（1-based）
+  }>;
+}
+```
+
+**Response 404**：事件不存在、不屬於這本書，或尚未分析（無 #7d 快取）
+
+**比對規則**（確定性文字比對）：
+- 引言與段落都先去掉空白（PDF 抽取會在 CJK 字中插空白）與引號 `「」『』"“”‘’`，引言再去掉結尾的 `…`／`.`／`—`。
+- 先找**整句**是段落原文一部分者；沒有時，引言長於 12 字才改用**前 12 字**再找一次。
+- 只收**唯一**的命中：事件所在章恰好一段，或該章沒有命中而全書恰好一段。命中多段一律回 `null`——連到錯的段落比沒有連結更糟。
+- 不用語意檢索：實測語意最近鄰約一半落在錯的段落（2026-10-10，名字的潮汐 18 句中 9 句）；本規則同書 240 句對到 221 句（92%），抽 5 句核對段落皆正確。
+
+**UI 使用頁面**：事件分析頁證據分頁——對到段落的關鍵引言可點擊跳至閱讀頁該段
 
 ---
 
@@ -629,7 +697,9 @@ interface EventEvidenceProfile {
 
 **Response 204**
 
-**UI 使用頁面**：事件分析頁「覆蓋重新生成」
+**Response 404**：事件不存在或不屬於這本書
+
+**UI 使用頁面**：無（前端已不呼叫；「覆蓋重新生成」改用 #7e `mode: 'full'`，新結果寫入前不先刪舊 EEP，避免生成失敗時新舊兩頭落空）
 
 ---
 
@@ -662,6 +732,8 @@ interface EventSourceResponse {
 > （`"{title} {description}"`）。UI 必須以「最相關段落」呈現，不得宣稱為原文出處。
 > 向量服務不可用時回傳空陣列而非錯誤。
 
+**Response 404**：事件不存在或不屬於這本書
+
 **UI 使用頁面**：事件分析頁未分析事件狀態
 
 ---
@@ -679,8 +751,10 @@ interface EventSourceResponse {
 **Response 202**：`{ taskId: string }`
 
 **Response 503**：未設定 LLM provider（見「通用規則」）；在 404／400 之後檢查
+**Response 409**：同一本書已有事件批次執行中 —— body `{ "detail": string, "code": "batch_running" }`，**不建立 task**。
+再開一輪會讓兩輪對同一批尚未寫入快取的項目各呼叫一次 LLM。在 404／400／503 之後檢查；前端改以 #7k 取回進行中的 taskId 接手。
 
-**說明**：TaskStatus.result 的進度格式見下方 BatchEepResult。polling #8。
+**說明**：TaskStatus.result 的進度格式見下方 BatchEepResult。polling #8。執行中 `stepKey = "batch_progress"`、`subProgress`／`subTotal` 為已處理／總件數；遇 rate limit 中止時先回報一次 `stepKey = "rate_limited"`（同帶件數）再讓任務 `status = "error"`，`stepKey` 與 `sub*` 在 error 後保留，前端據此以 i18n 組「已處理 N/M 件」，`error` 仍是後端中文字串。
 
 ```ts
 interface BatchEepResult {
@@ -701,6 +775,19 @@ interface BatchEepResult {
 `{ entity_id, name, reason }`，依 `name` 排序。
 
 **UI 使用頁面**：事件分析頁「一鍵生成全部 EEP」、批次子集（只生成本章 / 勾選多筆）
+
+---
+
+### #7k GET /books/:bookId/events/analyze-all/active
+
+取回這本書目前執行中的事件批次（#7g）的 taskId。唯讀、不花 token。
+
+**Response 200**：`{ taskId: string | null }` —— 沒有執行中的批次時為 `null`（不回 404）
+
+**說明**：頁面重新掛載時用它接手進行中的批次（繼續 polling #8），而不是再給一次「開始」；#7g 回 409 `batch_running` 時亦同。
+記錄存在後端進程內（與任務取消同一套 registry）：單一 worker 有效，後端重啟後為 `null`（背景任務本身也已中止）。
+
+**UI 使用頁面**：事件分析頁批次面板——進頁面時恢復「執行中」，觸發回 409 時接手（`useBatchTask` 的 `resume`）
 
 ---
 
@@ -741,6 +828,10 @@ interface TaskStatus {
                            // pdfParsing | languageDetect | summarization | featureExtraction
                            // | knowledgeGraph | symbolExploration | dataStorage
                            // 前端 ProcessingTimeline 優先以此判斷步驟狀態，缺省時 fallback 百分比區間
+                           // 批次分析任務（#7g／#7h／#15j）：batch_progress（逐件進度，帶 subProgress／subTotal）
+                           // | rate_limited（rate limit 中止，帶已處理／總數；任務隨後 status=error，stepKey 與 sub* 保留）
+                           // 事件單件分析（#7e）：eep | causality | summary | coverage
+                           // 有 stepKey 時前端以 i18n 組字顯示；stage／error 仍是後端中文，作為向後相容與 log 用
   subProgress?: number;    // 子任務進度（批次任務使用）
   subTotal?: number;
   subStage?: string;
@@ -1979,6 +2070,8 @@ interface SEP {
 **Response 202**：`TaskStatus`（含 `taskId`）
 **Response 400**：範圍內無任何意象（含 `imagery_ids` 提供但子集內無有效 id 的情況）
 **Response 503**：未設定 LLM provider（見「通用規則」）；在 400 之後檢查
+**Response 409**：同一本書已有象徵詮釋批次執行中 —— body `{ "detail": string, "code": "batch_running" }`，**不建立 task**。
+再開一輪會讓兩輪對同一批尚未寫入快取的項目各呼叫一次 LLM。在 400／503 之後檢查；前端改以 #15k 取回進行中的 taskId 接手。
 
 **說明**
 
@@ -1994,11 +2087,27 @@ interface SEP {
   這裡**只有 id 沒有名稱**——與事件／角色批次不同，這個迴圈拿到的就只有 id。
   rate limit 中止時回傳的摘要同樣帶著這份清單，那正是最需要知道「哪些已經跑掉」的時候。
 - 遇到 rate limit **整批中止**並回報已完成數，不繼續消耗額度。
+  進度 `stepKey = "batch_progress"`；中止前回報一次 `stepKey = "rate_limited"`（語意同 #7g），前端據此在地化。
 - `TaskStatus.result` 用與角色／事件批次共通的 `BatchEepResult`（見 #7g）；
   進度另填 `sub_progress` / `sub_total`，讓 BatchEepPanel 顯示件數而非百分比。
 - polling 走 **#8**（不是 #15f —— #15f 是單一意象的專用 polling）。
 
 **UI 使用頁面**：象徵意象頁全書意象地圖的批次按鈕與進度面板
+
+---
+
+### #15k GET /symbols/analyze-all/active
+
+取回這本書目前執行中的象徵詮釋批次（#15j）的 taskId。唯讀、不花 token。
+
+**Query**：`book_id`（必填）
+
+**Response 200**：`{ taskId: string | null }` —— 沒有執行中的批次時為 `null`（不回 404）
+
+**說明**：頁面重新掛載時用它接手進行中的批次（繼續 polling #8），而不是再給一次「開始」；#15j 回 409 `batch_running` 時亦同。
+記錄存在後端進程內（與任務取消同一套 registry）：單一 worker 有效，後端重啟後為 `null`（背景任務本身也已中止）。
+
+**UI 使用頁面**：象徵意象頁批次面板——進頁面時恢復「執行中」，觸發回 409 時接手（`useBatchTask` 的 `resume`）
 
 ---
 

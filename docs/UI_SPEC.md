@@ -626,7 +626,7 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 決議紀錄 `09·10 批次面板收合`（2026-10-04 整份採用）、計畫 `docs/plans/20261004-ds-v3-batch5-supplement.md` Q3；元件 `BatchEepPanel`，四態與收合推導在 `batchPanelModel.ts`。
 
 - **位置**：左欄最上（268），框架軸 Jung／Schmidt 讓到第二位；選了角色後面板仍在。landing 標頭只留視圖 toggle。
-- **按鈕**：「生成全部」＝主鈕（`ss-btn-primary ss-btn-llm`）、「先生成前 10 位要角」歸子集（`ss-btn-secondary ss-btn-llm`，同事件頁「只生成核心」的排法）；
+- **按鈕**：「生成全部」＝主鈕（`ss-btn-primary ss-btn-llm`）、「先生成前 10 位要角」歸子集（`ss-btn-secondary ss-btn-llm`，同事件頁「只生成本章」的排法）；
   兩顆照舊走 `ConfirmDialog`（文案不動）。狀態行「{n} 位待生成 · 已分析的角色會自動跳過」，無估時（角色沒有估時公式）。
 - **四態、收合、失敗**：規則與事件頁相同，見 §3.5「第 5 批 · 批次面板」。角色版的收合列第 1 態是「{n} 位待生成」、第 4 態是「全部角色已分析 ✓」。
 - **只看失敗**：左欄清單上方出現「失敗 N」chip（選中＝底色＋加粗，再按取消），選中時只留失敗的未分析角色（已分析群組隱藏；群組標頭既有的「顯示 / 總數」顯示筆數）；
@@ -757,8 +757,9 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 - **密度**：B 檢視。內容區 padding `--space-7`（24）／下 `--space-8`（32）、內層 `max-width: 1280` 置中、區塊間距 `--space-6`（16）；
   左欄 268 固定、背景 `--bg-primary`、右緣 `--line-weight` 分隔線。間距只用 `--space-1…8`。
 - **批次面板（`BatchEepPanel`）**（第 5 批 09·10 已改寫四態與收合，見下方「第 5 批 · 批次面板」，本條只留按鈕規格）：主鈕「一鍵生成全部 EEP」`ss-btn-primary ss-btn-llm`，走確認框。
-  子集區在主鈕正下方**同一張卡**、不收折疊；子集鈕（只生成核心 (N)／只生成本章／生成已勾選 (N)）都掛 `ss-btn-llm`（「勾選多筆」是 `ss-btn-secondary`、不掛字符），三顆各佔一行、寬度隨內容靠左，
-  筆數寫在標籤裡、**直接執行不開確認框**（不對稱是設計決定）。disabled 的鈕外層掛 `Tooltip`（逐字 `batch.kernelOnlyDisabled`／`batch.chapterOnlyDisabled`）。
+  子集區在主鈕正下方**同一張卡**、不收折疊；子集鈕（只生成本章／生成已勾選 (N)）都掛 `ss-btn-llm`（「勾選多筆」是 `ss-btn-secondary`、不掛字符），各佔一行、寬度隨內容靠左，
+  筆數寫在標籤裡、**直接執行不開確認框**（不對稱是設計決定）。disabled 的鈕外層掛 `Tooltip`（逐字 `batch.chapterOnlyDisabled`）。
+  「只生成核心 (N)」已移除（2026-10-10）：未分析事件的重要度恆為 null、且重要度本身不可信（B-133），該鈕永遠 disabled。
   執行中整區子集隱藏、主鈕變 disabled「分析中 N/M…」（N／M＝**本次 run** 的 `subProgress`／`subTotal`，不是全書已分析數；task 尚未回報 `subTotal` 前退回全書計數）＋ stage ＋ ▶ live（stage 太長時 Tooltip 顯全文）。
   完成後面板顯示三格計數＋失敗**數**（第 5 批起不再列失敗清單），不再有「批次 EEP 分析完成」那一列（只在 toast），也沒有面板內關閉鈕（見 feedback 3-EV-7）。
 - **清單列（`EventListItems`，動作列·行內按鈕變體）**：一行格線 `24px · 1fr · 12px`，第二行固定 28px（章號、非順敘 chip、stale 小點、未分析列的「生成分析」`ss-btn-llm`）。
@@ -776,6 +777,38 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
   2. 詳情載入失敗（清單說已分析但抓取失敗）→ 獨立分支，兩句逐字（`event.detailError.*`）＋重試；**裸 502（無應用層 body）改走後端失敗變體**。
   3. 所有花 token 的觸發（單件生成、覆蓋重新生成、重試失敗部分、一鍵全部、三個子集）失敗先判 `isLlmUnconfigured` → 就地 `LlmUnconfiguredNotice`
      （單件／覆蓋／重試顯示在內容區頂；批次顯示在左欄面板內，取代一般批次錯誤文字）。
+- **單件生成（2026-10-10）**：頁面一次追蹤一件（`generatingId`＋模式）。建立、覆蓋重新生成、重試失敗部分三種觸發都標記該件，左欄列帶生成中點。
+  - **只停住正在生成的那件**：生成中點別的事件照常看詳情／原文段落；「生成中」轉圈與失敗面板只在選到那件時出現；完成時刷新的是生成的那件（不是當下選取）。
+  - **失敗面板**：`ss-btn-primary ss-btn-llm`「重試」（以原模式對同一件再觸發，不開確認框——同原本的建立）＋ secondary「關閉」（回原畫面）；字串沿用 `common.retry`／`common.close`。
+    失敗後列上不再顯示生成中點。
+  - **接手**：進頁面時查 #7l，有進行中的單件就接著追蹤；#7e 回 409 `analysis_running`（另一分頁已在跑）時同樣接手，不顯示錯誤。
+  - **生成中停用其他觸發**：單件生成中，其他事件的「生成分析」（左欄列、排行英雄卡與列）、未分析詳情「建立分析」、已分析詳情「覆蓋重新生成」「重試失敗部分」
+    皆 disabled，`Tooltip`「另一件事件正在生成，完成後再試。」（`event.generating.blockedBySingle`）——頁面一次只追蹤一件，第二件會在背後跑卻沒人看。
+    **批次執行中**，未分析事件的「生成分析」「建立分析」disabled，`Tooltip`「批次正在執行，這件會包含在內。」（`event.generating.blockedByBatch`）；
+    已分析事件的「覆蓋重新生成」照常可用。兩句是**草稿・待設計定案**（見 DS_V3_DESIGN_FEEDBACK EV-2）。
+    左欄列與排行列的「生成分析」停用時用 `aria-disabled`（不是 `disabled`）：仍可聚焦、Tooltip 照常，點擊改為**選取該事件**、不觸發生成（2026-10-10 裁決）。
+- **列結構（a11y，2026-10-10）**：左欄動作列與排行列本身不可互動，內含一顆選取鈕（`.ea-row-main`／`.ea-ov-rank-main`，整列可點、左欄帶 `aria-current`）；
+  「生成分析」是**兄弟節點**（左欄疊在第二行右側），不再巢狀在可點的列裡。故事骨幹圖每個節點帶 `aria-label`「標題 · Ch.N · 重要度 · 已分析／尚未分析（· 敘事模式）」，皆既有字串。
+- **鍵盤與狀態（a11y，2026-10-10）**：詳情分頁為 WAI-ARIA tabs（roving tabindex，←／→ 循環、Home／End，`aria-controls` → `role=tabpanel`）；
+  對比抽屜用 `useDialogFocus`（開啟時焦點到標題、Tab 只在抽屜內循環、關閉後回「對比」，`aria-labelledby`）；篩選 chip、分組與三視圖切換帶 `aria-pressed`，
+  群組標頭帶 `aria-expanded`；搜尋欄 `aria-label` 同 placeholder。
+  上下文位置分頁點相鄰事件逐跳時停留在該分頁（從左欄、總覽、對比等其他入口換事件仍回「概覽」）；「因果與影響」「證據」分頁內區塊全空時顯示一行空態（`event.detail.tabEmpty`，沿用 `.ea-context-empty`），不留空白。
+- **減少動態**（`prefers-reduced-motion: reduce`）：生成中點改靜態實心、完成時放大與 landing fade-in 拿掉、spinner 放慢到 3s、骨幹節點 hover 不放大。
+- **字級（2026-10-10）**：整句說明升 `--font-size-xs`（12px）——前後狀態 `.ea-state-text`、參與者影響 `.ea-participant-impact`、批次狀態行 `.ea-batch-status`（角色頁、象徵頁共用一併生效）、零分析橫幅 `.ea-ov-empty-text`；meta、標籤、章號、chip、caption、圖例、計數維持 11px。
+  對比抽屜背板改用 token `--scrim-light`（Warm／Ink 皆 12%，原寫死 `rgb(0 0 0 / 12%)`）。
+- **窄寬（2026-10-10）**：故事骨幹圖以 `useElementWidth` 量繪圖區實際寬度，每章欄寬＝寬 ÷ 章數（`fitNode`）。圓點直徑不超過欄寬 − 4（最小 8px，各帶行距不變）；
+  核心帶標籤寬上限＝欄寬 − 6（最多 80px、超出省略號），容不下 40px 就不畫標籤（靠 Tooltip 與節點 `aria-label`）。名字的潮汐（10 章）：1024 標籤約 4 字、720 無標籤；
+  標籤重疊 720／1024 由 88／46 對降為 0、圓點重疊 720 由 49 對降為 0。左欄 268px 維持常駐（同角色頁，見 B-123；收合模式待全站一起定）。
+- **主題分化：敘事模式字形（2026-10-10）**：shape token `--narrative-glyph-display`（Warm `none`／Ink `block`）。Ink 下骨幹圖非順敘的已分析節點中央畫 `←` 倒敘、`→` 預敘、`∥` 平行、`?` 未知，
+  圖例色塊後同樣帶字形；圓點 < 16px 不畫。Warm 不變（見 DS_V3_DESIGN_FEEDBACK EV-3）。
+- **重要度分不開時（2026-10-10）**：篩選 chip 帶全書件數（`.ea-chip-count`，muted 數字），**0 件時 disabled**（已選中的仍可取消）。
+  已分析 ≥ 10 件且單一重要度佔 ≥ 90%（`dominantImportance`）時，骨幹圖 caption 下多一行 `role="note"`
+  「已分析的 N 件中有 M 件判為核心——這本書的核心／衛星區分不可靠，上下分帶僅供參考。」（`event.overview.map.importanceUnreliableKernel`／`…Satellite`，**草稿**，見 DS_V3_DESIGN_FEEDBACK EV-4）。
+  K 方塊外觀不變。成因是 EEP 提示詞未定義 kernel／satellite、逐件單獨判斷（兩本書 64/64 全判 KERNEL），另由提示詞修正處理。
+- **回到原文（2026-10-10）**：
+  - 證據分頁的關鍵引言以 #7m 對回段落：對到唯一段落者用 `SourceJumpText`（虛線底線，Tooltip「點擊跳至閱讀頁對應段落」＝`character.sourceJump.cta`），點擊 `navigate('/books/:id', { state: { paragraphId, chapterNumber } })`；
+    對不到者維持純文字、不加標記（使用者裁決）。樣式 `.ca-srcjump*` 已移到 `ss-kit.css`（角色頁、事件頁共用）。
+  - 未分析事件「原文段落 · 生成前先判斷」每段標頭（章號、相似度後）加 `ss-btn-ghost`「在閱讀頁開啟 →」（`event.source.openInReader`，**草稿**），以 #7i 的段落 id 直接跳轉。
 - **原生 `title=`** 全部換成 `Tooltip`（14 處；值為 "·" 的那個直接拿掉）。
 - **新字串**：無。
 - **維持現況（記 feedback）**：landing 沒有對比入口（3-EV-2）、victim 顯示「承受者」（3-EV-3）。
@@ -803,6 +836,7 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 - **子集**（第 1 態才顯示）與主鈕同進同出；第 3 態不顯示子集（稿 A 區第 3 態沒有，見 feedback 5-BP-3）。事件頁狀態行把「{n} 件待生成 · 預估約 N 分鐘 · 已分析的事件會自動跳過」併成一行（皆既有字串）。
 - **字符**：主鈕與子集鈕 `ss-btn-llm`；「只看失敗」、收合切換、失敗 chip 不掛。
 - **toast**：只當完成通知，有失敗也 5.2s 自動消失（類型仍 warning）。
+- **接手進行中的批次**（2026-10-10）：進頁面時先查這本書是否已有批次在跑（事件 #7k／角色 #7j／象徵頁 #15k），有就直接進第 2 態並接著顯示進度，不再給可按的主鈕——離開再回來不會開出第二輪重複花 token。觸發時後端回 409 `batch_running`（例如另一個分頁已經開始）也照此**靜默接手**，不顯示錯誤、不跳 toast。查詢失敗時維持原態。
 - **batch 503**：`LlmUnconfiguredNotice` 放在卡片下方、摺疊之外。
 - **字串**：2026-10-04 裁決通過、**非草稿**：`batch.remaining`「{n} 件待生成」（既有）、`batch.failedShort`「失敗 {n}」、`batch.showFailures`「只看失敗 ({n}) →」（事件版）；角色版見 §3.4。
   既有事件字串一字不改。
@@ -865,7 +899,6 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 
    ```
    [一鍵生成全部 EEP]                 (primary)
-   [只生成核心 (N)]
    [只生成本章]
    [勾選多筆]  →  （清單頂「取消勾選」、清單底「生成已勾選 (N)」）
    預估耗時 約 N 分鐘 · 已分析的事件會自動跳過
@@ -873,7 +906,6 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 
    | 按鈕 | disabled 條件 |
    |------|--------------|
-   | 只生成核心 | `N === 0`。未分析事件的 `importance` 恆為 `null`（#6b），故在生成前 N 必為 0；tooltip 說明「重要度需生成 EEP 後才判定」 |
    | 只生成本章 | 未選取任何事件時 — 章節取自當前選取事件 |
    | 生成已勾選 | 僅在勾選模式顯示（在清單底，不在面板內），`checkedCount === 0` 時 disabled |
 
@@ -990,7 +1022,7 @@ partial 時附「部分分析」徽章。其下為研究者導覽 ribbon。
   → 不預先 DELETE：#7e 的 full 已是 force_refresh，新結果寫入時才覆蓋，
      失敗則舊 EEP 完整保留
 
-批次生成（全部 / 只生成核心 / 只生成本章 / 已勾選）
+批次生成（全部 / 只生成本章 / 已勾選）
   → 確認視窗（全部）或直接觸發（子集）→ #7g 帶 eventIds
   → polling → 進度即時更新清單 → 完成：顯示摘要 toast
 ```
@@ -2060,7 +2092,7 @@ en 對應：Previewing／Requirement not met: Standard mode · KG backend set to
 [頁首 — 頁名 + 一句定位 + 書級 meta]
 [研究者導覽條 — GuidanceRibbon surface="narrative"，字串逐字]
 [索引卡 — ① 詮釋・英雄旅程 / ② 統計・事件骨幹 / ③ 旁證・其他結構線索]
-[過期橫條 — is_stale 時，疊在英雄旅程卡上方；「✦ 重新分析 →」文字連結只捲動並聚焦、短暫高亮卡內 LLM 鈕（`#nl-hero-run`），不觸發分析]
+[過期橫條 — is_stale 且已有英雄旅程時，疊在英雄旅程卡上方（尚無英雄旅程時不出：過期的是 kernel 分類，這顆鈕管不到）；「✦ 重新分析 →」文字連結只捲動並聚焦、短暫高亮卡內 LLM 鈕（`#nl-hero-run`），不觸發分析]
 [英雄旅程卡 — 標題列 + 書級審核 + 分段切換 + 缺席說明 + 圖｜階段詳情（sticky）]
 [事件骨幹卡 — 比例列 + 逐章核心事件 + 選定事件 + 未分類區塊 + 跳轉]
 [交叉證據卡 — 三列同軸 + 時序結構／張力兩欄]
@@ -2081,7 +2113,7 @@ en 對應：Previewing／Requirement not met: Standard mode · KG backend set to
 - **重新分析的閘門**：與空態按鈕同一道摘要閘門（`summaryGate`）；缺章時 disabled，Tooltip 顯示「缺 N 章摘要，補齊後才會有可映射的內容」。分析中按鈕就地換成「分析中… {progress}%」（`progress` 是後端寫死的 10／20／90，照實顯示，不承諾 ETA）。
 - **版面切換**：`.ss-seg`（`.nl-seg` 撐成四等分），每顆兩行＝名稱＋副標（`narrative.layout.*`／`narrative.viewHint.*`，spec §6 不可丟失）。`role="radiogroup"`／`radio`。一次只顯示一種，每種＝圖＋圖例＋階段詳情。預設章節對位帶。選取的階段在切換版面時保留（狀態在 `HeroJourneySection`）。
 - **缺席說明**（`.nl-absent-note`）：虛線框，只在有未識別階段時出現。
-- **圖＋詳情**（`.nl-hj-body`）：卡不限高；詳情欄 `.nl-detail` `position: sticky; top: 16px`。對位帶在右側（欄寬 340）、三相位分欄在右側（欄寬 380），圓環右側（圓環欄 460），**水平軌跡在下方全寬**（代表事件兩欄）。視窗 ≤ 1100 時單欄、詳情不 sticky。
+- **圖＋詳情**（`.nl-hj-body`）：卡不限高；詳情欄 `.nl-detail` `position: sticky; top: 16px`。對位帶在右側（欄寬 340）、三相位分欄在右側（欄寬 380），圓環右側（圓環欄 460），**水平軌跡在下方全寬**（代表事件兩欄）。視窗 ≤ 1100 時單欄，詳情改為 `position: sticky; bottom: 0`（`max-height: 45vh`、內部捲動），點階段後不必捲到圖下方就看得到。
 
 **章節對位帶（`LayoutBand`）**
 
@@ -2137,7 +2169,7 @@ en 對應：Previewing／Requirement not met: Standard mode · KG backend set to
 
 #### 空態、閘門、分析中、過期
 
-- **空態**（英雄旅程未產生）：羅盤圖＋標題＋說明＋**前置條件列**（章節摘要、事件分析 EEP；在按鈕之前）＋「開始英雄旅程分析」（`.ss-btn-primary .ss-btn-llm`）＋成本提示；**事件骨幹仍渲染在下方**。
+- **空態**（英雄旅程未產生）：羅盤圖＋標題＋說明＋**前置條件列**（章節摘要、事件分析 EEP；在按鈕之前）＋「開始英雄旅程分析」（`.ss-btn-primary .ss-btn-llm`）＋成本提示；**事件骨幹仍渲染在下方**（前提是已有 narrative structure；全書 0 件已分類事件時 `GET /narrative` 回 404、不畫骨幹，空態卡已說明前提，比照事件分析頁 EV-1）。
 - **摘要缺章硬閘門**（`summaryGate`）：disabled＋「缺 N 章摘要，補齊後才會有可映射的內容」。**三條路徑共用同一道閘門**：空態按鈕、卡片標題列的重新分析、過期帶的「重新分析 →」。章節清單查詢不再因「已有分析」而停用（現況繞過閘門）。
 - **過期帶**（`.nl-stale`）：疊在英雄旅程卡上方（空態也顯示，但無按鈕）。`{step}` 用 `timelineModel.staleStepKey` 對到 reader 的步驟名（章節摘要／特徵萃取／知識圖譜／符號探索），不插原始 id；「重新分析 →」是 `.ss-btn-ghost .ss-btn-llm`，與卡內同一動作、同一道閘門。5-0 後重跑章節摘要也會使本頁過期。
 

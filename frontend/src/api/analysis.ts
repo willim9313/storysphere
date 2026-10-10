@@ -5,6 +5,11 @@ import type {
   EventAnalysisDetail,
   EventSourceResponse,
 } from './types';
+import type { components } from './generated';
+
+type ActiveBatchResponse = components['schemas']['ActiveBatchResponse'];
+type RunningEventAnalysesResponse = components['schemas']['RunningEventAnalysesResponse'];
+type EventQuoteSourcesResponse = components['schemas']['EventQuoteSourcesResponse'];
 
 // #6 — Trigger full-book analysis
 // #6a — Character analysis list
@@ -37,7 +42,7 @@ export function triggerEntityAnalysis(
   );
 }
 
-// #7d — Trigger event analysis
+// #7e — Trigger event analysis
 export function triggerEventAnalysis(
   bookId: string,
   eventId: string,
@@ -62,7 +67,7 @@ export function fetchEventSourcePassages(
   );
 }
 
-// #7f — Batch event analysis (analyze all unanalyzed events)
+// #7g — Batch event analysis (analyze all unanalyzed events)
 export function triggerBatchEventAnalysis(
   bookId: string,
   eventIds?: string[],
@@ -71,6 +76,24 @@ export function triggerBatchEventAnalysis(
     `/books/${bookId}/events/analyze-all`,
     { method: 'POST', body: JSON.stringify(eventIds ? { eventIds } : {}) },
   );
+}
+
+// #7k — The event batch running for this book, if any (to resume after a remount).
+export function fetchActiveEventBatch(bookId: string): Promise<ActiveBatchResponse> {
+  return apiFetch<ActiveBatchResponse>(`/books/${bookId}/events/analyze-all/active`);
+}
+
+// #7l — Single-event analyses still running for this book (to resume after a remount).
+export function fetchRunningEventAnalyses(bookId: string): Promise<RunningEventAnalysesResponse> {
+  return apiFetch<RunningEventAnalysesResponse>(`/books/${bookId}/events/analyses/running`);
+}
+
+// #7m — Where each key quote of an analyzed event sits in the book (null = not pinned).
+export function fetchEventQuoteSources(
+  bookId: string,
+  eventId: string,
+): Promise<EventQuoteSourcesResponse> {
+  return apiFetch<EventQuoteSourcesResponse>(`/books/${bookId}/events/${eventId}/quote-sources`);
 }
 
 // #7h — Batch entity analysis (analyze all unanalyzed characters, or a subset
@@ -85,7 +108,12 @@ export function triggerBatchEntityAnalysis(
   );
 }
 
-// #7d-get — Single event analysis detail (EEP + causality + impact)
+// #7j — The character batch running for this book, if any.
+export function fetchActiveEntityBatch(bookId: string): Promise<ActiveBatchResponse> {
+  return apiFetch<ActiveBatchResponse>(`/books/${bookId}/entities/analyze-all/active`);
+}
+
+// #7d — Single event analysis detail (EEP + causality + impact)
 export function fetchEventAnalysisDetail(
   bookId: string,
   eventId: string,

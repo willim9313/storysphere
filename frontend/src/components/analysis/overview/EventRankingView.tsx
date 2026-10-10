@@ -8,6 +8,9 @@ interface EventRankingViewProps {
   onSelectEvent: (id: string) => void;
   onGenerate: (id: string) => void;
   generatingId: string | null;
+  /** Why no new generation can start right now (another event is generating,
+   *  or a batch is running), shown as the disabled button's tooltip; null = free. */
+  generateBlockedReason?: string | null;
 }
 
 const DEFAULT_ROWS = 11;
@@ -17,6 +20,7 @@ export function EventRankingView({
   onSelectEvent,
   onGenerate,
   generatingId,
+  generateBlockedReason = null,
 }: Readonly<EventRankingViewProps>) {
   const { t } = useTranslation('analysis');
   const [expanded, setExpanded] = useState(false);
@@ -75,68 +79,65 @@ export function EventRankingView({
             {t('event.overview.ranking.viewAnalysis')}
           </button>
         ) : (
-          <button
-            type="button"
-            className="ss-btn ss-btn-sm ss-btn-primary ss-btn-llm"
-            onClick={() => onGenerate(hero.id)}
-            disabled={generatingId === hero.id}
-          >
-            {t('event.overview.ranking.createHero')}
-          </button>
+          <Tooltip label={generateBlockedReason ?? ''} disabled={!generateBlockedReason}>
+            <button
+              type="button"
+              className="ss-btn ss-btn-sm ss-btn-primary ss-btn-llm"
+              onClick={() => onGenerate(hero.id)}
+              disabled={generatingId === hero.id || !!generateBlockedReason}
+            >
+              {t('event.overview.ranking.createHero')}
+            </button>
+          </Tooltip>
         )}
       </div>
 
       <div className="ea-ov-rank-list">
-        {shown.map((e, i) => (
-          <div
-            key={e.id}
-            className="ea-ov-rank-row"
-            role="button"
-            tabIndex={0}
-            onClick={() => onSelectEvent(e.id)}
-            onKeyDown={(ev) => {
-              if (ev.key === 'Enter' || ev.key === ' ') {
-                ev.preventDefault();
-                onSelectEvent(e.id);
-              }
-            }}
-          >
-            <span className="ea-ov-rank-n">#{i + 2}</span>
-            <Tooltip label={importanceLabel(e.importance)}>
-              <span className={'ea-imp is-sm ' + importanceClass(e.importance)}>
-                {importanceAbbr(e.importance)}
-              </span>
-            </Tooltip>
-            <span className={'ea-ov-rank-name' + (e.analyzed ? '' : ' muted')}>{e.title}</span>
-            {e.chapter !== null && (
-              <span className="ea-ov-rank-ch">
-                {t('event.list.chapterShort', { n: e.chapter })}
-              </span>
-            )}
-            <div className="ea-ov-rank-bar-track">
-              <div
-                className={'ea-ov-rank-bar-fill' + (e.analyzed ? '' : ' muted')}
-                style={{ width: `${(e.participants / maxParticipants) * 100}%` }}
-              />
-            </div>
-            <span className="ea-ov-rank-count">
-              {t('event.overview.ranking.participants', { count: e.participants })}
-            </span>
-            {!e.analyzed && (
-              <button
-                type="button"
-                className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
-                onClick={(ev) => {
-                  ev.stopPropagation();
-                  onGenerate(e.id);
-                }}
-                disabled={generatingId === e.id}
-              >
-                {generatingId === e.id ? '…' : t('generate')}
+        {shown.map((e, i) => {
+          const blocked = !!generateBlockedReason && generatingId !== e.id;
+          return (
+            <div key={e.id} className="ea-ov-rank-row">
+              <button type="button" className="ea-ov-rank-main" onClick={() => onSelectEvent(e.id)}>
+                <span className="ea-ov-rank-n">#{i + 2}</span>
+                <Tooltip label={importanceLabel(e.importance)}>
+                  <span className={'ea-imp is-sm ' + importanceClass(e.importance)}>
+                    {importanceAbbr(e.importance)}
+                  </span>
+                </Tooltip>
+                <span className={'ea-ov-rank-name' + (e.analyzed ? '' : ' muted')}>{e.title}</span>
+                {e.chapter !== null && (
+                  <span className="ea-ov-rank-ch">
+                    {t('event.list.chapterShort', { n: e.chapter })}
+                  </span>
+                )}
+                <span className="ea-ov-rank-bar-track">
+                  <span
+                    className={'ea-ov-rank-bar-fill' + (e.analyzed ? '' : ' muted')}
+                    style={{ width: `${(e.participants / maxParticipants) * 100}%` }}
+                  />
+                </span>
+                <span className="ea-ov-rank-count">
+                  {t('event.overview.ranking.participants', { count: e.participants })}
+                </span>
               </button>
-            )}
-          </div>
-        ))}
+              {/* Sibling of the select button. While blocked it stays focusable and
+                  clickable (aria-disabled): the click opens the event instead. */}
+              {!e.analyzed && (
+                <Tooltip label={generateBlockedReason ?? ''} disabled={!blocked}>
+                  <button
+                    type="button"
+                    className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+                    onClick={() => (blocked ? onSelectEvent(e.id) : onGenerate(e.id))}
+                    disabled={generatingId === e.id}
+                    aria-disabled={blocked || undefined}
+                  >
+                    {generatingId === e.id ? '…' : t('generate')}
+                  </button>
+                </Tooltip>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {rest.length > DEFAULT_ROWS && (

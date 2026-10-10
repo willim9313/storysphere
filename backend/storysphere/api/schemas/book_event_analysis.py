@@ -126,3 +126,36 @@ class EventSourceResponse(BaseModel):
 
     event_id: str
     passages: list[EventSourcePassage] = Field(default_factory=list)
+
+
+class RunningEventAnalysis(BaseModel):
+    model_config = _CAMEL
+
+    event_id: str
+    task_id: str
+
+
+class RunningEventAnalysesResponse(BaseModel):
+    """Single-event analyses (#7e) currently running for a book (#7l)."""
+
+    model_config = _CAMEL
+
+    running: list[RunningEventAnalysis] = Field(default_factory=list)
+
+
+class EventQuoteSource(BaseModel):
+    model_config = _CAMEL
+
+    text: str
+    # None when the quote could not be pinned to exactly one paragraph.
+    paragraph_id: str | None = None
+    chapter_number: int | None = None
+
+
+class EventQuoteSourcesResponse(BaseModel):
+    """Where each of an analyzed event's key quotes sits in the book (#7m)."""
+
+    model_config = _CAMEL
+
+    event_id: str
+    quotes: list[EventQuoteSource] = Field(default_factory=list)

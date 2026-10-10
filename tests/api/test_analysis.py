@@ -602,8 +602,10 @@ def source_client(client, mock_kg):
     """client with mock_kg.get_event wired — conftest does not cover it."""
     from tests.api.conftest import MEETING
 
+    meeting = MEETING.model_copy(update={"document_id": "doc-1"})
+
     async def _get_event(eid):
-        return MEETING if eid == "evt-1" else None
+        return meeting if eid == "evt-1" else None
 
     mock_kg.get_event = AsyncMock(side_effect=_get_event)
     return client
@@ -720,6 +722,138 @@ class TestCancellation:
         assert status["error"] == "LLM 配額用盡"
 
 
+# ── Batch mutex: one running batch per book and kind ──────────────────────────
+
+
+_BATCH_KINDS = [
+    pytest.param("events", "analyze_event", id="events"),
+    pytest.param("entities", "analyze_character", id="entities"),
+]
+
+
+class TestBatchMutex:
+    """A second analyze-all while the first runs would pay the LLM twice for
+    every item the first has not cached yet — so it is refused with 409, and
+    ``…/analyze-all/active`` lets a remounted page pick the running one back up.
+    """
+
+    @pytest.mark.parametrize(("segment", "agent_method"), _BATCH_KINDS)
+    def test_active_is_null_when_idle(self, event_batch_client, segment, agent_method):
+        resp = event_batch_client.get(f"/api/v1/books/doc-1/{segment}/analyze-all/active")
+        assert resp.status_code == 200
+        assert resp.json() == {"taskId": None}
+
+    @pytest.mark.parametrize(("segment", "agent_method"), _BATCH_KINDS)
+    def test_second_run_while_running_returns_409(
+        self, event_batch_client, mock_analysis_agent, segment, agent_method
+    ):
+        getattr(mock_analysis_agent, agent_method).side_effect = hanging_call()
+        url = f"/api/v1/books/doc-1/{segment}/analyze-all"
+        task_id = event_batch_client.post(url).json()["taskId"]
+
+        resp = event_batch_client.post(url, json={})
+        assert resp.status_code == 409
+        assert resp.json()["code"] == "batch_running"
+        active = event_batch_client.get(f"{url}/active").json()
+        assert active == {"taskId": task_id}
+
+        event_batch_client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+    @pytest.mark.parametrize(("segment", "agent_method"), _BATCH_KINDS)
+    def test_finished_run_frees_the_book(
+        self, event_batch_client, mock_analysis_agent, segment, agent_method
+    ):
+        getattr(mock_analysis_agent, agent_method).side_effect = hanging_call()
+        url = f"/api/v1/books/doc-1/{segment}/analyze-all"
+        task_id = event_batch_client.post(url).json()["taskId"]
+        event_batch_client.post(f"/api/v1/tasks/{task_id}/cancel")
+        poll_until_terminal(event_batch_client, task_id)
+
+        assert event_batch_client.get(f"{url}/active").json() == {"taskId": None}
+        getattr(mock_analysis_agent, agent_method).side_effect = None
+        assert event_batch_client.post(url).status_code == 202
+
+    def test_other_kind_on_same_book_is_not_blocked(
+        self, event_batch_client, mock_analysis_agent
+    ):
+        mock_analysis_agent.analyze_event.side_effect = hanging_call()
+        task_id = event_batch_client.post("/api/v1/books/doc-1/events/analyze-all").json()[
+            "taskId"
+        ]
+
+        resp = event_batch_client.post("/api/v1/books/doc-1/entities/analyze-all")
+        assert resp.status_code == 202
+
+        event_batch_client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+
+class TestSingleEventMutex:
+    """Two #7e runs on the same event pay for the same analysis twice; the page
+    tracks one run at a time and forgets it on remount, so the backend refuses
+    the second and #7l lists what is still running."""
+
+    @pytest.fixture
+    def single_client(self, event_batch_client, mock_kg, mock_analysis_agent):
+        events = {ev.id: ev for ev in _make_events()}
+        mock_kg.get_event = AsyncMock(side_effect=lambda eid: events.get(eid))
+        mock_analysis_agent.analyze_event.side_effect = hanging_call()
+        return event_batch_client
+
+    def _start(self, client, event_id="evt-1") -> str:
+        resp = client.post(f"/api/v1/books/doc-1/events/{event_id}/analyze", json={})
+        assert resp.status_code == 200
+        return resp.json()["taskId"]
+
+    def _running(self, client) -> list[dict]:
+        resp = client.get("/api/v1/books/doc-1/events/analyses/running")
+        assert resp.status_code == 200
+        return resp.json()["running"]
+
+    def test_running_is_empty_when_idle(self, single_client):
+        assert self._running(single_client) == []
+
+    def test_second_run_on_same_event_returns_409(self, single_client):
+        task_id = self._start(single_client)
+
+        resp = single_client.post("/api/v1/books/doc-1/events/evt-1/analyze", json={})
+        assert resp.status_code == 409
+        assert resp.json()["code"] == "analysis_running"
+        assert self._running(single_client) == [{"eventId": "evt-1", "taskId": task_id}]
+
+        single_client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+    def test_another_event_is_not_blocked(self, single_client):
+        first = self._start(single_client, "evt-1")
+        second = self._start(single_client, "evt-2")
+
+        running = {r["eventId"]: r["taskId"] for r in self._running(single_client)}
+        assert running == {"evt-1": first, "evt-2": second}
+
+        for task_id in (first, second):
+            single_client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+    def test_finished_run_frees_the_event(self, single_client, mock_analysis_agent):
+        task_id = self._start(single_client)
+        single_client.post(f"/api/v1/tasks/{task_id}/cancel")
+        poll_until_terminal(single_client, task_id)
+
+        assert self._running(single_client) == []
+        mock_analysis_agent.analyze_event.side_effect = None
+        self._start(single_client)
+
+    def test_a_single_run_does_not_block_the_batch(self, single_client):
+        task_id = self._start(single_client)
+
+        resp = single_client.post("/api/v1/books/doc-1/events/analyze-all")
+        assert resp.status_code == 202
+        assert single_client.get(
+            "/api/v1/books/doc-1/events/analyze-all/active"
+        ).json() == {"taskId": resp.json()["taskId"]}
+
+        single_client.post(f"/api/v1/tasks/{task_id}/cancel")
+        single_client.post(f"/api/v1/tasks/{resp.json()['taskId']}/cancel")
+
+
 # ── Batch event analysis: cancellation and abort ─────────────────────────────
 
 
@@ -783,6 +917,30 @@ class TestBatchEventAbort:
 
         status = poll_until_terminal(event_batch_client, task_id)
         assert status["status"] != "done"
+
+    def test_rate_limit_keeps_step_key_and_counts_after_failing(
+        self, event_batch_client, mock_analysis_agent
+    ):
+        """The frontend words the abort from these, so set_failed must not wipe them."""
+        mock_analysis_agent.analyze_event.side_effect = RuntimeError("429 rate limit exceeded")
+
+        resp = event_batch_client.post("/api/v1/books/doc-1/events/analyze-all")
+        status = poll_until_terminal(event_batch_client, resp.json()["taskId"])
+
+        assert status["status"] == "error"
+        assert status["stepKey"] == "rate_limited"
+        assert status["subProgress"] == 0
+        assert status["subTotal"] == 2
+
+    def test_progress_reports_batch_progress_step_key(
+        self, event_batch_client, mock_analysis_agent
+    ):
+        resp = event_batch_client.post("/api/v1/books/doc-1/events/analyze-all")
+        status = poll_until_terminal(event_batch_client, resp.json()["taskId"])
+
+        assert status["status"] == "done"
+        assert status["stepKey"] == "batch_progress"
+        assert status["subTotal"] == 2
 
     def test_ordinary_failure_is_counted_not_aborted(
         self, event_batch_client, mock_analysis_agent
@@ -850,6 +1008,19 @@ class TestBatchEntityAbort:
 
         status = poll_until_terminal(batch_client, task_id)
         assert status["status"] != "done"
+
+    def test_rate_limit_keeps_step_key_and_counts_after_failing(
+        self, batch_client, mock_analysis_agent
+    ):
+        mock_analysis_agent.analyze_character.side_effect = RuntimeError("429 rate limit exceeded")
+
+        resp = batch_client.post("/api/v1/books/doc-1/entities/analyze-all")
+        status = poll_until_terminal(batch_client, resp.json()["taskId"])
+
+        assert status["status"] == "error"
+        assert status["stepKey"] == "rate_limited"
+        assert status["subProgress"] == 0
+        assert status["subTotal"] is not None
 
     def test_ordinary_failure_is_counted_not_aborted(
         self, batch_client, mock_analysis_agent

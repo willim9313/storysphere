@@ -1,13 +1,14 @@
 """Event analysis endpoints for a book — split out of ``books.py``.
 
-Event detail (#9a), the event analysis listing (#6b), per-event analysis
-(#7d–#7e), source passages (#7i) and the batch run (#7f).  Shares the
+Event detail (#11), the event analysis listing (#6b), per-event analysis
+(#7d–#7f), source passages (#7i) and the batch run (#7g).  Shares the
 ``/books`` prefix with ``books.py``; the endpoint paths are unchanged.
 """
 
 from __future__ import annotations
 
 import logging
+import re
 from uuid import uuid4
 
 from fastapi import (
@@ -15,7 +16,7 @@ from fastapi import (
     HTTPException,
 )
 
-from storysphere.api import task_runner
+from storysphere.api import batch_guard, task_runner
 from storysphere.api.deps import (
     AnalysisAgentDep,
     AnalysisCacheDep,
@@ -30,8 +31,12 @@ from storysphere.api.schemas.book_event_analysis import (
     EventAnalysisFullResponse,
     EventDetailResponse,
     EventParticipant,
+    EventQuoteSource,
+    EventQuoteSourcesResponse,
     EventSourcePassage,
     EventSourceResponse,
+    RunningEventAnalysesResponse,
+    RunningEventAnalysis,
 )
 from storysphere.api.schemas.books import (
     AnalysisItem,
@@ -40,6 +45,7 @@ from storysphere.api.schemas.books import (
     TaskIdResponse,
     UnanalyzedEntity,
 )
+from storysphere.api.schemas.common import ActiveBatchResponse, ErrorResponse
 from storysphere.api.store import task_store
 from storysphere.core.error_handling import is_rate_limit_error as _is_rate_limit_error
 from storysphere.core.utils.data_sanitizer import DataSanitizer
@@ -49,7 +55,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/books", tags=["books"])
 
 
-# ── #9a GET /books/:bookId/events/:eventId ───────────────────────────────────
+# ── #11 GET /books/:bookId/events/:eventId ───────────────────────────────────
 
 
 @router.get("/{book_id}/events/{event_id}", response_model=EventDetailResponse)
@@ -171,7 +177,7 @@ async def list_event_analyses(
     ).model_dump(by_alias=True)
 
 
-# ── #7d POST /books/:bookId/events/:eventId/analyze ─────────────────────────
+# ── #7e POST /books/:bookId/events/:eventId/analyze ─────────────────────────
 
 
 async def _event_analysis(
@@ -194,6 +200,7 @@ async def _event_analysis(
 @router.post(
     "/{book_id}/events/{event_id}/analyze",
     response_model=TaskIdResponse,
+    responses={409: {"model": ErrorResponse}},
 )
 async def trigger_event_analysis(
     book_id: str,
@@ -210,7 +217,7 @@ async def trigger_event_analysis(
     ``mode='full'`` forces a complete re-analysis.
     """
     event = await kg.get_event(event_id)
-    if event is None:
+    if event is None or event.document_id != book_id:
         raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found")
 
     language = await doc.get_document_language(book_id)
@@ -230,6 +237,9 @@ async def trigger_event_analysis(
         event.title, event_id, book_id, language, body.mode,
     )
     require_llm_provider()
+    # No await between the check and the claim (see batch_guard).
+    if (busy := batch_guard.conflict("event", book_id, event_id)) is not None:
+        return busy
     task_id = str(uuid4())
     task_store.create(task_id, kind="event", title="事件分析")
     task_runner.launch(
@@ -238,11 +248,124 @@ async def trigger_event_analysis(
             task_id, event_id, book_id, agent, language, retry_parts, force_refresh
         ),
     )
+    batch_guard.hold("event", book_id, task_id, item_id=event_id)
 
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
 
 
-# ── #7d-get GET /books/:bookId/events/:eventId/analysis ──────────────────────
+# ── #7l GET /books/:bookId/events/analyses/running ──────────────────────────
+
+
+@router.get(
+    "/{book_id}/events/analyses/running",
+    response_model=RunningEventAnalysesResponse,
+)
+async def get_running_event_analyses(book_id: str) -> dict:
+    """Single-event analyses (#7e) still running for this book.
+
+    Read-only: lets the page show a generation started before a remount (or in
+    another tab) instead of offering to start it again, which #7e refuses with 409.
+    """
+    running = batch_guard.running_items("event", book_id)
+    return RunningEventAnalysesResponse(
+        running=[
+            RunningEventAnalysis(event_id=eid, task_id=tid) for eid, tid in running.items()
+        ],
+    ).model_dump(by_alias=True)
+
+
+# ── #7m GET /books/:bookId/events/:eventId/quote-sources ─────────────────────
+
+# Dropped before comparing: whitespace (PDF extraction puts spaces inside CJK
+# words) and quotation marks (the LLM adds or drops 「」 around dialogue).
+_QUOTE_NOISE = re.compile(r"[\s「」『』\"“”‘’]")
+# A quote matched only by its opening characters must be at least this long —
+# shorter prefixes start too many unrelated sentences.
+_QUOTE_PREFIX_LEN = 12
+
+
+def _normalize_quote(text: str) -> str:
+    return _QUOTE_NOISE.sub("", text)
+
+
+def _locate_quote(
+    quote: str, paragraphs: list[tuple[str, int, str]], chapter: int | None
+) -> tuple[str, int] | None:
+    """The one paragraph a key quote comes from, as ``(paragraph_id, chapter)``.
+
+    *paragraphs* are ``(id, chapter_number, normalized_text)``. The whole quote
+    is looked for first; failing that, its first ``_QUOTE_PREFIX_LEN``
+    characters (quotes the LLM trimmed or ran on past the paragraph end).
+    A match counts only when it is unambiguous — a single paragraph in the
+    event's chapter, or a single one in the book when the chapter has none.
+    Otherwise None: a link to the wrong paragraph is worse than no link.
+    """
+    needle = _normalize_quote(quote).rstrip("….—")
+    if not needle:
+        return None
+
+    def pick(key: str) -> tuple[str, int] | None:
+        hits = [(pid, ch) for pid, ch, text in paragraphs if key in text]
+        in_chapter = [h for h in hits if h[1] == chapter]
+        if len(in_chapter) == 1:
+            return in_chapter[0]
+        if not in_chapter and len(hits) == 1:
+            return hits[0]
+        return None
+
+    found = pick(needle)
+    if found is None and len(needle) > _QUOTE_PREFIX_LEN:
+        found = pick(needle[:_QUOTE_PREFIX_LEN])
+    return found
+
+
+@router.get(
+    "/{book_id}/events/{event_id}/quote-sources",
+    response_model=EventQuoteSourcesResponse,
+)
+async def get_event_quote_sources(
+    book_id: str, event_id: str, cache: AnalysisCacheDep, kg: KGServiceDep,
+    doc: DocServiceDep,
+) -> dict:
+    """Pin each cached key quote (#7d ``eep.keyQuotes``) to its paragraph.
+
+    Deterministic text matching against the book, no LLM and no embedding: the
+    quotes are meant to be verbatim, and a semantic nearest neighbour lands on
+    the wrong paragraph about half the time. Unmatched quotes come back with
+    ``paragraphId: null`` and stay plain text on the page.
+    """
+    event = await kg.get_event(event_id)
+    if event is None or event.document_id != book_id:
+        raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found")
+
+    from storysphere.services.analysis_models import EventAnalysisResult  # noqa: PLC0415
+
+    result = await cache.get_as(f"event:{book_id}:{event_id}", EventAnalysisResult)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Event analysis not found. Run analysis first.")
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    paragraphs = [
+        (p.id, p.chapter_number, _normalize_quote(p.text))
+        for chapter in document.chapters
+        for p in chapter.paragraphs
+    ]
+    quotes = []
+    for quote in result.eep.key_quotes:
+        found = _locate_quote(quote, paragraphs, event.chapter)
+        quotes.append(
+            EventQuoteSource(
+                text=quote,
+                paragraph_id=found[0] if found else None,
+                chapter_number=found[1] if found else None,
+            )
+        )
+    return EventQuoteSourcesResponse(event_id=event_id, quotes=quotes).model_dump(by_alias=True)
+
+
+# ── #7d GET /books/:bookId/events/:eventId/analysis ──────────────────────
 
 
 @router.get(
@@ -255,7 +378,7 @@ async def get_event_analysis(
 ) -> EventAnalysisFullResponse:
     """Return cached EEP / causality / impact analysis for a single event."""
     event = await kg.get_event(event_id)
-    if event is None:
+    if event is None or event.document_id != book_id:
         raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found")
 
     from storysphere.api.schemas.book_event_analysis import (  # noqa: PLC0415
@@ -329,7 +452,7 @@ async def get_event_analysis(
     )
 
 
-# ── #7e DELETE /books/:bookId/events/:eventId/analysis ───────────────────────
+# ── #7f DELETE /books/:bookId/events/:eventId/analysis ───────────────────────
 
 
 @router.delete("/{book_id}/events/{event_id}/analysis", status_code=204)
@@ -338,7 +461,7 @@ async def delete_event_analysis(
 ) -> None:
     """Delete event analysis from cache."""
     event = await kg.get_event(event_id)
-    if event is None:
+    if event is None or event.document_id != book_id:
         raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found")
 
     cache_key = f"event:{book_id}:{event_id}"
@@ -368,7 +491,7 @@ async def get_event_source_passages(
     relevant passages", not as the event's canonical source text.
     """
     event = await kg.get_event(event_id)
-    if event is None:
+    if event is None or event.document_id != book_id:
         raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found")
 
     if vector is None:
@@ -399,7 +522,7 @@ async def get_event_source_passages(
     return EventSourceResponse(event_id=event_id, passages=passages)
 
 
-# ── #7f POST /books/:bookId/events/analyze-all ───────────────────────────────
+# ── #7g POST /books/:bookId/events/analyze-all ───────────────────────────────
 
 
 async def _batch_event_analysis(
@@ -434,6 +557,7 @@ async def _batch_event_analysis(
         report(
             int(done / total * 100) if total else 0,
             f"分析事件 {done}/{total}",
+            step_key="batch_progress",
             # The panel needs the item count, not just the percentage — it
             # renders "已分析 N/M" alongside the bar.
             sub_progress=done,
@@ -459,6 +583,15 @@ async def _batch_event_analysis(
         except Exception as exc:
             if _is_rate_limit_error(exc):
                 logger.warning("Batch event analysis aborted — rate limit: %s", exc)
+                # step_key survives set_failed, so the panel can word the
+                # abort itself from sub_progress / sub_total.
+                report(
+                    int(done / total * 100) if total else 0,
+                    f"分析事件 {done}/{total}",
+                    step_key="rate_limited",
+                    sub_progress=done,
+                    sub_total=total,
+                )
                 # Not a ``return``: the supervisor completes a task that
                 # returns, which would report an aborted run as a success.
                 raise task_runner.TaskAborted(
@@ -499,6 +632,7 @@ async def _batch_event_analysis(
     "/{book_id}/events/analyze-all",
     response_model=TaskIdResponse,
     status_code=202,
+    responses={409: {"model": ErrorResponse}},
 )
 async def trigger_batch_event_analysis(
     book_id: str,
@@ -534,6 +668,9 @@ async def trigger_batch_event_analysis(
 
     language = await doc.get_document_language(book_id)
     require_llm_provider()
+    # No await between the check and the claim (see batch_guard).
+    if (busy := batch_guard.conflict("event", book_id)) is not None:
+        return busy
     task_id = str(uuid4())
     task_store.create(task_id, kind="event", title="批次事件分析")
     task_runner.launch(
@@ -542,6 +679,7 @@ async def trigger_batch_event_analysis(
             task_id, book_id, agent, kg, cache, language, body.event_ids
         ),
     )
+    batch_guard.hold("event", book_id, task_id)
 
     logger.info(
         "Triggered batch event analysis: book=%s, "
@@ -549,5 +687,20 @@ async def trigger_batch_event_analysis(
         book_id, len(events), task_id,
     )
     return TaskIdResponse(task_id=task_id).model_dump(
+        by_alias=True,
+    )
+
+
+@router.get(
+    "/{book_id}/events/analyze-all/active",
+    response_model=ActiveBatchResponse,
+)
+async def get_active_event_batch(book_id: str) -> dict:
+    """The event batch currently running for this book, or ``taskId: null``.
+
+    Read-only: lets a page that remounts mid-run pick the batch back up instead
+    of offering to start a second one (which ``…/analyze-all`` refuses with 409).
+    """
+    return ActiveBatchResponse(task_id=batch_guard.running("event", book_id)).model_dump(
         by_alias=True,
     )

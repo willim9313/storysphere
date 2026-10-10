@@ -1,7 +1,19 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { fetchEventQuoteSources } from '@/api/analysis';
+import { qk } from '@/api/queryKeys';
 import { EventContextTab } from './EventContextTab';
+import { SourceJumpText } from './SourceJumpText';
+import {
+  causalityEmpty,
+  causeTabEmpty,
+  evidenceTabEmpty,
+  factorsEmpty,
+  impactEmpty,
+} from './eventDetailModel';
 import type {
   EventAnalysisDetail as EventAnalysisDetailType,
   ParticipantRole,
@@ -203,7 +215,7 @@ function CausalitySection({
 }) {
   const { t } = useTranslation('analysis');
   const c = data.causality;
-  const isEmpty = !c.rootCause && c.causalChain.length === 0 && !c.chainSummary;
+  const isEmpty = causalityEmpty(data);
   if (isEmpty && !failed) return null;
   if (isEmpty && failed) {
     return (
@@ -242,8 +254,7 @@ function CausalitySection({
 function ImpactSection({ data, failed = false }: { data: { impact: ImpactAnalysis }; failed?: boolean }) {
   const { t } = useTranslation('analysis');
   const i = data.impact;
-  const isEmpty =
-    !i.impactSummary && i.participantImpacts.length === 0 && i.relationChanges.length === 0;
+  const isEmpty = impactEmpty(data);
   if (isEmpty && !failed) return null;
   if (isEmpty && failed) {
     return (
@@ -287,7 +298,7 @@ function FactorsSection({ data }: { data: EventAnalysisDetailType }) {
   const { t } = useTranslation('analysis');
   const factors = data.eep.causalFactors ?? [];
   const consequences = data.eep.consequences ?? [];
-  if (factors.length === 0 && consequences.length === 0) return null;
+  if (factorsEmpty(data)) return null;
   return (
     <div className="ea-section">
       <SectionHead
@@ -320,9 +331,17 @@ function FactorsSection({ data }: { data: EventAnalysisDetailType }) {
   );
 }
 
-function QuotesSection({ data }: { data: EventAnalysisDetailType }) {
+function QuotesSection({ data, bookId }: { data: EventAnalysisDetailType; bookId?: string }) {
   const { t } = useTranslation('analysis');
+  const navigate = useNavigate();
   const quotes = data.eep.keyQuotes ?? [];
+  // #7m pins each quote to its paragraph by exact text; a quote it could not
+  // pin to exactly one paragraph stays plain text rather than jump somewhere wrong.
+  const { data: sources } = useQuery({
+    queryKey: qk.event.quoteSources(bookId, data.eventId),
+    queryFn: () => fetchEventQuoteSources(bookId!, data.eventId),
+    enabled: !!bookId && quotes.length > 0,
+  });
   if (quotes.length === 0) return null;
   return (
     <div className="ea-section">
@@ -331,11 +350,27 @@ function QuotesSection({ data }: { data: EventAnalysisDetailType }) {
         sub={t('event.labels.keyQuotesCount', { count: quotes.length })}
       />
       <div className="ea-quotes">
-        {quotes.map((q, i) => (
-          <p key={i} className="ea-quote">
-            {q}
-          </p>
-        ))}
+        {quotes.map((q, i) => {
+          const src = sources?.quotes?.[i];
+          const pinned = src?.text === q && src.paragraphId ? src : null;
+          return (
+            <p key={i} className="ea-quote">
+              {pinned ? (
+                <SourceJumpText
+                  text={q}
+                  pending={false}
+                  onJump={() =>
+                    navigate(`/books/${bookId}`, {
+                      state: { paragraphId: pinned.paragraphId, chapterNumber: pinned.chapterNumber },
+                    })
+                  }
+                />
+              ) : (
+                q
+              )}
+            </p>
+          );
+        })}
       </div>
     </div>
   );
@@ -371,7 +406,15 @@ function TermsSection({ data }: Readonly<{ data: EventAnalysisDetailType }>) {
 
 const TERM_LIMIT = 12;
 
+function TabEmpty() {
+  const { t } = useTranslation('analysis');
+  return <p className="ea-context-empty">{t('event.detail.tabEmpty')}</p>;
+}
+
 type DetailTab = 'overview' | 'cause' | 'context' | 'evidence';
+
+/** The event a 上下文位置 hop is heading to; see the tab-reset effect below. */
+let contextHopTarget: string | null = null;
 
 const DETAIL_TABS: { key: DetailTab; labelKey: string }[] = [
   { key: 'overview', labelKey: 'event.tabs.overview' },
@@ -390,25 +433,61 @@ export function EventAnalysisDetail({
 }: Props) {
   const { t } = useTranslation('analysis');
   const failedParts = data.failedParts ?? [];
-  const [tab, setTab] = useState<DetailTab>('overview');
-
   // Switching events should land on the overview, not wherever the previous
-  // event was left.
+  // event was left — except when the hop came from the 上下文位置 tab itself,
+  // where staying put lets the reader walk the chain neighbour by neighbour.
+  // Module-level, keyed by the target event: the page unmounts this component
+  // while the next event's detail loads, so a ref or state would not survive.
+  const [tab, setTab] = useState<DetailTab>(() =>
+    contextHopTarget === data.eventId ? 'context' : 'overview',
+  );
   /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => setTab('overview'), [data.eventId]);
+  useEffect(() => {
+    if (contextHopTarget === data.eventId) {
+      setTab('context');
+    } else {
+      contextHopTarget = null;
+      setTab('overview');
+    }
+  }, [data.eventId]);
   /* eslint-enable react-hooks/set-state-in-effect */
+  const selectFromContext = onSelectEvent
+    ? (id: string) => {
+        contextHopTarget = id;
+        onSelectEvent(id);
+      }
+    : undefined;
+
+  const tabs = DETAIL_TABS.filter((dt) => dt.key !== 'context' || bookId);
+  // WAI-ARIA tabs (automatic activation, same as the graph LensCard): only the
+  // selected tab is in the Tab order; ←/→ wrap, Home/End jump.
+  const onTabKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    const i = tabs.findIndex((dt) => dt.key === tab);
+    let next = i;
+    if (e.key === 'ArrowRight') next = (i + 1) % tabs.length;
+    else if (e.key === 'ArrowLeft') next = (i - 1 + tabs.length) % tabs.length;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = tabs.length - 1;
+    else return;
+    e.preventDefault();
+    setTab(tabs[next].key);
+    document.getElementById(`ea-detail-tab-${tabs[next].key}`)?.focus();
+  };
 
   return (
     <>
       <div className="ea-detail-head">
         {header}
-        <div className="ss-utabs" role="tablist">
-          {DETAIL_TABS.filter((dt) => dt.key !== 'context' || bookId).map((dt) => (
+        <div className="ss-utabs" role="tablist" onKeyDown={onTabKeyDown}>
+          {tabs.map((dt) => (
             <button
               key={dt.key}
+              id={`ea-detail-tab-${dt.key}`}
               type="button"
               role="tab"
               aria-selected={tab === dt.key}
+              aria-controls="ea-detail-panel"
+              tabIndex={tab === dt.key ? 0 : -1}
               className={'ss-utab' + (tab === dt.key ? ' active' : '')}
               onClick={() => setTab(dt.key)}
             >
@@ -418,7 +497,12 @@ export function EventAnalysisDetail({
         </div>
       </div>
 
-      <div className="ea-detail-body">
+      <div
+        className="ea-detail-body"
+        id="ea-detail-panel"
+        role="tabpanel"
+        aria-labelledby={`ea-detail-tab-${tab}`}
+      >
         {tab === 'overview' && (
           <>
             {showHero && <EventHero data={data} />}
@@ -429,6 +513,7 @@ export function EventAnalysisDetail({
 
         {tab === 'cause' && (
           <>
+            {causeTabEmpty(data, failedParts) && <TabEmpty />}
             <CausalitySection
               data={data}
               variant={causalVariant}
@@ -440,12 +525,13 @@ export function EventAnalysisDetail({
         )}
 
         {tab === 'context' && bookId && (
-          <EventContextTab bookId={bookId} eventId={data.eventId} onSelectEvent={onSelectEvent} />
+          <EventContextTab bookId={bookId} eventId={data.eventId} onSelectEvent={selectFromContext} />
         )}
 
         {tab === 'evidence' && (
           <>
-            <QuotesSection data={data} />
+            {evidenceTabEmpty(data) && <TabEmpty />}
+            <QuotesSection data={data} bookId={bookId} />
             <TermsSection data={data} />
           </>
         )}

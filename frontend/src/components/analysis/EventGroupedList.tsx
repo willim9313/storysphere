@@ -15,6 +15,9 @@ interface EventGroupedListProps {
   onSelect: (id: string) => void;
   onGenerate: (id: string) => void;
   generatingId: string | null;
+  /** Why no new generation can start right now (another event is generating,
+   *  or a batch is running), shown as the disabled button's tooltip; null = free. */
+  generateBlockedReason?: string | null;
   justDoneIds: Set<string>;
   /** Items the last batch run failed on (still unanalyzed). Marked on their rows,
    *  and offered as one more chip so the list can be narrowed to them. */
@@ -83,6 +86,7 @@ export function EventGroupedList({
   onSelect,
   onGenerate,
   generatingId,
+  generateBlockedReason = null,
   justDoneIds,
   failedIds,
   failedOnly,
@@ -102,6 +106,23 @@ export function EventGroupedList({
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
 
   const failedSet = useMemo(() => new Set(failedIds), [failedIds]);
+
+  // Whole-book counts behind each chip, so a filter that would match nothing
+  // (e.g. 衛星 S when every analysis came back kernel) says so before it's pressed.
+  const chipCounts = useMemo(() => {
+    const all: Row[] = [
+      ...evtData.analyzed.map<Row>((item) => ({ kind: 'analyzed', id: item.entityId, item })),
+      ...evtData.unanalyzed.map<Row>((item) => ({ kind: 'unanalyzed', id: item.id, item })),
+    ];
+    const counts = new Map<string, number>();
+    for (const row of all) {
+      const imp = rowImportance(row);
+      counts.set(imp, (counts.get(imp) ?? 0) + 1);
+      const mode = row.item.narrativeMode as string | null | undefined;
+      if (mode) counts.set(mode, (counts.get(mode) ?? 0) + 1);
+    }
+    return counts;
+  }, [evtData]);
 
   const groups = useMemo(() => {
     const all: Row[] = [
@@ -178,9 +199,12 @@ export function EventGroupedList({
               key={key}
               type="button"
               className={chipClass(impFilter.has(key))}
+              aria-pressed={impFilter.has(key)}
+              disabled={!chipCounts.get(key) && !impFilter.has(key)}
               onClick={() => setImpFilter((s) => toggle(s, key))}
             >
               {t(IMPORTANCE_CHIP_KEY[key] as string)}
+              <span className="ea-chip-count">{chipCounts.get(key) ?? 0}</span>
             </button>
           ))}
           {MODE_CHIPS.map((key) => (
@@ -188,9 +212,12 @@ export function EventGroupedList({
               key={key}
               type="button"
               className={chipClass(modeFilter.has(key))}
+              aria-pressed={modeFilter.has(key)}
+              disabled={!chipCounts.get(key) && !modeFilter.has(key)}
               onClick={() => setModeFilter((s) => toggle(s, key))}
             >
               {t(`event.narrative.${key}`)}
+              <span className="ea-chip-count">{chipCounts.get(key) ?? 0}</span>
             </button>
           ))}
           {failedIds.length > 0 && (
@@ -208,6 +235,7 @@ export function EventGroupedList({
           <button
             type="button"
             className={'ss-seg-item' + (groupBy === 'chapter' ? ' active' : '')}
+            aria-pressed={groupBy === 'chapter'}
             onClick={() => setGroupBy('chapter')}
           >
             {t('event.list.groupByChapter')}
@@ -215,6 +243,7 @@ export function EventGroupedList({
           <button
             type="button"
             className={'ss-seg-item' + (groupBy === 'importance' ? ' active' : '')}
+            aria-pressed={groupBy === 'importance'}
             onClick={() => setGroupBy('importance')}
           >
             {t('event.list.groupByImportance')}
@@ -239,6 +268,7 @@ export function EventGroupedList({
               <button
                 type="button"
                 className="ea-list-group-head"
+                aria-expanded={open}
                 onClick={() => setCollapsed((s) => toggle(s, g.key))}
               >
                 <ChevronRight size={12} className={'ea-caret' + (open ? ' open' : '')} />
@@ -274,6 +304,7 @@ export function EventGroupedList({
                         onSelect={() => onSelect(row.id)}
                         onGenerate={() => onGenerate(row.id)}
                         isGenerating={generatingId === row.id}
+                        generateBlockedReason={generateBlockedReason}
                         failed={failedSet.has(row.id)}
                         failureReason={failureReasons?.get(row.id)}
                       />

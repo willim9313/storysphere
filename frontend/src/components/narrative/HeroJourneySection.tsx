@@ -64,6 +64,22 @@ export function HeroJourneySection({
   const mapped = useMemo(() => stages.filter((s) => stageState(s) !== 'absent').length, [stages]);
   const absent = STAGE_ORDER.length - mapped;
 
+  // Radio-group keyboard model: one Tab stop (the checked item), arrows move
+  // and select, Home/End jump.
+  const onLayoutKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const last = LAYOUT_IDS.length - 1;
+    const i = LAYOUT_IDS.indexOf(layout);
+    let next: number;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = i === last ? 0 : i + 1;
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = i === 0 ? last : i - 1;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = last;
+    else return;
+    e.preventDefault();
+    setLayout(LAYOUT_IDS[next]);
+    e.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]')[next]?.focus();
+  };
+
   const approvedOn = reviewStatus === 'approved';
   const rejectedOn = reviewStatus === 'rejected';
 
@@ -144,13 +160,19 @@ export function HeroJourneySection({
 
       {/* What each view is for, on the control itself: a first-time reader will
           not hover something they don't yet know differs. */}
-      <div className="ss-seg nl-seg" role="radiogroup" aria-label={t('narrative.heroJourney')}>
+      <div
+        className="ss-seg nl-seg"
+        role="radiogroup"
+        aria-label={t('narrative.heroJourney')}
+        onKeyDown={onLayoutKeyDown}
+      >
         {LAYOUT_IDS.map((id) => (
           <button
             key={id}
             type="button"
             role="radio"
             aria-checked={layout === id}
+            tabIndex={layout === id ? 0 : -1}
             className={layout === id ? 'ss-seg-item nl-seg-item active' : 'ss-seg-item nl-seg-item'}
             onClick={() => setLayout(id)}
           >

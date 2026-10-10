@@ -180,12 +180,12 @@
       "running": "分析中",
       "allDone": "全部角色已分析 ✓",
       "triggerAll": "生成全部",
+      "progress": "分析角色 {{done}}/{{total}}",
       "topSubset": "先生成前 10 位要角",
       "remaining": "{{count}} 位待生成",
       "statusLine": "{{count}} 位待生成 · 已分析的角色會自動跳過",
       "summaryProgress": "本批次共處理 {{count}} 位",
       "runningWithCount": "分析中 {{current}}/{{total}}…",
-      "errorFallback": "批次執行失敗",
       "failedShort": "失敗 {{count}}",
       "showFailures": "只看失敗 ({{count}}) →",
       "stat": {
@@ -378,14 +378,19 @@
     },
     "generating": {
       "title": "事件分析中",
-      "stage": "{{stage}} · {{progress}}%"
+      "stage": "{{stage}} · {{progress}}%",
+      "blockedBySingle": "另一件事件正在生成，完成後再試。",
+      "blockedByBatch": "批次正在執行，這件會包含在內。",
+      "stages": {
+        "eep": "抽取事件證據",
+        "causality": "分析因果與影響",
+        "summary": "生成事件摘要",
+        "coverage": "計算涵蓋率"
+      }
     },
     "overview": {
       "title": "事件圖景",
-      "metaTotal": "件事件",
-      "metaAnalyzed": "已分析",
-      "metaUnanalyzed": "未分析",
-      "metaKernel": "核心",
+      "meta": "{{total}} 件事件 · 已分析 {{analyzed}} · 未分析 {{unanalyzed}} · 核心 {{kernel}}",
       "undetermined": "重要度未定",
       "emptyLead": "整本書尚未分析。",
       "emptyBody": "先批次生成 EEP，總覽會隨之填滿。",
@@ -415,7 +420,9 @@
         "legendKernel": "大圈 = 核心事件",
         "legendUnanalyzed": "虛線圈 = 尚未分析",
         "legendAxis": "橫軸 = 章節順序",
-        "undated": "另有 {{count}} 件事件無章節資訊，未顯示於圖中。"
+        "undated": "另有 {{count}} 件事件無章節資訊，未顯示於圖中。",
+        "importanceUnreliableKernel": "已分析的 {{analyzed}} 件中有 {{count}} 件判為核心——這本書的核心／衛星區分不可靠，上下分帶僅供參考。",
+        "importanceUnreliableSatellite": "已分析的 {{analyzed}} 件中有 {{count}} 件判為衛星——這本書的核心／衛星區分不可靠，上下分帶僅供參考。"
       },
       "viewFlow": "事件脈絡",
       "flow": {
@@ -454,7 +461,8 @@
       "title": "原文段落 · 生成前先判斷",
       "empty": "本章找不到足夠相似的段落。",
       "similarity": "相似度 {{score}}",
-      "caveat": "以事件標題與描述向量檢索本章段落取得，非事件的正規出處；相似度低時請以章節原文為準。"
+      "caveat": "以事件標題與描述向量檢索本章段落取得，非事件的正規出處；相似度低時請以章節原文為準。",
+      "openInReader": "在閱讀頁開啟 →"
     },
     "context": {
       "title": "脈絡中的位置",
@@ -467,7 +475,11 @@
       "empty": "此事件目前無跨章節的關聯事件。",
       "shared": "共享 {{names}}",
       "more": "還有 {{count}} 個",
-      "collapse": "收合"
+      "collapse": "收合",
+      "nameJoiner": "、"
+    },
+    "detail": {
+      "tabEmpty": "這個分頁還沒有內容。"
     },
     "detailError": {
       "title": "事件細節載入失敗",
@@ -482,6 +494,8 @@
     "header": "事件分析",
     "running": "分析中",
     "allDone": "全部事件已分析 ✓",
+    "progress": "分析事件 {{done}}/{{total}}",
+    "rateLimited": "API 配額已達上限，已處理 {{done}}/{{total}} 件。請稍後再試。",
     "triggerAll": "一鍵生成全部 EEP",
     "autoSkip": "已分析的事件會自動跳過",
     "remaining": "{{count}} 件待生成",
@@ -493,12 +507,9 @@
     "summaryProgress": "本批次共處理 {{count}} 件",
     "toastTitle": "批次 EEP 分析完成",
     "toastBody": "已生成 {{generated}} 件 · 跳過 {{skipped}} · 失敗 {{failed}}",
-    "errorFallback": "批次執行失敗",
     "failedShort": "失敗 {{count}}",
     "showFailures": "只看失敗 ({{count}}) →",
     "runningWithCount": "分析中 {{current}}/{{total}}…",
-    "kernelOnly": "只生成核心 ({{count}})",
-    "kernelOnlyDisabled": "重要度需生成 EEP 後才判定，目前沒有已知的核心待生成事件",
     "chapterOnly": "只生成本章",
     "chapterOnlyDisabled": "先選一個事件，才知道要生成哪一章",
     "checkModeOn": "勾選多筆",
@@ -1423,6 +1434,7 @@
         "chapterBack": "後"
       },
       "batch": {
+        "progress": "詮釋意象 {{done}}/{{total}}",
         "topN": "生成訊號最強的前 {{count}} 名…",
         "all": "全部 {{count}} 個…",
         "confirmTopN": "將對敘事負載最高的 {{count}} 個意象生成 LLM 詮釋。每一筆都會消耗 token 並進入 HITL 審核。要繼續嗎？",

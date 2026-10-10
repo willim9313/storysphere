@@ -13,6 +13,7 @@ import {
   fetchEntityAnalysis,
   triggerEntityAnalysis,
   triggerBatchEntityAnalysis,
+  fetchActiveEntityBatch,
 } from '@/api/analysis';
 import { failureKind, isLlmUnconfigured, techDetailOf } from '@/api/failureKind';
 import {
@@ -229,6 +230,7 @@ export default function CharacterAnalysisPage() {
 
   const [batchLlmBlocked, setBatchLlmBlocked] = useState(false);
   const batch = useBatchTask<string[]>({
+    i18nPrefix: 'character.batch',
     trigger: async (entityIds) => {
       setBatchLlmBlocked(false);
       try {
@@ -259,6 +261,7 @@ export default function CharacterAnalysisPage() {
       });
     },
     failureMessage: t('character.batch.triggerFailed'),
+    resume: { key: bookId, fetch: () => fetchActiveEntityBatch(bookId!) },
   });
   const startBatch = (ids?: string[]) => {
     setFailedOnly(false);
@@ -657,6 +660,7 @@ export default function CharacterAnalysisPage() {
                 analyzedCount={charData.analyzed.length}
                 totalCount={totalCharacters}
                 batchTask={batch.task}
+                stage={batch.stage}
                 isBatchRunning={batch.running}
                 batchError={batchLlmBlocked ? null : batch.error}
                 batchSummary={batch.summary}

@@ -25,6 +25,9 @@ interface EventOverviewLandingProps {
   onSelectEvent: (id: string) => void;
   onGenerate: (id: string) => void;
   generatingId: string | null;
+  /** Why no new generation can start right now (another event is generating,
+   *  or a batch is running), shown as the disabled button's tooltip; null = free. */
+  generateBlockedReason?: string | null;
   onBatchAll: () => void;
   isBatchRunning: boolean;
 }
@@ -35,6 +38,7 @@ export function EventOverviewLanding({
   onSelectEvent,
   onGenerate,
   generatingId,
+  generateBlockedReason = null,
   onBatchAll,
   isBatchRunning,
 }: Readonly<EventOverviewLandingProps>) {
@@ -100,9 +104,12 @@ export function EventOverviewLanding({
         <div className="ea-ov-head-main">
           <h1 className="ea-ov-title">{t('event.overview.title')}</h1>
           <span className="ea-ov-meta">
-            {totalCount} {t('event.overview.metaTotal')} · {t('event.overview.metaAnalyzed')}{' '}
-            {analyzedCount} · {t('event.overview.metaUnanalyzed')} {unanalyzedCount} ·{' '}
-            {t('event.overview.metaKernel')} {kernelCount}
+            {t('event.overview.meta', {
+              total: totalCount,
+              analyzed: analyzedCount,
+              unanalyzed: unanalyzedCount,
+              kernel: kernelCount,
+            })}
           </span>
         </div>
         {/* View switch is a zero-cost mode switch: no LLM glyph, no accent fill. */}
@@ -112,6 +119,7 @@ export function EventOverviewLanding({
               key={v.key}
               type="button"
               className={'ss-seg-item' + (view === v.key ? ' active' : '')}
+              aria-pressed={view === v.key}
               onClick={() => setView(v.key)}
             >
               {t(v.labelKey)}
@@ -127,6 +135,7 @@ export function EventOverviewLanding({
           onSelectEvent={onSelectEvent}
           onGenerate={onGenerate}
           generatingId={generatingId}
+          generateBlockedReason={generateBlockedReason}
         />
       )}
       {view === 'flow' && (

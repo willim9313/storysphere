@@ -3,9 +3,10 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+import { ApiError } from '@/api/client';
 import type { TaskStatus } from '@/api/types';
 import { useAsyncTask } from './useAsyncTask';
-import { useBatchTask } from './useBatchTask';
+import { parseBatchResult, useBatchTask } from './useBatchTask';
 import { qk } from '@/api/queryKeys';
 
 /** useBatchTask polls through the default fetcher, so that one gets mocked. */
@@ -235,5 +236,129 @@ describe('useBatchTask', () => {
 
     act(() => result.current.start());
     await waitFor(() => expect(result.current.error).toBe('批次失敗'));
+  });
+
+  describe('resume', () => {
+    it('follows the batch already running for the book on mount', async () => {
+      fetchTaskStatus.mockResolvedValue(task({ taskId: 'run-1', subProgress: 3, subTotal: 10 }));
+      const trigger = vi.fn(async () => ({ taskId: 'never' }));
+      const fetchActive = vi.fn(async () => ({ taskId: 'run-1' }));
+
+      const { result } = renderHook(
+        () =>
+          useBatchTask<string[]>({
+            trigger,
+            failureMessage: '批次失敗',
+            resume: { key: 'book-1', fetch: fetchActive },
+          }),
+        { wrapper },
+      );
+
+      await waitFor(() => expect(result.current.running).toBe(true));
+      expect(result.current.processed).toBe(3);
+      expect(fetchTaskStatus).toHaveBeenCalledWith('run-1', 0);
+      expect(trigger).not.toHaveBeenCalled();
+    });
+
+    it('stays idle when nothing is running', async () => {
+      const fetchActive = vi.fn(async () => ({ taskId: null }));
+
+      const { result } = renderHook(
+        () =>
+          useBatchTask<string[]>({
+            trigger: async () => ({ taskId: 't1' }),
+            failureMessage: '批次失敗',
+            resume: { key: 'book-1', fetch: fetchActive },
+          }),
+        { wrapper },
+      );
+
+      await waitFor(() => expect(fetchActive).toHaveBeenCalledTimes(1));
+      expect(result.current.running).toBe(false);
+      expect(fetchTaskStatus).not.toHaveBeenCalled();
+    });
+
+    it('adopts the running batch on a 409 batch_running instead of reporting a failure', async () => {
+      fetchTaskStatus.mockResolvedValue(task({ taskId: 'run-1' }));
+      const fetchActive = vi
+        .fn<() => Promise<{ taskId: string | null }>>()
+        .mockResolvedValueOnce({ taskId: null }) // mount: the other tab has not started yet
+        .mockResolvedValueOnce({ taskId: 'run-1' });
+
+      const { result } = renderHook(
+        () =>
+          useBatchTask<string[]>({
+            trigger: async () => {
+              throw new ApiError(409, 'already running', true, 'batch_running');
+            },
+            failureMessage: '批次失敗',
+            resume: { key: 'book-1', fetch: fetchActive },
+          }),
+        { wrapper },
+      );
+      await waitFor(() => expect(fetchActive).toHaveBeenCalledTimes(1));
+
+      act(() => result.current.start());
+      await waitFor(() => expect(result.current.running).toBe(true));
+      expect(result.current.error).toBeNull();
+    });
+
+    it('still reports other trigger failures', async () => {
+      const fetchActive = vi.fn(async () => ({ taskId: null }));
+
+      const { result } = renderHook(
+        () =>
+          useBatchTask<string[]>({
+            trigger: async () => {
+              throw new ApiError(400, 'No events found for this book');
+            },
+            failureMessage: '批次失敗',
+            resume: { key: 'book-1', fetch: fetchActive },
+          }),
+        { wrapper },
+      );
+
+      act(() => result.current.start());
+      await waitFor(() => expect(result.current.error).toBe('批次失敗'));
+      expect(fetchActive).toHaveBeenCalledTimes(1); // the mount lookup only
+    });
+  });
+});
+
+describe('parseBatchResult', () => {
+  it('accepts a summary without failures', () => {
+    expect(parseBatchResult({ progress: 5, total: 5, failed: 0, skipped: 1 })).toEqual({
+      progress: 5,
+      total: 5,
+      failed: 0,
+      skipped: 1,
+    });
+  });
+
+  it.each([
+    ['event_id', { reason: 'x', event_id: 'e1' }],
+    ['entity_id', { reason: 'x', entity_id: 'c1' }],
+    ['imagery_id', { reason: 'x', imagery_id: 'i1' }],
+  ])('keeps %s failures', (_name, failure) => {
+    const got = parseBatchResult({ progress: 1, total: 2, failed: 1, skipped: 0, failures: [failure] });
+    expect(got?.failures).toEqual([failure]);
+  });
+
+  it('rejects a missing or non-numeric counter', () => {
+    expect(parseBatchResult({ progress: 1, total: 2, failed: 0 })).toBeNull();
+    expect(parseBatchResult({ progress: '1', total: 2, failed: 0, skipped: 0 })).toBeNull();
+  });
+
+  it('rejects non-objects', () => {
+    expect(parseBatchResult(null)).toBeNull();
+    expect(parseBatchResult(undefined)).toBeNull();
+    expect(parseBatchResult('done')).toBeNull();
+    expect(parseBatchResult([1, 2, 3, 4])).toBeNull();
+  });
+
+  it('treats non-array failures as absent', () => {
+    const got = parseBatchResult({ progress: 1, total: 1, failed: 0, skipped: 0, failures: 'oops' });
+    expect(got).toEqual({ progress: 1, total: 1, failed: 0, skipped: 0 });
+    expect(got).not.toHaveProperty('failures');
   });
 });

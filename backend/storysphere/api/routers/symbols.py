@@ -21,7 +21,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query
 
-from storysphere.api import task_runner
+from storysphere.api import batch_guard, task_runner
 from storysphere.api.deps import (
     AnalysisAgentDep,
     AnalysisCacheDep,
@@ -37,7 +37,7 @@ from storysphere.api.schemas.analysis import (
     SymbolBatchAnalysisRequest,
     SymbolInterpretationReviewRequest,
 )
-from storysphere.api.schemas.common import TaskStatus
+from storysphere.api.schemas.common import ActiveBatchResponse, ErrorResponse, TaskStatus
 from storysphere.api.schemas.symbols import (
     CoOccurrenceEntry,
     ImageryEntityResponse,
@@ -312,6 +312,7 @@ async def _batch_symbol_analysis(
         report(
             int(done / item_total * 100) if item_total else 0,
             f"詮釋意象 {done}/{item_total}",
+            step_key="batch_progress",
             sub_progress=done,
             sub_total=item_total,
         )
@@ -326,6 +327,15 @@ async def _batch_symbol_analysis(
     )
 
     if summary.pop("aborted", False):
+        # step_key survives set_failed, so the panel can word the abort
+        # itself from sub_progress / sub_total.
+        report(
+            int(summary["progress"] / total * 100) if total else 0,
+            f"詮釋意象 {summary['progress']}/{total}",
+            step_key="rate_limited",
+            sub_progress=summary["progress"],
+            sub_total=total,
+        )
         # Not a ``return``: the supervisor completes a task that returns,
         # which would report a quota-exhausted sweep as a success.
         raise task_runner.TaskAborted(
@@ -336,7 +346,24 @@ async def _batch_symbol_analysis(
     return summary
 
 
-@router.post("/analyze-all", response_model=TaskStatus, status_code=202)
+@router.get("/analyze-all/active", response_model=ActiveBatchResponse)
+async def get_active_symbol_batch(
+    book_id: str = Query(..., description="Book identifier"),
+) -> ActiveBatchResponse:
+    """The symbol batch currently running for this book, or ``taskId: null``.
+
+    Read-only: lets the page pick a running batch back up after a remount
+    instead of offering to start a second one (which #15j refuses with 409).
+    """
+    return ActiveBatchResponse(task_id=batch_guard.running("symbol", book_id))
+
+
+@router.post(
+    "/analyze-all",
+    response_model=TaskStatus,
+    status_code=202,
+    responses={409: {"model": ErrorResponse}},
+)
 async def analyze_all_symbols(
     req: SymbolBatchAnalysisRequest,
     agent: AnalysisAgentDep,
@@ -378,6 +405,9 @@ async def analyze_all_symbols(
     language = await doc.get_document_language(req.book_id)
 
     require_llm_provider()
+    # No await between the check and the claim (see batch_guard).
+    if (busy := batch_guard.conflict("symbol", req.book_id)) is not None:
+        return busy
     task_id = str(uuid4())
     task_store.create(task_id, kind="symbol", title="批次象徵詮釋")
     task_runner.launch(
@@ -392,6 +422,7 @@ async def analyze_all_symbols(
             agent,
         ),
     )
+    batch_guard.hold("symbol", req.book_id, task_id)
     logger.info(
         "Triggered batch symbol analysis: book=%s imagery=%d task=%s",
         req.book_id,

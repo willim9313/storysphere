@@ -337,8 +337,16 @@
   .nl-hj-body.is-ring {
     grid-template-columns: minmax(0, 1fr);
   }
+  /* Single column drops the detail below the chart, off-screen after a click:
+     pin it to the viewport bottom, capped so the chart stays visible. */
   .nl-detail {
-    position: static;
+    position: sticky;
+    top: auto;
+    bottom: 0;
+    z-index: 1;
+    max-height: 45vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-lg);
   }
 }
 
@@ -1731,4 +1739,13 @@ a.nl-sd-ev:hover {
 @keyframes nl-flash {
   0%, 40% { box-shadow: 0 0 0 3px var(--accent); }
   100% { box-shadow: 0 0 0 3px transparent; }
+}
+/* Reduced motion: no spin, and the pointer ring stays solid while the class is
+   on (the script drops it after ~1.7s) instead of fading. */
+@media (prefers-reduced-motion: reduce) {
+  .nl-progress-spin { animation: none; }
+  .nl-flash {
+    animation: none;
+    box-shadow: 0 0 0 3px var(--accent);
+  }
 }

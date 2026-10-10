@@ -313,12 +313,14 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 | `--pill-radius` | `20px`（全圓 lozenge） | `4px`（矩形 tag） | entity / symbol pill |
 | `--pill-border-width` | `0.5px` | `1px` | pill 外框 |
 | `--chip-border-width` | `0` | `1px` | 篩選 chip 外框（書庫）。Warm 靠底色分層不畫框；Ink 的未選 chip 底 `#f6f6f4` 在白紙上幾乎看不見，改成有框的矩形 tag |
+| `--narrative-glyph-display` | `none` | `block` | 敘事模式字形（事件分析頁故事骨幹圖圓點中央與圖例）：倒敘 `←`、預敘 `→`、平行 `∥`、未知 `?`，順敘不加。Warm 靠色相區分；Ink 五種模式只差灰階（平行 `#f6f6f4` 對未知 `#fafafa`），改由字形承載 |
 | `--badge-radius` | `20px` | `4px` | status badge |
 | `--control-radius` | `var(--radius-md)` | `var(--radius-sm)` | input、toggle、select |
 | `--input-radius` | `var(--control-radius)` | `var(--control-radius)` | 文字框、搜尋、select 共用的框 |
 | `--input-border-width` | `1px` | `1.5px` | 同上 |
 | `--input-bg` | `var(--bg-primary)` | `var(--bg-primary)` | 同上 |
 | `--scrim` | `rgba(42,38,32,0.40)` | `rgba(0,0,0,0.40)` | 對話框遮罩（單一種、無模糊） |
+| `--scrim-light` | `rgba(42,38,32,0.12)` | `rgba(0,0,0,0.12)` | 輕量背板（事件頁對比抽屜等非模態遮罩） |
 
 兩主題需要進一步分化時在此層加 token（如 `--tab-radius`），保持 palette 層與 shape 層分離。
 

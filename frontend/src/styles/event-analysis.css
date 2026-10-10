@@ -93,15 +93,23 @@
 }
 
 /* 動作列·行內按鈕變體：24 徽章 · 1fr 本文 · 12 狀態點；第二行固定 28px。
-   選中態：底色＋加粗，不用邊框／inset 強調。 */
+   選中態：底色＋加粗，不用邊框／inset 強調。
+   列本身不可互動：.ea-row-main 是選取鈕（整列可點），「生成分析」是兄弟節點，疊在第二行右側。 */
 .ea-row {
+  position: relative;
+  margin: 0 var(--space-3);
+  border-radius: var(--radius-md);
+  background: transparent;
+  transition: background-color var(--transition-fast) ease;
+}
+.ea-row-main {
   display: grid; grid-template-columns: 24px minmax(0, 1fr) 12px;
   column-gap: var(--space-4); align-items: center;
-  margin: 0 var(--space-3); padding: var(--space-4) var(--space-5);
-  border-radius: var(--radius-md);
-  background: transparent; cursor: pointer;
-  font-family: var(--font-sans); color: var(--fg-primary);
-  transition: background-color var(--transition-fast) ease;
+  width: 100%; box-sizing: border-box; margin: 0;
+  padding: var(--space-4) var(--space-5);
+  border: none; border-radius: inherit;
+  background: none; text-align: left; cursor: pointer;
+  font-family: var(--font-sans); font-size: inherit; color: var(--fg-primary);
 }
 .ea-row:hover { background: color-mix(in srgb, var(--bg-secondary) 60%, transparent); }
 .ea-row.selected { background: var(--bg-secondary); }
@@ -123,7 +131,15 @@
   width: 2px; height: 2px; border-radius: 50%;
   background: var(--fg-muted); opacity: 0.6; flex: none;
 }
-.ea-row-create { margin-left: auto; flex-shrink: 0; white-space: nowrap; }
+.ea-row-create-slot {
+  position: absolute; right: var(--space-5);
+  bottom: calc(var(--space-4) + 14px); transform: translateY(50%); /* 對齊第二行（28px）的垂直中心 */
+}
+.ea-row.is-failed .ea-row-create-slot { right: calc(var(--space-5) + 12px + var(--space-4)); }
+.ea-row-create { white-space: nowrap; }
+/* 停用但仍可聚焦、可點（點了改為選取該件）：外觀同 .ss-btn:disabled */
+.ea-row-create[aria-disabled='true'],
+.ea-ov-rank-row .ss-btn[aria-disabled='true'] { opacity: 0.5; cursor: not-allowed; }
 
 /* Importance badge — letter (K / S) */
 .ea-imp {
@@ -277,7 +293,7 @@
 }
 .ea-state.after { border-color: var(--accent); }
 .ea-state-label { font-size: var(--font-size-2xs); color: var(--fg-muted); }
-.ea-state-text { font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-primary); margin: 0; text-wrap: pretty; }
+.ea-state-text { font-size: var(--font-size-xs); line-height: 1.7; color: var(--fg-primary); margin: 0; text-wrap: pretty; }
 .ea-state-arrow { display: flex; align-items: center; justify-content: center; color: var(--accent); }
 /* 結構角色／重要性：兩行，降級註記緊貼值之後 */
 .ea-state-meta { display: flex; flex-direction: column; gap: var(--space-3); padding-top: var(--space-4); }
@@ -324,7 +340,7 @@
   font-size: var(--font-size-2xs); padding: 1px var(--space-3); border-radius: var(--pill-radius);
   background: var(--ea-role-bg); border: var(--line-weight) solid var(--ea-role-dot); color: var(--fg-primary);
 }
-.ea-participant-impact { font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-secondary); margin: 0; }
+.ea-participant-impact { font-size: var(--font-size-xs); line-height: 1.7; color: var(--fg-secondary); margin: 0; }
 
 /* ─── 因果與影響／證據／上下文：平卡（F） ─── */
 .ea-section {
@@ -462,7 +478,7 @@
   display: flex; align-items: center; justify-content: space-between; gap: var(--space-5); flex-wrap: wrap;
   padding: var(--space-5); background: var(--color-info-bg); border-radius: var(--radius-sm);
 }
-.ea-ov-empty-text { font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-primary); }
+.ea-ov-empty-text { font-size: var(--font-size-xs); line-height: 1.7; color: var(--fg-primary); }
 .ea-ov-head { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-6); flex-wrap: wrap; }
 .ea-ov-head-main { display: flex; flex-direction: column; gap: var(--space-3); }
 .ea-ov-title { font-family: var(--font-serif); font-size: var(--font-size-2xl); font-weight: 700; margin: 0; color: var(--fg-primary); }
@@ -507,6 +523,18 @@
   transition: transform var(--transition-fast) ease;
 }
 .ea-ov-map-dot.is-unanalyzed { background: transparent; border-style: dashed; }
+/* 敘事模式字形：Warm 靠色相；Ink（近單色）五種模式只差灰階，改由字形承載。
+   顯示與否只看 shape token --narrative-glyph-display，同一份 markup。順敘不加（同詳情「順敘不出 chip」）。 */
+.ea-ov-map-dot.has-glyph { display: flex; align-items: center; justify-content: center; }
+.ea-ov-map-dot.has-glyph[data-mode]::after,
+.ea-narr-glyph::before {
+  display: var(--narrative-glyph-display);
+  font-family: var(--font-sans); font-size: var(--font-size-2xs); line-height: 1; color: var(--fg-primary);
+}
+.ea-ov-map-dot.has-glyph[data-mode='flashback']::after,    .ea-narr-glyph[data-mode='flashback']::before    { content: '←'; }
+.ea-ov-map-dot.has-glyph[data-mode='flashforward']::after, .ea-narr-glyph[data-mode='flashforward']::before { content: '→'; }
+.ea-ov-map-dot.has-glyph[data-mode='parallel']::after,     .ea-narr-glyph[data-mode='parallel']::before     { content: '∥'; }
+.ea-ov-map-dot.has-glyph[data-mode='unknown']::after,      .ea-narr-glyph[data-mode='unknown']::before      { content: '?'; }
 .ea-ov-map-node:hover .ea-ov-map-dot { transform: scale(1.15); }
 .ea-ov-map-node-label {
   max-width: 80px; font-size: var(--font-size-2xs); line-height: 1.3; color: var(--fg-secondary);
@@ -546,8 +574,15 @@
 .ea-ov-hero-sub { font-size: var(--font-size-2xs); color: var(--fg-muted); }
 .ea-ov-rank-list { display: flex; flex-direction: column; gap: var(--space-4); }
 .ea-ov-rank-row {
-  display: flex; align-items: center; gap: var(--space-4); cursor: pointer;
+  display: flex; align-items: center; gap: var(--space-4);
   border-radius: var(--radius-sm);
+}
+/* 選取鈕：#N 到人數；「生成分析」是兄弟節點 */
+.ea-ov-rank-main {
+  display: flex; align-items: center; gap: var(--space-4);
+  flex: 1; min-width: 0; margin: 0; padding: 0;
+  border: none; border-radius: inherit; background: none;
+  font: inherit; color: inherit; text-align: left; cursor: pointer;
 }
 .ea-ov-rank-row:hover { background: var(--bg-secondary); }
 .ea-ov-rank-n {
@@ -560,7 +595,7 @@
 .ea-ov-rank-name.muted { color: var(--fg-secondary); }
 .ea-ov-rank-ch { flex: none; font-variant-numeric: tabular-nums; font-size: var(--font-size-2xs); color: var(--fg-muted); }
 .ea-ov-rank-bar-track { width: 70px; height: 5px; flex: none; border-radius: 3px; background: var(--bg-secondary); overflow: hidden; }
-.ea-ov-rank-bar-fill { height: 100%; background: var(--accent); opacity: 0.8; }
+.ea-ov-rank-bar-fill { display: block; height: 100%; background: var(--accent); opacity: 0.8; }
 .ea-ov-rank-bar-fill.muted { opacity: 0.4; }
 .ea-ov-rank-count {
   min-width: 26px; flex: none; text-align: right;
@@ -613,6 +648,9 @@
 }
 .ea-chip:hover:not(.active) { background: var(--bg-secondary); }
 .ea-chip.active { background: var(--bg-tertiary); color: var(--fg-primary); font-weight: 600; }
+.ea-chip-count { margin-left: var(--space-2); font-variant-numeric: tabular-nums; color: var(--fg-muted); font-weight: 400; }
+/* 全書 0 件的篩選：點了只會得到空清單，先停用（已選中的仍可取消） */
+.ea-chip:disabled { opacity: 0.5; cursor: not-allowed; }
 /* 全寬 .ss-seg */
 .ss-seg.ea-seg-full { display: flex; }
 .ss-seg.ea-seg-full .ss-seg-item { flex: 1; text-align: center; }
@@ -675,7 +713,7 @@
 }
 
 /* ─── 對比抽屜（H）760 ─── */
-.ea-compare-backdrop { position: fixed; inset: 0; z-index: 30; background: rgb(0 0 0 / 12%); }
+.ea-compare-backdrop { position: fixed; inset: 0; z-index: 30; background: var(--scrim-light); }
 .ea-compare-drawer {
   position: fixed; top: 0; right: 0; bottom: 0; z-index: 31;
   width: 760px; max-width: 92vw; overflow-y: auto;
@@ -701,3 +739,16 @@
 .ea-compare-loading { font-size: var(--font-size-2xs); color: var(--fg-muted); }
 .ea-compare-list { margin: 0; padding-left: var(--space-6); display: flex; flex-direction: column; gap: var(--space-2); }
 .ea-compare-empty { margin: 0; font-size: var(--font-size-2xs); color: var(--fg-muted); }
+
+/* 減少動態：狀態仍要看得出來，只拿掉循環與位移——
+   生成中點改靜態實心（顏色已區分），spinner 放慢到 3s（仍表示「在動」），
+   fade-in 與完成時的放大、節點 hover 放大都拿掉。 */
+@media (prefers-reduced-motion: reduce) {
+  .ea-row-dot.running,
+  .ea-row-dot.is-just-done,
+  .ea-ov-landing { animation: none; }
+  .ea-spinner,
+  .ea-mini-spinner { animation-duration: 3s; }
+  .ea-ov-map-dot { transition: none; }
+  .ea-ov-map-node:hover .ea-ov-map-dot { transform: none; }
+}

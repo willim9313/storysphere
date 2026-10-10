@@ -10,6 +10,8 @@ import { useEventAnalysis } from '@/hooks/useEventAnalysis';
 import {
   triggerEventAnalysis,
   triggerBatchEventAnalysis,
+  fetchActiveEventBatch,
+  fetchRunningEventAnalyses,
   fetchEventAnalysisDetail,
   fetchEventSourcePassages,
 } from '@/api/analysis';
@@ -21,6 +23,7 @@ import { EventOverviewLanding } from '@/components/analysis/overview/EventOvervi
 import { EventGroupedList } from '@/components/analysis/EventGroupedList';
 import { failedCountOf, failureIdOf, liveFailedIds } from '@/components/analysis/batchPanelModel';
 import { EventCompareDrawer } from '@/components/analysis/EventCompareDrawer';
+import { ApiError } from '@/api/client';
 import { failureKind, isLlmUnconfigured, techDetailOf } from '@/api/failureKind';
 import { GuidanceRibbon } from '@/components/ui/GuidanceRibbon';
 import { LlmUnconfiguredNotice } from '@/components/ui/LlmUnconfiguredNotice';
@@ -80,7 +83,10 @@ export default function EventAnalysisPage() {
   }, [legacySelectId, selectedEntityId, setSelectedEntityId]);
 
   const [confirmRegenerate, setConfirmRegenerate] = useState(false);
+  // The event the single-event task (`gen`) belongs to, and the mode it ran
+  // with — kept after a failure so 「重試」 re-runs the same thing.
   const [generatingId, setGeneratingId] = useState<string | null>(null);
+  const [genMode, setGenMode] = useState<'full' | 'retryFailed'>('full');
   const [triggerError, setTriggerError] = useState<string | null>(null);
   // A 503 carrying the app's own body = no LLM provider configured (shown in place).
   const [llmBlocked, setLlmBlocked] = useState(false);
@@ -125,14 +131,18 @@ export default function EventAnalysisPage() {
     defaultError: t('triggerFailed'),
     onDone: (_task, { reset }) => {
       queryClient.invalidateQueries({ queryKey: qk.analysis.events(bookId) });
-      queryClient.invalidateQueries({
-        queryKey: qk.event.analysis(bookId, selectedEntityId),
-      });
-      if (generatingId) markJustDone(generatingId);
+      // The event that was generated — not whichever one is selected now: the
+      // reader may have moved on while it ran.
+      if (generatingId) {
+        queryClient.invalidateQueries({ queryKey: qk.event.analysis(bookId, generatingId) });
+        markJustDone(generatingId);
+      }
       reset();
       setGeneratingId(null);
     },
   });
+  // Only the event being generated is parked; every other one stays browsable.
+  const selectedIsGenerating = !!gen.taskId && selectedEntityId === generatingId;
 
   const {
     data: eventDetail,
@@ -142,7 +152,7 @@ export default function EventAnalysisPage() {
   } = useQuery({
     queryKey: qk.event.analysis(bookId, selectedEntityId),
     queryFn: () => fetchEventAnalysisDetail(bookId!, selectedEntityId!),
-    enabled: !!bookId && !!selectedEntityId && !gen.taskId && isSelectedAnalyzed,
+    enabled: !!bookId && !!selectedEntityId && !selectedIsGenerating && isSelectedAnalyzed,
   });
 
   // #7i — retrieved source passages, only useful while the event is still
@@ -150,7 +160,7 @@ export default function EventAnalysisPage() {
   const { data: sourceData, isLoading: sourceLoading } = useQuery({
     queryKey: qk.event.source(bookId, selectedEntityId),
     queryFn: () => fetchEventSourcePassages(bookId!, selectedEntityId!, 2),
-    enabled: !!bookId && !!selectedEntityId && !isSelectedAnalyzed && !gen.taskId,
+    enabled: !!bookId && !!selectedEntityId && !isSelectedAnalyzed && !selectedIsGenerating,
   });
 
   const markJustDone = (id: string) => {
@@ -196,26 +206,69 @@ export default function EventAnalysisPage() {
     }
   };
 
+  // A run is already going (another tab, or one started before a remount):
+  // follow it instead of offering to start it again — on mount, and when #7e
+  // refuses a trigger with 409 `analysis_running` (#7l lists the runs).
+  const { adopt: adoptGen } = gen;
+  const followRun = (run: { eventId: string; taskId: string }) => {
+    setGeneratingId(run.eventId);
+    setGenMode('full');
+    adoptGen(run.taskId);
+  };
+  useEffect(() => {
+    if (!bookId) return;
+    let alive = true;
+    fetchRunningEventAnalyses(bookId)
+      .then(({ running = [] }) => {
+        const run = running[0];
+        if (!alive || !run) return;
+        setGeneratingId(run.eventId);
+        setGenMode('full');
+        adoptGen(run.taskId);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [bookId, adoptGen]);
+
+  const onSingleTriggerFailed = async (err: unknown, id: string) => {
+    if (err instanceof ApiError && err.status === 409 && err.code === 'analysis_running') {
+      const run = await fetchRunningEventAnalyses(bookId!)
+        .then(({ running = [] }) => running.find((r) => r.eventId === id))
+        .catch(() => undefined);
+      if (run) return followRun(run);
+    }
+    setGeneratingId(null);
+    onTriggerFailed(err);
+  };
+
   const triggerMutation = useMutation({
     mutationFn: (id: string) => triggerEventAnalysis(bookId!, id),
-    onMutate: onTriggerStart,
-    onSuccess: (data) => gen.adopt(data.taskId),
-    onError: (err) => {
-      setGeneratingId(null);
-      onTriggerFailed(err);
+    onMutate: (id) => {
+      onTriggerStart();
+      setGeneratingId(id);
+      setGenMode('full');
     },
+    onSuccess: (data) => gen.adopt(data.taskId),
+    onError: (err, id) => onSingleTriggerFailed(err, id),
   });
 
   // Retry only the failed parts of a partial result (reuses cached EEP).
   const retryFailedMutation = useMutation({
     mutationFn: (id: string) => triggerEventAnalysis(bookId!, id, 'retryFailed'),
-    onMutate: onTriggerStart,
+    onMutate: (id) => {
+      onTriggerStart();
+      setGeneratingId(id);
+      setGenMode('retryFailed');
+    },
     onSuccess: (data) => gen.adopt(data.taskId),
-    onError: onTriggerFailed,
+    onError: (err, id) => onSingleTriggerFailed(err, id),
   });
+  // Something is being generated right now (trigger in flight or task running).
+  const genActive = triggerMutation.isPending || retryFailedMutation.isPending || gen.running;
 
   const handleGenerate = (id: string) => {
-    setGeneratingId(id);
     setSelectedEntityId(id);
     triggerMutation.mutate(id);
   };
@@ -226,6 +279,7 @@ export default function EventAnalysisPage() {
   );
 
   const batch = useBatchTask<string[]>({
+    i18nPrefix: 'batch',
     trigger: async (eventIds) => {
       setBatchLlmBlocked(false);
       try {
@@ -257,7 +311,16 @@ export default function EventAnalysisPage() {
       });
     },
     failureMessage: t('batchTriggerFailed'),
+    resume: { key: bookId, fetch: () => fetchActiveEventBatch(bookId!) },
   });
+  // The page follows one single-event run at a time, so a second one started
+  // now would run unwatched (and still be billed). A running batch already
+  // covers every unanalyzed event; re-generating an analyzed one stays open.
+  const singleBlockedReason = genActive ? t('event.generating.blockedBySingle') : null;
+  const generateBlockedReason =
+    singleBlockedReason ??
+    (batch.running || batch.pending ? t('event.generating.blockedByBatch') : null);
+
   const startBatch = (ids?: string[]) => {
     setFailedOnly(false);
     batch.start(ids);
@@ -273,7 +336,6 @@ export default function EventAnalysisPage() {
   const canCompare = (evtData?.analyzed.length ?? 0) >= 2;
 
   const unanalyzed = evtData?.unanalyzed ?? [];
-  const kernelRemaining = unanalyzed.filter((u) => u.importance === 'KERNEL').length;
   const selectedChapter =
     evtData?.analyzed.find((a) => a.entityId === selectedEntityId)?.chapter ??
     unanalyzed.find((u) => u.id === selectedEntityId)?.chapter ??
@@ -337,6 +399,7 @@ export default function EventAnalysisPage() {
               analyzedCount={evtData.analyzed.length}
               totalCount={totalCount}
               batchTask={batch.task}
+              stage={batch.stage}
               isBatchRunning={batch.running}
               batchError={batchLlmBlocked ? null : batch.error}
               batchSummary={batch.summary}
@@ -344,11 +407,6 @@ export default function EventAnalysisPage() {
               llmBlocked={batchLlmBlocked}
               isPending={batch.pending}
               subset={{
-                kernelRemaining,
-                onBatchKernel: () =>
-                  startBatch(
-                    unanalyzed.filter((u) => u.importance === 'KERNEL').map((u) => u.id),
-                  ),
                 currentChapter: selectedChapter,
                 onBatchChapter: () =>
                   startBatch(
@@ -371,6 +429,7 @@ export default function EventAnalysisPage() {
               <input
                 type="text"
                 placeholder={t('event.list.searchPlaceholder', { count: totalCount })}
+                aria-label={t('event.list.searchPlaceholder', { count: totalCount })}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
@@ -385,7 +444,8 @@ export default function EventAnalysisPage() {
               selectedEntityId={selectedEntityId}
               onSelect={(id) => setSelectedEntityId(id)}
               onGenerate={handleGenerate}
-              generatingId={generatingId}
+              generatingId={genActive ? generatingId : null}
+              generateBlockedReason={generateBlockedReason}
               justDoneIds={justDoneIds}
               failedIds={failedIds}
               failedOnly={failedFilterOn}
@@ -457,14 +517,16 @@ export default function EventAnalysisPage() {
                       </div>
                       <div className="ea-detail-actions">
                         {eventDetail.status === 'partial' && (
-                          <button
-                            type="button"
-                            className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
-                            disabled={retryFailedMutation.isPending}
-                            onClick={() => retryFailedMutation.mutate(selectedEntityId)}
-                          >
-                            {t('event.retryFailed')}
-                          </button>
+                          <Tooltip label={singleBlockedReason ?? ''} disabled={!singleBlockedReason}>
+                            <button
+                              type="button"
+                              className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+                              disabled={retryFailedMutation.isPending || !!singleBlockedReason}
+                              onClick={() => retryFailedMutation.mutate(selectedEntityId)}
+                            >
+                              {t('event.retryFailed')}
+                            </button>
+                          </Tooltip>
                         )}
                         <Tooltip label={t('event.compare.needTwo')} disabled={canCompare}>
                           <button
@@ -484,13 +546,16 @@ export default function EventAnalysisPage() {
                             {t('viewInGraph')}
                           </Link>
                         )}
-                        <button
-                          type="button"
-                          className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
-                          onClick={() => setConfirmRegenerate(true)}
-                        >
-                          {t('regenerate')}
-                        </button>
+                        <Tooltip label={singleBlockedReason ?? ''} disabled={!singleBlockedReason}>
+                          <button
+                            type="button"
+                            className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+                            disabled={!!singleBlockedReason}
+                            onClick={() => setConfirmRegenerate(true)}
+                          >
+                            {t('regenerate')}
+                          </button>
+                        </Tooltip>
                       </div>
                     </div>
                     <div className="ea-detail-meta">
@@ -560,7 +625,7 @@ export default function EventAnalysisPage() {
                   </div>
                 </div>
               )
-            ) : gen.task?.status === 'error' ? (
+            ) : gen.task?.status === 'error' && selectedEntityId === generatingId ? (
               <div className="ea-empty">
                 <div className="ea-empty-icon error">
                   <AlertTriangle size={24} />
@@ -569,19 +634,37 @@ export default function EventAnalysisPage() {
                 <p className="ea-empty-sub">
                   {gen.task.error ? gen.task.error : t('triggerFailed')}
                 </p>
-                <button
-                  type="button"
-                  className="ss-btn ss-btn-md ss-btn-secondary"
-                  onClick={() => {
-                    gen.reset();
-                    triggerMutation.reset();
-                    setTriggerError(null);
-                  }}
-                >
-                  {tc('retry')}
-                </button>
+                <div className="ss-state-actions">
+                  <button
+                    type="button"
+                    className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm"
+                    onClick={() => {
+                      const id = generatingId;
+                      gen.reset();
+                      setTriggerError(null);
+                      if (!id) return;
+                      if (genMode === 'retryFailed') retryFailedMutation.mutate(id);
+                      else triggerMutation.mutate(id);
+                    }}
+                  >
+                    {tc('retry')}
+                  </button>
+                  <button
+                    type="button"
+                    className="ss-btn ss-btn-md ss-btn-secondary"
+                    onClick={() => {
+                      gen.reset();
+                      triggerMutation.reset();
+                      retryFailedMutation.reset();
+                      setTriggerError(null);
+                      setGeneratingId(null);
+                    }}
+                  >
+                    {tc('close')}
+                  </button>
+                </div>
               </div>
-            ) : gen.taskId && gen.task && gen.task.status !== 'done' ? (
+            ) : selectedIsGenerating && gen.task && gen.task.status !== 'done' ? (
               <div className="ea-empty">
                 <div className="ea-spinner" />
                 <p className="ea-empty-title" style={{ fontSize: 'var(--font-size-base)' }}>
@@ -590,7 +673,11 @@ export default function EventAnalysisPage() {
                 <span className="ea-stage-chip">
                   <span className="ea-mini-spinner" />
                   {t('event.generating.stage', {
-                    stage: gen.task.stage || t('analyzing'),
+                    stage: gen.task.stepKey
+                      ? t(`event.generating.stages.${gen.task.stepKey}`, {
+                          defaultValue: gen.task.stage || t('analyzing'),
+                        })
+                      : gen.task.stage || t('analyzing'),
                     progress: gen.task.progress ?? 0,
                   })}
                 </span>
@@ -617,7 +704,7 @@ export default function EventAnalysisPage() {
                 <div className="ea-source">
                   <div className="ea-source-head">{t('event.source.title')}</div>
                   {sourceLoading && (
-                    <p className="ea-source-empty">{t('analyzing')}</p>
+                    <p className="ea-source-empty">{tc('loading')}</p>
                   )}
                   {!sourceLoading && (sourceData?.passages?.length ?? 0) === 0 && (
                     <p className="ea-source-empty">{t('event.source.empty')}</p>
@@ -632,6 +719,13 @@ export default function EventAnalysisPage() {
                           <span className="ea-source-score">
                             {t('event.source.similarity', { score: p.score.toFixed(2) })}
                           </span>
+                          <Link
+                            to={`/books/${bookId}`}
+                            state={{ paragraphId: p.id, chapterNumber: p.chapterNumber }}
+                            className="ss-btn ss-btn-sm ss-btn-ghost"
+                          >
+                            {t('event.source.openInReader')}
+                          </Link>
                         </div>
                         <p className="ea-source-text">{p.text}</p>
                       </div>
@@ -640,14 +734,16 @@ export default function EventAnalysisPage() {
                 </div>
 
                 <div className="ea-unanalyzed-cta">
-                  <button
-                    type="button"
-                    className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm"
-                    onClick={() => handleGenerate(selectedUnanalyzed.id)}
-                    disabled={triggerMutation.isPending}
-                  >
-                    {t('event.empty.createBtn')}
-                  </button>
+                  <Tooltip label={generateBlockedReason ?? ''} disabled={!generateBlockedReason}>
+                    <button
+                      type="button"
+                      className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm"
+                      onClick={() => handleGenerate(selectedUnanalyzed.id)}
+                      disabled={triggerMutation.isPending || !!generateBlockedReason}
+                    >
+                      {t('event.empty.createBtn')}
+                    </button>
+                  </Tooltip>
                   <span className="ea-token-hint">
                     <span className="ss-llm-glyph" aria-hidden="true" />
                     {t('tension.state.tokenHintShort')}
@@ -676,7 +772,8 @@ export default function EventAnalysisPage() {
                 evtData={evtData}
                 onSelectEvent={(id) => setSelectedEntityId(id)}
                 onGenerate={handleGenerate}
-                generatingId={generatingId}
+                generatingId={genActive ? generatingId : null}
+              generateBlockedReason={generateBlockedReason}
                 onBatchAll={() => setConfirmBatchEep(true)}
                 isBatchRunning={batch.running}
               />
