@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 
 import { ApiError } from '@/api/client';
 import type { BatchEepResult, TaskStatus } from '@/api/types';
@@ -14,6 +15,14 @@ export interface UseBatchTaskOptions<TArgs> {
   onDone?: (summary: BatchEepResult | null) => void;
   /** Shown when the trigger fails, or the task fails without a message. */
   failureMessage: string;
+  /**
+   * `analysis` namespace prefix of this page's batch strings. The server
+   * reports a batch's progress and rate-limit abort as a `stepKey`
+   * (`batch_progress` / `rate_limited`) with counts, and the hook words them
+   * from `<prefix>.progress` and the shared `batch.rateLimited`; without a
+   * match the server's own `stage` / `error` text is shown.
+   */
+  i18nPrefix?: string;
   /**
    * Looks up the batch already running for this book (#7j / #7k / #15k).
    * Called on mount and whenever `key` changes, so a page that remounts mid-run
@@ -56,8 +65,10 @@ export function useBatchTask<TArgs = void>({
   onProgress,
   onDone,
   failureMessage,
+  i18nPrefix = 'batch',
   resume,
 }: UseBatchTaskOptions<TArgs>): BatchTask<TArgs> {
+  const { t } = useTranslation('analysis');
   const [taskId, setTaskId] = useState<string | null>(null);
   const [processed, setProcessed] = useState(0);
   const [summary, setSummary] = useState<BatchEepResult | null>(null);
@@ -131,10 +142,14 @@ export function useBatchTask<TArgs = void>({
       setTaskId(null);
       onDoneRef.current?.(result);
     } else if (task?.status === 'error') {
-      setError(task.error ?? failureMessage);
+      setError(
+        task.stepKey === 'rate_limited'
+          ? t('batch.rateLimited', { done: task.subProgress ?? 0, total: task.subTotal ?? 0 })
+          : (task.error ?? failureMessage),
+      );
       setTaskId(null);
     }
-  }, [task?.status, task?.result, task?.error, failureMessage]);
+  }, [task?.status, task?.result, task?.error, task?.stepKey, task?.subProgress, task?.subTotal, failureMessage, t]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   // `mutation.mutate` keeps its identity across renders; the mutation object
@@ -149,7 +164,10 @@ export function useBatchTask<TArgs = void>({
 
   return {
     running,
-    stage: task?.stage ?? '',
+    stage:
+      task?.stepKey === 'batch_progress'
+        ? t(`${i18nPrefix}.progress`, { done: task.subProgress ?? 0, total: task.subTotal ?? 0 })
+        : (task?.stage ?? ''),
     processed,
     total: task?.subTotal ?? 0,
     summary,

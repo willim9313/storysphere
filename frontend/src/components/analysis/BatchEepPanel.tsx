@@ -14,6 +14,8 @@ interface BatchEepPanelProps {
   analyzedCount: number;
   totalCount: number;
   batchTask: TaskStatus | undefined;
+  /** The run's stage line, worded by `useBatchTask`; falls back to the task's own text. */
+  stage?: string;
   isBatchRunning: boolean;
   batchError: string | null;
   batchSummary: BatchEepResult | null;
@@ -35,10 +37,6 @@ interface BatchEepPanelProps {
   onShowFailures?: () => void;
   /** Subset controls (event analysis page). */
   subset?: {
-    /** Unanalyzed KERNEL events. Stays 0 until EEPs exist — the backend only
-     *  assigns importance during analysis — so the button self-disables. */
-    kernelRemaining: number;
-    onBatchKernel: () => void;
     /** Chapter of the currently selected event, or null when nothing is selected. */
     currentChapter: number | null;
     onBatchChapter: () => void;
@@ -71,6 +69,7 @@ export function BatchEepPanel({
   analyzedCount,
   totalCount,
   batchTask,
+  stage: stageProp,
   isBatchRunning,
   batchError,
   batchSummary,
@@ -101,7 +100,7 @@ export function BatchEepPanel({
      batch advances, so it is live during a run. The per-item counter lives in
      `stage` ("分析事件 12/57"), rendered below. */
   const pct = totalCount > 0 ? Math.round((analyzedCount / totalCount) * 100) : 0;
-  const stage = batchTask?.stage ?? '';
+  const stage = stageProp ?? batchTask?.stage ?? '';
   // 「分析中 N/M…」 counts this run (README §3.5): N = items the run has walked,
   // M = items it was given — a subset run says 3, not the whole book. Before
   // the task reports its first stage it has no total, so fall back to the book.
@@ -277,19 +276,6 @@ export function BatchEepPanel({
             {subset && state === 'pending' && (
               <div className="ea-batch-subset">
                 <div className="ea-batch-subset-row">
-                  <Tooltip
-                    label={t(k('kernelOnlyDisabled'))}
-                    disabled={subset.kernelRemaining !== 0}
-                  >
-                    <button
-                      type="button"
-                      className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
-                      disabled={subset.kernelRemaining === 0 || isPending}
-                      onClick={subset.onBatchKernel}
-                    >
-                      {t(k('kernelOnly'), { count: subset.kernelRemaining })}
-                    </button>
-                  </Tooltip>
                   <Tooltip
                     label={t(k('chapterOnlyDisabled'))}
                     disabled={subset.currentChapter !== null}

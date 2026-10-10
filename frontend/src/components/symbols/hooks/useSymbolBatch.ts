@@ -31,6 +31,7 @@ export function useSymbolBatch(bookId: string | undefined, failureMessage: strin
   }, [bookId, queryClient]);
 
   const batch = useBatchTask<string[]>({
+    i18nPrefix: 'symbol.overview.batch',
     trigger: async (imageryIds) => {
       setLlmBlocked(false);
       try {

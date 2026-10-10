@@ -279,6 +279,7 @@ export default function EventAnalysisPage() {
   );
 
   const batch = useBatchTask<string[]>({
+    i18nPrefix: 'batch',
     trigger: async (eventIds) => {
       setBatchLlmBlocked(false);
       try {
@@ -335,7 +336,6 @@ export default function EventAnalysisPage() {
   const canCompare = (evtData?.analyzed.length ?? 0) >= 2;
 
   const unanalyzed = evtData?.unanalyzed ?? [];
-  const kernelRemaining = unanalyzed.filter((u) => u.importance === 'KERNEL').length;
   const selectedChapter =
     evtData?.analyzed.find((a) => a.entityId === selectedEntityId)?.chapter ??
     unanalyzed.find((u) => u.id === selectedEntityId)?.chapter ??
@@ -399,6 +399,7 @@ export default function EventAnalysisPage() {
               analyzedCount={evtData.analyzed.length}
               totalCount={totalCount}
               batchTask={batch.task}
+              stage={batch.stage}
               isBatchRunning={batch.running}
               batchError={batchLlmBlocked ? null : batch.error}
               batchSummary={batch.summary}
@@ -406,11 +407,6 @@ export default function EventAnalysisPage() {
               llmBlocked={batchLlmBlocked}
               isPending={batch.pending}
               subset={{
-                kernelRemaining,
-                onBatchKernel: () =>
-                  startBatch(
-                    unanalyzed.filter((u) => u.importance === 'KERNEL').map((u) => u.id),
-                  ),
                 currentChapter: selectedChapter,
                 onBatchChapter: () =>
                   startBatch(
@@ -677,7 +673,11 @@ export default function EventAnalysisPage() {
                 <span className="ea-stage-chip">
                   <span className="ea-mini-spinner" />
                   {t('event.generating.stage', {
-                    stage: gen.task.stage || t('analyzing'),
+                    stage: gen.task.stepKey
+                      ? t(`event.generating.stages.${gen.task.stepKey}`, {
+                          defaultValue: gen.task.stage || t('analyzing'),
+                        })
+                      : gen.task.stage || t('analyzing'),
                     progress: gen.task.progress ?? 0,
                   })}
                 </span>
@@ -704,7 +704,7 @@ export default function EventAnalysisPage() {
                 <div className="ea-source">
                   <div className="ea-source-head">{t('event.source.title')}</div>
                   {sourceLoading && (
-                    <p className="ea-source-empty">{t('analyzing')}</p>
+                    <p className="ea-source-empty">{tc('loading')}</p>
                   )}
                   {!sourceLoading && (sourceData?.passages?.length ?? 0) === 0 && (
                     <p className="ea-source-empty">{t('event.source.empty')}</p>

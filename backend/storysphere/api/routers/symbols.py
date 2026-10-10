@@ -312,6 +312,7 @@ async def _batch_symbol_analysis(
         report(
             int(done / item_total * 100) if item_total else 0,
             f"詮釋意象 {done}/{item_total}",
+            step_key="batch_progress",
             sub_progress=done,
             sub_total=item_total,
         )
@@ -326,6 +327,15 @@ async def _batch_symbol_analysis(
     )
 
     if summary.pop("aborted", False):
+        # step_key survives set_failed, so the panel can word the abort
+        # itself from sub_progress / sub_total.
+        report(
+            int(summary["progress"] / total * 100) if total else 0,
+            f"詮釋意象 {summary['progress']}/{total}",
+            step_key="rate_limited",
+            sub_progress=summary["progress"],
+            sub_total=total,
+        )
         # Not a ``return``: the supervisor completes a task that returns,
         # which would report a quota-exhausted sweep as a success.
         raise task_runner.TaskAborted(

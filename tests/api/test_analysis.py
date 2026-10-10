@@ -916,6 +916,30 @@ class TestBatchEventAbort:
         status = poll_until_terminal(event_batch_client, task_id)
         assert status["status"] != "done"
 
+    def test_rate_limit_keeps_step_key_and_counts_after_failing(
+        self, event_batch_client, mock_analysis_agent
+    ):
+        """The frontend words the abort from these, so set_failed must not wipe them."""
+        mock_analysis_agent.analyze_event.side_effect = RuntimeError("429 rate limit exceeded")
+
+        resp = event_batch_client.post("/api/v1/books/doc-1/events/analyze-all")
+        status = poll_until_terminal(event_batch_client, resp.json()["taskId"])
+
+        assert status["status"] == "error"
+        assert status["stepKey"] == "rate_limited"
+        assert status["subProgress"] == 0
+        assert status["subTotal"] == 2
+
+    def test_progress_reports_batch_progress_step_key(
+        self, event_batch_client, mock_analysis_agent
+    ):
+        resp = event_batch_client.post("/api/v1/books/doc-1/events/analyze-all")
+        status = poll_until_terminal(event_batch_client, resp.json()["taskId"])
+
+        assert status["status"] == "done"
+        assert status["stepKey"] == "batch_progress"
+        assert status["subTotal"] == 2
+
     def test_ordinary_failure_is_counted_not_aborted(
         self, event_batch_client, mock_analysis_agent
     ):
@@ -982,6 +1006,19 @@ class TestBatchEntityAbort:
 
         status = poll_until_terminal(batch_client, task_id)
         assert status["status"] != "done"
+
+    def test_rate_limit_keeps_step_key_and_counts_after_failing(
+        self, batch_client, mock_analysis_agent
+    ):
+        mock_analysis_agent.analyze_character.side_effect = RuntimeError("429 rate limit exceeded")
+
+        resp = batch_client.post("/api/v1/books/doc-1/entities/analyze-all")
+        status = poll_until_terminal(batch_client, resp.json()["taskId"])
+
+        assert status["status"] == "error"
+        assert status["stepKey"] == "rate_limited"
+        assert status["subProgress"] == 0
+        assert status["subTotal"] is not None
 
     def test_ordinary_failure_is_counted_not_aborted(
         self, batch_client, mock_analysis_agent

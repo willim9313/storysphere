@@ -626,7 +626,7 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 決議紀錄 `09·10 批次面板收合`（2026-10-04 整份採用）、計畫 `docs/plans/20261004-ds-v3-batch5-supplement.md` Q3；元件 `BatchEepPanel`，四態與收合推導在 `batchPanelModel.ts`。
 
 - **位置**：左欄最上（268），框架軸 Jung／Schmidt 讓到第二位；選了角色後面板仍在。landing 標頭只留視圖 toggle。
-- **按鈕**：「生成全部」＝主鈕（`ss-btn-primary ss-btn-llm`）、「先生成前 10 位要角」歸子集（`ss-btn-secondary ss-btn-llm`，同事件頁「只生成核心」的排法）；
+- **按鈕**：「生成全部」＝主鈕（`ss-btn-primary ss-btn-llm`）、「先生成前 10 位要角」歸子集（`ss-btn-secondary ss-btn-llm`，同事件頁「只生成本章」的排法）；
   兩顆照舊走 `ConfirmDialog`（文案不動）。狀態行「{n} 位待生成 · 已分析的角色會自動跳過」，無估時（角色沒有估時公式）。
 - **四態、收合、失敗**：規則與事件頁相同，見 §3.5「第 5 批 · 批次面板」。角色版的收合列第 1 態是「{n} 位待生成」、第 4 態是「全部角色已分析 ✓」。
 - **只看失敗**：左欄清單上方出現「失敗 N」chip（選中＝底色＋加粗，再按取消），選中時只留失敗的未分析角色（已分析群組隱藏；群組標頭既有的「顯示 / 總數」顯示筆數）；
@@ -757,8 +757,9 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 - **密度**：B 檢視。內容區 padding `--space-7`（24）／下 `--space-8`（32）、內層 `max-width: 1280` 置中、區塊間距 `--space-6`（16）；
   左欄 268 固定、背景 `--bg-primary`、右緣 `--line-weight` 分隔線。間距只用 `--space-1…8`。
 - **批次面板（`BatchEepPanel`）**（第 5 批 09·10 已改寫四態與收合，見下方「第 5 批 · 批次面板」，本條只留按鈕規格）：主鈕「一鍵生成全部 EEP」`ss-btn-primary ss-btn-llm`，走確認框。
-  子集區在主鈕正下方**同一張卡**、不收折疊；子集鈕（只生成核心 (N)／只生成本章／生成已勾選 (N)）都掛 `ss-btn-llm`（「勾選多筆」是 `ss-btn-secondary`、不掛字符），三顆各佔一行、寬度隨內容靠左，
-  筆數寫在標籤裡、**直接執行不開確認框**（不對稱是設計決定）。disabled 的鈕外層掛 `Tooltip`（逐字 `batch.kernelOnlyDisabled`／`batch.chapterOnlyDisabled`）。
+  子集區在主鈕正下方**同一張卡**、不收折疊；子集鈕（只生成本章／生成已勾選 (N)）都掛 `ss-btn-llm`（「勾選多筆」是 `ss-btn-secondary`、不掛字符），各佔一行、寬度隨內容靠左，
+  筆數寫在標籤裡、**直接執行不開確認框**（不對稱是設計決定）。disabled 的鈕外層掛 `Tooltip`（逐字 `batch.chapterOnlyDisabled`）。
+  「只生成核心 (N)」已移除（2026-10-10）：未分析事件的重要度恆為 null、且重要度本身不可信（B-133），該鈕永遠 disabled。
   執行中整區子集隱藏、主鈕變 disabled「分析中 N/M…」（N／M＝**本次 run** 的 `subProgress`／`subTotal`，不是全書已分析數；task 尚未回報 `subTotal` 前退回全書計數）＋ stage ＋ ▶ live（stage 太長時 Tooltip 顯全文）。
   完成後面板顯示三格計數＋失敗**數**（第 5 批起不再列失敗清單），不再有「批次 EEP 分析完成」那一列（只在 toast），也沒有面板內關閉鈕（見 feedback 3-EV-7）。
 - **清單列（`EventListItems`，動作列·行內按鈕變體）**：一行格線 `24px · 1fr · 12px`，第二行固定 28px（章號、非順敘 chip、stale 小點、未分析列的「生成分析」`ss-btn-llm`）。
@@ -895,7 +896,6 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 
    ```
    [一鍵生成全部 EEP]                 (primary)
-   [只生成核心 (N)]
    [只生成本章]
    [勾選多筆]  →  （清單頂「取消勾選」、清單底「生成已勾選 (N)」）
    預估耗時 約 N 分鐘 · 已分析的事件會自動跳過
@@ -903,7 +903,6 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 
    | 按鈕 | disabled 條件 |
    |------|--------------|
-   | 只生成核心 | `N === 0`。未分析事件的 `importance` 恆為 `null`（#6b），故在生成前 N 必為 0；tooltip 說明「重要度需生成 EEP 後才判定」 |
    | 只生成本章 | 未選取任何事件時 — 章節取自當前選取事件 |
    | 生成已勾選 | 僅在勾選模式顯示（在清單底，不在面板內），`checkedCount === 0` 時 disabled |
 
@@ -1020,7 +1019,7 @@ partial 時附「部分分析」徽章。其下為研究者導覽 ribbon。
   → 不預先 DELETE：#7e 的 full 已是 force_refresh，新結果寫入時才覆蓋，
      失敗則舊 EEP 完整保留
 
-批次生成（全部 / 只生成核心 / 只生成本章 / 已勾選）
+批次生成（全部 / 只生成本章 / 已勾選）
   → 確認視窗（全部）或直接觸發（子集）→ #7g 帶 eventIds
   → polling → 進度即時更新清單 → 完成：顯示摘要 toast
 ```
