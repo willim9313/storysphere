@@ -85,7 +85,9 @@ def guard_client(mock_kg, mock_doc, mock_analysis_agent):
     from storysphere.api.main import create_app
     mock_doc.get_document_language = AsyncMock(return_value="en")
     mock_kg.get_events = AsyncMock(return_value=[MEETING])
-    mock_kg.get_event = AsyncMock(return_value=MEETING)
+    mock_kg.get_event = AsyncMock(
+        return_value=MEETING.model_copy(update={"document_id": "doc-1"})
+    )
 
     mock_cache = AsyncMock()
     mock_cache.get = AsyncMock(return_value=None)

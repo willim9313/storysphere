@@ -1,4 +1,4 @@
-"""Tests for the per-event analysis detail endpoint (#7d GET).
+"""Tests for the per-event analysis endpoints (#7d GET and the book-ownership checks).
 
 Written after the endpoint returned 500 for every analyzed event: the schema
 classes it imports were moved to ``schemas.book_event_analysis`` (3c978af) but
@@ -36,6 +36,7 @@ def _make_event() -> Event:
         description="Alice met Bob.",
         chapter=3,
         narrative_position=7,
+        document_id=BOOK_ID,
     )
 
 
@@ -161,6 +162,46 @@ class TestGetEventAnalysis:
         cache_client.kg.get_event = AsyncMock(return_value=None)
 
         assert self._get(cache_client, "no-such-event").status_code == 404
+
+    def test_returns_404_for_an_event_of_another_book(self, cache_client):
+        cache_client.cache.get_as.return_value = _make_result()
+        cache_client.kg.get_event = AsyncMock(return_value=_other_book_event())
+
+        assert self._get(cache_client).status_code == 404
+
+
+def _other_book_event() -> Event:
+    event = _make_event()
+    event.document_id = "other-book"
+    return event
+
+
+class TestEventOwnership:
+    """#7e / #7f / #7i must 404 for an event that belongs to another book."""
+
+    def test_analyze_404_for_an_event_of_another_book(self, cache_client):
+        cache_client.kg.get_event = AsyncMock(return_value=_other_book_event())
+
+        resp = cache_client.post(
+            f"/api/v1/books/{BOOK_ID}/events/{EVENT_ID}/analyze", json={}
+        )
+
+        assert resp.status_code == 404
+
+    def test_delete_analysis_404_for_an_event_of_another_book(self, cache_client):
+        cache_client.kg.get_event = AsyncMock(return_value=_other_book_event())
+
+        resp = cache_client.delete(f"/api/v1/books/{BOOK_ID}/events/{EVENT_ID}/analysis")
+
+        assert resp.status_code == 404
+        cache_client.cache.invalidate.assert_not_called()
+
+    def test_source_404_for_an_event_of_another_book(self, cache_client):
+        cache_client.kg.get_event = AsyncMock(return_value=_other_book_event())
+
+        resp = cache_client.get(f"/api/v1/books/{BOOK_ID}/events/{EVENT_ID}/source")
+
+        assert resp.status_code == 404
 
 
 class TestStaleReporting:

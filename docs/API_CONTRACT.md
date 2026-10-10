@@ -578,6 +578,10 @@ interface BatchAnalysisRequest {
 
 ## 深度分析（事件層級）
 
+**章節欄位命名**：#6b、#7d 的章號欄位叫 `chapter`，#7m、#7i（`EventSourcePassage`）叫 `chapterNumber`，兩者同義（1-based 章號）；為避免 breaking change 不改名。
+
+**事件歸屬**：本節所有單件事件端點（#7d／#7e／#7f／#7i／#7m）對「事件存在但屬於別本書」一律回 404，與事件不存在無異。
+
 ### #7d GET /books/:bookId/events/:eventId/analysis
 
 取得單一事件深度分析結果（EEP + 因果 + 影響）。
@@ -593,7 +597,7 @@ interface EventAnalysisDetail {
   summary: { summary: string };
   status: 'complete' | 'partial';   // partial = causality / impact 子步驟生成失敗
   failedParts: string[];            // 失敗 part，如 ['impact']
-  analyzedAt: string;
+  analyzedAt: string | null;
   chapter?: number | null;        // 事件所在章節
   chunk?: number | null;          // 事件在章節內的位置（目前對應 Event.narrative_position，未來改用 chunk_id 時不變動此欄位語意）
   narrativeMode?: string | null;  // present | flashback | flashforward | parallel | unknown
@@ -618,7 +622,7 @@ interface EventEvidenceProfile {
 }
 ```
 
-**Response 404**：尚未生成
+**Response 404**：事件不存在、不屬於這本書，或尚未生成
 
 **UI 使用頁面**：事件分析頁內容區
 
@@ -632,7 +636,7 @@ interface EventEvidenceProfile {
 
 **Response 200**：`{ taskId: string }`
 
-**Response 503**：未設定 LLM provider（見「通用規則」）；404（事件不存在）優先於 503
+**Response 503**：未設定 LLM provider（見「通用規則」）；404（事件不存在或不屬於這本書）優先於 503
 
 **Response 409**：同一件事件已有分析在執行中（任一 `mode`）—— body `{ "detail": string, "code": "analysis_running" }`，**不建立 task**。
 兩輪會對同一件事件各呼叫一次 LLM。在 404／503 之後檢查；進行中的 taskId 由 #7l 取得。只擋同一件事件：別件事件、以及整本批次（#7g）都不互擋。
@@ -693,7 +697,9 @@ interface EventEvidenceProfile {
 
 **Response 204**
 
-**UI 使用頁面**：事件分析頁「覆蓋重新生成」
+**Response 404**：事件不存在或不屬於這本書
+
+**UI 使用頁面**：無（前端已不呼叫；「覆蓋重新生成」改用 #7e `mode: 'full'`，新結果寫入前不先刪舊 EEP，避免生成失敗時新舊兩頭落空）
 
 ---
 
@@ -725,6 +731,8 @@ interface EventSourceResponse {
 > 用的是 EEP builder 產生 `textEvidence` 時的同一組向量查詢
 > （`"{title} {description}"`）。UI 必須以「最相關段落」呈現，不得宣稱為原文出處。
 > 向量服務不可用時回傳空陣列而非錯誤。
+
+**Response 404**：事件不存在或不屬於這本書
 
 **UI 使用頁面**：事件分析頁未分析事件狀態
 
