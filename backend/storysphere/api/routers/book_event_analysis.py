@@ -8,6 +8,7 @@ Event detail (#9a), the event analysis listing (#6b), per-event analysis
 from __future__ import annotations
 
 import logging
+import re
 from uuid import uuid4
 
 from fastapi import (
@@ -30,6 +31,8 @@ from storysphere.api.schemas.book_event_analysis import (
     EventAnalysisFullResponse,
     EventDetailResponse,
     EventParticipant,
+    EventQuoteSource,
+    EventQuoteSourcesResponse,
     EventSourcePassage,
     EventSourceResponse,
     RunningEventAnalysesResponse,
@@ -269,6 +272,97 @@ async def get_running_event_analyses(book_id: str) -> dict:
             RunningEventAnalysis(event_id=eid, task_id=tid) for eid, tid in running.items()
         ],
     ).model_dump(by_alias=True)
+
+
+# ── #7m GET /books/:bookId/events/:eventId/quote-sources ─────────────────────
+
+# Dropped before comparing: whitespace (PDF extraction puts spaces inside CJK
+# words) and quotation marks (the LLM adds or drops 「」 around dialogue).
+_QUOTE_NOISE = re.compile(r"[\s「」『』\"“”‘’]")
+# A quote matched only by its opening characters must be at least this long —
+# shorter prefixes start too many unrelated sentences.
+_QUOTE_PREFIX_LEN = 12
+
+
+def _normalize_quote(text: str) -> str:
+    return _QUOTE_NOISE.sub("", text)
+
+
+def _locate_quote(
+    quote: str, paragraphs: list[tuple[str, int, str]], chapter: int | None
+) -> tuple[str, int] | None:
+    """The one paragraph a key quote comes from, as ``(paragraph_id, chapter)``.
+
+    *paragraphs* are ``(id, chapter_number, normalized_text)``. The whole quote
+    is looked for first; failing that, its first ``_QUOTE_PREFIX_LEN``
+    characters (quotes the LLM trimmed or ran on past the paragraph end).
+    A match counts only when it is unambiguous — a single paragraph in the
+    event's chapter, or a single one in the book when the chapter has none.
+    Otherwise None: a link to the wrong paragraph is worse than no link.
+    """
+    needle = _normalize_quote(quote).rstrip("….—")
+    if not needle:
+        return None
+
+    def pick(key: str) -> tuple[str, int] | None:
+        hits = [(pid, ch) for pid, ch, text in paragraphs if key in text]
+        in_chapter = [h for h in hits if h[1] == chapter]
+        if len(in_chapter) == 1:
+            return in_chapter[0]
+        if not in_chapter and len(hits) == 1:
+            return hits[0]
+        return None
+
+    found = pick(needle)
+    if found is None and len(needle) > _QUOTE_PREFIX_LEN:
+        found = pick(needle[:_QUOTE_PREFIX_LEN])
+    return found
+
+
+@router.get(
+    "/{book_id}/events/{event_id}/quote-sources",
+    response_model=EventQuoteSourcesResponse,
+)
+async def get_event_quote_sources(
+    book_id: str, event_id: str, cache: AnalysisCacheDep, kg: KGServiceDep,
+    doc: DocServiceDep,
+) -> dict:
+    """Pin each cached key quote (#7d ``eep.keyQuotes``) to its paragraph.
+
+    Deterministic text matching against the book, no LLM and no embedding: the
+    quotes are meant to be verbatim, and a semantic nearest neighbour lands on
+    the wrong paragraph about half the time. Unmatched quotes come back with
+    ``paragraphId: null`` and stay plain text on the page.
+    """
+    event = await kg.get_event(event_id)
+    if event is None or event.document_id != book_id:
+        raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found")
+
+    from storysphere.services.analysis_models import EventAnalysisResult  # noqa: PLC0415
+
+    result = await cache.get_as(f"event:{book_id}:{event_id}", EventAnalysisResult)
+    if result is None:
+        raise HTTPException(status_code=404, detail="Event analysis not found. Run analysis first.")
+    document = await doc.get_document(book_id)
+    if document is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+    paragraphs = [
+        (p.id, p.chapter_number, _normalize_quote(p.text))
+        for chapter in document.chapters
+        for p in chapter.paragraphs
+    ]
+    quotes = []
+    for quote in result.eep.key_quotes:
+        found = _locate_quote(quote, paragraphs, event.chapter)
+        quotes.append(
+            EventQuoteSource(
+                text=quote,
+                paragraph_id=found[0] if found else None,
+                chapter_number=found[1] if found else None,
+            )
+        )
+    return EventQuoteSourcesResponse(event_id=event_id, quotes=quotes).model_dump(by_alias=True)
 
 
 # ── #7d-get GET /books/:bookId/events/:eventId/analysis ──────────────────────

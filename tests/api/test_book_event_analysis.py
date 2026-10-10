@@ -231,3 +231,109 @@ class TestStaleReporting:
         assert len(body["analyzed"]) == 1
         assert body["analyzed"][0]["isStale"] is True
         assert body["analyzed"][0]["staleReason"] == "feature-extraction"
+
+
+# ── #7m quote sources ─────────────────────────────────────────────────────────
+
+
+def _paragraphs(*rows):
+    """``(id, chapter, text)`` rows in the shape ``_locate_quote`` takes."""
+    from storysphere.api.routers.book_event_analysis import _normalize_quote
+
+    return [(pid, ch, _normalize_quote(text)) for pid, ch, text in rows]
+
+
+class TestLocateQuote:
+    def _locate(self, quote, rows, chapter=3):
+        from storysphere.api.routers.book_event_analysis import _locate_quote
+
+        return _locate_quote(quote, _paragraphs(*rows), chapter)
+
+    def test_whole_quote_inside_a_paragraph(self):
+        rows = [("p1", 3, "她轉身離開。「鹽醒了。」伊內絲喘著氣說。"), ("p2", 3, "海很安靜。")]
+        assert self._locate("「鹽醒了。」伊內絲喘著氣說。", rows) == ("p1", 3)
+
+    def test_ignores_spaces_inside_words(self):
+        """pypdf puts spaces inside CJK words; the quote has none."""
+        rows = [("p1", 3, "伊內 絲・科爾沃是在四月的 第九個清晨")]
+        assert self._locate("伊內絲・科爾沃是在四月的第九個清晨", rows) == ("p1", 3)
+
+    def test_prefix_when_the_quote_runs_past_the_paragraph(self):
+        rows = [("p1", 3, "孩子，我教了妳七年讀鹽，可讀鹽真正的那一課。")]
+        quote = "孩子，我教了妳七年讀鹽，可讀鹽真正的那一課。是怎麼放手。"
+        assert self._locate(quote, rows) == ("p1", 3)
+
+    def test_short_quote_gets_no_prefix_fallback(self):
+        rows = [("p1", 3, "鹽醒")]
+        assert self._locate("鹽醒了。", rows) is None
+
+    def test_prefers_the_events_chapter(self):
+        rows = [("p1", 1, "「鹽醒了。」"), ("p2", 3, "「鹽醒了。」她說。")]
+        assert self._locate("鹽醒了。", rows) == ("p2", 3)
+
+    def test_ambiguous_within_the_chapter_is_none(self):
+        rows = [("p1", 3, "「鹽醒了。」"), ("p2", 3, "又一次，「鹽醒了。」")]
+        assert self._locate("鹽醒了。", rows) is None
+
+    def test_single_hit_outside_the_chapter(self):
+        rows = [("p1", 5, "這裡的人不入土。")]
+        assert self._locate("這裡的人不入土。", rows) == ("p1", 5)
+
+    def test_ambiguous_outside_the_chapter_is_none(self):
+        rows = [("p1", 5, "這裡的人不入土。"), ("p2", 6, "這裡的人不入土。")]
+        assert self._locate("這裡的人不入土。", rows) is None
+
+    def test_not_in_the_book(self):
+        assert self._locate("完全不存在的句子", [("p1", 3, "海很安靜。")]) is None
+
+
+class TestGetEventQuoteSources:
+    def _get(self, client, event_id: str = EVENT_ID):
+        return client.get(f"/api/v1/books/{BOOK_ID}/events/{event_id}/quote-sources")
+
+    @pytest.fixture
+    def quotes_client(self, cache_client):
+        from storysphere.domain.documents import Chapter, Paragraph
+
+        cache_client.doc_fixture.chapters = [
+            Chapter(
+                number=3,
+                paragraphs=[
+                    Paragraph(id="para-a", text="Alice met Bob at noon.", chapter_number=3, position=0),
+                    Paragraph(id="para-b", text="They shook hands.", chapter_number=3, position=1),
+                ],
+            )
+        ]
+        event = _make_event()
+        event.document_id = BOOK_ID
+        cache_client.kg.get_event = AsyncMock(return_value=event)
+        result = _make_result()
+        result.eep.key_quotes = ["They shook hands.", "Nobody said this."]
+        cache_client.cache.get_as.return_value = result
+        return cache_client
+
+    def test_pins_each_quote_or_leaves_it_null(self, quotes_client):
+        resp = self._get(quotes_client)
+
+        assert resp.status_code == 200
+        assert resp.json() == {
+            "eventId": EVENT_ID,
+            "quotes": [
+                {"text": "They shook hands.", "paragraphId": "para-b", "chapterNumber": 3},
+                {"text": "Nobody said this.", "paragraphId": None, "chapterNumber": None},
+            ],
+        }
+
+    def test_404_when_not_analyzed(self, quotes_client):
+        quotes_client.cache.get_as.return_value = None
+        assert self._get(quotes_client).status_code == 404
+
+    def test_404_for_an_event_of_another_book(self, quotes_client):
+        event = _make_event()
+        event.document_id = "other-book"
+        quotes_client.kg.get_event = AsyncMock(return_value=event)
+        assert self._get(quotes_client).status_code == 404
+
+    def test_404_for_unknown_event(self, quotes_client):
+        quotes_client.kg.get_event = AsyncMock(return_value=None)
+        assert self._get(quotes_client).status_code == 404
