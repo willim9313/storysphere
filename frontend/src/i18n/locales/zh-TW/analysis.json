@@ -1260,6 +1260,7 @@
     },
     "interpretation": {
       "tag": "LLM 詮釋",
+      "toSources": "看 {{count}} 筆出處 ↓",
       "linkedEmpty": "無相關記錄",
       "regenerate": "重新生成",
       "regenerateConfirm": "重新生成將覆蓋現有詮釋與審核狀態，確認執行？",

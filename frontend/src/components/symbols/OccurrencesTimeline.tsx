@@ -268,7 +268,9 @@ export function OccurrencesTimeline({
   return (
     <section className="sym-card">
       <div className="sym-card-head">
-        <h2 className="sym-card-title">{t('symbol.occurrences')}</h2>
+        <h2 id="sym-occurrences-title" tabIndex={-1} className="sym-card-title">
+          {t('symbol.occurrences')}
+        </h2>
         <span className="sym-card-meta">
           {/* The front-matter clause is dropped at zero rather than reading
               「前置頁 0 筆另計」, which is a template showing through and not a

@@ -2029,6 +2029,7 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 | SY-1 | 遺漏 · 章節分布圖在窄欄的收縮方式 | 待同步 |
 | SY-2 | 遺漏 · 單件生成中／批次中停用其他生成觸發 | 待同步 |
 | SY-3 | 主題分化 · Ink 下清單類別與極性改由圖示／字形承載 | 待同步 |
+| SY-4 | 遺漏 · 證據摘要沒有回原文的路徑 | 待同步 |
 
 ### SY-1 章節分布圖在窄欄的收縮方式
 
@@ -2050,3 +2051,10 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 - **問題**：Ink 近單色，類別色塊仍是粉／綠／黃 pastel（無色相差異可辨時只剩淺色塊），極性點只差灰階，類別與極性在單色下無法分辨。
 - **目前處置**（使用者 2026-10-10 裁決）：只在 Ink 顯示，Warm 完全不變。shape token `--symbol-glyph-display`（Warm `none`、Ink `inline-flex`）與 `--symbol-dot-display`（Warm `block`、Ink `none`）。類別色塊內放 14px lucide 圖示，色用該類別 `--symbol-{type}-fg`：object `Box`、nature `Leaf`、spatial `MapPin`、body `Hand`、color `Palette`、other `Circle`。極性在 12px 槽內以字形取代極性點：positive `+`、negative `−`（U+2212）、neutral `○`、mixed `±`，槽寬不變。
 - **請設計端**：確認圖示選擇；決定 Warm 是否也要帶。
+
+### SY-4 證據摘要沒有回原文的路徑
+
+- **出處**：11 符號意象稿詳情「已生成詮釋」卡（補稿 A 區）的證據摘要欄位；impeccable critique／audit 象徵意象頁（2026-10-10）P2
+- **問題**：證據摘要是 LLM 對整份 SEP 的綜述，後端不存段落出處，無法逐句跳原文；讀到一句結論想查證，得自己往下找出現紀錄卡。違反 PRODUCT 原則 1「回到出處永遠是一步之遙」。
+- **目前處置**（使用者 2026-10-10 裁決）：證據摘要標籤右側加文字鈕「看 {n} 筆出處 ↓」（零成本、非編輯狀態才出現），點擊捲到出現紀錄卡並聚焦卡標題；出現紀錄每筆再「跳到原文」，閱讀頁會標出該詞（3.3）。字句為工程草稿。
+- **請設計端**：鈕的位置與樣式；定案字句。
