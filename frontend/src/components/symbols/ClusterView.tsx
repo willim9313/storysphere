@@ -43,7 +43,7 @@ export function ClusterView({ cluster, axis, onBack, onSelect }: Readonly<Props>
           </span>
           <span className="sym-crumb-here">{t('symbol.cluster.crumb')}</span>
         </nav>
-        <h2 className="sym-ov-title">{t('symbol.cluster.title', { term: seed.term })}</h2>
+        <h1 className="sym-ov-title">{t('symbol.cluster.title', { term: seed.term })}</h1>
         {/* States how the group was built, not what it means. What it means is the
             grid below, and a prose claim about it would be authored rather than
             computed. */}
@@ -58,7 +58,7 @@ export function ClusterView({ cluster, axis, onBack, onSelect }: Readonly<Props>
 
       <section className="sym-dash-card">
         <div className="sym-dash-card-head">
-          <h3 className="sym-dash-card-title">{t('symbol.cluster.gridTitle')}</h3>
+          <h2 className="sym-dash-card-title">{t('symbol.cluster.gridTitle')}</h2>
           <span className="sym-dash-card-meta">
             {t('symbol.cluster.gridMeta', { count: members.length })}
           </span>

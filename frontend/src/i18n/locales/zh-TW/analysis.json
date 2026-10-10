@@ -1227,6 +1227,8 @@
     "occurrences": "出現紀錄",
     "chapterN": "第 {{n}} 章",
     "chapterOccurrences": "{{count}} 次",
+    "chartLabel": "{{term}}：{{counts}}",
+    "chartListSep": "、",
     "noOccurrences": "尚無出現紀錄",
     "frequency": "{{count}} 次出現",
     "aliases": "異體",

@@ -76,10 +76,10 @@ export function InterpretationCta({
   return (
     <section className={'sym-cta' + (refused ? ' is-error' : '')}>
       <div className="sym-cta-text">
-        <h3 className="sym-cta-title">
+        <h2 className="sym-cta-title">
           {refused && <AlertTriangle size={16} aria-hidden="true" className="sym-cta-icon" />}
           {t(`symbol.interpretation.cta.${advice}Title`)}
-        </h3>
+        </h2>
         <p className="sym-cta-desc">{desc}</p>
         {front > 0 && (
           // Said before the money is spent, not only after. The evidence sent to

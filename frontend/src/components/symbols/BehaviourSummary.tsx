@@ -183,7 +183,7 @@ export function BehaviourSummary({
   return (
     <section className="sym-card">
       <div className="sym-card-head">
-        <h3 className="sym-card-title">{t('symbol.signal.title')}</h3>
+        <h2 className="sym-card-title">{t('symbol.signal.title')}</h2>
         <span className="sym-card-meta">
           {rank === null
             ? t('symbol.signal.loadUnranked', { value: signals.load.toFixed(2) })

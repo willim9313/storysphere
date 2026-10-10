@@ -9,7 +9,7 @@ import type { TFunction } from 'i18next';
 import { AxisHeader, ChapterCells } from './ChapterGrid';
 import { TypePill } from './Badges';
 import { densityStep, typeStyle } from './tokens';
-import { behaviourLine } from './symbolPhrases';
+import { behaviourLine, distributionSummary } from './symbolPhrases';
 import type { SymbolBatch } from './hooks/useSymbolBatch';
 import type { SymbolCheck } from './hooks/useSymbolCheck';
 import { ALLY_MIN_COUNT, findClusters } from './symbolClusters';
@@ -108,7 +108,7 @@ function OverviewHeader({
   return (
     <header className="sym-ov-head">
       <div className="sym-ov-head-main">
-        <h2 className="sym-ov-title">{t('symbol.overview.title')}</h2>
+        <h1 className="sym-ov-title">{t('symbol.overview.title')}</h1>
         <p className="sym-ov-meta">{meta.join(t('symbol.overview.meta.separator'))}</p>
       </div>
       <BatchButtons
@@ -333,7 +333,7 @@ function StartHere({
   return (
     <section className="sym-dash-card is-triage">
       <div className="sym-dash-card-head">
-        <h3 className="sym-dash-card-title">{t('symbol.overview.picks.title')}</h3>
+        <h2 className="sym-dash-card-title">{t('symbol.overview.picks.title')}</h2>
         <span className="sym-dash-card-meta">
           {t('symbol.overview.picks.subtitle', { count: picks.length })}
         </span>
@@ -477,7 +477,7 @@ function DensityHeatmap({
   return (
     <section className="sym-dash-card">
       <div className="sym-dash-card-head">
-        <h3 className="sym-dash-card-title">{t('symbol.dashboard.heatTitle')}</h3>
+        <h2 className="sym-dash-card-title">{t('symbol.dashboard.heatTitle')}</h2>
         <span className="sym-dash-card-meta">
           {t('symbol.overview.heat.meta', {
             rows: rows.length,
@@ -500,7 +500,20 @@ function DensityHeatmap({
         {rows.map((s) => {
           const distribution = s.item.chapter_distribution ?? {};
           return (
-            <div key={s.id} className="sym-heat-row">
+            // One image per row: its cells say nothing without a pointer, so the
+            // row's name carries the term, the counts and the load in words.
+            <div
+              key={s.id}
+              className="sym-heat-row"
+              role="img"
+              aria-label={[
+                t('symbol.chartLabel', {
+                  term: s.term,
+                  counts: distributionSummary(t, distribution, axis),
+                }),
+                `${t('symbol.overview.heat.loadHead')} ${s.load.toFixed(2)}`,
+              ].join(t('symbol.overview.meta.separator'))}
+            >
               <span className="sym-heat-name">
                 <span
                   className="sym-heat-dot"
@@ -570,7 +583,7 @@ function ShapeGroups({
   return (
     <section className="sym-dash-card">
       <div className="sym-dash-card-head">
-        <h3 className="sym-dash-card-title">{t('symbol.overview.shapes.title')}</h3>
+        <h2 className="sym-dash-card-title">{t('symbol.overview.shapes.title')}</h2>
         <span className="sym-dash-card-meta">{t('symbol.overview.shapes.subtitle')}</span>
       </div>
       <div className="sym-shape-list">
@@ -632,7 +645,7 @@ function ClusterCard({
   return (
     <section className="sym-dash-card">
       <div className="sym-dash-card-head">
-        <h3 className="sym-dash-card-title">{t('symbol.cluster.cardTitle')}</h3>
+        <h2 className="sym-dash-card-title">{t('symbol.cluster.cardTitle')}</h2>
         <span className="sym-dash-card-meta">
           {t('symbol.cluster.cardMeta', { min: ALLY_MIN_COUNT })}
         </span>
@@ -714,9 +727,9 @@ function TailCloud({
   return (
     <section className="sym-dash-card">
       <div className="sym-dash-card-head">
-        <h3 className="sym-dash-card-title">
+        <h2 className="sym-dash-card-title">
           {t('symbol.overview.tail.title', { count: tail.length })}
-        </h3>
+        </h2>
         <span className="sym-dash-card-meta">
           {t('symbol.overview.tail.meta', {
             pct: total > 0 ? Math.round((tail.length / total) * 100) : 0,

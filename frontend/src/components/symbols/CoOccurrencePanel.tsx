@@ -120,7 +120,7 @@ export function CoOccurrencePanel({ bookId, signals, onSelectCo }: Readonly<Prop
   return (
     <section className="sym-card">
       <div className="sym-card-head">
-        <h3 className="sym-card-title">{t('symbol.co.title')}</h3>
+        <h2 className="sym-card-title">{t('symbol.co.title')}</h2>
         <span className="sym-card-meta">
           {t('symbol.co.meta', { entities: entityCount, events: signals.eventCount })}
         </span>

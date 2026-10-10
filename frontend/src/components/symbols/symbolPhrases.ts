@@ -10,7 +10,7 @@
 
 import type { TFunction } from 'i18next';
 
-import type { ChapterAxisSlot } from './chapterAxis';
+import type { ChapterAxis, ChapterAxisSlot } from './chapterAxis';
 import type { SymbolSignals } from './symbolSignals';
 
 /**
@@ -27,6 +27,30 @@ export function segmentLabel(t: TFunction<'analysis'>, slot: ChapterAxisSlot): s
   return t(`symbol.dist.label.${key}`, {
     defaultValue: t(`symbol.dist.label.${slot.segment}`),
   });
+}
+
+/**
+ * The chart's numbers in words, for screen readers: 「第 1 章 · 2 次、第 3 章 · 1 次」.
+ *
+ * Every chart on the page shows its counts only in hover tooltips; this is the
+ * one text a non-pointer reader gets instead. Empty slots are left out — the list
+ * is the occurrences, not the axis.
+ */
+export function distributionSummary(
+  t: TFunction<'analysis'>,
+  distribution: Record<string, number>,
+  axis: ChapterAxis,
+): string {
+  const parts = axis.slots
+    .map((slot) => ({ slot, count: distribution[String(slot.chapter)] ?? 0 }))
+    .filter(({ count }) => count > 0)
+    .map(({ slot, count }) => {
+      const where =
+        slot.segment === 'body' ? t('symbol.chapterN', { n: slot.chapter }) : segmentLabel(t, slot);
+      return `${where} · ${t('symbol.chapterOccurrences', { count })}`;
+    });
+  if (parts.length === 0) return t('symbol.chapterOccurrences', { count: 0 });
+  return parts.join(t('symbol.chartListSep'));
 }
 
 /** Where the symbol sits in the body, e.g. 「集中在後半段（6–10 章）」. */
