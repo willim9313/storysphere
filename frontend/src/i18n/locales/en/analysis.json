@@ -1227,6 +1227,8 @@
     "occurrences": "Occurrences",
     "chapterN": "Ch. {{n}}",
     "chapterOccurrences": "{{count}}×",
+    "chartLabel": "{{term}}: {{counts}}",
+    "chartListSep": ", ",
     "noOccurrences": "No occurrence records",
     "frequency": "{{count}} occurrences",
     "aliases": "Aliases",

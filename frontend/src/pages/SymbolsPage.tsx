@@ -669,7 +669,7 @@ function ChapterCard({
   return (
     <section className="sym-card">
       <div className="sym-card-head">
-        <h3 className="sym-card-title">{t('symbol.chapterDist')}</h3>
+        <h2 className="sym-card-title">{t('symbol.chapterDist')}</h2>
         <span className="sym-card-meta">{meta.join(' · ')}</span>
         {pinned !== null && (
           // Inside the chart card, so the lower row is read as part of this chart.

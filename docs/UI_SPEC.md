@@ -1655,6 +1655,8 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 - 修訂編輯框：主題、證據摘要以 `aria-labelledby` 指向欄位標籤；極性選項為 `role="group"`＋`aria-pressed`；按「修訂」後焦點移到主題輸入框。
 - 播報：批次進度與完成面板 `role="status"`、批次失敗 `role="alert"`、`<progress>` 名稱同「LLM 批次生成中」；單件生成覆蓋層只把標題與意象名放在 `role="status"`（百分比不進播報區，免得每 2 秒朗讀）；CTA 與詮釋卡的錯誤列 `role="alert"`。
 - 減少動態（`prefers-reduced-motion: reduce`）：批次 spinner 放慢到 3s。
+- 圖表替代文字：章節分布圖（含並看列）與熱圖每一列為 `role="img"`，可及名稱列出有出現的章與次數（「鹽：第 1 章 · 1 次、第 2 章 · 1 次」；熱圖列另加「負載 0.93」），數字原本只在 hover 才看得到。意象叢的列是按鈕，名稱已含意象名與分布形狀，不另加。
+- 標題層級：總覽／意象叢／詳情的頁標題為 h1，各卡片標題為 h2（先前詳情 h1 直接跳 h3、總覽沒有 h1）。外觀不變。
 
 #### 設計 token
 

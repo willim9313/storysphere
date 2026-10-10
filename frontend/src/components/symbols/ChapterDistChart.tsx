@@ -10,7 +10,7 @@ import {
   type ChapterAxisSlot,
 } from './chapterAxis';
 import { barHeight } from './interpretationModel';
-import { segmentLabel } from './symbolPhrases';
+import { distributionSummary, segmentLabel } from './symbolPhrases';
 import type { SymbolSignals } from './symbolSignals';
 
 /** Tallest a bar can draw, in px. */
@@ -75,7 +75,16 @@ export function ChapterDistChart({ signals, axis, scale, pinned }: Readonly<Prop
 
   return (
     <div className="sym-dist" ref={plotRef}>
-      <div className="sym-dist-plot">
+      {/* The bars are an image; their numbers live in hover tooltips only, so the
+          plot carries them as its accessible name. */}
+      <div
+        className="sym-dist-plot"
+        role="img"
+        aria-label={t('symbol.chartLabel', {
+          term: signals.term,
+          counts: distributionSummary(t, distribution, axis),
+        })}
+      >
         {axis.slots.map((slot) => {
           const count = distribution[String(slot.chapter)] ?? 0;
           const isBody = slot.segment === 'body';
@@ -114,7 +123,14 @@ export function ChapterDistChart({ signals, axis, scale, pinned }: Readonly<Prop
 
       {pinned !== null && (
         <div className="sym-dist-pin">
-          <div className="sym-dist-plot is-pin">
+          <div
+            className="sym-dist-plot is-pin"
+            role="img"
+            aria-label={t('symbol.chartLabel', {
+              term: pinned.term,
+              counts: distributionSummary(t, pinned.item.chapter_distribution ?? {}, axis),
+            })}
+          >
             {axis.slots.map((slot) => {
               const count = (pinned.item.chapter_distribution ?? {})[String(slot.chapter)] ?? 0;
               const isBody = slot.segment === 'body';
