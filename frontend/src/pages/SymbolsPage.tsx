@@ -109,6 +109,7 @@ export default function SymbolsPage() {
     openCluster: openClusterUrl,
     setSortAxis,
     setTypeFilter,
+    showAll,
   } = useSymbolUrlState();
 
   const [search, setSearch] = useState('');
@@ -135,6 +136,11 @@ export default function SymbolsPage() {
     // still held would be unspendable — and would come back on the reader's
     // return, minutes later, as a count they no longer recognise.
     else check.exit();
+  };
+
+  const handleShowAll = () => {
+    showAll();
+    setShapeFilter(null);
   };
 
   const openCluster = (seedId: string) => {
@@ -560,6 +566,7 @@ export default function SymbolsPage() {
         setSortAxis={setSortAxis}
         typeFilter={typeFilter}
         setTypeFilter={setTypeFilter}
+        onShowAll={handleShowAll}
         shapeFilter={shapeFilter}
         setShapeFilter={setShapeFilter}
         search={search}
