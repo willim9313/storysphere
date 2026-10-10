@@ -337,8 +337,16 @@
   .nl-hj-body.is-ring {
     grid-template-columns: minmax(0, 1fr);
   }
+  /* Single column drops the detail below the chart, off-screen after a click:
+     pin it to the viewport bottom, capped so the chart stays visible. */
   .nl-detail {
-    position: static;
+    position: sticky;
+    top: auto;
+    bottom: 0;
+    z-index: 1;
+    max-height: 45vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-lg);
   }
 }
 

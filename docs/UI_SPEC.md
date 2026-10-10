@@ -2113,7 +2113,7 @@ en 對應：Previewing／Requirement not met: Standard mode · KG backend set to
 - **重新分析的閘門**：與空態按鈕同一道摘要閘門（`summaryGate`）；缺章時 disabled，Tooltip 顯示「缺 N 章摘要，補齊後才會有可映射的內容」。分析中按鈕就地換成「分析中… {progress}%」（`progress` 是後端寫死的 10／20／90，照實顯示，不承諾 ETA）。
 - **版面切換**：`.ss-seg`（`.nl-seg` 撐成四等分），每顆兩行＝名稱＋副標（`narrative.layout.*`／`narrative.viewHint.*`，spec §6 不可丟失）。`role="radiogroup"`／`radio`。一次只顯示一種，每種＝圖＋圖例＋階段詳情。預設章節對位帶。選取的階段在切換版面時保留（狀態在 `HeroJourneySection`）。
 - **缺席說明**（`.nl-absent-note`）：虛線框，只在有未識別階段時出現。
-- **圖＋詳情**（`.nl-hj-body`）：卡不限高；詳情欄 `.nl-detail` `position: sticky; top: 16px`。對位帶在右側（欄寬 340）、三相位分欄在右側（欄寬 380），圓環右側（圓環欄 460），**水平軌跡在下方全寬**（代表事件兩欄）。視窗 ≤ 1100 時單欄、詳情不 sticky。
+- **圖＋詳情**（`.nl-hj-body`）：卡不限高；詳情欄 `.nl-detail` `position: sticky; top: 16px`。對位帶在右側（欄寬 340）、三相位分欄在右側（欄寬 380），圓環右側（圓環欄 460），**水平軌跡在下方全寬**（代表事件兩欄）。視窗 ≤ 1100 時單欄，詳情改為 `position: sticky; bottom: 0`（`max-height: 45vh`、內部捲動），點階段後不必捲到圖下方就看得到。
 
 **章節對位帶（`LayoutBand`）**
 
