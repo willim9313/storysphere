@@ -634,7 +634,26 @@ interface EventEvidenceProfile {
 
 **Response 503**：未設定 LLM provider（見「通用規則」）；404（事件不存在）優先於 503
 
+**Response 409**：同一件事件已有分析在執行中（任一 `mode`）—— body `{ "detail": string, "code": "analysis_running" }`，**不建立 task**。
+兩輪會對同一件事件各呼叫一次 LLM。在 404／503 之後檢查；進行中的 taskId 由 #7l 取得。只擋同一件事件：別件事件、以及整本批次（#7g）都不互擋。
+
 **UI 使用頁面**：事件分析頁「建立」按鈕
+
+---
+
+### #7l GET /books/:bookId/events/analyses/running
+
+這本書目前執行中的單件事件分析（#7e）。唯讀、不花 token。
+
+**Response 200**
+```ts
+{ running: Array<{ eventId: string; taskId: string }> }  // 沒有時為 []（不回 404）
+```
+
+**說明**：頁面重新掛載（或另一個分頁已開始）時用它接手進行中的生成，而不是再給一次「建立」；#7e 回 409 `analysis_running` 時亦同。
+回清單而非單筆：不同分頁可能同時在跑不同事件。記錄與 #7k 同一套進程內 registry：單一 worker 有效，後端重啟後為 `[]`。
+
+**UI 使用頁面**：無（尚未接上；預定由事件分析頁在重新進入頁面時恢復單件「生成中」）
 
 ---
 
