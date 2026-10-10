@@ -2318,3 +2318,11 @@
   color: var(--fg-muted);
   margin: 8px 0 0;
 }
+
+/* ── Reduced motion ─────────────────────────────────────────────
+   The batch spinner keeps turning (it still says "running") but slowly. */
+@media (prefers-reduced-motion: reduce) {
+  .sym-ov-batch-spinner {
+    animation-duration: 3s;
+  }
+}

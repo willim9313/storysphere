@@ -302,8 +302,8 @@ export function InterpretationHero({
       </div>
 
       {error && (
-        <div className="sym-hero-error">
-          <AlertCircle size={13} />
+        <div className="sym-hero-error" role="alert">
+          <AlertCircle size={13} aria-hidden="true" />
           {error}
         </div>
       )}

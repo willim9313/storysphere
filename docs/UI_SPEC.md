@@ -1653,6 +1653,8 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 - 搜尋框 `aria-label` 同 placeholder；「全部」與類型 chip 帶 `aria-pressed`。
 - 出現紀錄「跳到原文」的可及名稱帶章與序號（「跳到原文 · 第 3 章 #2」），畫面文字不變。
 - 修訂編輯框：主題、證據摘要以 `aria-labelledby` 指向欄位標籤；極性選項為 `role="group"`＋`aria-pressed`；按「修訂」後焦點移到主題輸入框。
+- 播報：批次進度與完成面板 `role="status"`、批次失敗 `role="alert"`、`<progress>` 名稱同「LLM 批次生成中」；單件生成覆蓋層只把標題與意象名放在 `role="status"`（百分比不進播報區，免得每 2 秒朗讀）；CTA 與詮釋卡的錯誤列 `role="alert"`。
+- 減少動態（`prefers-reduced-motion: reduce`）：批次 spinner 放慢到 3s。
 
 #### 設計 token
 

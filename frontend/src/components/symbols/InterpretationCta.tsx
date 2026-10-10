@@ -94,8 +94,8 @@ export function InterpretationCta({
             triage are computed for free and never go through the provider. */}
         {refused && <span className="sym-cta-note">{t('symbol.error.blockedInline')}</span>}
         {error && (
-          <div className="sym-hero-error">
-            <AlertCircle size={13} />
+          <div className="sym-hero-error" role="alert">
+            <AlertCircle size={13} aria-hidden="true" />
             {error}
           </div>
         )}
