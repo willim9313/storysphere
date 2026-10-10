@@ -1,7 +1,7 @@
 """Event analysis endpoints for a book — split out of ``books.py``.
 
-Event detail (#9a), the event analysis listing (#6b), per-event analysis
-(#7d–#7e), source passages (#7i) and the batch run (#7f).  Shares the
+Event detail (#11), the event analysis listing (#6b), per-event analysis
+(#7d–#7f), source passages (#7i) and the batch run (#7g).  Shares the
 ``/books`` prefix with ``books.py``; the endpoint paths are unchanged.
 """
 
@@ -55,7 +55,7 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/books", tags=["books"])
 
 
-# ── #9a GET /books/:bookId/events/:eventId ───────────────────────────────────
+# ── #11 GET /books/:bookId/events/:eventId ───────────────────────────────────
 
 
 @router.get("/{book_id}/events/{event_id}", response_model=EventDetailResponse)
@@ -177,7 +177,7 @@ async def list_event_analyses(
     ).model_dump(by_alias=True)
 
 
-# ── #7d POST /books/:bookId/events/:eventId/analyze ─────────────────────────
+# ── #7e POST /books/:bookId/events/:eventId/analyze ─────────────────────────
 
 
 async def _event_analysis(
@@ -217,7 +217,7 @@ async def trigger_event_analysis(
     ``mode='full'`` forces a complete re-analysis.
     """
     event = await kg.get_event(event_id)
-    if event is None:
+    if event is None or event.document_id != book_id:
         raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found")
 
     language = await doc.get_document_language(book_id)
@@ -365,7 +365,7 @@ async def get_event_quote_sources(
     return EventQuoteSourcesResponse(event_id=event_id, quotes=quotes).model_dump(by_alias=True)
 
 
-# ── #7d-get GET /books/:bookId/events/:eventId/analysis ──────────────────────
+# ── #7d GET /books/:bookId/events/:eventId/analysis ──────────────────────
 
 
 @router.get(
@@ -378,7 +378,7 @@ async def get_event_analysis(
 ) -> EventAnalysisFullResponse:
     """Return cached EEP / causality / impact analysis for a single event."""
     event = await kg.get_event(event_id)
-    if event is None:
+    if event is None or event.document_id != book_id:
         raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found")
 
     from storysphere.api.schemas.book_event_analysis import (  # noqa: PLC0415
@@ -452,7 +452,7 @@ async def get_event_analysis(
     )
 
 
-# ── #7e DELETE /books/:bookId/events/:eventId/analysis ───────────────────────
+# ── #7f DELETE /books/:bookId/events/:eventId/analysis ───────────────────────
 
 
 @router.delete("/{book_id}/events/{event_id}/analysis", status_code=204)
@@ -461,7 +461,7 @@ async def delete_event_analysis(
 ) -> None:
     """Delete event analysis from cache."""
     event = await kg.get_event(event_id)
-    if event is None:
+    if event is None or event.document_id != book_id:
         raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found")
 
     cache_key = f"event:{book_id}:{event_id}"
@@ -491,7 +491,7 @@ async def get_event_source_passages(
     relevant passages", not as the event's canonical source text.
     """
     event = await kg.get_event(event_id)
-    if event is None:
+    if event is None or event.document_id != book_id:
         raise HTTPException(status_code=404, detail=f"Event '{event_id}' not found")
 
     if vector is None:
@@ -522,7 +522,7 @@ async def get_event_source_passages(
     return EventSourceResponse(event_id=event_id, passages=passages)
 
 
-# ── #7f POST /books/:bookId/events/analyze-all ───────────────────────────────
+# ── #7g POST /books/:bookId/events/analyze-all ───────────────────────────────
 
 
 async def _batch_event_analysis(

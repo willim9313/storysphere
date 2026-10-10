@@ -602,8 +602,10 @@ def source_client(client, mock_kg):
     """client with mock_kg.get_event wired — conftest does not cover it."""
     from tests.api.conftest import MEETING
 
+    meeting = MEETING.model_copy(update={"document_id": "doc-1"})
+
     async def _get_event(eid):
-        return MEETING if eid == "evt-1" else None
+        return meeting if eid == "evt-1" else None
 
     mock_kg.get_event = AsyncMock(side_effect=_get_event)
     return client
