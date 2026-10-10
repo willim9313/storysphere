@@ -70,12 +70,10 @@ function RowMeta({
   chapter,
   mode,
   stale,
-  children,
 }: Readonly<{
   chapter: number | null;
   mode: NarrativeMode | null;
   stale?: boolean;
-  children?: React.ReactNode;
 }>) {
   const { t } = useTranslation('analysis');
   return (
@@ -92,20 +90,8 @@ function RowMeta({
           <span className="ea-row-stale" role="img" aria-label={t('event.stale.tooltip')} />
         </Tooltip>
       )}
-      {children}
     </span>
   );
-}
-
-function activateOnKey(onSelect: () => void) {
-  return (e: React.KeyboardEvent<HTMLElement>) => {
-    // The inline 生成分析 button handles its own keys; only react to the row itself.
-    if (e.target !== e.currentTarget) return;
-    if (e.key === 'Enter' || e.key === ' ') {
-      e.preventDefault();
-      onSelect();
-    }
-  };
 }
 
 export function EventAnalyzedItem({
@@ -123,26 +109,29 @@ export function EventAnalyzedItem({
   const mode = normalizeNarrative(item.narrativeMode);
   const partial = item.status === 'partial';
 
+  // The row is not itself interactive: one button selects, so a screen reader
+  // hears one control per row and Tab stops once (same shape as `ca-row-main`).
   return (
-    <div
-      role="button"
-      tabIndex={0}
-      onClick={onSelect}
-      onKeyDown={activateOnKey(onSelect)}
-      className={'ea-row' + (isSelected ? ' selected' : '')}
-    >
-      <ImportanceBadge importance={item.importance ?? null} />
-      <span className="ea-row-body">
-        <span className="ea-row-name">{item.title}</span>
-        <RowMeta chapter={item.chapter ?? null} mode={mode} stale={item.isStale} />
-      </span>
-      {partial ? (
-        <Tooltip label={t('event.partialBadge')}>
-          <span className="ea-row-dot partial" role="img" aria-label={t('event.partialBadge')} />
-        </Tooltip>
-      ) : (
-        <span className={'ea-row-dot' + (justDone ? ' is-just-done' : '')} />
-      )}
+    <div className={'ea-row' + (isSelected ? ' selected' : '')}>
+      <button
+        type="button"
+        className="ea-row-main"
+        aria-current={isSelected ? 'true' : undefined}
+        onClick={onSelect}
+      >
+        <ImportanceBadge importance={item.importance ?? null} />
+        <span className="ea-row-body">
+          <span className="ea-row-name">{item.title}</span>
+          <RowMeta chapter={item.chapter ?? null} mode={mode} stale={item.isStale} />
+        </span>
+        {partial ? (
+          <Tooltip label={t('event.partialBadge')}>
+            <span className="ea-row-dot partial" role="img" aria-label={t('event.partialBadge')} />
+          </Tooltip>
+        ) : (
+          <span className={'ea-row-dot' + (justDone ? ' is-just-done' : '')} />
+        )}
+      </button>
     </div>
   );
 }
@@ -174,12 +163,9 @@ export function EventUnanalyzedItem({
   const { t } = useTranslation('analysis');
   const mode = normalizeNarrative(item.narrativeMode);
 
+  const blocked = !!generateBlockedReason;
   return (
     <div
-      role="button"
-      tabIndex={0}
-      onClick={onSelect}
-      onKeyDown={activateOnKey(onSelect)}
       className={
         'ea-row pending' +
         (isGenerating ? ' is-generating' : '') +
@@ -187,46 +173,54 @@ export function EventUnanalyzedItem({
         (isSelected ? ' selected' : '')
       }
     >
-      <ImportanceBadge importance={null} analyzed={false} />
-      <span className="ea-row-body">
-        <span className="ea-row-name">{item.name}</span>
-        {failureReason !== undefined ? (
-          <span className="ea-row-meta ea-row-fail-reason">
-            {item.chapter != null && (
-              <>
-                <span className="ea-row-fail-where">
-                  {t('batch.failures.chapter', { chapter: item.chapter })}
-                </span>
-                <span className="dot" />
-              </>
-            )}
-            <code className="ea-row-fail-text">{failureReason}</code>
-          </span>
-        ) : (
-        <RowMeta chapter={item.chapter ?? null} mode={mode}>
-          {!isGenerating && (
-            <Tooltip label={generateBlockedReason ?? ''} disabled={!generateBlockedReason}>
-              <button
-                type="button"
-                className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm ea-row-create"
-                disabled={!!generateBlockedReason}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onGenerate();
-                }}
-              >
-                {t('generate')}
-              </button>
-            </Tooltip>
+      <button
+        type="button"
+        className="ea-row-main"
+        aria-current={isSelected ? 'true' : undefined}
+        onClick={onSelect}
+      >
+        <ImportanceBadge importance={null} analyzed={false} />
+        <span className="ea-row-body">
+          <span className="ea-row-name">{item.name}</span>
+          {failureReason !== undefined ? (
+            <span className="ea-row-meta ea-row-fail-reason">
+              {item.chapter != null && (
+                <>
+                  <span className="ea-row-fail-where">
+                    {t('batch.failures.chapter', { chapter: item.chapter })}
+                  </span>
+                  <span className="dot" />
+                </>
+              )}
+              <code className="ea-row-fail-text">{failureReason}</code>
+            </span>
+          ) : (
+            <RowMeta chapter={item.chapter ?? null} mode={mode} />
           )}
-        </RowMeta>
+        </span>
+        {isGenerating && <span className="ea-row-dot running" />}
+        {failed && !isGenerating && (
+          <Tooltip label={t('batch.stat.failed')}>
+            <span className="ea-row-dot failed" role="img" aria-label={t('batch.stat.failed')} />
+          </Tooltip>
         )}
-      </span>
-      {isGenerating && <span className="ea-row-dot running" />}
-      {failed && !isGenerating && (
-        <Tooltip label={t('batch.stat.failed')}>
-          <span className="ea-row-dot failed" role="img" aria-label={t('batch.stat.failed')} />
-        </Tooltip>
+      </button>
+      {/* A sibling of the select button, not inside it — laid over the second
+          line. While blocked it stays focusable and clickable (aria-disabled):
+          the click selects the event instead of generating. */}
+      {!isGenerating && failureReason === undefined && (
+        <span className="ea-row-create-slot">
+          <Tooltip label={generateBlockedReason ?? ''} disabled={!blocked}>
+            <button
+              type="button"
+              className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm ea-row-create"
+              aria-disabled={blocked || undefined}
+              onClick={blocked ? onSelect : onGenerate}
+            >
+              {t('generate')}
+            </button>
+          </Tooltip>
+        </span>
       )}
     </div>
   );

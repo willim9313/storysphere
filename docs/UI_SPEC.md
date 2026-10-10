@@ -785,6 +785,9 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
     皆 disabled，`Tooltip`「另一件事件正在生成，完成後再試。」（`event.generating.blockedBySingle`）——頁面一次只追蹤一件，第二件會在背後跑卻沒人看。
     **批次執行中**，未分析事件的「生成分析」「建立分析」disabled，`Tooltip`「批次正在執行，這件會包含在內。」（`event.generating.blockedByBatch`）；
     已分析事件的「覆蓋重新生成」照常可用。兩句是**草稿・待設計定案**（見 DS_V3_DESIGN_FEEDBACK EV-2）。
+    左欄列與排行列的「生成分析」停用時用 `aria-disabled`（不是 `disabled`）：仍可聚焦、Tooltip 照常，點擊改為**選取該事件**、不觸發生成（2026-10-10 裁決）。
+- **列結構（a11y，2026-10-10）**：左欄動作列與排行列本身不可互動，內含一顆選取鈕（`.ea-row-main`／`.ea-ov-rank-main`，整列可點、左欄帶 `aria-current`）；
+  「生成分析」是**兄弟節點**（左欄疊在第二行右側），不再巢狀在可點的列裡。故事骨幹圖每個節點帶 `aria-label`「標題 · Ch.N · 重要度 · 已分析／尚未分析（· 敘事模式）」，皆既有字串。
 - **回到原文（2026-10-10）**：
   - 證據分頁的關鍵引言以 #7m 對回段落：對到唯一段落者用 `SourceJumpText`（虛線底線，Tooltip「點擊跳至閱讀頁對應段落」＝`character.sourceJump.cta`），點擊 `navigate('/books/:id', { state: { paragraphId, chapterNumber } })`；
     對不到者維持純文字、不加標記（使用者裁決）。樣式 `.ca-srcjump*` 已移到 `ss-kit.css`（角色頁、事件頁共用）。
