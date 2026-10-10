@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
 import { Tooltip } from '@/components/ui/Tooltip';
+import { useElementWidth } from '@/hooks/useElementWidth';
 import { densityStep, typeStyle } from './tokens';
 import {
   OUTSIDE_CELL_FLEX,
@@ -16,6 +17,13 @@ import type { SymbolSignals } from './symbolSignals';
 const MAX_BAR_H = 72;
 /** An occupied chapter is never invisible, however small its share. */
 const MIN_BAR_H = 3;
+/** Matches `gap` on `.sym-dist-plot` / `.sym-dist-labels`. */
+const COL_GAP = 3;
+/** Width one digit of an 11px tabular chapter number needs, plus breathing room. */
+const DIGIT_W = 7;
+const LABEL_PAD = 4;
+/** Below this, a front/back column shows 「前／後」 rather than 「目次」「後記」. */
+const OUTSIDE_LABEL_MIN_W = 36;
 
 interface Props {
   signals: SymbolSignals;
@@ -52,8 +60,21 @@ export function ChapterDistChart({ signals, axis, scale, pinned }: Readonly<Prop
     ? new Set(signals.distribution.peakBodyChapters)
     : new Set<number>();
 
+  // The chart fills whatever the card gives it. At 720px that is ~306px, so every
+  // column still draws and only the axis numbers thin out — see `visibleBodyLabels`.
+  const [plotRef, plotW] = useElementWidth<HTMLDivElement>();
+  const bodyChapters = axis.slots.filter((s) => s.segment === 'body').map((s) => s.chapter);
+  const outsideCount = axis.slots.length - bodyChapters.length;
+  const colW =
+    plotW > 0
+      ? (plotW - COL_GAP * (axis.slots.length - 1)) /
+        (bodyChapters.length + OUTSIDE_CELL_FLEX * outsideCount)
+      : Infinity;
+  const shownLabels = visibleBodyLabels(bodyChapters, peaks, colW);
+  const compactOutside = colW * OUTSIDE_CELL_FLEX < OUTSIDE_LABEL_MIN_W;
+
   return (
-    <div className="sym-dist">
+    <div className="sym-dist" ref={plotRef}>
       <div className="sym-dist-plot">
         {axis.slots.map((slot) => {
           const count = distribution[String(slot.chapter)] ?? 0;
@@ -137,13 +158,49 @@ export function ChapterDistChart({ signals, axis, scale, pinned }: Readonly<Prop
               className={'sym-dist-label' + (isBody ? '' : ' is-outside')}
               style={{ flex: isBody ? 1 : OUTSIDE_CELL_FLEX }}
             >
-              {isBody ? slot.chapter : segmentLabel(t, slot)}
+              {isBody
+                ? shownLabels.has(slot.chapter) && slot.chapter
+                : compactOutside
+                  ? t(`symbol.dist.label.${slot.segment}`)
+                  : segmentLabel(t, slot)}
             </span>
           );
         })}
       </div>
     </div>
   );
+}
+
+/**
+ * Which body chapter numbers fit under their columns without colliding.
+ *
+ * Every chapter draws a column at any width; only the numbers thin out. The first
+ * and last chapter and the peaks are placed first, then every k-th chapter where
+ * k columns are wide enough for one number, skipping any that would land within k
+ * columns of a number already placed.
+ */
+function visibleBodyLabels(
+  chapters: readonly number[],
+  peaks: ReadonlySet<number>,
+  colW: number,
+): Set<number> {
+  if (chapters.length === 0) return new Set();
+  const digits = String(chapters[chapters.length - 1]).length;
+  const stride = Math.max(1, Math.ceil((digits * DIGIT_W + LABEL_PAD) / colW));
+  if (stride === 1) return new Set(chapters);
+
+  const last = chapters.length - 1;
+  const candidates = [0, last];
+  chapters.forEach((ch, i) => {
+    if (peaks.has(ch)) candidates.push(i);
+  });
+  for (let i = 0; i <= last; i += stride) candidates.push(i);
+
+  const placed: number[] = [];
+  for (const i of candidates) {
+    if (placed.every((p) => Math.abs(p - i) >= stride)) placed.push(i);
+  }
+  return new Set(placed.map((i) => chapters[i]));
 }
 
 type T = ReturnType<typeof useTranslation<'analysis'>>['t'];

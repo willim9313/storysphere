@@ -2021,3 +2021,16 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 - **問題**：`DESIGN_TOKENS.md` 語意層級規定 11px（`--font-size-2xs`）只給「註記・計數・eyebrow」，次要說明用 12px；`DESIGN.md` 規定 `fg-muted` 只給註記、計數、placeholder。稿上的整句說明卻畫成 11px 或 `fg-muted`（對比約 2.9–3.4:1，未達 4.5:1）。
 - **目前處置**（使用者 2026-10-10 裁決）：僅本頁——整句說明（`nl-sd-note`、`nl-sd-shared`、`nl-band-note`、`nl-cross-body`、`nl-cross-meta`、`nl-cross-peak-note`、`nl-unclass-fact-v`）升到 `--font-size-xs`；承載資訊的 `fg-muted` 文字（`nl-sd-body.is-muted`、`nl-evbox-hint`、`nl-ev-empty`、`nl-cross-meta`、`nl-seg-hint`）改 `--fg-secondary`，兩主題皆換。標籤、章號、徽章維持 11px／muted。不改 token。
 - **請設計端**：16 稿把整句說明改 12px、承載資訊文字改 secondary；全站其他頁同樣用法（`2xs` 約六百處、`fg-muted` 數百處）尚未清點，請決定是否整體套用此規則。
+
+## 稿外新增 · 象徵意象
+
+| # | 類型 | 狀態 |
+|---|------|------|
+| SY-1 | 遺漏 · 章節分布圖在窄欄的收縮方式 | 待同步 |
+
+### SY-1 章節分布圖在窄欄的收縮方式
+
+- **出處**：11 符號意象稿詳情「章節分布」卡（只畫了寬版）；impeccable critique／audit 象徵意象頁（2026-10-10）P1
+- **問題**：圖寫死 `min-width: 420px`，720px 視窗下主欄卡片內寬只有 306px，卡內捲動又沒有提示——名字的潮汐第 9、10 章與後記整欄看不到，資料被靜默截掉。
+- **目前處置**（使用者 2026-10-10 裁決方案 A）：拿掉最小寬度，欄位隨卡寬等比收窄，每一章的長條都畫。章號放不下時改隔章顯示：首章、末章、峰值章先放，其餘每 k 章一個（k＝一個章號所需寬度／欄寬），與已放的章號距離不足 k 欄就略過。非正文欄寬低於 36px 時標籤從「目次／後記」改為既有的「前／後」。沒有新字串。
+- **請設計端**：補畫窄版分布圖；確認章號稀疏規則與非正文縮寫。
