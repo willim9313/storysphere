@@ -8,6 +8,9 @@ interface EventRankingViewProps {
   onSelectEvent: (id: string) => void;
   onGenerate: (id: string) => void;
   generatingId: string | null;
+  /** Why no new generation can start right now (another event is generating,
+   *  or a batch is running), shown as the disabled button's tooltip; null = free. */
+  generateBlockedReason?: string | null;
 }
 
 const DEFAULT_ROWS = 11;
@@ -17,6 +20,7 @@ export function EventRankingView({
   onSelectEvent,
   onGenerate,
   generatingId,
+  generateBlockedReason = null,
 }: Readonly<EventRankingViewProps>) {
   const { t } = useTranslation('analysis');
   const [expanded, setExpanded] = useState(false);
@@ -75,14 +79,16 @@ export function EventRankingView({
             {t('event.overview.ranking.viewAnalysis')}
           </button>
         ) : (
-          <button
-            type="button"
-            className="ss-btn ss-btn-sm ss-btn-primary ss-btn-llm"
-            onClick={() => onGenerate(hero.id)}
-            disabled={generatingId === hero.id}
-          >
-            {t('event.overview.ranking.createHero')}
-          </button>
+          <Tooltip label={generateBlockedReason ?? ''} disabled={!generateBlockedReason}>
+            <button
+              type="button"
+              className="ss-btn ss-btn-sm ss-btn-primary ss-btn-llm"
+              onClick={() => onGenerate(hero.id)}
+              disabled={generatingId === hero.id || !!generateBlockedReason}
+            >
+              {t('event.overview.ranking.createHero')}
+            </button>
+          </Tooltip>
         )}
       </div>
 
@@ -123,17 +129,22 @@ export function EventRankingView({
               {t('event.overview.ranking.participants', { count: e.participants })}
             </span>
             {!e.analyzed && (
-              <button
-                type="button"
-                className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
-                onClick={(ev) => {
-                  ev.stopPropagation();
-                  onGenerate(e.id);
-                }}
-                disabled={generatingId === e.id}
+              <Tooltip
+                label={generateBlockedReason ?? ''}
+                disabled={!generateBlockedReason || generatingId === e.id}
               >
-                {generatingId === e.id ? '…' : t('generate')}
-              </button>
+                <button
+                  type="button"
+                  className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+                  onClick={(ev) => {
+                    ev.stopPropagation();
+                    onGenerate(e.id);
+                  }}
+                  disabled={generatingId === e.id || !!generateBlockedReason}
+                >
+                  {generatingId === e.id ? '…' : t('generate')}
+                </button>
+              </Tooltip>
             )}
           </div>
         ))}

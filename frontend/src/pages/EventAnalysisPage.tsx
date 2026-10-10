@@ -312,6 +312,14 @@ export default function EventAnalysisPage() {
     failureMessage: t('batchTriggerFailed'),
     resume: { key: bookId, fetch: () => fetchActiveEventBatch(bookId!) },
   });
+  // The page follows one single-event run at a time, so a second one started
+  // now would run unwatched (and still be billed). A running batch already
+  // covers every unanalyzed event; re-generating an analyzed one stays open.
+  const singleBlockedReason = genActive ? t('event.generating.blockedBySingle') : null;
+  const generateBlockedReason =
+    singleBlockedReason ??
+    (batch.running || batch.pending ? t('event.generating.blockedByBatch') : null);
+
   const startBatch = (ids?: string[]) => {
     setFailedOnly(false);
     batch.start(ids);
@@ -440,6 +448,7 @@ export default function EventAnalysisPage() {
               onSelect={(id) => setSelectedEntityId(id)}
               onGenerate={handleGenerate}
               generatingId={genActive ? generatingId : null}
+              generateBlockedReason={generateBlockedReason}
               justDoneIds={justDoneIds}
               failedIds={failedIds}
               failedOnly={failedFilterOn}
@@ -511,14 +520,16 @@ export default function EventAnalysisPage() {
                       </div>
                       <div className="ea-detail-actions">
                         {eventDetail.status === 'partial' && (
-                          <button
-                            type="button"
-                            className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
-                            disabled={retryFailedMutation.isPending}
-                            onClick={() => retryFailedMutation.mutate(selectedEntityId)}
-                          >
-                            {t('event.retryFailed')}
-                          </button>
+                          <Tooltip label={singleBlockedReason ?? ''} disabled={!singleBlockedReason}>
+                            <button
+                              type="button"
+                              className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+                              disabled={retryFailedMutation.isPending || !!singleBlockedReason}
+                              onClick={() => retryFailedMutation.mutate(selectedEntityId)}
+                            >
+                              {t('event.retryFailed')}
+                            </button>
+                          </Tooltip>
                         )}
                         <Tooltip label={t('event.compare.needTwo')} disabled={canCompare}>
                           <button
@@ -538,13 +549,16 @@ export default function EventAnalysisPage() {
                             {t('viewInGraph')}
                           </Link>
                         )}
-                        <button
-                          type="button"
-                          className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
-                          onClick={() => setConfirmRegenerate(true)}
-                        >
-                          {t('regenerate')}
-                        </button>
+                        <Tooltip label={singleBlockedReason ?? ''} disabled={!singleBlockedReason}>
+                          <button
+                            type="button"
+                            className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+                            disabled={!!singleBlockedReason}
+                            onClick={() => setConfirmRegenerate(true)}
+                          >
+                            {t('regenerate')}
+                          </button>
+                        </Tooltip>
                       </div>
                     </div>
                     <div className="ea-detail-meta">
@@ -712,14 +726,16 @@ export default function EventAnalysisPage() {
                 </div>
 
                 <div className="ea-unanalyzed-cta">
-                  <button
-                    type="button"
-                    className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm"
-                    onClick={() => handleGenerate(selectedUnanalyzed.id)}
-                    disabled={triggerMutation.isPending}
-                  >
-                    {t('event.empty.createBtn')}
-                  </button>
+                  <Tooltip label={generateBlockedReason ?? ''} disabled={!generateBlockedReason}>
+                    <button
+                      type="button"
+                      className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm"
+                      onClick={() => handleGenerate(selectedUnanalyzed.id)}
+                      disabled={triggerMutation.isPending || !!generateBlockedReason}
+                    >
+                      {t('event.empty.createBtn')}
+                    </button>
+                  </Tooltip>
                   <span className="ea-token-hint">
                     <span className="ss-llm-glyph" aria-hidden="true" />
                     {t('tension.state.tokenHintShort')}
@@ -749,6 +765,7 @@ export default function EventAnalysisPage() {
                 onSelectEvent={(id) => setSelectedEntityId(id)}
                 onGenerate={handleGenerate}
                 generatingId={genActive ? generatingId : null}
+              generateBlockedReason={generateBlockedReason}
                 onBatchAll={() => setConfirmBatchEep(true)}
                 isBatchRunning={batch.running}
               />

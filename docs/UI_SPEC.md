@@ -781,6 +781,10 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
   - **失敗面板**：`ss-btn-primary ss-btn-llm`「重試」（以原模式對同一件再觸發，不開確認框——同原本的建立）＋ secondary「關閉」（回原畫面）；字串沿用 `common.retry`／`common.close`。
     失敗後列上不再顯示生成中點。
   - **接手**：進頁面時查 #7l，有進行中的單件就接著追蹤；#7e 回 409 `analysis_running`（另一分頁已在跑）時同樣接手，不顯示錯誤。
+  - **生成中停用其他觸發**：單件生成中，其他事件的「生成分析」（左欄列、排行英雄卡與列）、未分析詳情「建立分析」、已分析詳情「覆蓋重新生成」「重試失敗部分」
+    皆 disabled，`Tooltip`「另一件事件正在生成，完成後再試。」（`event.generating.blockedBySingle`）——頁面一次只追蹤一件，第二件會在背後跑卻沒人看。
+    **批次執行中**，未分析事件的「生成分析」「建立分析」disabled，`Tooltip`「批次正在執行，這件會包含在內。」（`event.generating.blockedByBatch`）；
+    已分析事件的「覆蓋重新生成」照常可用。兩句是**草稿・待設計定案**（見 DS_V3_DESIGN_FEEDBACK EV-2）。
 - **原生 `title=`** 全部換成 `Tooltip`（14 處；值為 "·" 的那個直接拿掉）。
 - **新字串**：無。
 - **維持現況（記 feedback）**：landing 沒有對比入口（3-EV-2）、victim 顯示「承受者」（3-EV-3）。

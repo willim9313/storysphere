@@ -378,7 +378,9 @@
     },
     "generating": {
       "title": "事件分析中",
-      "stage": "{{stage}} · {{progress}}%"
+      "stage": "{{stage}} · {{progress}}%",
+      "blockedBySingle": "另一件事件正在生成，完成後再試。",
+      "blockedByBatch": "批次正在執行，這件會包含在內。"
     },
     "overview": {
       "title": "事件圖景",

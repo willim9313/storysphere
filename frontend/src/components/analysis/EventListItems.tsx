@@ -155,6 +155,7 @@ export function EventUnanalyzedItem({
   isGenerating,
   failed,
   failureReason,
+  generateBlockedReason = null,
 }: Readonly<{
   item: UnanalyzedEntity;
   isSelected: boolean;
@@ -167,6 +168,8 @@ export function EventUnanalyzedItem({
   /** Set only while the list is narrowed to failures (「只看失敗」): the second line then
    *  reads 「第 n 章 · <reason>」 instead of the chapter / chip / 生成分析 line (10 提案 D 區). */
   failureReason?: string;
+  /** Why 「生成分析」 cannot start right now; null = it can. */
+  generateBlockedReason?: string | null;
 }>) {
   const { t } = useTranslation('analysis');
   const mode = normalizeNarrative(item.narrativeMode);
@@ -202,16 +205,19 @@ export function EventUnanalyzedItem({
         ) : (
         <RowMeta chapter={item.chapter ?? null} mode={mode}>
           {!isGenerating && (
-            <button
-              type="button"
-              className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm ea-row-create"
-              onClick={(e) => {
-                e.stopPropagation();
-                onGenerate();
-              }}
-            >
-              {t('generate')}
-            </button>
+            <Tooltip label={generateBlockedReason ?? ''} disabled={!generateBlockedReason}>
+              <button
+                type="button"
+                className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm ea-row-create"
+                disabled={!!generateBlockedReason}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onGenerate();
+                }}
+              >
+                {t('generate')}
+              </button>
+            </Tooltip>
           )}
         </RowMeta>
         )}
