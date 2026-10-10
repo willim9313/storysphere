@@ -46,7 +46,9 @@ export function InterpretationGenerating({
     <section className="sym-gen">
       <div className="sym-gen-card">
         <div className="sym-gen-head">
-          <div className="sym-gen-titles">
+          {/* Announced once when the run starts; the percentages below are left
+              out of the live region so they do not read out every two seconds. */}
+          <div className="sym-gen-titles" role="status">
             <h2 className="sym-gen-title">{t('symbol.generating.eyebrow')}</h2>
             <span className="sym-gen-term">「{term}」</span>
           </div>

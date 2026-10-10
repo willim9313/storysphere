@@ -253,7 +253,7 @@ function BatchProgress({ batch }: Readonly<{ batch: SymbolBatch }>) {
 
   if (batch.error !== null) {
     return (
-      <div className="sym-ov-batch-panel is-error">
+      <div className="sym-ov-batch-panel is-error" role="alert">
         <span>{batch.error}</span>
         <button type="button" className="sym-ov-batch-dismiss" onClick={batch.dismiss}>
           {t('symbol.overview.batch.dismiss')}
@@ -267,11 +267,18 @@ function BatchProgress({ batch }: Readonly<{ batch: SymbolBatch }>) {
     // No cancel here, on purpose: the design draws none, and a control the
     // batch endpoint cannot honour is a promise the page cannot keep.
     return (
-      <div className="sym-ov-batch-panel">
+      // role="status": the run starts and moves on off-screen from wherever the
+      // reader's focus is; a polite region says so without stealing focus.
+      <div className="sym-ov-batch-panel" role="status">
         <Loader size={14} className="sym-ov-batch-spinner" aria-hidden="true" />
         <span className="sym-ov-batch-stage">{t('symbol.overview.batch.running')}</span>
         {batch.stage && <span className="sym-ov-batch-substage">{batch.stage}</span>}
-        <progress className="sym-ov-batch-track" value={pct} max={100} />
+        <progress
+          className="sym-ov-batch-track"
+          value={pct}
+          max={100}
+          aria-label={t('symbol.overview.batch.running')}
+        />
         <span className="sym-ov-batch-hint">{t('symbol.overview.batch.hint')}</span>
       </div>
     );
@@ -279,7 +286,7 @@ function BatchProgress({ batch }: Readonly<{ batch: SymbolBatch }>) {
 
   const s = batch.summary!;
   return (
-    <div className="sym-ov-batch-panel is-done">
+    <div className="sym-ov-batch-panel is-done" role="status">
       <div className="sym-ov-batch-line">
         <span className="sym-ov-batch-stage">{t('symbol.overview.batch.done')}</span>
         <button type="button" className="sym-ov-batch-dismiss" onClick={batch.dismiss}>
