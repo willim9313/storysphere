@@ -792,6 +792,9 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
   對比抽屜用 `useDialogFocus`（開啟時焦點到標題、Tab 只在抽屜內循環、關閉後回「對比」，`aria-labelledby`）；篩選 chip、分組與三視圖切換帶 `aria-pressed`，
   群組標頭帶 `aria-expanded`；搜尋欄 `aria-label` 同 placeholder。
 - **減少動態**（`prefers-reduced-motion: reduce`）：生成中點改靜態實心、完成時放大與 landing fade-in 拿掉、spinner 放慢到 3s、骨幹節點 hover 不放大。
+- **窄寬（2026-10-10）**：故事骨幹圖以 `useElementWidth` 量繪圖區實際寬度，每章欄寬＝寬 ÷ 章數（`fitNode`）。圓點直徑不超過欄寬 − 4（最小 8px，各帶行距不變）；
+  核心帶標籤寬上限＝欄寬 − 6（最多 80px、超出省略號），容不下 40px 就不畫標籤（靠 Tooltip 與節點 `aria-label`）。名字的潮汐（10 章）：1024 標籤約 4 字、720 無標籤；
+  標籤重疊 720／1024 由 88／46 對降為 0、圓點重疊 720 由 49 對降為 0。左欄 268px 維持常駐（同角色頁，見 B-123；收合模式待全站一起定）。
 - **回到原文（2026-10-10）**：
   - 證據分頁的關鍵引言以 #7m 對回段落：對到唯一段落者用 `SourceJumpText`（虛線底線，Tooltip「點擊跳至閱讀頁對應段落」＝`character.sourceJump.cta`），點擊 `navigate('/books/:id', { state: { paragraphId, chapterNumber } })`；
     對不到者維持純文字、不加標記（使用者裁決）。樣式 `.ca-srcjump*` 已移到 `ss-kit.css`（角色頁、事件頁共用）。
