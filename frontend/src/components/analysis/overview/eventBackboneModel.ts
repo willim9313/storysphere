@@ -39,3 +39,27 @@ export function fitNode(
   return { size, labelWidth: labelled && room >= NODE_LABEL_MIN_W ? room : null };
 }
 
+/** 判讀重要度退化：已分析事件至少這麼多件才下判斷（太少看不出分布）。 */
+export const IMPORTANCE_MIN_SAMPLE = 10;
+/** 單一重要度佔已分析事件的比例達此值，就視為核心／衛星沒有分開。 */
+export const IMPORTANCE_DOMINANT_SHARE = 0.9;
+
+/**
+ * 已分析事件幾乎全落在同一重要度時回傳那個重要度，否則 null。
+ * EEP 對每件事件單獨判斷，曾整本書全判 KERNEL（名字的潮汐 62/62）——那時上下分帶
+ * 不是書的結構，介面要說出來，而不是照畫（產品原則 2）。
+ */
+export function dominantImportance(
+  events: readonly { analyzed: boolean; importance: string | null }[],
+): { importance: 'KERNEL' | 'SATELLITE'; count: number; analyzed: number } | null {
+  const analyzed = events.filter((e) => e.analyzed);
+  if (analyzed.length < IMPORTANCE_MIN_SAMPLE) return null;
+  for (const importance of ['KERNEL', 'SATELLITE'] as const) {
+    const count = analyzed.filter((e) => e.importance === importance).length;
+    if (count / analyzed.length >= IMPORTANCE_DOMINANT_SHARE) {
+      return { importance, count, analyzed: analyzed.length };
+    }
+  }
+  return null;
+}
+

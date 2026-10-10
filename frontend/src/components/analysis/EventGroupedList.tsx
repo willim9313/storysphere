@@ -107,6 +107,23 @@ export function EventGroupedList({
 
   const failedSet = useMemo(() => new Set(failedIds), [failedIds]);
 
+  // Whole-book counts behind each chip, so a filter that would match nothing
+  // (e.g. 衛星 S when every analysis came back kernel) says so before it's pressed.
+  const chipCounts = useMemo(() => {
+    const all: Row[] = [
+      ...evtData.analyzed.map<Row>((item) => ({ kind: 'analyzed', id: item.entityId, item })),
+      ...evtData.unanalyzed.map<Row>((item) => ({ kind: 'unanalyzed', id: item.id, item })),
+    ];
+    const counts = new Map<string, number>();
+    for (const row of all) {
+      const imp = rowImportance(row);
+      counts.set(imp, (counts.get(imp) ?? 0) + 1);
+      const mode = row.item.narrativeMode as string | null | undefined;
+      if (mode) counts.set(mode, (counts.get(mode) ?? 0) + 1);
+    }
+    return counts;
+  }, [evtData]);
+
   const groups = useMemo(() => {
     const all: Row[] = [
       ...evtData.analyzed.map<Row>((item) => ({ kind: 'analyzed', id: item.entityId, item })),
@@ -183,9 +200,11 @@ export function EventGroupedList({
               type="button"
               className={chipClass(impFilter.has(key))}
               aria-pressed={impFilter.has(key)}
+              disabled={!chipCounts.get(key) && !impFilter.has(key)}
               onClick={() => setImpFilter((s) => toggle(s, key))}
             >
               {t(IMPORTANCE_CHIP_KEY[key] as string)}
+              <span className="ea-chip-count">{chipCounts.get(key) ?? 0}</span>
             </button>
           ))}
           {MODE_CHIPS.map((key) => (
@@ -194,9 +213,11 @@ export function EventGroupedList({
               type="button"
               className={chipClass(modeFilter.has(key))}
               aria-pressed={modeFilter.has(key)}
+              disabled={!chipCounts.get(key) && !modeFilter.has(key)}
               onClick={() => setModeFilter((s) => toggle(s, key))}
             >
               {t(`event.narrative.${key}`)}
+              <span className="ea-chip-count">{chipCounts.get(key) ?? 0}</span>
             </button>
           ))}
           {failedIds.length > 0 && (

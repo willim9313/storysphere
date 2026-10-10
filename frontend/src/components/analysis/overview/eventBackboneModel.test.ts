@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { bandHeight, fitNode, truncateNodeLabel } from './eventBackboneModel';
+import { bandHeight, dominantImportance, fitNode, truncateNodeLabel } from './eventBackboneModel';
 
 describe('truncateNodeLabel', () => {
   it('keeps names of 5 characters or fewer', () => {
@@ -42,6 +42,28 @@ describe('fitNode', () => {
   });
   it('uses the design size before the plot is measured', () => {
     expect(fitNode(0, 34, true)).toEqual({ size: 34, labelWidth: 80 });
+  });
+});
+
+describe('dominantImportance', () => {
+  const ev = (importance: string | null, analyzed = true) => ({ analyzed, importance });
+  const many = (n: number, importance: string | null, analyzed = true) =>
+    Array.from({ length: n }, () => ev(importance, analyzed));
+
+  it('flags a book where every analysis came back kernel', () => {
+    expect(dominantImportance(many(62, 'KERNEL'))).toEqual({ importance: 'KERNEL', count: 62, analyzed: 62 });
+  });
+  it('flags satellite dominance too', () => {
+    expect(dominantImportance([...many(9, 'SATELLITE'), ev('KERNEL')])?.importance).toBe('SATELLITE');
+  });
+  it('accepts a real split', () => {
+    expect(dominantImportance([...many(8, 'KERNEL'), ...many(4, 'SATELLITE')])).toBeNull();
+  });
+  it('does not judge fewer than 10 analyzed events', () => {
+    expect(dominantImportance(many(9, 'KERNEL'))).toBeNull();
+  });
+  it('ignores unanalyzed events', () => {
+    expect(dominantImportance([...many(2, 'KERNEL'), ...many(44, null, false)])).toBeNull();
   });
 });
 

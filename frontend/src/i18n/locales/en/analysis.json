@@ -417,7 +417,9 @@
         "legendKernel": "Large circle = kernel event",
         "legendUnanalyzed": "Dashed circle = not yet analyzed",
         "legendAxis": "X axis = chapter order",
-        "undated": "{{count}} more events have no chapter and are not shown."
+        "undated": "{{count}} more events have no chapter and are not shown.",
+        "importanceUnreliableKernel": "{{count}} of {{analyzed}} analyzed events were judged kernel — the kernel/satellite split is not reliable for this book; read the bands as rough.",
+        "importanceUnreliableSatellite": "{{count}} of {{analyzed}} analyzed events were judged satellite — the kernel/satellite split is not reliable for this book; read the bands as rough."
       },
       "viewFlow": "Context flow",
       "flow": {
