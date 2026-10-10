@@ -915,6 +915,29 @@ class TestBatchSymbolCancellation:
         assert status["status"] == "error"
         assert status["error"] == "cancelled"
 
+    def test_second_run_while_running_returns_409(self, client, mock_analysis_agent):
+        """A second sweep would re-interpret every term the first has not cached."""
+        mock_analysis_agent.analyze_symbols_batch = AsyncMock(side_effect=hanging_call())
+        task_id = self._start(client)
+
+        resp = client.post("/api/v1/symbols/analyze-all", json={"book_id": "book-1"})
+        assert resp.status_code == 409
+        assert resp.json()["code"] == "batch_running"
+        active = client.get("/api/v1/symbols/analyze-all/active", params={"book_id": "book-1"})
+        assert active.json() == {"taskId": task_id}
+
+        client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+    def test_active_is_null_once_the_run_ends(self, client, mock_analysis_agent):
+        mock_analysis_agent.analyze_symbols_batch = AsyncMock(side_effect=hanging_call())
+        task_id = self._start(client)
+        client.post(f"/api/v1/tasks/{task_id}/cancel")
+        poll_until_terminal(client, task_id)
+
+        active = client.get("/api/v1/symbols/analyze-all/active", params={"book_id": "book-1"})
+        assert active.status_code == 200
+        assert active.json() == {"taskId": None}
+
     def test_agent_failure_reaches_the_task(self, client, mock_analysis_agent):
         """The runner has no try/except of its own — the supervisor is the net.
 
