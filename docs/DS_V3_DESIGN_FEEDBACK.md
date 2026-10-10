@@ -1984,3 +1984,16 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 - **問題**：未建知識圖譜的書（0 件事件）被當成「整本書尚未分析」：橫幅給可按的「一鍵生成全部 EEP」，確認框寫「將對 0 個尚未分析的事件…消耗大量 token」，送出後後端回 400；左欄寫「沒有符合篩選條件的事件」（實際沒套篩選），批次面板只剩 0/0，篩選 chip 與分組切換全是無效操作。
 - **目前處置**（使用者 2026-10-09 裁決，比照 CA-2）：landing 改為 `EmptyState` prerequisite「此書尚未抽出事件」＋「事件來自知識圖譜的事件抽取。請到建構概覽確認「知識圖譜」步驟已完成，或重新執行。」＋「前往建構概覽」；不出引導橫幅、不畫視圖切換與骨幹圖。左欄批次面板、搜尋欄、篩選 chip、分組切換隱藏（比 CA-2 多藏搜尋與篩選：事件頁有 7 顆篩選／分組鈕），清單一行「尚無事件。」。新字串 3 句為工程草稿。
 - **請設計端**：把空態補進 10 稿 landing 與左欄；確認 0 件事件時左欄只留清單一行。
+
+## 稿外新增 · 敘事結構
+
+| # | 類型 | 狀態 |
+|---|------|------|
+| NL-1 | 缺陷 · 整句說明文字用 `fg-muted` 與 11px，低於可讀門檻 | 待同步 |
+
+### NL-1 整句說明文字的字級與對比
+
+- **出處**：16 敘事結構稿各區說明句（階段詳情的敘事功能、事件框提示、交叉證據判斷依據、「無核心事件」、版面副標）；impeccable critique／audit 敘事結構頁（2026-10-10）P1
+- **問題**：`DESIGN_TOKENS.md` 語意層級規定 11px（`--font-size-2xs`）只給「註記・計數・eyebrow」，次要說明用 12px；`DESIGN.md` 規定 `fg-muted` 只給註記、計數、placeholder。稿上的整句說明卻畫成 11px 或 `fg-muted`（對比約 2.9–3.4:1，未達 4.5:1）。
+- **目前處置**（使用者 2026-10-10 裁決）：僅本頁——整句說明（`nl-sd-note`、`nl-sd-shared`、`nl-band-note`、`nl-cross-body`、`nl-cross-meta`、`nl-cross-peak-note`、`nl-unclass-fact-v`）升到 `--font-size-xs`；承載資訊的 `fg-muted` 文字（`nl-sd-body.is-muted`、`nl-evbox-hint`、`nl-ev-empty`、`nl-cross-meta`、`nl-seg-hint`）改 `--fg-secondary`，兩主題皆換。標籤、章號、徽章維持 11px／muted。不改 token。
+- **請設計端**：16 稿把整句說明改 12px、承載資訊文字改 secondary；全站其他頁同樣用法（`2xs` 約六百處、`fg-muted` 數百處）尚未清點，請決定是否整體套用此規則。
