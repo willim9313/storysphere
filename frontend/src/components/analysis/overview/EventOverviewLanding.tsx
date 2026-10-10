@@ -116,6 +116,7 @@ export function EventOverviewLanding({
               key={v.key}
               type="button"
               className={'ss-seg-item' + (view === v.key ? ' active' : '')}
+              aria-pressed={view === v.key}
               onClick={() => setView(v.key)}
             >
               {t(v.labelKey)}

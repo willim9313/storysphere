@@ -182,6 +182,7 @@ export function EventGroupedList({
               key={key}
               type="button"
               className={chipClass(impFilter.has(key))}
+              aria-pressed={impFilter.has(key)}
               onClick={() => setImpFilter((s) => toggle(s, key))}
             >
               {t(IMPORTANCE_CHIP_KEY[key] as string)}
@@ -192,6 +193,7 @@ export function EventGroupedList({
               key={key}
               type="button"
               className={chipClass(modeFilter.has(key))}
+              aria-pressed={modeFilter.has(key)}
               onClick={() => setModeFilter((s) => toggle(s, key))}
             >
               {t(`event.narrative.${key}`)}
@@ -212,6 +214,7 @@ export function EventGroupedList({
           <button
             type="button"
             className={'ss-seg-item' + (groupBy === 'chapter' ? ' active' : '')}
+            aria-pressed={groupBy === 'chapter'}
             onClick={() => setGroupBy('chapter')}
           >
             {t('event.list.groupByChapter')}
@@ -219,6 +222,7 @@ export function EventGroupedList({
           <button
             type="button"
             className={'ss-seg-item' + (groupBy === 'importance' ? ' active' : '')}
+            aria-pressed={groupBy === 'importance'}
             onClick={() => setGroupBy('importance')}
           >
             {t('event.list.groupByImportance')}
@@ -243,6 +247,7 @@ export function EventGroupedList({
               <button
                 type="button"
                 className="ea-list-group-head"
+                aria-expanded={open}
                 onClick={() => setCollapsed((s) => toggle(s, g.key))}
               >
                 <ChevronRight size={12} className={'ea-caret' + (open ? ' open' : '')} />
