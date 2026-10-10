@@ -3,8 +3,36 @@ import { useMutation } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 
 import { ApiError } from '@/api/client';
-import type { BatchEepResult, TaskStatus } from '@/api/types';
+import type { BatchEepResult, BatchFailure, TaskStatus } from '@/api/types';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
+
+const isRecord = (v: unknown): v is Record<string, unknown> =>
+  typeof v === 'object' && v !== null && !Array.isArray(v);
+
+/**
+ * Reads a finished task's untyped `result` as a batch summary. Anything that
+ * isn't an object carrying the four counters is rejected (null) rather than
+ * trusted; `failures` is kept only when it is an array of objects (the three
+ * batches key them by `event_id` / `entity_id` / `imagery_id`), otherwise it is
+ * treated as absent — the same as a run from before B-113.
+ */
+export function parseBatchResult(result: unknown): BatchEepResult | null {
+  if (!isRecord(result)) return null;
+  const { progress, total, failed, skipped, failures } = result;
+  if (
+    typeof progress !== 'number' ||
+    typeof total !== 'number' ||
+    typeof failed !== 'number' ||
+    typeof skipped !== 'number'
+  ) {
+    return null;
+  }
+  const parsed: BatchEepResult = { progress, total, failed, skipped };
+  if (Array.isArray(failures)) {
+    parsed.failures = failures.filter(isRecord) as unknown as BatchFailure[];
+  }
+  return parsed;
+}
 
 export interface UseBatchTaskOptions<TArgs> {
   /** Kicks the run off; resolves with the id to poll. */
@@ -137,7 +165,7 @@ export function useBatchTask<TArgs = void>({
 
   useEffect(() => {
     if (task?.status === 'done') {
-      const result = (task.result as unknown as BatchEepResult) ?? null;
+      const result = parseBatchResult(task.result);
       setSummary(result);
       setTaskId(null);
       onDoneRef.current?.(result);

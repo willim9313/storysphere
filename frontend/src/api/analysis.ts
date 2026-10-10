@@ -42,7 +42,7 @@ export function triggerEntityAnalysis(
   );
 }
 
-// #7d — Trigger event analysis
+// #7e — Trigger event analysis
 export function triggerEventAnalysis(
   bookId: string,
   eventId: string,
@@ -67,7 +67,7 @@ export function fetchEventSourcePassages(
   );
 }
 
-// #7f — Batch event analysis (analyze all unanalyzed events)
+// #7g — Batch event analysis (analyze all unanalyzed events)
 export function triggerBatchEventAnalysis(
   bookId: string,
   eventIds?: string[],
@@ -113,7 +113,7 @@ export function fetchActiveEntityBatch(bookId: string): Promise<ActiveBatchRespo
   return apiFetch<ActiveBatchResponse>(`/books/${bookId}/entities/analyze-all/active`);
 }
 
-// #7d-get — Single event analysis detail (EEP + causality + impact)
+// #7d — Single event analysis detail (EEP + causality + impact)
 export function fetchEventAnalysisDetail(
   bookId: string,
   eventId: string,
