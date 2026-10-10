@@ -262,10 +262,15 @@
   opacity: 0.55;
 }
 .sym-row-lead {
-  display: block;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   width: 24px;
   height: 24px;
   border-radius: var(--radius-md);
+}
+.sym-row-lead-glyph {
+  display: var(--symbol-glyph-display);
 }
 .sym-row-body {
   min-width: 0;
@@ -303,10 +308,20 @@
   height: 24px;
 }
 .sym-row-pol-dot {
-  display: block;
+  display: var(--symbol-dot-display);
   width: 7px;
   height: 7px;
   border-radius: 50%;
+}
+/* Ink swaps the dot for a glyph in the same 12px slot (two display tokens, so
+   exactly one of them shows and the row width never changes). Warm: dot only. */
+.sym-row-pol-glyph {
+  display: var(--symbol-glyph-display);
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-2xs);
+  line-height: 1;
+  color: var(--fg-secondary);
 }
 
 /* The row's reason for existing: what this symbol does, in one line. */
