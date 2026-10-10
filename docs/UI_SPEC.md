@@ -1597,7 +1597,7 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 - 排序下拉：`--input-*` 框＋Lucide chevron；七個值（敘事負載〔預設〕／角色依附／貫穿度／事件依附／正文頻率（對照）／首見章序／審核狀態），存 `?sort=`。
 - 搜尋框（`--input-*`；match `term` 與 `aliases`；搜尋會涵蓋單次詞）、類別 chip（`?type=`；啟用態＝accent 邊與字，不依類別換色）。
 - **list-group-head**：「依敘事負載排序」＋「{rows} · 已析 {n}」（已析＝清單列中 `item.interpretation` 非空者；sans tabular-nums）。載入中／失敗時不畫。
-- 動作列：24px 類別 lead（類別 bg 色塊，Tooltip 寫類別名）、sans xs/500 意象名＋異體、行為短句、DensityStrip（8px，絕對色階；正文之外的格一律虛框）、右側分數（隨排序主軸）、12px 狀態點槽（polarity 點，無則留空）。無分隔線、列距 `--space-1`。選中／勾選＝`--bg-secondary` 底＋粗體名，**無左緣強調**。ReviewBadge／BlockBadge 可同時出現。
+- 動作列：24px 類別 lead（類別 bg 色塊，Tooltip 寫類別名）、sans xs/500 意象名＋異體、行為短句、DensityStrip（8px，絕對色階；正文之外的格一律虛框）、右側分數（隨排序主軸）、12px 狀態點槽（polarity 點，無則留空）。**Ink 主題分化**：shape token `--symbol-glyph-display`（Warm `none`／Ink `inline-flex`）與 `--symbol-dot-display`（Warm `block`／Ink `none`）——Ink 下類別色塊內畫 14px 圖示（object `Box`／nature `Leaf`／spatial `MapPin`／body `Hand`／color `Palette`／other `Circle`，色用該類別 fg），狀態槽內以字形取代極性點（`+`／`−`／`○`／`±`）；Warm 不變。無分隔線、列距 `--space-1`。選中／勾選＝`--bg-secondary` 底＋粗體名，**無左緣強調**。ReviewBadge／BlockBadge 可同時出現。
 - 分數 **可信度 < 80%** 用 `--status-partial-fg`，並掛 Tooltip「證據可信度 {pct}%，低於可信門檻 80%」；triage 的可信度 chip 同門檻同色。
 - 勾選模式：13×13 勾選框、radius 2px、勾號 `--accent-fg`；已有詮釋／被拒／單次詞不可勾。
 - 狀態：overview 載入中／失敗→清單區留白（主區說明原因，不寫「尚無意象資料」）；0 筆→「全部 0」＋「尚無意象資料」；篩到空→filtered 空態「無符合結果」＋「清除搜尋」（清搜尋、類別與行為分群篩選）。

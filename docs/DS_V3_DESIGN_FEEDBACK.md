@@ -2028,6 +2028,7 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 |---|------|------|
 | SY-1 | 遺漏 · 章節分布圖在窄欄的收縮方式 | 待同步 |
 | SY-2 | 遺漏 · 單件生成中／批次中停用其他生成觸發 | 待同步 |
+| SY-3 | 主題分化 · Ink 下清單類別與極性改由圖示／字形承載 | 待同步 |
 
 ### SY-1 章節分布圖在窄欄的收縮方式
 
@@ -2042,3 +2043,10 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 - **問題**：生成中切到別的意象可再按生成或重新生成，前端改追蹤新的那件、舊的在後端照樣跑完計費；批次執行中按單件生成，會與批次對同一個尚未寫入快取的意象各呼叫一次 LLM；單件生成中按批次同理。
 - **目前處置**（使用者 2026-10-10 裁決，比照 EV-2）：別的意象生成中，CTA、重新生成、再試一次與三顆批次鈕 disabled＋Tooltip「有一個意象正在生成詮釋，完成後再試。」；批次執行中 CTA disabled＋Tooltip「批次正在執行，完成後再試。」，重新生成與再試一次照常（批次不帶 force、會跳過已有詮釋者）。與 EV-2 不同，不寫「這件會包含在內」——象徵批次可能只跑前 5 名或勾選項。兩句為工程草稿。
 - **請設計端**：補畫兩種停用態，定案兩句 tooltip。
+
+### SY-3 Ink 下清單類別與極性改由圖示／字形承載
+
+- **出處**：11 符號意象稿左欄清單列（24px 類別色塊、12px 極性點）；PRODUCT.md「狀態與分類不得只靠色相」
+- **問題**：Ink 近單色，類別色塊仍是粉／綠／黃 pastel（無色相差異可辨時只剩淺色塊），極性點只差灰階，類別與極性在單色下無法分辨。
+- **目前處置**（使用者 2026-10-10 裁決）：只在 Ink 顯示，Warm 完全不變。shape token `--symbol-glyph-display`（Warm `none`、Ink `inline-flex`）與 `--symbol-dot-display`（Warm `block`、Ink `none`）。類別色塊內放 14px lucide 圖示，色用該類別 `--symbol-{type}-fg`：object `Box`、nature `Leaf`、spatial `MapPin`、body `Hand`、color `Palette`、other `Circle`。極性在 12px 槽內以字形取代極性點：positive `+`、negative `−`（U+2212）、neutral `○`、mixed `±`，槽寬不變。
+- **請設計端**：確認圖示選擇；決定 Warm 是否也要帶。

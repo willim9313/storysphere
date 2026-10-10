@@ -1,11 +1,12 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { ChevronDown, Search } from 'lucide-react';
+import { Box, ChevronDown, Circle, Hand, Leaf, MapPin, Palette, Search, type LucideIcon } from 'lucide-react';
 
 import { EmptyState } from '@/components/ui/EmptyState';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { SYMBOL_TYPES, POLARITY_STYLE, densityStep, typeStyle } from './tokens';
+import type { ImageryType, Polarity } from '@/api/symbols';
 import { BlockBadge, ReviewBadge } from './Badges';
 import { OUTSIDE_CELL_FLEX, type ChapterAxis } from './chapterAxis';
 import type { SymbolCheck } from './hooks/useSymbolCheck';
@@ -18,6 +19,22 @@ import {
   type SymbolAnalysis,
   type SymbolSignals,
 } from './symbolSignals';
+
+/** Ink-only glyphs for the list (see --symbol-glyph-display): colour alone cannot carry type or polarity there. */
+const TYPE_GLYPH: Record<ImageryType, LucideIcon> = {
+  object: Box,
+  nature: Leaf,
+  spatial: MapPin,
+  body: Hand,
+  color: Palette,
+  other: Circle,
+};
+const POLARITY_GLYPH: Record<Polarity, string> = {
+  positive: '+',
+  negative: '\u2212',
+  neutral: '\u25CB',
+  mixed: '\u00B1',
+};
 
 /** Order of the rank-by menu. Load first — it is the answer to "which one?". */
 const SORT_AXES: SortAxis[] = ['load', 'attach', 'span', 'events', 'freq', 'first', 'review'];
@@ -107,6 +124,11 @@ function DensityStrip({ signals, axis }: Readonly<{ signals: SymbolSignals; axis
       })}
     </div>
   );
+}
+
+function TypeGlyph({ type }: Readonly<{ type: string }>) {
+  const Icon = TYPE_GLYPH[(type as ImageryType) in TYPE_GLYPH ? (type as ImageryType) : 'other'];
+  return <Icon size={14} aria-hidden="true" />;
 }
 
 function axisLabel(t: TFunction<'analysis'>, axis: SortAxis): string {
@@ -227,7 +249,11 @@ export function SymbolList({
           onClick={() => (pickable ? check.toggle(s.id) : onSelect(s.id))}
         >
           <Tooltip label={t(`symbol.types.${s.imageryType}`, { defaultValue: s.imageryType })}>
-            <span className="sym-row-lead" style={{ background: style.bg }} />
+            <span className="sym-row-lead" style={{ background: style.bg }}>
+              <span className="sym-row-lead-glyph" style={{ color: style.fg }}>
+                <TypeGlyph type={s.imageryType} />
+              </span>
+            </span>
           </Tooltip>
 
           <span className="sym-row-body">
@@ -256,7 +282,12 @@ export function SymbolList({
           <span className="sym-row-slot">
             {polarity && (
               <Tooltip label={t(`symbol.polarity.${s.polarity}`)}>
-                <span className="sym-row-pol-dot" style={{ background: polarity.dot }} />
+                <>
+                  <span className="sym-row-pol-dot" style={{ background: polarity.dot }} />
+                  <span className="sym-row-pol-glyph" aria-hidden="true">
+                    {POLARITY_GLYPH[s.polarity as Polarity]}
+                  </span>
+                </>
               </Tooltip>
             )}
           </span>
