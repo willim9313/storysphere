@@ -554,10 +554,25 @@ interface BatchAnalysisRequest {
 **Response 404**：書本不存在
 **Response 400**：書本內無 character 類型實體（含 `entityIds` 提供但子集內無任何有效角色的情況——視為同一種空結果）
 **Response 503**：未設定 LLM provider（見「通用規則」）；在 404／400 之後檢查
+**Response 409**：同一本書已有角色批次執行中 —— body `{ "detail": string, "code": "batch_running" }`，**不建立 task**。
+再開一輪會讓兩輪對同一批尚未寫入快取的項目各呼叫一次 LLM。在 404／400／503 之後檢查；前端改以 #7j 取回進行中的 taskId 接手。
 
 **說明**：TaskStatus.result 的進度格式與事件批次共用 `BatchEepResult`（見 #7g）；`total` 為實際執行的角色數（有 `entityIds` 時為子集大小，非全書角色數）。`entityIds` 中不存在的 id 直接排除，不計入任何統計欄位（不算 skipped/failed）。仍會 skip 已分析角色（cache hit）。polling #8。
 
 **UI 使用頁面**：角色分析頁「一鍵生成全部角色分析」、分層批次「先生成前 10 位要角」（#11）
+
+---
+
+### #7j GET /books/:bookId/entities/analyze-all/active
+
+取回這本書目前執行中的角色批次（#7h）的 taskId。唯讀、不花 token。
+
+**Response 200**：`{ taskId: string | null }` —— 沒有執行中的批次時為 `null`（不回 404）
+
+**說明**：頁面重新掛載時用它接手進行中的批次（繼續 polling #8），而不是再給一次「開始」；#7h 回 409 `batch_running` 時亦同。
+記錄存在後端進程內（與任務取消同一套 registry）：單一 worker 有效，後端重啟後為 `null`（背景任務本身也已中止）。
+
+**UI 使用頁面**：無（尚未接上；預定由角色分析頁批次面板在重新進入頁面時用來恢復「執行中」）
 
 ---
 
@@ -679,6 +694,8 @@ interface EventSourceResponse {
 **Response 202**：`{ taskId: string }`
 
 **Response 503**：未設定 LLM provider（見「通用規則」）；在 404／400 之後檢查
+**Response 409**：同一本書已有事件批次執行中 —— body `{ "detail": string, "code": "batch_running" }`，**不建立 task**。
+再開一輪會讓兩輪對同一批尚未寫入快取的項目各呼叫一次 LLM。在 404／400／503 之後檢查；前端改以 #7k 取回進行中的 taskId 接手。
 
 **說明**：TaskStatus.result 的進度格式見下方 BatchEepResult。polling #8。
 
@@ -701,6 +718,19 @@ interface BatchEepResult {
 `{ entity_id, name, reason }`，依 `name` 排序。
 
 **UI 使用頁面**：事件分析頁「一鍵生成全部 EEP」、批次子集（只生成本章 / 勾選多筆）
+
+---
+
+### #7k GET /books/:bookId/events/analyze-all/active
+
+取回這本書目前執行中的事件批次（#7g）的 taskId。唯讀、不花 token。
+
+**Response 200**：`{ taskId: string | null }` —— 沒有執行中的批次時為 `null`（不回 404）
+
+**說明**：頁面重新掛載時用它接手進行中的批次（繼續 polling #8），而不是再給一次「開始」；#7g 回 409 `batch_running` 時亦同。
+記錄存在後端進程內（與任務取消同一套 registry）：單一 worker 有效，後端重啟後為 `null`（背景任務本身也已中止）。
+
+**UI 使用頁面**：無（尚未接上；預定由事件分析頁批次面板在重新進入頁面時用來恢復「執行中」）
 
 ---
 
@@ -1979,6 +2009,8 @@ interface SEP {
 **Response 202**：`TaskStatus`（含 `taskId`）
 **Response 400**：範圍內無任何意象（含 `imagery_ids` 提供但子集內無有效 id 的情況）
 **Response 503**：未設定 LLM provider（見「通用規則」）；在 400 之後檢查
+**Response 409**：同一本書已有象徵詮釋批次執行中 —— body `{ "detail": string, "code": "batch_running" }`，**不建立 task**。
+再開一輪會讓兩輪對同一批尚未寫入快取的項目各呼叫一次 LLM。在 400／503 之後檢查；前端改以 #15k 取回進行中的 taskId 接手。
 
 **說明**
 
@@ -1999,6 +2031,21 @@ interface SEP {
 - polling 走 **#8**（不是 #15f —— #15f 是單一意象的專用 polling）。
 
 **UI 使用頁面**：象徵意象頁全書意象地圖的批次按鈕與進度面板
+
+---
+
+### #15k GET /symbols/analyze-all/active
+
+取回這本書目前執行中的象徵詮釋批次（#15j）的 taskId。唯讀、不花 token。
+
+**Query**：`book_id`（必填）
+
+**Response 200**：`{ taskId: string | null }` —— 沒有執行中的批次時為 `null`（不回 404）
+
+**說明**：頁面重新掛載時用它接手進行中的批次（繼續 polling #8），而不是再給一次「開始」；#15j 回 409 `batch_running` 時亦同。
+記錄存在後端進程內（與任務取消同一套 registry）：單一 worker 有效，後端重啟後為 `null`（背景任務本身也已中止）。
+
+**UI 使用頁面**：無（尚未接上；預定由象徵意象頁批次面板在重新進入頁面時用來恢復「執行中」）
 
 ---
 

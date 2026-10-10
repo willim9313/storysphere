@@ -15,7 +15,7 @@ from fastapi import (
     HTTPException,
 )
 
-from storysphere.api import task_runner
+from storysphere.api import batch_guard, task_runner
 from storysphere.api.deps import (
     AnalysisAgentDep,
     AnalysisCacheDep,
@@ -40,6 +40,7 @@ from storysphere.api.schemas.books import (
     TaskIdResponse,
     UnanalyzedEntity,
 )
+from storysphere.api.schemas.common import ActiveBatchResponse, ErrorResponse
 from storysphere.api.store import task_store
 from storysphere.core.error_handling import is_rate_limit_error as _is_rate_limit_error
 from storysphere.services.analysis_cache import AnalysisCache
@@ -407,6 +408,7 @@ async def _batch_entity_analysis(
     "/{book_id}/entities/analyze-all",
     response_model=TaskIdResponse,
     status_code=202,
+    responses={409: {"model": ErrorResponse}},
 )
 async def trigger_batch_entity_analysis(
     book_id: str,
@@ -446,6 +448,9 @@ async def trigger_batch_entity_analysis(
 
     require_llm_provider()
     language = await doc.get_document_language(book_id)
+    # No await between the check and the claim (see batch_guard).
+    if (busy := batch_guard.conflict("character", book_id)) is not None:
+        return busy
     task_id = str(uuid4())
     task_store.create(task_id, kind="character", title="批次角色分析")
     task_runner.launch(
@@ -454,6 +459,7 @@ async def trigger_batch_entity_analysis(
             task_id, book_id, agent, kg, cache, language, body.entity_ids
         ),
     )
+    batch_guard.hold("character", book_id, task_id)
 
     logger.info(
         "Triggered batch character analysis: book=%s, "
@@ -461,6 +467,21 @@ async def trigger_batch_entity_analysis(
         book_id, len(characters), task_id,
     )
     return TaskIdResponse(task_id=task_id).model_dump(
+        by_alias=True,
+    )
+
+
+@router.get(
+    "/{book_id}/entities/analyze-all/active",
+    response_model=ActiveBatchResponse,
+)
+async def get_active_character_batch(book_id: str) -> dict:
+    """The character batch currently running for this book, or ``taskId: null``.
+
+    Read-only: lets a page that remounts mid-run pick the batch back up instead
+    of offering to start a second one (which ``…/analyze-all`` refuses with 409).
+    """
+    return ActiveBatchResponse(task_id=batch_guard.running("character", book_id)).model_dump(
         by_alias=True,
     )
 

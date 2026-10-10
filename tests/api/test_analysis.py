@@ -720,6 +720,71 @@ class TestCancellation:
         assert status["error"] == "LLM 配額用盡"
 
 
+# ── Batch mutex: one running batch per book and kind ──────────────────────────
+
+
+_BATCH_KINDS = [
+    pytest.param("events", "analyze_event", id="events"),
+    pytest.param("entities", "analyze_character", id="entities"),
+]
+
+
+class TestBatchMutex:
+    """A second analyze-all while the first runs would pay the LLM twice for
+    every item the first has not cached yet — so it is refused with 409, and
+    ``…/analyze-all/active`` lets a remounted page pick the running one back up.
+    """
+
+    @pytest.mark.parametrize(("segment", "agent_method"), _BATCH_KINDS)
+    def test_active_is_null_when_idle(self, event_batch_client, segment, agent_method):
+        resp = event_batch_client.get(f"/api/v1/books/doc-1/{segment}/analyze-all/active")
+        assert resp.status_code == 200
+        assert resp.json() == {"taskId": None}
+
+    @pytest.mark.parametrize(("segment", "agent_method"), _BATCH_KINDS)
+    def test_second_run_while_running_returns_409(
+        self, event_batch_client, mock_analysis_agent, segment, agent_method
+    ):
+        getattr(mock_analysis_agent, agent_method).side_effect = hanging_call()
+        url = f"/api/v1/books/doc-1/{segment}/analyze-all"
+        task_id = event_batch_client.post(url).json()["taskId"]
+
+        resp = event_batch_client.post(url, json={})
+        assert resp.status_code == 409
+        assert resp.json()["code"] == "batch_running"
+        active = event_batch_client.get(f"{url}/active").json()
+        assert active == {"taskId": task_id}
+
+        event_batch_client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+    @pytest.mark.parametrize(("segment", "agent_method"), _BATCH_KINDS)
+    def test_finished_run_frees_the_book(
+        self, event_batch_client, mock_analysis_agent, segment, agent_method
+    ):
+        getattr(mock_analysis_agent, agent_method).side_effect = hanging_call()
+        url = f"/api/v1/books/doc-1/{segment}/analyze-all"
+        task_id = event_batch_client.post(url).json()["taskId"]
+        event_batch_client.post(f"/api/v1/tasks/{task_id}/cancel")
+        poll_until_terminal(event_batch_client, task_id)
+
+        assert event_batch_client.get(f"{url}/active").json() == {"taskId": None}
+        getattr(mock_analysis_agent, agent_method).side_effect = None
+        assert event_batch_client.post(url).status_code == 202
+
+    def test_other_kind_on_same_book_is_not_blocked(
+        self, event_batch_client, mock_analysis_agent
+    ):
+        mock_analysis_agent.analyze_event.side_effect = hanging_call()
+        task_id = event_batch_client.post("/api/v1/books/doc-1/events/analyze-all").json()[
+            "taskId"
+        ]
+
+        resp = event_batch_client.post("/api/v1/books/doc-1/entities/analyze-all")
+        assert resp.status_code == 202
+
+        event_batch_client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+
 # ── Batch event analysis: cancellation and abort ─────────────────────────────
 
 

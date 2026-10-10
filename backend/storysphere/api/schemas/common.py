@@ -50,6 +50,14 @@ class TaskStatus(BaseModel):
     murmur_events: list[MurmurEvent] = []
 
 
+class ActiveBatchResponse(BaseModel):
+    """The batch of one kind currently running for a book (``…/analyze-all/active``)."""
+
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+    task_id: str | None = None
+
+
 class ErrorResponse(BaseModel):
     detail: str
     code: str | None = None
