@@ -657,6 +657,34 @@ interface EventEvidenceProfile {
 
 ---
 
+### #7m GET /books/:bookId/events/:eventId/quote-sources
+
+把已分析事件的關鍵引言（#7d `eep.keyQuotes`）逐句對到它在書中的段落。唯讀、不花 token（不呼叫 LLM、不用向量檢索）。
+
+**Response 200**
+```ts
+{
+  eventId: string;
+  quotes: Array<{
+    text: string;                  // 與 keyQuotes 同序、同字
+    paragraphId: string | null;    // 對不到唯一段落時為 null
+    chapterNumber: number | null;  // 該段落所在章（1-based）
+  }>;
+}
+```
+
+**Response 404**：事件不存在、不屬於這本書，或尚未分析（無 #7d 快取）
+
+**比對規則**（確定性文字比對）：
+- 引言與段落都先去掉空白（PDF 抽取會在 CJK 字中插空白）與引號 `「」『』"“”‘’`，引言再去掉結尾的 `…`／`.`／`—`。
+- 先找**整句**是段落原文一部分者；沒有時，引言長於 12 字才改用**前 12 字**再找一次。
+- 只收**唯一**的命中：事件所在章恰好一段，或該章沒有命中而全書恰好一段。命中多段一律回 `null`——連到錯的段落比沒有連結更糟。
+- 不用語意檢索：實測語意最近鄰約一半落在錯的段落（2026-10-10，名字的潮汐 18 句中 9 句）；本規則同書 240 句對到 221 句（92%），抽 5 句核對段落皆正確。
+
+**UI 使用頁面**：無（尚未接上；預定由事件分析頁證據分頁的關鍵引言跳至閱讀頁）
+
+---
+
 ### #7f DELETE /books/:bookId/events/:eventId/analysis
 
 清除事件深度分析結果。
