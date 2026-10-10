@@ -1648,6 +1648,12 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 > `interpretation` 與 `interpretation_block` **彼此獨立**，可同時非 null。詳情區以
 > `interpretation` 優先；側欄兩個徽章都顯示。批次勾選排除已被拒絕者，與 #15j 後端預設跳過一致。
 
+#### 無障礙（2026-10-10）
+
+- 搜尋框 `aria-label` 同 placeholder；「全部」與類型 chip 帶 `aria-pressed`。
+- 出現紀錄「跳到原文」的可及名稱帶章與序號（「跳到原文 · 第 3 章 #2」），畫面文字不變。
+- 修訂編輯框：主題、證據摘要以 `aria-labelledby` 指向欄位標籤；極性選項為 `role="group"`＋`aria-pressed`；按「修訂」後焦點移到主題輸入框。
+
 #### 設計 token
 
 - 意象類型：`--symbol-{object,nature,spatial,body,color,other}-{bg,fg,dot}`

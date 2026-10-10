@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AlertCircle } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
@@ -80,6 +80,12 @@ export function InterpretationHero({
   const { t: tf } = useTranslation('frameworks');
   const navigate = useNavigate();
   const [editing, setEditing] = useState(false);
+  const fieldId = useId();
+  const themeEditRef = useRef<HTMLTextAreaElement>(null);
+  // 「修訂」 opens the form in place; focus follows so keyboard users land in it.
+  useEffect(() => {
+    if (editing) themeEditRef.current?.focus();
+  }, [editing]);
   const [draftTheme, setDraftTheme] = useState(interpretation.theme);
   const [draftEvidence, setDraftEvidence] = useState(interpretation.evidence_summary ?? '');
   const [draftPolarity, setDraftPolarity] = useState<Polarity>(interpretation.polarity);
@@ -149,9 +155,13 @@ export function InterpretationHero({
 
       <div className={'sym-interp-body' + (rejected && !editing ? ' is-rejected' : '')}>
         <div className="sym-interp-field">
-          <span className="sym-interp-label">{t('symbol.interpretation.field.theme')}</span>
+          <span className="sym-interp-label" id={`${fieldId}-theme`}>
+            {t('symbol.interpretation.field.theme')}
+          </span>
           {editing ? (
             <textarea
+              ref={themeEditRef}
+              aria-labelledby={`${fieldId}-theme`}
               className="sym-interp-edit is-theme"
               rows={3}
               value={draftTheme}
@@ -165,14 +175,21 @@ export function InterpretationHero({
 
         <div className="sym-interp-row">
           <div className="sym-interp-field">
-            <span className="sym-interp-label">{t('symbol.interpretation.field.polarity')}</span>
+            <span className="sym-interp-label" id={`${fieldId}-polarity`}>
+              {t('symbol.interpretation.field.polarity')}
+            </span>
             {editing ? (
-              <div className="sym-interp-polsel">
+              <div
+                className="sym-interp-polsel"
+                role="group"
+                aria-labelledby={`${fieldId}-polarity`}
+              >
                 {POLARITY_VALUES.map((p) => (
                   <button
                     key={p}
                     type="button"
                     className={'sym-interp-polopt' + (draftPolarity === p ? ' is-selected' : '')}
+                    aria-pressed={draftPolarity === p}
                     onClick={() => setDraftPolarity(p)}
                   >
                     {t(`symbol.polarity.${p}`)}
@@ -206,9 +223,12 @@ export function InterpretationHero({
 
         {(editing || interpretation.evidence_summary) && (
           <div className="sym-interp-field">
-            <span className="sym-interp-label">{t('symbol.interpretation.field.evidence')}</span>
+            <span className="sym-interp-label" id={`${fieldId}-evidence`}>
+              {t('symbol.interpretation.field.evidence')}
+            </span>
             {editing ? (
               <textarea
+                aria-labelledby={`${fieldId}-evidence`}
                 className="sym-interp-edit is-evidence"
                 rows={4}
                 value={draftEvidence}

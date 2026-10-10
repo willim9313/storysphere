@@ -121,7 +121,17 @@ function OccurrenceRow({
         {jumpable ? (
           // Words, not a bare icon: the old 22px square was the only way off this
           // list and nothing on it said where it went.
-          <button type="button" className="ss-btn ss-btn-sm ss-btn-ghost" onClick={onJump}>
+          // Seven of these read alike to a screen reader; the label says which.
+          <button
+            type="button"
+            className="ss-btn ss-btn-sm ss-btn-ghost"
+            onClick={onJump}
+            aria-label={[
+              t('symbol.occ.jump'),
+              t('symbol.chapterN', { n: item.chapter_number }) +
+                (ordinal === null ? '' : ` #${ordinal}`),
+            ].join(' · ')}
+          >
             {t('symbol.occ.jump')}
           </button>
         ) : (

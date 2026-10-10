@@ -311,6 +311,7 @@ export function SymbolList({
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t('symbol.list.searchPlaceholder')}
+            aria-label={t('symbol.list.searchPlaceholder')}
           />
         </div>
 
@@ -320,6 +321,7 @@ export function SymbolList({
             className={
               'sym-chip-all' + (typeFilter === null && selectedId === null ? ' is-active' : '')
             }
+            aria-pressed={typeFilter === null && selectedId === null}
             // Still the only route back to the overview until the detail view
             // grows a breadcrumb. The behaviour filter is cleared there, since
             // that is where it was set.
@@ -334,6 +336,7 @@ export function SymbolList({
                 key={tp}
                 type="button"
                 className={'sym-chip-type' + (active ? ' is-active' : '')}
+                aria-pressed={active}
                 onClick={() => setTypeFilter(active ? null : tp)}
               >
                 {t(`symbol.types.${tp}`)} <span className="sym-chip-count">{typeCounts[tp]}</span>
