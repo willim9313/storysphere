@@ -10,6 +10,7 @@ import { useEventAnalysis } from '@/hooks/useEventAnalysis';
 import {
   triggerEventAnalysis,
   triggerBatchEventAnalysis,
+  fetchActiveEventBatch,
   fetchEventAnalysisDetail,
   fetchEventSourcePassages,
 } from '@/api/analysis';
@@ -257,6 +258,7 @@ export default function EventAnalysisPage() {
       });
     },
     failureMessage: t('batchTriggerFailed'),
+    resume: { key: bookId, fetch: () => fetchActiveEventBatch(bookId!) },
   });
   const startBatch = (ids?: string[]) => {
     setFailedOnly(false);

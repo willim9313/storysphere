@@ -5,6 +5,9 @@ import type {
   EventAnalysisDetail,
   EventSourceResponse,
 } from './types';
+import type { components } from './generated';
+
+type ActiveBatchResponse = components['schemas']['ActiveBatchResponse'];
 
 // #6 — Trigger full-book analysis
 // #6a — Character analysis list
@@ -73,6 +76,11 @@ export function triggerBatchEventAnalysis(
   );
 }
 
+// #7k — The event batch running for this book, if any (to resume after a remount).
+export function fetchActiveEventBatch(bookId: string): Promise<ActiveBatchResponse> {
+  return apiFetch<ActiveBatchResponse>(`/books/${bookId}/events/analyze-all/active`);
+}
+
 // #7h — Batch entity analysis (analyze all unanalyzed characters, or a subset
 // via `entityIds` — used by the "先生成前 10 位要角" tiered batch entry, #11).
 export function triggerBatchEntityAnalysis(
@@ -83,6 +91,11 @@ export function triggerBatchEntityAnalysis(
     `/books/${bookId}/entities/analyze-all`,
     { method: 'POST', body: JSON.stringify({ entityIds }) },
   );
+}
+
+// #7j — The character batch running for this book, if any.
+export function fetchActiveEntityBatch(bookId: string): Promise<ActiveBatchResponse> {
+  return apiFetch<ActiveBatchResponse>(`/books/${bookId}/entities/analyze-all/active`);
 }
 
 // #7d-get — Single event analysis detail (EEP + causality + impact)

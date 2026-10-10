@@ -3,6 +3,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 
+import { ApiError } from '@/api/client';
 import type { TaskStatus } from '@/api/types';
 import { useAsyncTask } from './useAsyncTask';
 import { useBatchTask } from './useBatchTask';
@@ -235,5 +236,91 @@ describe('useBatchTask', () => {
 
     act(() => result.current.start());
     await waitFor(() => expect(result.current.error).toBe('批次失敗'));
+  });
+
+  describe('resume', () => {
+    it('follows the batch already running for the book on mount', async () => {
+      fetchTaskStatus.mockResolvedValue(task({ taskId: 'run-1', subProgress: 3, subTotal: 10 }));
+      const trigger = vi.fn(async () => ({ taskId: 'never' }));
+      const fetchActive = vi.fn(async () => ({ taskId: 'run-1' }));
+
+      const { result } = renderHook(
+        () =>
+          useBatchTask<string[]>({
+            trigger,
+            failureMessage: '批次失敗',
+            resume: { key: 'book-1', fetch: fetchActive },
+          }),
+        { wrapper },
+      );
+
+      await waitFor(() => expect(result.current.running).toBe(true));
+      expect(result.current.processed).toBe(3);
+      expect(fetchTaskStatus).toHaveBeenCalledWith('run-1', 0);
+      expect(trigger).not.toHaveBeenCalled();
+    });
+
+    it('stays idle when nothing is running', async () => {
+      const fetchActive = vi.fn(async () => ({ taskId: null }));
+
+      const { result } = renderHook(
+        () =>
+          useBatchTask<string[]>({
+            trigger: async () => ({ taskId: 't1' }),
+            failureMessage: '批次失敗',
+            resume: { key: 'book-1', fetch: fetchActive },
+          }),
+        { wrapper },
+      );
+
+      await waitFor(() => expect(fetchActive).toHaveBeenCalledTimes(1));
+      expect(result.current.running).toBe(false);
+      expect(fetchTaskStatus).not.toHaveBeenCalled();
+    });
+
+    it('adopts the running batch on a 409 batch_running instead of reporting a failure', async () => {
+      fetchTaskStatus.mockResolvedValue(task({ taskId: 'run-1' }));
+      const fetchActive = vi
+        .fn<() => Promise<{ taskId: string | null }>>()
+        .mockResolvedValueOnce({ taskId: null }) // mount: the other tab has not started yet
+        .mockResolvedValueOnce({ taskId: 'run-1' });
+
+      const { result } = renderHook(
+        () =>
+          useBatchTask<string[]>({
+            trigger: async () => {
+              throw new ApiError(409, 'already running', true, 'batch_running');
+            },
+            failureMessage: '批次失敗',
+            resume: { key: 'book-1', fetch: fetchActive },
+          }),
+        { wrapper },
+      );
+      await waitFor(() => expect(fetchActive).toHaveBeenCalledTimes(1));
+
+      act(() => result.current.start());
+      await waitFor(() => expect(result.current.running).toBe(true));
+      expect(result.current.error).toBeNull();
+    });
+
+    it('still reports other trigger failures', async () => {
+      const fetchActive = vi.fn(async () => ({ taskId: null }));
+
+      const { result } = renderHook(
+        () =>
+          useBatchTask<string[]>({
+            trigger: async () => {
+              throw new ApiError(400, 'No events found for this book');
+            },
+            failureMessage: '批次失敗',
+            resume: { key: 'book-1', fetch: fetchActive },
+          }),
+        { wrapper },
+      );
+
+      act(() => result.current.start());
+      await waitFor(() => expect(result.current.error).toBe('批次失敗'));
+      expect(fetchActive).toHaveBeenCalledTimes(1); // the mount lookup only
+    });
   });
 });

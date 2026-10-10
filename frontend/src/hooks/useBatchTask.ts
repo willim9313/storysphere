@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 
+import { ApiError } from '@/api/client';
 import type { BatchEepResult, TaskStatus } from '@/api/types';
 import { useTaskPolling } from '@/hooks/useTaskPolling';
 
@@ -13,6 +14,14 @@ export interface UseBatchTaskOptions<TArgs> {
   onDone?: (summary: BatchEepResult | null) => void;
   /** Shown when the trigger fails, or the task fails without a message. */
   failureMessage: string;
+  /**
+   * Looks up the batch already running for this book (#7j / #7k / #15k).
+   * Called on mount and whenever `key` changes, so a page that remounts mid-run
+   * shows that run instead of offering to start a second one; also called when
+   * the trigger is refused with 409 `batch_running`, which is then adopted
+   * silently rather than shown as an error.
+   */
+  resume?: { key: string | undefined; fetch: () => Promise<{ taskId?: string | null }> };
 }
 
 export interface BatchTask<TArgs> {
@@ -47,6 +56,7 @@ export function useBatchTask<TArgs = void>({
   onProgress,
   onDone,
   failureMessage,
+  resume,
 }: UseBatchTaskOptions<TArgs>): BatchTask<TArgs> {
   const [taskId, setTaskId] = useState<string | null>(null);
   const [processed, setProcessed] = useState(0);
@@ -58,10 +68,32 @@ export function useBatchTask<TArgs = void>({
 
   const onProgressRef = useRef(onProgress);
   const onDoneRef = useRef(onDone);
+  const resumeFetchRef = useRef(resume?.fetch);
   useLayoutEffect(() => {
     onProgressRef.current = onProgress;
     onDoneRef.current = onDone;
+    resumeFetchRef.current = resume?.fetch;
   });
+
+  // Picks up a run that is already going — without touching one this hook
+  // already follows. A failed lookup just leaves the panel idle.
+  const adoptRunning = useCallback(async () => {
+    const fetchActive = resumeFetchRef.current;
+    if (!fetchActive) return false;
+    try {
+      const { taskId: running } = await fetchActive();
+      if (!running) return false;
+      setTaskId((current) => current ?? running);
+      return true;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const resumeKey = resume?.key;
+  useEffect(() => {
+    if (resumeKey) void adoptRunning();
+  }, [resumeKey, adoptRunning]);
 
   const mutation = useMutation({
     mutationFn: (args?: TArgs) => trigger(args),
@@ -71,7 +103,17 @@ export function useBatchTask<TArgs = void>({
       setProcessed(0);
       setTaskId(status.taskId);
     },
-    onError: () => setError(failureMessage),
+    onError: async (err) => {
+      // Another tab (or a remount the lookup raced) already started this
+      // book's batch: follow that run instead of reporting a failure.
+      if (err instanceof ApiError && err.status === 409 && err.code === 'batch_running') {
+        setSummary(null);
+        setError(null);
+        setProcessed(0);
+        if (await adoptRunning()) return;
+      }
+      setError(failureMessage);
+    },
   });
 
   /* eslint-disable react-hooks/set-state-in-effect */
