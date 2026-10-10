@@ -15,6 +15,9 @@ interface EventGroupedListProps {
   onSelect: (id: string) => void;
   onGenerate: (id: string) => void;
   generatingId: string | null;
+  /** Why no new generation can start right now (another event is generating,
+   *  or a batch is running), shown as the disabled button's tooltip; null = free. */
+  generateBlockedReason?: string | null;
   justDoneIds: Set<string>;
   /** Items the last batch run failed on (still unanalyzed). Marked on their rows,
    *  and offered as one more chip so the list can be narrowed to them. */
@@ -83,6 +86,7 @@ export function EventGroupedList({
   onSelect,
   onGenerate,
   generatingId,
+  generateBlockedReason = null,
   justDoneIds,
   failedIds,
   failedOnly,
@@ -274,6 +278,7 @@ export function EventGroupedList({
                         onSelect={() => onSelect(row.id)}
                         onGenerate={() => onGenerate(row.id)}
                         isGenerating={generatingId === row.id}
+                        generateBlockedReason={generateBlockedReason}
                         failed={failedSet.has(row.id)}
                         failureReason={failureReasons?.get(row.id)}
                       />

@@ -378,7 +378,9 @@
     },
     "generating": {
       "title": "Analyzing event",
-      "stage": "{{stage}} · {{progress}}%"
+      "stage": "{{stage}} · {{progress}}%",
+      "blockedBySingle": "Another event is being generated — try again once it finishes.",
+      "blockedByBatch": "A batch run is in progress and will include this event."
     },
     "overview": {
       "title": "Event Landscape",

@@ -25,6 +25,9 @@ interface EventOverviewLandingProps {
   onSelectEvent: (id: string) => void;
   onGenerate: (id: string) => void;
   generatingId: string | null;
+  /** Why no new generation can start right now (another event is generating,
+   *  or a batch is running), shown as the disabled button's tooltip; null = free. */
+  generateBlockedReason?: string | null;
   onBatchAll: () => void;
   isBatchRunning: boolean;
 }
@@ -35,6 +38,7 @@ export function EventOverviewLanding({
   onSelectEvent,
   onGenerate,
   generatingId,
+  generateBlockedReason = null,
   onBatchAll,
   isBatchRunning,
 }: Readonly<EventOverviewLandingProps>) {
@@ -127,6 +131,7 @@ export function EventOverviewLanding({
           onSelectEvent={onSelectEvent}
           onGenerate={onGenerate}
           generatingId={generatingId}
+          generateBlockedReason={generateBlockedReason}
         />
       )}
       {view === 'flow' && (
