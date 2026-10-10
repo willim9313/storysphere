@@ -792,6 +792,7 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 - **鍵盤與狀態（a11y，2026-10-10）**：詳情分頁為 WAI-ARIA tabs（roving tabindex，←／→ 循環、Home／End，`aria-controls` → `role=tabpanel`）；
   對比抽屜用 `useDialogFocus`（開啟時焦點到標題、Tab 只在抽屜內循環、關閉後回「對比」，`aria-labelledby`）；篩選 chip、分組與三視圖切換帶 `aria-pressed`，
   群組標頭帶 `aria-expanded`；搜尋欄 `aria-label` 同 placeholder。
+  上下文位置分頁點相鄰事件逐跳時停留在該分頁（從左欄、總覽、對比等其他入口換事件仍回「概覽」）；「因果與影響」「證據」分頁內區塊全空時顯示一行空態（`event.detail.tabEmpty`，沿用 `.ea-context-empty`），不留空白。
 - **減少動態**（`prefers-reduced-motion: reduce`）：生成中點改靜態實心、完成時放大與 landing fade-in 拿掉、spinner 放慢到 3s、骨幹節點 hover 不放大。
 - **窄寬（2026-10-10）**：故事骨幹圖以 `useElementWidth` 量繪圖區實際寬度，每章欄寬＝寬 ÷ 章數（`fitNode`）。圓點直徑不超過欄寬 − 4（最小 8px，各帶行距不變）；
   核心帶標籤寬上限＝欄寬 − 6（最多 80px、超出省略號），容不下 40px 就不畫標籤（靠 Tooltip 與節點 `aria-label`）。名字的潮汐（10 章）：1024 標籤約 4 字、720 無標籤；

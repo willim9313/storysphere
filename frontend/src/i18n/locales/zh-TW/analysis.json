@@ -391,10 +391,7 @@
     },
     "overview": {
       "title": "事件圖景",
-      "metaTotal": "件事件",
-      "metaAnalyzed": "已分析",
-      "metaUnanalyzed": "未分析",
-      "metaKernel": "核心",
+      "meta": "{{total}} 件事件 · 已分析 {{analyzed}} · 未分析 {{unanalyzed}} · 核心 {{kernel}}",
       "undetermined": "重要度未定",
       "emptyLead": "整本書尚未分析。",
       "emptyBody": "先批次生成 EEP，總覽會隨之填滿。",
@@ -479,7 +476,11 @@
       "empty": "此事件目前無跨章節的關聯事件。",
       "shared": "共享 {{names}}",
       "more": "還有 {{count}} 個",
-      "collapse": "收合"
+      "collapse": "收合",
+      "nameJoiner": "、"
+    },
+    "detail": {
+      "tabEmpty": "這個分頁還沒有內容。"
     },
     "detailError": {
       "title": "事件細節載入失敗",

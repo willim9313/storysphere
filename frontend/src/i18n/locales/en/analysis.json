@@ -391,10 +391,7 @@
     },
     "overview": {
       "title": "Event Landscape",
-      "metaTotal": "events",
-      "metaAnalyzed": "analyzed",
-      "metaUnanalyzed": "not analyzed",
-      "metaKernel": "kernel",
+      "meta": "{{total}} events · analyzed {{analyzed}} · not analyzed {{unanalyzed}} · kernel {{kernel}}",
       "undetermined": "Importance undetermined",
       "emptyLead": "Nothing in this book has been analyzed yet.",
       "emptyBody": "Run a batch EEP generation and this overview will fill in.",
@@ -479,7 +476,11 @@
       "empty": "No cross-chapter related events for this event.",
       "shared": "shares {{names}}",
       "more": "{{count}} more",
-      "collapse": "Collapse"
+      "collapse": "Collapse",
+      "nameJoiner": ", "
+    },
+    "detail": {
+      "tabEmpty": "Nothing in this tab yet."
     },
     "detailError": {
       "title": "Couldn't load event detail",

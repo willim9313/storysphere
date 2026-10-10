@@ -104,9 +104,12 @@ export function EventOverviewLanding({
         <div className="ea-ov-head-main">
           <h1 className="ea-ov-title">{t('event.overview.title')}</h1>
           <span className="ea-ov-meta">
-            {totalCount} {t('event.overview.metaTotal')} · {t('event.overview.metaAnalyzed')}{' '}
-            {analyzedCount} · {t('event.overview.metaUnanalyzed')} {unanalyzedCount} ·{' '}
-            {t('event.overview.metaKernel')} {kernelCount}
+            {t('event.overview.meta', {
+              total: totalCount,
+              analyzed: analyzedCount,
+              unanalyzed: unanalyzedCount,
+              kernel: kernelCount,
+            })}
           </span>
         </div>
         {/* View switch is a zero-cost mode switch: no LLM glyph, no accent fill. */}

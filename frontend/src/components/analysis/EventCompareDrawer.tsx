@@ -148,7 +148,7 @@ function CompareSelect({
     >
       {options.map((o) => (
         <option key={o.entityId} value={o.entityId}>
-          {o.chapter != null ? `Ch.${o.chapter} · ${o.title}` : o.title}
+          {o.chapter != null ? `${t('event.list.chapterShort', { n: o.chapter })} · ${o.title}` : o.title}
         </option>
       ))}
     </select>
@@ -171,7 +171,7 @@ function CompareRow({
   const { t } = useTranslation('analysis');
   const cell = (q: DetailQuery) =>
     q.isLoading ? (
-      <span className="ea-compare-loading">{t('analyzing')}</span>
+      <span className="ea-compare-loading">{t('common:loading')}</span>
     ) : q.data ? (
       render(q.data)
     ) : null;
