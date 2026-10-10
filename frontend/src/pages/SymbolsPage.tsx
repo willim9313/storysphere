@@ -14,6 +14,7 @@ import { PageFailure } from '@/components/ui/PageFailure';
 import { ApiError } from '@/api/client';
 import { failureKind, isLlmUnconfigured, techDetailOf } from '@/api/failureKind';
 import {
+  fetchRunningSymbolAnalyses,
   fetchSymbolTimeline,
   fetchSymbolInterpretation,
   reviewSymbolInterpretation,
@@ -293,6 +294,23 @@ export default function SymbolsPage() {
     (_task, imageryId) => refetchInterpretation(imageryId),
     t('symbol.error.generic'),
   );
+
+  // A run started before a remount (or in another tab) is followed, not offered
+  // again: #15e would refuse a second one with 409 anyway (#15l).
+  const { resume: resumeInterpretation } = interpretationTask;
+  useEffect(() => {
+    if (!bookId) return;
+    let alive = true;
+    fetchRunningSymbolAnalyses(bookId)
+      .then(({ running = [] }) => {
+        const run = running[0];
+        if (alive && run) resumeInterpretation(run.imageryId, run.taskId);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [bookId, resumeInterpretation]);
 
   const handleGenerate = (force = false) => {
     if (!selectedId || !bookId) return;

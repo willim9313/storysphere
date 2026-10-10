@@ -1,7 +1,9 @@
 import { useCallback, useRef, useState } from 'react';
 import { useAsyncTask } from '@/hooks/useAsyncTask';
+import { ApiError } from '@/api/client';
 import { cancelTask } from '@/api/ingest';
 import {
+  fetchRunningSymbolAnalyses,
   fetchSymbolAnalysisTask,
   triggerSymbolAnalysis,
   type TriggerSymbolAnalysisOpts,
@@ -30,6 +32,8 @@ export interface UseSymbolInterpretationTaskResult {
   triggerFailure: unknown;
   running: boolean;
   trigger: (imageryId: string, opts: TriggerSymbolAnalysisOpts) => Promise<void>;
+  /** Follow a run already going on the server (#15l) instead of starting one. */
+  resume: (imageryId: string, taskId: string) => void;
   /** Re-send the last trigger, e.g. after a no-response failure. */
   retry: () => Promise<void>;
   /** Stop the run on the server, then take the overlay down. */
@@ -90,8 +94,30 @@ export function useSymbolInterpretationTask(
         const { taskId: newId } = await triggerSymbolAnalysis(id, opts);
         adopt(newId);
       } catch (err) {
+        // Already running (another tab, or before a remount): follow that run
+        // rather than report a failure — #15e did not start a second one.
+        if (err instanceof ApiError && err.status === 409 && err.code === 'analysis_running') {
+          const run = await fetchRunningSymbolAnalyses(opts.bookId)
+            .then(({ running = [] }) => running.find((r) => r.imageryId === id))
+            .catch(() => undefined);
+          if (run) {
+            adopt(run.taskId);
+            return;
+          }
+        }
         setTriggerFailure(err);
       }
+    },
+    [adopt, setError],
+  );
+
+  const resume = useCallback(
+    (id: string, runningTaskId: string) => {
+      setImageryId(id);
+      setTriggerFailure(null);
+      setCancelFailed(false);
+      setError(null);
+      adopt(runningTaskId);
     },
     [adopt, setError],
   );
@@ -133,6 +159,7 @@ export function useSymbolInterpretationTask(
     triggerFailure,
     running,
     trigger,
+    resume,
     retry,
     cancel,
     cancelling,

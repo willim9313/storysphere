@@ -2128,7 +2128,7 @@ interface SEP {
 **說明**：頁面重新掛載（或另一個分頁已開始）時用它接手進行中的生成，而不是再給一次「生成詮釋」；#15e 回 409 `analysis_running` 時亦同。
 回清單而非單筆：不同分頁可能同時在跑不同意象。記錄與 #15k 同一套進程內 registry：單一 worker 有效，後端重啟後為 `[]`。
 
-**UI 使用頁面**：無（前端於下一個 PR 接上）
+**UI 使用頁面**：象徵意象頁——進頁面時接手進行中的單件詮釋（選到該意象即顯示生成中），#15e 回 409 時接手（`useSymbolInterpretationTask`）
 
 ---
 
@@ -3075,12 +3075,10 @@ response schema 與測試檔。
 ['books', bookId, 'unraveling']                             // #19
 ['tension', 'lines', bookId]                                // #14e
 ['tension', 'theme', bookId]                                // #14i
-['symbols', bookId]                                         // #15a
-['symbols', bookId, 'overview']                             // #15i
-['symbols', imageryId, 'timeline']                          // #15b
-['symbols', imageryId, 'co-occurrences']                    // #15c
-['symbols', imageryId, 'sep']                               // #15d
-['symbols', imageryId, 'interpretation']                    // #15g
+['books', bookId, 'symbols']                                // #15a
+['symbols', bookId, 'overview']                             // #15i（例外：根在 symbols，見 queryKeys.ts）
+['books', bookId, 'symbols', imageryId, 'timeline']         // #15b
+['books', bookId, 'symbols', imageryId, 'interpretation']   // #15g
 ['narrative', bookId]                                       // #21k
 ['narrative', bookId, 'kernel-spine']                       // #21j
 ['narrative', bookId, 'temporal-coverage']                  // #21g
