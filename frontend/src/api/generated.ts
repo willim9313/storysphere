@@ -636,6 +636,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/books/{book_id}/entities/analyze-all/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Active Character Batch
+         * @description The character batch currently running for this book, or ``taskId: null``.
+         *
+         *     Read-only: lets a page that remounts mid-run pick the batch back up instead
+         *     of offering to start a second one (which ``…/analyze-all`` refuses with 409).
+         */
+        get: operations["get_active_character_batch_api_v1_books__book_id__entities_analyze_all_active_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/books/{book_id}/entities/{entity_id}/voice": {
         parameters: {
             query?: never;
@@ -797,6 +820,29 @@ export interface paths {
          *     Returns a task_id for progress tracking.
          */
         post: operations["trigger_batch_event_analysis_api_v1_books__book_id__events_analyze_all_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/events/analyze-all/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Active Event Batch
+         * @description The event batch currently running for this book, or ``taskId: null``.
+         *
+         *     Read-only: lets a page that remounts mid-run pick the batch back up instead
+         *     of offering to start a second one (which ``…/analyze-all`` refuses with 409).
+         */
+        get: operations["get_active_event_batch_api_v1_books__book_id__events_analyze_all_active_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1849,6 +1895,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/symbols/analyze-all/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Active Symbol Batch
+         * @description The symbol batch currently running for this book, or ``taskId: null``.
+         *
+         *     Read-only: lets the page pick a running batch back up after a remount
+         *     instead of offering to start a second one (which #15j refuses with 409).
+         */
+        get: operations["get_active_symbol_batch_api_v1_symbols_analyze_all_active_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/symbols/analyze-all": {
         parameters: {
             query?: never;
@@ -2134,6 +2203,14 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * ActiveBatchResponse
+         * @description The batch of one kind currently running for a book (``…/analyze-all/active``).
+         */
+        ActiveBatchResponse: {
+            /** Taskid */
+            taskId?: string | null;
+        };
         /** AnalysisItem */
         AnalysisItem: {
             /** Id */
@@ -2907,6 +2984,13 @@ export interface components {
             misbeliefsInferred: boolean;
             /** Datacomplete */
             dataComplete: boolean;
+        };
+        /** ErrorResponse */
+        ErrorResponse: {
+            /** Detail */
+            detail: string;
+            /** Code */
+            code?: string | null;
         };
         /** EventAnalysisFullResponse */
         EventAnalysisFullResponse: {
@@ -5894,6 +5978,46 @@ export interface operations {
                     "application/json": components["schemas"]["TaskIdResponse"];
                 };
             };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_active_character_batch_api_v1_books__book_id__entities_analyze_all_active_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActiveBatchResponse"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -6157,6 +6281,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaskIdResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_active_event_batch_api_v1_books__book_id__events_analyze_all_active_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActiveBatchResponse"];
                 };
             };
             /** @description Validation Error */
@@ -7699,6 +7863,38 @@ export interface operations {
             };
         };
     };
+    get_active_symbol_batch_api_v1_symbols_analyze_all_active_get: {
+        parameters: {
+            query: {
+                /** @description Book identifier */
+                book_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActiveBatchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     analyze_all_symbols_api_v1_symbols_analyze_all_post: {
         parameters: {
             query?: never;
@@ -7719,6 +7915,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaskStatus"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Validation Error */

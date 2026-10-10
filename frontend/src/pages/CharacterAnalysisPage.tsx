@@ -13,6 +13,7 @@ import {
   fetchEntityAnalysis,
   triggerEntityAnalysis,
   triggerBatchEntityAnalysis,
+  fetchActiveEntityBatch,
 } from '@/api/analysis';
 import { failureKind, isLlmUnconfigured, techDetailOf } from '@/api/failureKind';
 import {
@@ -259,6 +260,7 @@ export default function CharacterAnalysisPage() {
       });
     },
     failureMessage: t('character.batch.triggerFailed'),
+    resume: { key: bookId, fetch: () => fetchActiveEntityBatch(bookId!) },
   });
   const startBatch = (ids?: string[]) => {
     setFailedOnly(false);
