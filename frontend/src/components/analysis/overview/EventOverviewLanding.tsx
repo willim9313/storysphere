@@ -1,5 +1,8 @@
 import { useMemo, useState } from 'react';
 import { Trans, useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { Flag } from 'lucide-react';
+import { EmptyState } from '@/components/ui/EmptyState';
 import type { AnalysisListResponse } from '@/api/types';
 import { useTimeline } from '@/hooks/useTimeline';
 import { GuidanceRibbon } from '@/components/ui/GuidanceRibbon';
@@ -36,6 +39,7 @@ export function EventOverviewLanding({
   isBatchRunning,
 }: Readonly<EventOverviewLandingProps>) {
   const { t } = useTranslation('analysis');
+  const navigate = useNavigate();
   const [view, setView] = useState<LandingView>('map');
 
   const { data: timeline } = useTimeline(bookId, 'narrative');
@@ -45,6 +49,29 @@ export function EventOverviewLanding({
   const unanalyzedCount = evtData.unanalyzed.length;
   const totalCount = analyzedCount + unanalyzedCount;
   const kernelCount = events.filter((e) => e.importance === 'KERNEL').length;
+
+  // No events at all is not "nothing analyzed yet": events come from the
+  // knowledge-graph extraction, so a batch EEP run has nothing to work on.
+  // Point at the build step instead of offering a 0-event LLM button.
+  if (totalCount === 0) {
+    return (
+      <EmptyState
+        weight="prerequisite"
+        icon={<Flag size={26} aria-hidden="true" />}
+        title={t('event.overview.empty.title')}
+        description={t('event.overview.empty.description')}
+        action={
+          <button
+            type="button"
+            className="ss-btn ss-btn-md ss-btn-primary"
+            onClick={() => navigate(`/books/${bookId}/unraveling`)}
+          >
+            {t('graph:onboarding.cta')}
+          </button>
+        }
+      />
+    );
+  }
 
   return (
     <div className="ea-ov-landing">

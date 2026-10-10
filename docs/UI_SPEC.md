@@ -892,6 +892,8 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 標題「事件圖景」+ 統計（總數 / 已分析 / 未分析 / 核心）+ 研究者導覽 ribbon（可關閉，
 dismiss 記於 localStorage）。整本未分析時另有引導橫幅直接觸發批次生成。
 
+- **此書 0 件事件**（未建知識圖譜，或抽取沒有產出事件）：整個 landing 換成 `EmptyState`（prerequisite）「此書尚未抽出事件」＋說明＋「前往建構概覽」（`/books/:id/unraveling`，沿用 `graph:onboarding.cta`）；不出上面的引導橫幅（它的批次生成在 0 件時無事可做），也不畫視圖 toggle／骨幹圖。左欄批次面板、搜尋欄、篩選 chip 與分組切換都隱藏，清單只留一行「尚無事件。」（見 DS_V3_DESIGN_FEEDBACK EV-1）。**這 3 句是草稿・待設計定案**（i18n `analysis:event.overview.empty.{title,description}`、`event.list.empty`）
+
 三個視圖以 segmented control 切換，預設「故事骨幹圖」：
 
 | 視圖 | 內容 |

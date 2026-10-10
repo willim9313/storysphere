@@ -321,7 +321,8 @@ export default function EventAnalysisPage() {
       <div className="ea-body">
         {/* Left Panel */}
         <aside className="ea-left">
-          {evtData && bookId && (
+          {/* With no events the panel is only disabled buttons (0/0); hide it. */}
+          {evtData && bookId && totalCount > 0 && (
             <div className="ea-left-section">
             <BatchEepPanel
               bookId={bookId}
@@ -363,6 +364,7 @@ export default function EventAnalysisPage() {
             </div>
           )}
 
+          {!(evtData && totalCount === 0) && (
           <div className="ea-left-section">
             <div className="ea-search">
               <Search size={12} color="var(--fg-muted)" />
@@ -374,6 +376,7 @@ export default function EventAnalysisPage() {
               />
             </div>
           </div>
+          )}
 
           {evtData && (
             <EventGroupedList

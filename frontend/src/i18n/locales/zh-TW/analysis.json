@@ -367,6 +367,7 @@
       "noChapterGroup": "未標章節",
       "groupMeta": "{{total}} · 已析 {{analyzed}}",
       "noMatch": "沒有符合篩選條件的事件",
+      "empty": "尚無事件。",
       "clearFilters": "清除篩選",
       "checkedCount": "已勾選 {{count}}",
       "checkNote": "已分析的列不長 checkbox——勾了也不會重跑。"
@@ -389,6 +390,10 @@
       "emptyLead": "整本書尚未分析。",
       "emptyBody": "先批次生成 EEP，總覽會隨之填滿。",
       "emptyBatch": "一鍵生成全部 EEP",
+      "empty": {
+        "title": "此書尚未抽出事件",
+        "description": "事件來自知識圖譜的事件抽取。請到建構概覽確認「知識圖譜」步驟已完成，或重新執行。"
+      },
       "backToOverview": "返回總覽",
       "ranking": {
         "caption": "主排序＝重要度（核心優先）· 次排序＝參與者數 · 長條＝參與者數。未分析事件的重要度需生成 EEP 後才會判定。",

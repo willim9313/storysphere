@@ -367,6 +367,7 @@
       "noChapterGroup": "No chapter",
       "groupMeta": "{{total}} · {{analyzed}} analyzed",
       "noMatch": "No events match these filters",
+      "empty": "No events yet.",
       "clearFilters": "Clear filters",
       "checkedCount": "{{count}} selected",
       "checkNote": "Analyzed rows get no checkbox — checking them would not re-run anything."
@@ -389,6 +390,10 @@
       "emptyLead": "Nothing in this book has been analyzed yet.",
       "emptyBody": "Run a batch EEP generation and this overview will fill in.",
       "emptyBatch": "Generate all EEPs",
+      "empty": {
+        "title": "No events extracted from this book yet",
+        "description": "Events come from the knowledge graph’s event extraction. Check in the build overview that the “Knowledge graph” step has finished, or run it again."
+      },
       "backToOverview": "Back to overview",
       "ranking": {
         "caption": "Sorted by importance (kernel first), then participant count · bar = participant count. Importance is only determined once an EEP exists.",
