@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Trans, useTranslation } from 'react-i18next';
-import { Compass } from 'lucide-react';
+import { Compass, TriangleAlert } from 'lucide-react';
 import { ApiError } from '@/api/client';
 import { failureKind, techDetailOf } from '@/api/failureKind';
 import { useBook } from '@/hooks/useBook';
@@ -454,7 +454,10 @@ export default function NarrativePage() {
       : null;
   const staleBanner = structure?.is_stale ? (
     <div className="nl-stale" role="status">
-      <strong>{t('narrative.stale.title')}</strong>
+      <strong>
+        <TriangleAlert size={14} aria-hidden="true" />
+        {t('narrative.stale.title')}
+      </strong>
       <span>{t('narrative.stale.body', { step: staleStep })}</span>
       <button type="button" className="nl-stale-act" onClick={goToRerun}>
         <span className="ss-llm-glyph" aria-hidden="true" />

@@ -288,6 +288,7 @@
   --narrative-glyph-display: none; /* 敘事模式字形（←→∥?）：Warm 靠色相區分，不畫 */
   --symbol-glyph-display: none; /* 象徵清單類別圖示與極性字形：Warm 靠色相區分，不畫 */
   --symbol-dot-display: block; /* 象徵清單極性點：Warm 畫點；Ink 由字形取代 */
+  --cross-tension-pattern: none; /* 敘事頁交叉證據「張力峰值」列：Warm 靠色相，不加紋 */
   --badge-radius:      20px;
   --control-radius:    var(--radius-md);
   --input-radius:       var(--control-radius); /* 文字框、搜尋、select 共用 */
@@ -448,6 +449,8 @@
   --narrative-glyph-display: block; /* 近單色：五種敘事模式的灰階分不開，改由字形承載 */
   --symbol-glyph-display: inline-flex; /* 近單色：類別色塊與極性點只差灰階，改由圖示／字形承載 */
   --symbol-dot-display: none; /* 近單色：極性點的灰階分不開，改畫字形 */
+  /* 近單色：張力列與階段覆蓋列同為 accent 黑，張力改畫斜紋 */
+  --cross-tension-pattern: repeating-linear-gradient(-45deg, transparent 0 2px, var(--bg-primary) 2px 3.5px);
   --badge-radius:      4px;
   --control-radius:    var(--radius-sm);
   /* var() 在宣告處解析：:root 的別名會把 Warm 值凍結在這裡，所以 Ink 必須重新宣告 */

@@ -2144,7 +2144,7 @@ en 對應：Previewing／Requirement not met: Standard mode · KG backend set to
 
 **水平軌跡**：12 等寬欄、三條相位線；階段名允許兩行（`text-wrap: balance`、`min-height: 2.8em`）。**三相位分欄**：階段名獨佔一行，章節與識別狀態 badge 移到第二行。**圓環**：只當導覽；圓心只留「相位 · 序號」與選取中的階段名，詳情移到右側。圓環尺寸是固定像素座標（半徑 170、節點 40），不隨視窗縮放。章號用無襯線＋等寬數字（`tabular-nums`）。
 
-**階段三態**（Ink 下四個 status 色都是 `#151515`，所以另有形狀／文字載體）：已識別＝實心點＋✓；低信心＝淺階填色＋外框＋△；未識別＝虛線空心＋○。
+**階段三態**（Ink 下四個 status 色都是 `#151515`，所以另有形狀／文字載體）：已識別＝實心點＋✓；低信心＝淺階填色＋外框＋△；未識別＝虛線空心＋○。**圖例**的三個色點旁同樣帶 ✓／△／○（兩主題；Ink 下低信心與未識別的色點只差實線／虛線）。對位帶選中的泳道框重取 `--card-selected-border-width`（Ink 2px；Ink 的 accent 與一般框同色）；段間細線在色塊之下，不壓過章號。
 
 #### 階段詳情（`StageDetail`）
 
@@ -2163,7 +2163,7 @@ en 對應：Previewing／Requirement not met: Standard mode · KG backend set to
 
 #### 事件骨幹（`PlotSpine`，`#nl-spine`）
 
-標題列「事件骨幹」＋ `Chatman kernel / satellite`（方法論連結）＋ lead；右側來源 badge（LLM 分類帶 `.ss-llm-glyph` 字符，因為那是 LLM 成本的記號）＋審核 badge。比例列：`核心 N`／`衛星 N` 或 `衛星 0 · 本書未出現此分類`（與 `衛星 0` 是兩回事，衛星為 0 時比例條不佔寬）／`未分類 N`。**重要度退化**（已分類 ≥ 10 件且單一類 ≥ 90%，門檻沿用事件頁 `dominantImportance`）：圖例改寫裸的 `衛星 N`，下方加一句 `narrative.spine.dominantKernel`／`dominantSatellite`（「本書 N／M 件判為核心——…分不出主次（B-133）」），不再說「本書未出現此分類」（NL-3）。逐章核心事件欄（`repeat(auto-fill, minmax(106px, 1fr))`，空章顯示「無核心事件」），選取事件顯示意義與深連結。選取態＝`--accent` 底、accent-fg 字。
+標題列「事件骨幹」＋ `Chatman kernel / satellite`（方法論連結）＋ lead；右側來源 badge（LLM 分類帶 `.ss-llm-glyph` 字符，因為那是 LLM 成本的記號）＋審核 badge。比例列：`核心 N`／`衛星 N` 或 `衛星 0 · 本書未出現此分類`（與 `衛星 0` 是兩回事，衛星為 0 時比例條不佔寬）／`未分類 N`。圖例每項前有對應色塊；未分類段為斜紋（平塗會與空軌道同色）。**重要度退化**（已分類 ≥ 10 件且單一類 ≥ 90%，門檻沿用事件頁 `dominantImportance`）：圖例改寫裸的 `衛星 N`，下方加一句 `narrative.spine.dominantKernel`／`dominantSatellite`（「本書 N／M 件判為核心——…分不出主次（B-133）」），不再說「本書未出現此分類」（NL-3）。逐章核心事件欄（`repeat(auto-fill, minmax(106px, 1fr))`，空章顯示「無核心事件」），選取事件顯示意義與深連結。選取態＝`--accent` 底、accent-fg 字。
 
 **未分類區塊**（`UnclassifiedBlock`，數量 0 時不渲染）：三段說明（為什麼／影響什麼／可以怎麼做）＋兩顆按鈕，三條軸互不蘊含：
 
@@ -2179,7 +2179,7 @@ en 對應：Previewing／Requirement not met: Standard mode · KG backend set to
 
 #### 交叉證據（`CrossEvidence`，`#nl-cross`）
 
-三列同軸（階段覆蓋／核心事件／張力峰值＋章號尺規），照真實資料畫、不補假的隆起；無資料的章是虛線細線。「階段覆蓋」同樣只算實際章節（遇見導師 1、2、5、8 不覆蓋 3、4）。判讀句即時計算：取「三層都有值的章」中張力最高者，文案照實說「三層都有訊號的章節中，第 N 章張力最高」，不宣稱各層同時到頂（NL-3）。下方兩欄：
+三列同軸（階段覆蓋／核心事件／張力峰值＋章號尺規；Ink 下張力列疊 `--cross-tension-pattern` 斜紋，與同為黑色的階段覆蓋列區分），照真實資料畫、不補假的隆起；無資料的章是虛線細線。「階段覆蓋」同樣只算實際章節（遇見導師 1、2、5、8 不覆蓋 3、4）。判讀句即時計算：取「三層都有值的章」中張力最高者，文案照實說「三層都有訊號的章節中，第 N 章張力最高」，不宣稱各層同時到頂（NL-3）。下方兩欄：
 
 - **時序結構**（Genette）：未分析＝虛線佔位＋說明＋覆蓋率（`coverage_sufficient` 取後端，不複寫門檻）＋「在時間軸頁補齊並執行 →」；已分析＝判定句（線性／部分線性／非線性）＋倒敘／預敘筆數（timeline `temporalDisplacement.type` 計數，字串沿用 `timeline.action.displacementDone`）。
 - **張力**：強度最高三章，各標涵蓋它的階段與核心事件數。
@@ -2190,7 +2190,7 @@ en 對應：Previewing／Requirement not met: Standard mode · KG backend set to
 
 - **空態**（英雄旅程未產生）：羅盤圖＋標題＋說明＋**前置條件列**（章節摘要、事件分析 EEP；在按鈕之前）＋「開始英雄旅程分析」（`.ss-btn-primary .ss-btn-llm`）＋成本提示；**事件骨幹仍渲染在下方**（前提是已有 narrative structure；全書 0 件已分類事件時 `GET /narrative` 回 404、不畫骨幹，空態卡已說明前提，比照事件分析頁 EV-1）。
 - **摘要缺章硬閘門**（`summaryGate`）：disabled＋「缺 N 章摘要，補齊後才會有可映射的內容」。**三條路徑共用同一道閘門**：空態按鈕、卡片標題列的重新分析、過期帶的「重新分析 →」。章節清單查詢不再因「已有分析」而停用（現況繞過閘門）。
-- **過期帶**（`.nl-stale`）：已有英雄旅程時疊在英雄旅程卡上方。尚無英雄旅程時不出（#217），改在**事件骨幹卡**標題列下方顯示同一外觀的文字提示、無按鈕（`narrative.stale.spine`；有未分類事件時用 `spineWithAction`，指向下方「依 EEP 重新分類」）——過期的是核心／衛星分類，英雄旅程鈕修不到（2026-10-12 裁決）。`{step}` 用 `timelineModel.staleStepKey` 對到 reader 的步驟名（章節摘要／特徵萃取／知識圖譜／符號探索），不插原始 id；「重新分析 →」是 `.ss-btn-ghost .ss-btn-llm`，與卡內同一動作、同一道閘門。5-0 後重跑章節摘要也會使本頁過期。
+- **過期帶**（`.nl-stale`）：標題前有 `TriangleAlert` 圖示（兩主題；Ink 下警示底色與一般資訊框同灰，只靠字形辨識）。已有英雄旅程時疊在英雄旅程卡上方。尚無英雄旅程時不出（#217），改在**事件骨幹卡**標題列下方顯示同一外觀的文字提示、無按鈕（`narrative.stale.spine`；有未分類事件時用 `spineWithAction`，指向下方「依 EEP 重新分類」）——過期的是核心／衛星分類，英雄旅程鈕修不到（2026-10-12 裁決）。`{step}` 用 `timelineModel.staleStepKey` 對到 reader 的步驟名（章節摘要／特徵萃取／知識圖譜／符號探索），不插原始 id；「重新分析 →」是 `.ss-btn-ghost .ss-btn-llm`，與卡內同一動作、同一道閘門。5-0 後重跑章節摘要也會使本頁過期。
 
 #### 錯誤四分
 
