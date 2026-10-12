@@ -678,6 +678,10 @@ a.nl-sd-ev:hover {
   align-items: center;
   gap: var(--space-3);
 }
+.nl-legend-glyph {
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+}
 .nl-dot-sw {
   display: inline-block;
   flex-shrink: 0;
@@ -831,6 +835,8 @@ a.nl-sd-ev:hover {
 }
 .nl-band-lane.is-selected {
   border-color: var(--accent);
+  /* Ink's accent is the border colour: only the weight marks the selection. */
+  border-width: var(--card-selected-border-width);
 }
 .nl-band-lane > * {
   grid-row: 1;
@@ -854,6 +860,10 @@ a.nl-sd-ev:hover {
   opacity: 0.5;
 }
 .nl-band-run {
+  /* Above the connecting hairline: its opacity makes it a stacking context,
+     which otherwise paints over the chapter numbers in the bars. */
+  position: relative;
+  z-index: 1;
   align-self: center;
   height: 18px;
   margin: 0 var(--space-1);
@@ -1172,14 +1182,31 @@ a.nl-sd-ev:hover {
   display: block;
   height: 100%;
 }
-.nl-ratio-seg.is-kernel {
+.nl-ratio-sw {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  margin-right: var(--space-2);
+  border-radius: 1px;
+  vertical-align: -1px;
+}
+.nl-ratio-seg.is-kernel,
+.nl-ratio-sw.is-kernel {
   background: var(--accent);
 }
-.nl-ratio-seg.is-satellite {
+.nl-ratio-seg.is-satellite,
+.nl-ratio-sw.is-satellite {
   background: var(--symbol-density-mid);
 }
-.nl-ratio-seg.is-unclassified {
-  background: var(--bg-tertiary);
+/* Hatched, not flat: a flat fill is the empty track's own colour, so the
+   unclassified share read as no bar at all. */
+.nl-ratio-seg.is-unclassified,
+.nl-ratio-sw.is-unclassified {
+  background: repeating-linear-gradient(
+    -45deg,
+    var(--bg-tertiary) 0 3px,
+    var(--fg-muted) 3px 4px
+  );
 }
 .nl-ratio-legend {
   display: flex;
@@ -1382,6 +1409,9 @@ a.nl-sd-ev:hover {
 .nl-cross-cell.is-stages,
 .nl-cross-cell.is-tension {
   background: var(--accent);
+}
+.nl-cross-cell.is-tension {
+  background-image: var(--cross-tension-pattern);
 }
 .nl-cross-cell.is-kernel {
   background: var(--symbol-density-mid);
@@ -1776,6 +1806,9 @@ a.nl-sd-ev:hover {
   line-height: 1.7;
 }
 .nl-stale strong {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
   font-size: var(--font-size-xs);
   font-weight: 700;
 }

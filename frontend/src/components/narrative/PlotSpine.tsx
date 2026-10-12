@@ -2,6 +2,7 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import { TriangleAlert } from 'lucide-react';
 import type { KernelSpineEvent, NarrativeStructure } from '@/api/narrative';
 import { ReviewBadge } from './atoms';
 import { IMPORTANCE_DOMINANT_SHARE, IMPORTANCE_MIN_SAMPLE } from '@/components/analysis/overview/eventBackboneModel';
@@ -94,7 +95,10 @@ export function PlotSpine({
 
       {staleNote && (
         <div className="nl-stale" role="status">
-          <strong>{t('narrative.stale.title')}</strong>
+          <strong>
+            <TriangleAlert size={14} aria-hidden="true" />
+            {t('narrative.stale.title')}
+          </strong>
           <span>{staleNote}</span>
         </div>
       )}
@@ -115,15 +119,24 @@ export function PlotSpine({
             <span className="nl-ratio-seg is-unclassified" style={{ width: `${pct(counts.unclassified)}%` }} />
           </div>
           <div className="nl-ratio-legend">
-            <span>{t('narrative.spine.barKernel', { n: counts.kernel })}</span>
+            <span>
+              <span className="nl-ratio-sw is-kernel" aria-hidden="true" />
+              {t('narrative.spine.barKernel', { n: counts.kernel })}
+            </span>
             {/* "衛星 0 · 本書未出現此分類" and a bare "衛星 0" are different
                 statements; only the first says the book has no such class. */}
             {counts.satellite > 0 || dominant ? (
-              <span>{t('narrative.spine.barSatellite', { n: counts.satellite })}</span>
+              <span>
+                <span className="nl-ratio-sw is-satellite" aria-hidden="true" />
+                {t('narrative.spine.barSatellite', { n: counts.satellite })}
+              </span>
             ) : (
               <span className="is-muted">{t('narrative.spine.barSatelliteNone')}</span>
             )}
-            <span>{t('narrative.spine.barUnclassified', { n: counts.unclassified })}</span>
+            <span>
+              <span className="nl-ratio-sw is-unclassified" aria-hidden="true" />
+              {t('narrative.spine.barUnclassified', { n: counts.unclassified })}
+            </span>
           </div>
           {dominant && (
             <p className="nl-lead">

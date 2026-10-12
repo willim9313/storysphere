@@ -105,15 +105,18 @@ export function Legend() {
     <div className="nl-legend">
       <span className="nl-legend-k">{t('narrative.legend')}</span>
       <span className="nl-legend-i">
-        <span className="nl-dot-sw is-filled" /> {t('narrative.state.filled')}
+        <span className="nl-dot-sw is-filled" />
+        <span className="nl-legend-glyph" aria-hidden="true">✓</span> {t('narrative.state.filled')}
       </span>
       <span className="nl-legend-i">
-        <span className="nl-dot-sw is-low" /> {t('narrative.state.low')}
+        <span className="nl-dot-sw is-low" />
+        <span className="nl-legend-glyph" aria-hidden="true">△</span> {t('narrative.state.low')}
       </span>
       {/* Short label here; what an absence means, and how many there are, lives
           in the note under the switcher. */}
       <span className="nl-legend-i">
-        <span className="nl-dot-sw is-absent" /> {t('narrative.state.absent')}
+        <span className="nl-dot-sw is-absent" />
+        <span className="nl-legend-glyph" aria-hidden="true">○</span> {t('narrative.state.absent')}
       </span>
     </div>
   );

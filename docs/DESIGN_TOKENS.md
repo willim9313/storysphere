@@ -316,6 +316,7 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 | `--narrative-glyph-display` | `none` | `block` | 敘事模式字形（事件分析頁故事骨幹圖圓點中央與圖例）：倒敘 `←`、預敘 `→`、平行 `∥`、未知 `?`，順敘不加。Warm 靠色相區分；Ink 五種模式只差灰階（平行 `#f6f6f4` 對未知 `#fafafa`），改由字形承載 |
 | `--symbol-glyph-display` | `none` | `inline-flex` | 象徵意象頁左欄清單的輔助字形：類別色塊內的 lucide 圖示（object `Box`、nature `Leaf`、spatial `MapPin`、body `Hand`、color `Palette`、other `Circle`），以及 12px 狀態槽內的極性字形（`+` `−` `○` `±`）。Warm 靠色相區分；Ink 類別色塊與極性點只差灰階，改由圖示／字形承載 |
 | `--symbol-dot-display` | `block` | `none` | 象徵意象頁左欄清單 12px 狀態槽的極性點；與 `--symbol-glyph-display` 成對，兩主題各只顯示點或字形其一，槽寬不變 |
+| `--cross-tension-pattern` | `none` | 斜紋（`repeating-linear-gradient(-45deg, transparent 0 2px, var(--bg-primary) 2px 3.5px)`） | 敘事結構頁交叉證據「張力峰值」列的格子疊紋。Warm 靠色相即可；Ink 下張力列與「階段覆蓋」列同為 accent 黑，只能靠列名分辨，改由斜紋承載 |
 | `--badge-radius` | `20px` | `4px` | status badge |
 | `--control-radius` | `var(--radius-md)` | `var(--radius-sm)` | input、toggle、select |
 | `--input-radius` | `var(--control-radius)` | `var(--control-radius)` | 文字框、搜尋、select 共用的框 |
