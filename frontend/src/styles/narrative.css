@@ -344,10 +344,62 @@
     top: auto;
     bottom: 0;
     z-index: 1;
-    max-height: 45vh;
+    max-height: 35vh;
     overflow-y: auto;
     box-shadow: var(--shadow-lg);
   }
+  /* Folded: one line (phase · stage · state · open), so the pinned panel does
+     not cover the chart on arrival. */
+  .nl-detail .nl-detail-fold {
+    display: flex;
+  }
+  .nl-detail.is-folded {
+    padding-block: var(--space-4);
+  }
+  .nl-detail.is-folded .nl-detail-body {
+    display: none;
+  }
+  /* Open: the detail's own header names the stage, so the bar keeps only
+     the fold action. */
+  .nl-detail:not(.is-folded) .nl-detail-fold {
+    margin-bottom: var(--space-3);
+  }
+  .nl-detail:not(.is-folded) .nl-detail-fold > :not(.nl-detail-fold-act) {
+    display: none;
+  }
+}
+/* The fold control only exists for the pinned single-column panel. */
+.nl-detail-fold {
+  display: none;
+  align-items: center;
+  gap: var(--space-4);
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: var(--fg-primary);
+  text-align: left;
+  cursor: pointer;
+}
+.nl-detail-fold-name {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-sm);
+  font-weight: 700;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.nl-detail-fold-act {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  margin-left: auto;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--accent);
+  white-space: nowrap;
 }
 
 /* Stage detail panel. */

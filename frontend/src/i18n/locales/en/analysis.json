@@ -1828,6 +1828,10 @@
       "refine": "LLM refinement is running. Other narrative analyses can start once it finishes.",
       "other": "Another narrative analysis is running. Try again once it finishes."
     },
+    "detailFold": {
+      "open": "Show details",
+      "close": "Hide"
+    },
     "heroStep": {
       "load": "reading chapter summaries",
       "llm": "LLM mapping stages",

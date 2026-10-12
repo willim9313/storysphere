@@ -2132,7 +2132,7 @@ en 對應：Previewing／Requirement not met: Standard mode · KG backend set to
 - **重新分析的閘門**：與空態按鈕同一道摘要閘門（`summaryGate`）；缺章時 disabled，Tooltip 顯示「缺 N 章摘要，補齊後才會有可映射的內容」。分析中按鈕就地換成「分析中 · {步驟}」（`narrative.empty.runningStep`，步驟由後端 stage 字串對到 `narrative.heroStep.*`：讀取章節摘要／LLM 對應階段中／整理結果；認不得時「分析中…」）。**不顯示百分比**——後端的 10／20／90 在整段 LLM 呼叫期間停在 20，讀起來像有量測（2026-10-12 裁決）；進度條改為不定長度（`.nl-progress-indet`，reduced-motion 下為靜止淡條），不承諾 ETA。
 - **版面切換**：`.ss-seg`（`.nl-seg` 撐成四等分），每顆兩行＝名稱＋副標（`narrative.layout.*`／`narrative.viewHint.*`，spec §6 不可丟失）。`role="radiogroup"`／`radio`。一次只顯示一種，每種＝圖＋圖例＋階段詳情。預設章節對位帶。選取的階段在切換版面時保留（狀態在 `HeroJourneySection`）。
 - **缺席說明**（`.nl-absent-note`）：虛線框，只在有未識別階段時出現。
-- **圖＋詳情**（`.nl-hj-body`）：卡不限高；詳情欄 `.nl-detail` `position: sticky; top: 16px`。對位帶在右側（欄寬 340）、三相位分欄在右側（欄寬 380），圓環右側（圓環欄 460），**水平軌跡在下方全寬**（代表事件兩欄）。視窗 ≤ 1100 時單欄，詳情改為 `position: sticky; bottom: 0`（`max-height: 45vh`、內部捲動），點階段後不必捲到圖下方就看得到。
+- **圖＋詳情**（`.nl-hj-body`）：卡不限高；詳情欄 `.nl-detail` `position: sticky; top: 16px`。對位帶在右側（欄寬 340）、三相位分欄在右側（欄寬 380），圓環右側（圓環欄 460），**水平軌跡在下方全寬**（代表事件兩欄）。視窗 ≤ 1100 時單欄，詳情改為 `position: sticky; bottom: 0`（`max-height: 35vh`、內部捲動），點階段後不必捲到圖下方就看得到。單欄時詳情**可收合**（`.nl-detail-fold`，`aria-expanded`）：收合列＝相位 · 階段名 · 狀態 badge · 「展開詳情／收合」；進頁面預設收合（不然預設選取的階段一進來就蓋住約一半的圖），點任一階段自動展開。寬版（> 1100）不出收合列（NL-4，2026-10-12 裁決）。
 
 **章節對位帶（`LayoutBand`）**
 
