@@ -465,6 +465,8 @@ chevron 有自己的 hover 底（`--bg-tertiary`，展開時也是）。選中�
 **純分隔符段落**（只有標點／符號，如「✦✦✦」，且無實體；`readerModel.isSeparatorText`）：保留 `#order`，畫成一條置中細線，不畫整張卡。
 標註密度以容器 `data-annotation-mode` 控制（`global.css`）：「角色」＝非角色 mark／chip 取消底線與 hover 色塊並**拿掉 pointer-events**；「關」＝chips 整列隱藏、正文純散文；`#order` 三段都留。
 
+**只帶章號的跳入**（2026-10-12）：router state 只有 `{ chapterNumber }`（無 `paragraphId`）時打開該章、捲到章首、不閃段落——給只知道章、不知道段落的呼叫端（敘事結構頁「第 N 章原文 →」、張力頁）。先前這種 state 會被靜默忽略。
+
 **從象徵頁跳入時標出該詞**（2026-10-10）：router state 除 `{ paragraphId, chapterNumber }` 外帶 `markTerms`（意象詞＋異體），目標段落內符合的字以 `.rd-term-mark`（accent 18% 底＋粗體，與實體的底線區隔；Ink 下 accent 為黑仍可辨）標出，直到離開該段；比對容許字中空白（PDF 抽出的 CJK 常有字中空白）。詞本身也是 KG 實體時，加在實體 mark 上而不拆開。其他頁的跳段不帶 `markTerms`，行為不變。
 
 **章末導航只放右側「下一章 {章名} →」**（`.ss-btn-sm.ss-btn-secondary`）；最後一章沒有，也沒有「上一章」。
@@ -2148,7 +2150,7 @@ en 對應：Previewing／Requirement not met: Standard mode · KG backend set to
 
 #### 階段詳情（`StageDetail`）
 
-相位 · 章節（離散列表，例如 `第 1–2、5、8 章`）＋狀態 badge → 階段名 → **信心**（量表、門檻 0.6 刻度、「高於系統門檻」／「低於門檻 · 待確認」、`全書 min–max`）→ **但書**（`narrative.confNote*`，逐字：信心是模型對「章節摘要證據有多強」的自評，不是這個階段成立的機率）→ 系統詮釋 → 代表性 Kernel 事件（上限 4）→ **理論定義（Campbell / Vogler）**＋敘事功能＋`narrative.methodLink`，**常開、無 `<details>`**。低於 0.6 的階段仍顯示並標待確認（量表填色改淺階、chip 虛線）。
+相位 · 章節（離散列表，例如 `第 1–2、5、8 章`）＋狀態 badge → 階段名 → **信心**（量表、門檻 0.6 刻度、「高於系統門檻」／「低於門檻 · 待確認」、`全書 min–max`）→ **但書**（`narrative.confNote*`，逐字：信心是模型對「章節摘要證據有多強」的自評，不是這個階段成立的機率）→ 系統詮釋 → 代表性 Kernel 事件（上限 4；每件卡片連事件頁，卡下「第 N 章原文 →」以 `{ chapterNumber }` 直接開閱讀頁該章）→ **理論定義（Campbell / Vogler）**＋敘事功能＋`narrative.methodLink`，**常開、無 `<details>`**。低於 0.6 的階段仍顯示並標待確認（量表填色改淺階、chip 虛線）。
 
 **代表事件為空**（同一位置擇一，`repEmptyReason`）：
 
@@ -2163,7 +2165,7 @@ en 對應：Previewing／Requirement not met: Standard mode · KG backend set to
 
 #### 事件骨幹（`PlotSpine`，`#nl-spine`）
 
-標題列「事件骨幹」＋ `Chatman kernel / satellite`（方法論連結）＋ lead；右側來源 badge（LLM 分類帶 `.ss-llm-glyph` 字符，因為那是 LLM 成本的記號）＋審核 badge。比例列：`核心 N`／`衛星 N` 或 `衛星 0 · 本書未出現此分類`（與 `衛星 0` 是兩回事，衛星為 0 時比例條不佔寬）／`未分類 N`。圖例每項前有對應色塊；未分類段為斜紋（平塗會與空軌道同色）。**重要度退化**（已分類 ≥ 10 件且單一類 ≥ 90%，門檻沿用事件頁 `dominantImportance`）：圖例改寫裸的 `衛星 N`，下方加一句 `narrative.spine.dominantKernel`／`dominantSatellite`（「本書 N／M 件判為核心——…分不出主次（B-133）」），不再說「本書未出現此分類」（NL-3）。逐章核心事件欄（`repeat(auto-fill, minmax(106px, 1fr))`，空章顯示「無核心事件」），選取事件顯示意義與深連結。選取態＝`--accent` 底、accent-fg 字。
+標題列「事件骨幹」＋ `Chatman kernel / satellite`（方法論連結）＋ lead；右側來源 badge（LLM 分類帶 `.ss-llm-glyph` 字符，因為那是 LLM 成本的記號）＋審核 badge。比例列：`核心 N`／`衛星 N` 或 `衛星 0 · 本書未出現此分類`（與 `衛星 0` 是兩回事，衛星為 0 時比例條不佔寬）／`未分類 N`。圖例每項前有對應色塊；未分類段為斜紋（平塗會與空軌道同色）。**重要度退化**（已分類 ≥ 10 件且單一類 ≥ 90%，門檻沿用事件頁 `dominantImportance`）：圖例改寫裸的 `衛星 N`，下方加一句 `narrative.spine.dominantKernel`／`dominantSatellite`（「本書 N／M 件判為核心——…分不出主次（B-133）」），不再說「本書未出現此分類」（NL-3）。逐章核心事件欄（`repeat(auto-fill, minmax(106px, 1fr))`，空章顯示「無核心事件」），選取事件顯示意義與兩個連結：「第 N 章原文 →」（閱讀頁該章）與「在事件分析中開啟」；兩者與頁尾「前往事件分析」皆為 `<Link>`（可 cmd-click 另開分頁）。選取態＝`--accent` 底、accent-fg 字。
 
 **未分類區塊**（`UnclassifiedBlock`，數量 0 時不渲染）：三段說明（為什麼／影響什麼／可以怎麼做）＋兩顆按鈕，三條軸互不蘊含：
 
@@ -2182,7 +2184,7 @@ en 對應：Previewing／Requirement not met: Standard mode · KG backend set to
 三列同軸（階段覆蓋／核心事件／張力峰值＋章號尺規；Ink 下張力列疊 `--cross-tension-pattern` 斜紋，與同為黑色的階段覆蓋列區分），照真實資料畫、不補假的隆起；無資料的章是虛線細線。「階段覆蓋」同樣只算實際章節（遇見導師 1、2、5、8 不覆蓋 3、4）。判讀句即時計算：取「三層都有值的章」中張力最高者，文案照實說「三層都有訊號的章節中，第 N 章張力最高」，不宣稱各層同時到頂（NL-3）。下方兩欄：
 
 - **時序結構**（Genette）：未分析＝虛線佔位＋說明＋覆蓋率（`coverage_sufficient` 取後端，不複寫門檻）＋「在時間軸頁補齊並執行 →」；已分析＝判定句（線性／部分線性／非線性）＋倒敘／預敘筆數（timeline `temporalDisplacement.type` 計數，字串沿用 `timeline.action.displacementDone`）。
-- **張力**：強度最高三章，各標涵蓋它的階段與核心事件數。
+- **張力**：強度最高三章，各標涵蓋它的階段與核心事件數；章號是連到閱讀頁該章的連結。
 
 三個查詢（TEU、timeline、temporal coverage）仍以 `hasHeroJourney` 為啟用條件。
 

@@ -1837,6 +1837,7 @@
       "chartSummary": "{{label}}：{{values}}",
       "listSep": "、"
     },
+    "toSource": "第 {{ch}} 章原文 →",
     "heroStep": {
       "load": "讀取章節摘要",
       "llm": "LLM 對應階段中",

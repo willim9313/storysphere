@@ -132,9 +132,11 @@ export default function ReaderPage() {
   const { data: chapters, isLoading: chaptersLoading } = useChapters(bookId, true);
   const { data: chunks, isLoading: chunksLoading } = useChunks(bookId, viewingChapterId);
 
-  // Deep-link from other pages (currently SymbolsPage occurrence rows) into a
-  // specific paragraph. Caller passes { paragraphId, chapterNumber } via
-  // location.state — paragraphId matches Chunk.id on the wire.
+  // Deep-link from other pages into a specific paragraph — caller passes
+  // { paragraphId, chapterNumber } via location.state; paragraphId matches
+  // Chunk.id on the wire. A bare { chapterNumber } opens that chapter at its
+  // top (narrative page, tension page): those callers know a chapter, not a
+  // paragraph.
   const location = useLocation();
   // markTerms: the symbol page also sends the word (and its variants) it jumped
   // for, so the paragraph marks it instead of only flashing the whole card.
@@ -164,10 +166,15 @@ export default function ReaderPage() {
   }, [viewingChapterId, jumpTarget]);
 
   useEffect(() => {
-    if (!jumpTarget?.paragraphId || !chapters) return;
-    if (jumpHandledRef.current === jumpTarget.paragraphId) return;
+    if (!chapters || jumpTarget?.chapterNumber == null) return;
+    const chapterOnly = !jumpTarget.paragraphId;
+    // Chapter-only jumps have no paragraph to mark handled once scrolled to,
+    // so they are marked here; the scroll reset above then lands on the top.
+    const key = jumpTarget.paragraphId ?? `ch:${jumpTarget.chapterNumber}`;
+    if (jumpHandledRef.current === key) return;
     const target = chapters.find((c) => c.order === jumpTarget.chapterNumber);
     if (!target) return;
+    if (chapterOnly) jumpHandledRef.current = key;
     // setState-in-effect is the standard sync-from-URL pattern for deep-links;
     // the alternative (compute in render) would force callers to also push a
     // chapter id into the URL which couples symbol-page state to reader state.

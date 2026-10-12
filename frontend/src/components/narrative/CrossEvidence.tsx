@@ -247,7 +247,9 @@ export function CrossEvidence({
             <div className="nl-cross-peaks">
               {peaks.map((p) => (
                 <div key={p.ch} className="nl-cross-peak">
-                  <span className="nl-cross-peak-ch">{t('narrative.spine.chapterUnit', { ch: p.ch })}</span>
+                  <Link className="nl-cross-peak-ch" to={`/books/${bookId}`} state={{ chapterNumber: p.ch }}>
+                    {t('narrative.spine.chapterUnit', { ch: p.ch })}
+                  </Link>
                   <span className="nl-cross-peak-v">{p.tension.toFixed(2)}</span>
                   <span className="nl-cross-peak-note">
                     {p.covering.length > 0

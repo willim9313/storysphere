@@ -1837,6 +1837,7 @@
       "chartSummary": "{{label}}: {{values}}",
       "listSep": ", "
     },
+    "toSource": "Chapter {{ch}} text →",
     "heroStep": {
       "load": "reading chapter summaries",
       "llm": "LLM mapping stages",
