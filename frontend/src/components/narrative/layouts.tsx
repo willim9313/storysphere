@@ -112,7 +112,9 @@ export function LayoutBand({ stages, theory, sel, onSelect, chapterCount, kernel
             >
               {reversed.has(stage.stage_id) && (
                 <Tooltip label={t('narrative.band.reversedTip')}>
-                  <span className="nl-band-rev">↰</span>
+                  <span className="nl-band-rev" role="img" aria-label={t('narrative.band.reversedTip')}>
+                    ↰
+                  </span>
                 </Tooltip>
               )}
               <span className="nl-band-n">{stageOrdinal(stage.stage_id)}</span>
@@ -161,7 +163,18 @@ export function LayoutBand({ stages, theory, sel, onSelect, chapterCount, kernel
 
       {/* where the kernel events actually are, on the same axis */}
       {kernelChapters.length > 0 && (
-        <div className="nl-band-grid nl-band-densityrow" style={gridStyle}>
+        <div
+          className="nl-band-grid nl-band-densityrow"
+          style={gridStyle}
+          // The bars carry their numbers only in hover tooltips; say them.
+          role="img"
+          aria-label={t('narrative.a11y.chartSummary', {
+            label: t('narrative.band.density'),
+            values: chapters
+              .map((c) => t('narrative.band.densityTip', { ch: c, count: kernels[c - 1] }))
+              .join(t('narrative.a11y.listSep')),
+          })}
+        >
           <span className="nl-band-head">{t('narrative.band.density')}</span>
           {chapters.map((c) => {
             const k = kernels[c - 1];
@@ -259,7 +272,7 @@ export function LayoutColumns({ stages, theory, sel, onSelect }: VizProps) {
                   role="presentation"
                 >
                   <div className="nl-col-line1">
-                    <StageDot stage={stage} selected={false} onSelect={() => onSelect(stage.stage_id)} size={26} />
+                    <StageDot stage={stage} selected={on} onSelect={() => onSelect(stage.stage_id)} size={26} />
                     <span className="nl-col-name">{nameOf(stage, theory)}</span>
                   </div>
                   <div className="nl-col-line2">

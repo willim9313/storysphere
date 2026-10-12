@@ -1632,6 +1632,7 @@
     "bookMeta": "{{title}} · {{chapters}} 章 · {{events}} 事件 · {{source}}",
     "methodLink": "在方法論頁看完整框架 →",
     "index": {
+      "navLabel": "本頁目錄",
       "role1": "詮釋",
       "title1": "英雄旅程",
       "answers1": "這本書走了 Campbell 12 階段裡的哪幾步",
@@ -1831,6 +1832,10 @@
     "detailFold": {
       "open": "展開詳情",
       "close": "收合"
+    },
+    "a11y": {
+      "chartSummary": "{{label}}：{{values}}",
+      "listSep": "、"
     },
     "heroStep": {
       "load": "讀取章節摘要",

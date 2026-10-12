@@ -1632,6 +1632,7 @@
     "bookMeta": "{{title}} · {{chapters}} chapters · {{events}} events · {{source}}",
     "methodLink": "See the full framework on the methodology page →",
     "index": {
+      "navLabel": "On this page",
       "role1": "Interpretation",
       "title1": "Hero's Journey",
       "answers1": "Which of Campbell's 12 stages this book takes",
@@ -1831,6 +1832,10 @@
     "detailFold": {
       "open": "Show details",
       "close": "Hide"
+    },
+    "a11y": {
+      "chartSummary": "{{label}}: {{values}}",
+      "listSep": ", "
     },
     "heroStep": {
       "load": "reading chapter summaries",

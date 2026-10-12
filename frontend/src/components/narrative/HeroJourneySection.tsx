@@ -157,6 +157,14 @@ export function HeroJourneySection({
         </div>
       </div>
 
+      {/* Why re-analysis waits, as text: the disabled button cannot be focused
+          to show its tooltip. */}
+      {rerunBlockedReason && !rerunning && (
+        <p className="nl-busy-note" role="status">
+          {rerunBlockedReason}
+        </p>
+      )}
+
       {rerunning && (
         <div className="nl-progress" role="status">
           <div className="nl-progress-line">

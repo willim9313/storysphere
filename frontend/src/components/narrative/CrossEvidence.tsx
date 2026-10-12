@@ -139,7 +139,18 @@ export function CrossEvidence({
               <span className="nl-cross-label-t">{row.label}</span>
               <span className="nl-cross-label-s">{row.sub}</span>
             </div>
-            <div className="nl-cross-cells" style={colStyle}>
+            <div
+              className="nl-cross-cells"
+              style={colStyle}
+              // Values live in hover tooltips; the row reads them out whole.
+              role="img"
+              aria-label={t('narrative.a11y.chartSummary', {
+                label: row.label,
+                values: chapters
+                  .map((c) => `${t('narrative.spine.chapterUnit', { ch: c.ch })} ${row.raw(c)}`)
+                  .join(t('narrative.a11y.listSep')),
+              })}
+            >
               {chapters.map((c) => {
                 const v = row.value(c);
                 return (
