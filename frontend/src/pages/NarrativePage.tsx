@@ -19,10 +19,12 @@ import {
   fetchKernelSpine,
   fetchNarrativeStructure,
   fetchRefineTask,
+  fetchRunningNarrative,
   fetchTemporalCoverage,
   refineNarrative,
   reviewNarrativeStructure,
   triggerHeroJourney,
+  type NarrativeOp,
   type NarrativeReviewStatus,
 } from '@/api/narrative';
 import { STAGE_ORDER, getStageTheory, padStages } from '@/components/narrative/heroJourney';
@@ -124,6 +126,66 @@ export default function NarrativePage() {
   const classifyOp = useTensionTask(fetchClassifyTask, invalidateNarrative, t('narrative.errors.classifyFailed'));
   const refineOp = useTensionTask(fetchRefineTask, invalidateNarrative, t('narrative.errors.refineFailed'));
   const [pendingAction, setPendingAction] = useState<'classify' | 'refine' | null>(null);
+
+  // The three runs share one lock per book (#21m): pick up whichever one holds
+  // it — started in another tab, or before a remount — instead of offering to
+  // start one the server would refuse.
+  const adoptHero = heroJourneyOp.adopt;
+  const adoptClassify = classifyOp.adopt;
+  const adoptRefine = refineOp.adopt;
+  useEffect(() => {
+    if (!bookId) return;
+    let live = true;
+    const adoptBy = { heroJourney: adoptHero, classify: adoptClassify, refine: adoptRefine };
+    fetchRunningNarrative(bookId)
+      .then((run) => {
+        if (live && run.op && run.taskId) adoptBy[run.op](run.taskId);
+      })
+      .catch(() => {}); // a failed lookup just leaves the page idle
+    return () => {
+      live = false;
+    };
+  }, [bookId, adoptHero, adoptClassify, adoptRefine]);
+
+  const runningOp: NarrativeOp | null = heroJourneyOp.running
+    ? 'heroJourney'
+    : classifyOp.running
+      ? 'classify'
+      : refineOp.running
+        ? 'refine'
+        : null;
+  const busyReason = runningOp ? t(`narrative.busy.${runningOp}`) : null;
+
+  // A trigger refused with 409 batch_running started nothing: follow the run
+  // that holds the lock. If it is this very op, that is the answer. If it is
+  // another, that op's control takes it — its busy note says why this one did
+  // not start, so the refusal leaves no error of its own behind.
+  const triggerFollowing = (
+    op: NarrativeOp,
+    handle: typeof heroJourneyOp,
+    create: () => Promise<{ taskId: string }>,
+    triggerError: string,
+  ) => {
+    let handedOff = false;
+    void handle
+      .trigger(async () => {
+        try {
+          return await create();
+        } catch (err) {
+          if (!(err instanceof ApiError && err.status === 409 && err.code === 'batch_running')) throw err;
+          const run = await fetchRunningNarrative(bookId!).catch(() => null);
+          if (run?.op && run.taskId) {
+            if (run.op === op) return { taskId: run.taskId };
+            ({ heroJourney: adoptHero, classify: adoptClassify, refine: adoptRefine })[run.op](run.taskId);
+            handedOff = true;
+          }
+          throw new ApiError(409, t('narrative.busy.other'));
+        }
+      }, triggerError)
+      .then(() => {
+        if (handedOff) handle.clearError();
+      });
+  };
   // The fourth kind of failure, specific to this page: the server refused to
   // reclassify (409). Kept apart from `classifyOp.error` because that hook
   // flattens every failure to a string and loses the status.
@@ -186,8 +248,10 @@ export default function NarrativePage() {
   const blockedReason = gate.blocked ? t('narrative.empty.blockedReason', { n: gate.missing }) : null;
 
   const handleTrigger = (force = false) => {
-    if (gate.blocked) return;
-    void heroJourneyOp.trigger(
+    if (gate.blocked || runningOp) return;
+    triggerFollowing(
+      'heroJourney',
+      heroJourneyOp,
       () => triggerHeroJourney(bookId!, book?.language ?? 'en', force),
       t('narrative.errors.triggerHero'),
     );
@@ -297,14 +361,15 @@ export default function NarrativePage() {
   const runClassify = () => {
     setPendingAction(null);
     setClassifyRefused(null);
-    void classifyOp.trigger(async () => {
+    triggerFollowing('classify', classifyOp, async () => {
       try {
         return await classifyNarrative(bookId!);
       } catch (err) {
-        // 409 means one thing per the API contract (#21a), and the page already
-        // holds every number the server counted — so say it in the user's
-        // language rather than surfacing the server's English string.
-        if (err instanceof ApiError && err.status === 409) {
+        // A 409 without a code means one thing per the API contract (#21a),
+        // and the page already holds every number the server counted — so say
+        // it in the user's language rather than surfacing the server's English
+        // string. `batch_running` is the lock, handled by triggerFollowing.
+        if (err instanceof ApiError && err.status === 409 && err.code !== 'batch_running') {
           const message = t('narrative.errors.classifyRefused', {
             total: eventCount,
             classified: kernelCount + satelliteCount,
@@ -318,7 +383,9 @@ export default function NarrativePage() {
   };
   const runRefine = () => {
     setPendingAction(null);
-    void refineOp.trigger(
+    triggerFollowing(
+      'refine',
+      refineOp,
       () => refineNarrative(bookId!, unclassifiedIds, lang),
       t('narrative.errors.refineTrigger'),
     );
@@ -338,6 +405,7 @@ export default function NarrativePage() {
       error={classifyOp.error ?? refineOp.error}
       refusedMessage={classifyRefused}
       llmBlocked={refineOp.llmBlocked}
+      busyReason={runningOp === 'heroJourney' ? busyReason : null}
     />
   ) : null;
 
@@ -449,6 +517,11 @@ export default function NarrativePage() {
             {staleBanner}
             {heroJourneyOp.llmBlocked && <LlmUnconfiguredNotice />}
             {heroJourneyOp.error && <div className="nl-empty-error">{heroJourneyOp.error}</div>}
+            {runningOp && runningOp !== 'heroJourney' && (
+              <div className="nl-busy-note" role="status">
+                {busyReason}
+              </div>
+            )}
             <HeroJourneySection
               stages={stages}
               theory={theory}
@@ -460,7 +533,7 @@ export default function NarrativePage() {
               onRerun={() => handleTrigger(true)}
               rerunning={heroJourneyOp.running}
               progress={heroJourneyOp.task?.progress ?? 0}
-              rerunBlockedReason={blockedReason}
+              rerunBlockedReason={blockedReason ?? (runningOp && runningOp !== 'heroJourney' ? busyReason : null)}
               kernelChapters={kernelChapters}
               bookId={bookId!}
             />
@@ -540,12 +613,12 @@ export default function NarrativePage() {
                   id="nl-hero-run"
                   className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm"
                   onClick={() => handleTrigger()}
-                  disabled={gate.blocked}
+                  disabled={gate.blocked || runningOp !== null}
                 >
                   {t('narrative.empty.trigger')}
                 </button>
-                <span className="nl-trigger-reason">
-                  {gate.blocked ? blockedReason : t('tension.state.tokenHintShort')}
+                <span className={runningOp ? 'nl-busy-note' : 'nl-trigger-reason'} role={runningOp ? 'status' : undefined}>
+                  {gate.blocked ? blockedReason : (busyReason ?? t('tension.state.tokenHintShort'))}
                 </span>
               </div>
             )}

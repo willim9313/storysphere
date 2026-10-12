@@ -1818,6 +1818,12 @@
       "refineFailed": "LLM refinement failed.",
       "classifyRefused": "Cannot reclassify: none of the {{total}} events still have an event-analysis (EEP) cache entry, so all {{classified}} classified events would be reset to unclassified. Re-run event analysis first."
     },
+    "busy": {
+      "heroJourney": "Hero's Journey analysis is running. Other narrative analyses can start once it finishes.",
+      "classify": "Reclassification from EEP is running. Other narrative analyses can start once it finishes.",
+      "refine": "LLM refinement is running. Other narrative analyses can start once it finishes.",
+      "other": "Another narrative analysis is running. Try again once it finishes."
+    },
     "stale": {
       "title": "This analysis may be out of date",
       "body": "The \"{{step}}\" step has run since this analysis was produced, so what follows describes older data. Re-run the analysis to refresh it."

@@ -9,6 +9,8 @@ export type NarrativeStructure = components['schemas']['NarrativeStructureRespon
 export type HeroJourneyStage = components['schemas']['HeroJourneyStage'];
 export type KernelSpineEvent = components['schemas']['KernelSpineEvent'];
 export type TemporalCoverageStats = components['schemas']['TemporalCoverageStats'];
+export type RunningNarrative = components['schemas']['RunningNarrativeResponse'];
+export type NarrativeOp = NonNullable<RunningNarrative['op']>;
 
 export type NarrativeReviewStatus = 'pending' | 'approved' | 'rejected';
 
@@ -33,8 +35,8 @@ export function fetchHeroJourneyTask(taskId: string): Promise<TaskStatus> {
 
 /**
  * Re-derive kernel/satellite from the EEP cache. Reads cache only — no LLM cost.
- * Rejects with ApiError 409 when every EEP entry is gone but classified events
- * remain, i.e. when the run would only reset them to "unclassified".
+ * Rejects with ApiError 409 when no event has an EEP entry, i.e. when the run
+ * would change nothing; or with 409 `batch_running` (see #21m).
  */
 export function classifyNarrative(bookId: string, force = false): Promise<TaskStatus> {
   return apiFetch<TaskStatus>('/narrative/classify', {
@@ -67,6 +69,14 @@ export function refineNarrative(
 
 export function fetchRefineTask(taskId: string): Promise<TaskStatus> {
   return apiFetch<TaskStatus>(`/narrative/refine/${taskId}`);
+}
+
+// ── The run going for a book (#21m) ──────────────────────────────
+
+/** Classify, refine and hero-journey share one lock per book; this names the
+ *  one holding it, so the page can follow it instead of offering a second. */
+export function fetchRunningNarrative(bookId: string): Promise<RunningNarrative> {
+  return apiFetch<RunningNarrative>(`/narrative/running?book_id=${bookId}`);
 }
 
 // ── Cached NarrativeStructure (#21k) ─────────────────────────────

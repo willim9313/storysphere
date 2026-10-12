@@ -11,6 +11,9 @@ export interface UseTensionTaskResult {
   /** The trigger was refused with the app's own 503 (no LLM provider). */
   llmBlocked: boolean;
   trigger: (triggerFn: () => Promise<{ taskId: string }>, triggerError: string) => Promise<void>;
+  /** Follow a task something else started (another tab, before a remount). */
+  adopt: (id: string) => void;
+  clearError: () => void;
 }
 
 /**
@@ -37,7 +40,7 @@ export function useTensionTask(
     [onDone],
   );
 
-  const { task, error, running, run } = useAsyncTask({
+  const { task, error, running, run, adopt, setError } = useAsyncTask({
     fetcher,
     defaultError,
     onDone: handleDone,
@@ -59,6 +62,8 @@ export function useTensionTask(
     [run],
   );
 
+  const clearError = useCallback(() => setError(null), [setError]);
+
   const llmBlocked = isLlmUnconfigured(triggerFailure);
-  return { task, error: llmBlocked ? null : error, running, llmBlocked, trigger };
+  return { task, error: llmBlocked ? null : error, running, llmBlocked, trigger, adopt, clearError };
 }
