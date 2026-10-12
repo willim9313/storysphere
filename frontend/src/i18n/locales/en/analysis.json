@@ -1798,7 +1798,8 @@
       "title": "No Hero's Journey yet",
       "message": "This analysis reads chapter summaries, not the source text. With summaries missing it reports success and produces zero stages — so check the two below first.",
       "trigger": "Start Hero's Journey analysis",
-      "running": "Analyzing… {{progress}}%",
+      "runningStep": "Analyzing · {{step}}",
+      "runningPlain": "Analyzing…",
       "prereqTitle": "Prerequisites",
       "prereqSummary": "Chapter summaries",
       "prereqEvents": "Event analysis (EEP)",
@@ -1827,9 +1828,16 @@
       "refine": "LLM refinement is running. Other narrative analyses can start once it finishes.",
       "other": "Another narrative analysis is running. Try again once it finishes."
     },
+    "heroStep": {
+      "load": "reading chapter summaries",
+      "llm": "LLM mapping stages",
+      "parse": "tidying results"
+    },
     "stale": {
       "title": "This analysis may be out of date",
-      "body": "The \"{{step}}\" step has run since this analysis was produced, so what follows describes older data. Re-run the analysis to refresh it."
+      "body": "The \"{{step}}\" step has run since this analysis was produced, so what follows describes older data. Re-run the analysis to refresh it.",
+      "spine": "This kernel/satellite classification predates the latest \"{{step}}\" run and may be out of date.",
+      "spineWithAction": "This kernel/satellite classification predates the latest \"{{step}}\" run and may be out of date; \"Reclassify from EEP\" below brings it up to date."
     },
     "guide": {
       "prefix": "Researcher guide:",

@@ -75,6 +75,13 @@ function PrereqRow({
   );
 }
 
+// Stage strings sent by the #21e runner (routers/narrative.py `_hero_journey`).
+const HERO_STEPS: Record<string, 'load' | 'llm' | 'parse'> = {
+  'loading chapter summaries': 'load',
+  'calling LLM for hero journey mapping': 'llm',
+  'parsing hero journey stages': 'parse',
+};
+
 // 404 here means "not analyzed yet" — an empty state, not a failure.
 const isNotFound = (err: unknown) => err instanceof ApiError && err.status === 404;
 
@@ -155,6 +162,13 @@ export default function NarrativePage() {
         ? 'refine'
         : null;
   const busyReason = runningOp ? t(`narrative.busy.${runningOp}`) : null;
+
+  // The hero-journey runner reports three fixed steps (10/20/90) around one
+  // LLM call; name the step rather than show a number that reads as measured.
+  const heroStep = HERO_STEPS[heroJourneyOp.task?.stage ?? ''];
+  const heroRunningLabel = heroStep
+    ? t('narrative.empty.runningStep', { step: t(`narrative.heroStep.${heroStep}`) })
+    : t('narrative.empty.runningPlain');
 
   // A trigger refused with 409 batch_running started nothing: follow the run
   // that holds the lock. If it is this very op, that is the answer. If it is
@@ -431,6 +445,13 @@ export default function NarrativePage() {
     el.classList.add('nl-flash');
     window.setTimeout(() => el.classList.remove('nl-flash'), 1700);
   };
+  // Without a hero journey, what is stale is the kernel/satellite split — the
+  // banner's button cannot fix that (#217), so the spine card says it in
+  // words, pointing at the control that can when there is one.
+  const spineStaleNote =
+    structure?.is_stale && !hasHeroJourney
+      ? t(unclassifiedIds.length > 0 ? 'narrative.stale.spineWithAction' : 'narrative.stale.spine', { step: staleStep })
+      : null;
   const staleBanner = structure?.is_stale ? (
     <div className="nl-stale" role="status">
       <strong>{t('narrative.stale.title')}</strong>
@@ -542,7 +563,7 @@ export default function NarrativePage() {
               reviewPending={reviewMutation.isPending}
               onRerun={() => handleTrigger(true)}
               rerunning={heroJourneyOp.running}
-              progress={heroJourneyOp.task?.progress ?? 0}
+              runningLabel={heroRunningLabel}
               rerunBlockedReason={blockedReason ?? (runningOp && runningOp !== 'heroJourney' ? busyReason : null)}
               kernelChapters={kernelChapters}
               bookId={bookId!}
@@ -610,10 +631,10 @@ export default function NarrativePage() {
               <div className="nl-progress" role="status">
                 <div className="nl-progress-line">
                   <span className="nl-progress-spin" aria-hidden="true" />
-                  {t('narrative.empty.running', { progress: heroJourneyOp.task?.progress ?? 0 })}
+                  {heroRunningLabel}
                 </div>
-                <div className="ss-progress">
-                  <div className="ss-progress-fill" style={{ width: `${heroJourneyOp.task?.progress ?? 0}%` }} />
+                <div className="ss-progress nl-progress-indet" aria-hidden="true">
+                  <div className="ss-progress-fill" />
                 </div>
               </div>
             ) : (
@@ -640,6 +661,7 @@ export default function NarrativePage() {
                 kernelEvents={kernelSpineQuery.data ?? []}
                 bookId={bookId!}
                 chapterCount={chapterCount}
+                staleNote={spineStaleNote}
               >
                 {unclassifiedBlock}
               </PlotSpine>

@@ -2111,7 +2111,7 @@ en 對應：Previewing／Requirement not met: Standard mode · KG backend set to
 [頁首 — 頁名 + 一句定位 + 書級 meta]
 [研究者導覽條 — GuidanceRibbon surface="narrative"，字串逐字]
 [索引卡 — ① 詮釋・英雄旅程 / ② 統計・事件骨幹 / ③ 旁證・其他結構線索]
-[過期橫條 — is_stale 且已有英雄旅程時，疊在英雄旅程卡上方（尚無英雄旅程時不出：過期的是 kernel 分類，這顆鈕管不到）；「✦ 重新分析 →」文字連結只捲動並聚焦、短暫高亮卡內 LLM 鈕（`#nl-hero-run`），不觸發分析]
+[過期橫條 — is_stale 且已有英雄旅程時，疊在英雄旅程卡上方（尚無英雄旅程時不出：過期的是 kernel 分類，這顆鈕管不到——改由事件骨幹卡內的文字提示說明，見「過期帶」）；「✦ 重新分析 →」文字連結只捲動並聚焦、短暫高亮卡內 LLM 鈕（`#nl-hero-run`），不觸發分析]
 [英雄旅程卡 — 標題列 + 書級審核 + 分段切換 + 缺席說明 + 圖｜階段詳情（sticky）]
 [事件骨幹卡 — 比例列 + 逐章核心事件 + 選定事件 + 未分類區塊 + 跳轉]
 [交叉證據卡 — 三列同軸 + 時序結構／張力兩欄]
@@ -2129,7 +2129,7 @@ en 對應：Previewing／Requirement not met: Standard mode · KG backend set to
 
 - **標題列**：「英雄旅程」h2＋框架連結（方法論頁）＋「已映射 N ／ 12 階段」。右側：狀態 badge（`ReviewBadge`）、**重新分析**（`.ss-btn-sm .ss-btn-secondary .ss-btn-llm`，無圖示）、**核可**（secondary）、**標記不適用**（ghost），後兩者無圖示。
 - **書級審核三值**（系統生成 · 未審閱／已核可／標記為不適用，沒有「已修改」，不套 15 頁逐條審核工具列）。核可與標記不適用是 `aria-pressed` 切換鈕：**再按一次亮著的鈕＝回到未審閱**（`PATCH …/review` 送 `pending`，計畫 Q5；邏輯在 `nextReviewStatus`）。亮著態＝`--bg-tertiary` 底＋粗體＋accent 字；亮著時 Tooltip 說明撤銷。
-- **重新分析的閘門**：與空態按鈕同一道摘要閘門（`summaryGate`）；缺章時 disabled，Tooltip 顯示「缺 N 章摘要，補齊後才會有可映射的內容」。分析中按鈕就地換成「分析中… {progress}%」（`progress` 是後端寫死的 10／20／90，照實顯示，不承諾 ETA）。
+- **重新分析的閘門**：與空態按鈕同一道摘要閘門（`summaryGate`）；缺章時 disabled，Tooltip 顯示「缺 N 章摘要，補齊後才會有可映射的內容」。分析中按鈕就地換成「分析中 · {步驟}」（`narrative.empty.runningStep`，步驟由後端 stage 字串對到 `narrative.heroStep.*`：讀取章節摘要／LLM 對應階段中／整理結果；認不得時「分析中…」）。**不顯示百分比**——後端的 10／20／90 在整段 LLM 呼叫期間停在 20，讀起來像有量測（2026-10-12 裁決）；進度條改為不定長度（`.nl-progress-indet`，reduced-motion 下為靜止淡條），不承諾 ETA。
 - **版面切換**：`.ss-seg`（`.nl-seg` 撐成四等分），每顆兩行＝名稱＋副標（`narrative.layout.*`／`narrative.viewHint.*`，spec §6 不可丟失）。`role="radiogroup"`／`radio`。一次只顯示一種，每種＝圖＋圖例＋階段詳情。預設章節對位帶。選取的階段在切換版面時保留（狀態在 `HeroJourneySection`）。
 - **缺席說明**（`.nl-absent-note`）：虛線框，只在有未識別階段時出現。
 - **圖＋詳情**（`.nl-hj-body`）：卡不限高；詳情欄 `.nl-detail` `position: sticky; top: 16px`。對位帶在右側（欄寬 340）、三相位分欄在右側（欄寬 380），圓環右側（圓環欄 460），**水平軌跡在下方全寬**（代表事件兩欄）。視窗 ≤ 1100 時單欄，詳情改為 `position: sticky; bottom: 0`（`max-height: 45vh`、內部捲動），點階段後不必捲到圖下方就看得到。
@@ -2190,7 +2190,7 @@ en 對應：Previewing／Requirement not met: Standard mode · KG backend set to
 
 - **空態**（英雄旅程未產生）：羅盤圖＋標題＋說明＋**前置條件列**（章節摘要、事件分析 EEP；在按鈕之前）＋「開始英雄旅程分析」（`.ss-btn-primary .ss-btn-llm`）＋成本提示；**事件骨幹仍渲染在下方**（前提是已有 narrative structure；全書 0 件已分類事件時 `GET /narrative` 回 404、不畫骨幹，空態卡已說明前提，比照事件分析頁 EV-1）。
 - **摘要缺章硬閘門**（`summaryGate`）：disabled＋「缺 N 章摘要，補齊後才會有可映射的內容」。**三條路徑共用同一道閘門**：空態按鈕、卡片標題列的重新分析、過期帶的「重新分析 →」。章節清單查詢不再因「已有分析」而停用（現況繞過閘門）。
-- **過期帶**（`.nl-stale`）：疊在英雄旅程卡上方（空態也顯示，但無按鈕）。`{step}` 用 `timelineModel.staleStepKey` 對到 reader 的步驟名（章節摘要／特徵萃取／知識圖譜／符號探索），不插原始 id；「重新分析 →」是 `.ss-btn-ghost .ss-btn-llm`，與卡內同一動作、同一道閘門。5-0 後重跑章節摘要也會使本頁過期。
+- **過期帶**（`.nl-stale`）：已有英雄旅程時疊在英雄旅程卡上方。尚無英雄旅程時不出（#217），改在**事件骨幹卡**標題列下方顯示同一外觀的文字提示、無按鈕（`narrative.stale.spine`；有未分類事件時用 `spineWithAction`，指向下方「依 EEP 重新分類」）——過期的是核心／衛星分類，英雄旅程鈕修不到（2026-10-12 裁決）。`{step}` 用 `timelineModel.staleStepKey` 對到 reader 的步驟名（章節摘要／特徵萃取／知識圖譜／符號探索），不插原始 id；「重新分析 →」是 `.ss-btn-ghost .ss-btn-llm`，與卡內同一動作、同一道閘門。5-0 後重跑章節摘要也會使本頁過期。
 
 #### 錯誤四分
 

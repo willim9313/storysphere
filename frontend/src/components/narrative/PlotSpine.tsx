@@ -13,9 +13,18 @@ interface PlotSpineProps {
   chapterCount?: number;
   /** Unclassified-events block, wired by the page that owns the tasks. */
   children?: React.ReactNode;
+  /** The classification predates a pipeline step (no hero journey to carry the banner). */
+  staleNote?: string | null;
 }
 
-export function PlotSpine({ structure, kernelEvents, bookId, chapterCount = 0, children }: Readonly<PlotSpineProps>) {
+export function PlotSpine({
+  structure,
+  kernelEvents,
+  bookId,
+  chapterCount = 0,
+  children,
+  staleNote = null,
+}: Readonly<PlotSpineProps>) {
   const { t } = useTranslation('analysis');
   const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -82,6 +91,13 @@ export function PlotSpine({ structure, kernelEvents, bookId, chapterCount = 0, c
           <ReviewBadge status={structure.review_status} />
         </div>
       </div>
+
+      {staleNote && (
+        <div className="nl-stale" role="status">
+          <strong>{t('narrative.stale.title')}</strong>
+          <span>{staleNote}</span>
+        </div>
+      )}
 
       {/* Proportion — satellite only takes width when the book actually has any,
           otherwise the bar reads as kernel vs unclassified, which is what it is. */}

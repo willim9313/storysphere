@@ -30,8 +30,9 @@ interface HeroJourneySectionProps {
   reviewPending: boolean;
   onRerun: () => void;
   rerunning: boolean;
-  /** Real task progress (the backend reports a fixed 10/20/90). */
-  progress: number;
+  /** What the run is doing now, already localized. Not a percentage: the
+   *  backend's 10/20/90 sat at 20 for the whole LLM call and read as measured. */
+  runningLabel: string;
   /** Set when the chapter-summary gate blocks a re-run; carries the reason. */
   rerunBlockedReason: string | null;
   kernelChapters: number[];
@@ -48,7 +49,7 @@ export function HeroJourneySection({
   reviewPending,
   onRerun,
   rerunning,
-  progress,
+  runningLabel,
   rerunBlockedReason,
   kernelChapters,
   bookId,
@@ -91,7 +92,7 @@ export function HeroJourneySection({
       disabled={rerunning || rerunBlockedReason !== null}
       onClick={onRerun}
     >
-      {rerunning ? t('narrative.empty.running', { progress }) : t('narrative.rerun')}
+      {rerunning ? runningLabel : t('narrative.rerun')}
     </button>
   );
 
@@ -150,10 +151,10 @@ export function HeroJourneySection({
         <div className="nl-progress" role="status">
           <div className="nl-progress-line">
             <span className="nl-progress-spin" aria-hidden="true" />
-            {t('narrative.empty.running', { progress })}
+            {runningLabel}
           </div>
-          <div className="ss-progress">
-            <div className="ss-progress-fill" style={{ width: `${progress}%` }} />
+          <div className="ss-progress nl-progress-indet" aria-hidden="true">
+            <div className="ss-progress-fill" />
           </div>
         </div>
       )}

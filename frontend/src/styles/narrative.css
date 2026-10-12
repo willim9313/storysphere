@@ -1689,6 +1689,15 @@ a.nl-sd-ev:hover {
   font-weight: 600;
   color: var(--fg-primary);
 }
+/* No measured progress exists for one LLM call, so the bar only says "working". */
+.nl-progress-indet .ss-progress-fill {
+  width: 35%;
+  animation: nl-indet 1.4s ease-in-out infinite;
+}
+@keyframes nl-indet {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(290%); }
+}
 .nl-progress-spin {
   width: 14px;
   height: 14px;
@@ -1751,6 +1760,7 @@ a.nl-sd-ev:hover {
    on (the script drops it after ~1.7s) instead of fading. */
 @media (prefers-reduced-motion: reduce) {
   .nl-progress-spin { animation: none; }
+  .nl-progress-indet .ss-progress-fill { animation: none; transform: none; width: 100%; opacity: 0.35; }
   .nl-flash {
     animation: none;
     box-shadow: 0 0 0 3px var(--accent);
