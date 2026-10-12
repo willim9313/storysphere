@@ -684,16 +684,26 @@ class NarrativeService:
 
         if review_status == "approved":
             structure.classification_source = "human_verified"
-        elif structure.classification_source == "human_verified":
-            events = await self._kg.get_events(document_id=document_id)
-            structure.classification_source = (
-                "llm_classified"
-                if any(e.narrative_weight_source == "llm_classified" for e in events)
-                else "summary_heuristic"
-            )
+        else:
+            await self._withdraw_verified_source(structure)
 
         await self._cache.set(cache_key, structure.model_dump())
         return structure
+
+    async def _withdraw_verified_source(self, structure: NarrativeStructure) -> None:
+        """Put ``classification_source`` back once an approval no longer stands.
+
+        The value before approval was never stored; it is recovered from the
+        events themselves, which each carry their own ``narrative_weight_source``.
+        """
+        if structure.classification_source != "human_verified":
+            return
+        events = await self._kg.get_events(document_id=structure.document_id)
+        structure.classification_source = (
+            "llm_classified"
+            if any(e.narrative_weight_source == "llm_classified" for e in events)
+            else "summary_heuristic"
+        )
 
     # ── Phase 3: Hero's Journey mapping ──────────────────────────────────────
 
@@ -760,6 +770,13 @@ class NarrativeService:
         ns = await self._cache.get_as(ns_key, NarrativeStructure)
         if ns is not None:
             ns.hero_journey_stages = stages
+            # A fresh mapping replaces the card the review buttons sit on, so an
+            # earlier approval or rejection no longer describes what is shown.
+            # (refine_with_llm keeps the review on purpose — it changes some
+            # events' weights, not the mapping.)
+            if ns.review_status != "pending":
+                ns.review_status = "pending"
+                await self._withdraw_verified_source(ns)
             await self._cache.set(ns_key, ns.model_dump())
 
         logger.info(

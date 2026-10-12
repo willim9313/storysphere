@@ -1816,7 +1816,8 @@
       "classifyFailed": "重新分類失敗。",
       "refineTrigger": "觸發 LLM 精煉失敗，請稍後再試。",
       "refineFailed": "LLM 精煉失敗。",
-      "classifyRefused": "無法重新分類：全書 {{total}} 個事件都已經沒有事件分析（EEP）快取，執行下去會把目前 {{classified}} 個已分類事件全部抹成未分類。請先在事件分析頁重跑分析。"
+      "classifyRefused": "無法重新分類：全書 {{total}} 個事件都已經沒有事件分析（EEP）快取，執行下去會把目前 {{classified}} 個已分類事件全部抹成未分類。請先在事件分析頁重跑分析。",
+      "reviewFailed": "更新審核狀態失敗，請稍後再試。"
     },
     "busy": {
       "heroJourney": "英雄旅程分析進行中，完成後才能執行其他敘事分析。",

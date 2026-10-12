@@ -1816,7 +1816,8 @@
       "classifyFailed": "Reclassification failed.",
       "refineTrigger": "Failed to start LLM refinement. Please try again.",
       "refineFailed": "LLM refinement failed.",
-      "classifyRefused": "Cannot reclassify: none of the {{total}} events still have an event-analysis (EEP) cache entry, so all {{classified}} classified events would be reset to unclassified. Re-run event analysis first."
+      "classifyRefused": "Cannot reclassify: none of the {{total}} events still have an event-analysis (EEP) cache entry, so all {{classified}} classified events would be reset to unclassified. Re-run event analysis first.",
+      "reviewFailed": "Could not update the review status. Please try again later."
     },
     "busy": {
       "heroJourney": "Hero's Journey analysis is running. Other narrative analyses can start once it finishes.",
