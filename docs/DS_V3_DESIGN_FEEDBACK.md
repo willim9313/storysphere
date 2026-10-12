@@ -2014,6 +2014,7 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 | # | 類型 | 狀態 |
 |---|------|------|
 | NL-1 | 缺陷 · 整句說明文字用 `fg-muted` 與 11px，低於可讀門檻 | 待同步 |
+| NL-2 | 遺漏 · 敘事任務執行中停用其他觸發，停用原因以可見文字說明 | 待同步 |
 
 ### NL-1 整句說明文字的字級與對比
 
@@ -2021,6 +2022,13 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 - **問題**：`DESIGN_TOKENS.md` 語意層級規定 11px（`--font-size-2xs`）只給「註記・計數・eyebrow」，次要說明用 12px；`DESIGN.md` 規定 `fg-muted` 只給註記、計數、placeholder。稿上的整句說明卻畫成 11px 或 `fg-muted`（對比約 2.9–3.4:1，未達 4.5:1）。
 - **目前處置**（使用者 2026-10-10 裁決）：僅本頁——整句說明（`nl-sd-note`、`nl-sd-shared`、`nl-band-note`、`nl-cross-body`、`nl-cross-meta`、`nl-cross-peak-note`、`nl-unclass-fact-v`）升到 `--font-size-xs`；承載資訊的 `fg-muted` 文字（`nl-sd-body.is-muted`、`nl-evbox-hint`、`nl-ev-empty`、`nl-cross-meta`、`nl-seg-hint`）改 `--fg-secondary`，兩主題皆換。標籤、章號、徽章維持 11px／muted。不改 token。
 - **請設計端**：16 稿把整句說明改 12px、承載資訊文字改 secondary；全站其他頁同樣用法（`2xs` 約六百處、`fg-muted` 數百處）尚未清點，請決定是否整體套用此規則。
+
+### NL-2 敘事任務執行中停用其他觸發
+
+- **出處**：16 敘事結構稿英雄旅程卡「重新分析」、空態「開始英雄旅程分析」、未分類區塊「依 EEP 重新分類」「LLM 精煉」；稿上只畫了本鈕自己的「分析中…」，沒有畫「另一項敘事分析執行中」時其他鈕的樣子。impeccable critique／audit 敘事結構頁（2026-10-12）P1
+- **問題**：三項任務改寫同一份 NarrativeStructure 快取，後端已改為同書共用一把鎖（API #21m，執行中回 409 `batch_running`）；前端若不停用，使用者會按出一個必定被拒的請求。
+- **目前處置**（使用者 2026-10-12 裁決）：任一項執行中，其餘觸發鈕 disabled，原因以**可見文字**（`.nl-busy-note`，12px、`fg-secondary`，`role="status"`）點名是哪一項在跑——不比照 EV-2／SY-2 只放 Tooltip，因為 disabled 鈕無法聚焦、鍵盤與報讀器讀不到。位置：英雄旅程卡上方（分類／精煉執行中）、空態觸發鈕旁（取代成本提示）、未分類區塊按鈕列下方（英雄旅程執行中）。核可／標記不適用不停用（不花 token）。四句（`narrative.busy.*`）為工程草稿。
+- **請設計端**：補畫停用態與說明句位置，定案四句文案；並決定 EV-2／SY-2 是否也改為可見文字。
 
 ## 稿外新增 · 象徵意象
 

@@ -1288,6 +1288,9 @@ export interface paths {
          *     is genuinely nothing — a run no longer resets weights it cannot reproduce —
          *     but a task that "succeeds" having done nothing is not an answer, so the
          *     caller is told instead of watching a no-op complete.
+         *
+         *     Also 409 (``code: batch_running``) while another narrative run is going for
+         *     the book — see ``_busy``.
          */
         post: operations["classify_narrative_api_v1_narrative_classify_post"];
         delete?: never;
@@ -1328,6 +1331,8 @@ export interface paths {
          *
          *     By default refines all satellite events. Supply ``event_ids`` to target
          *     specific events. Requires heuristic classification to have run first.
+         *
+         *     409 (``code: batch_running``) while another narrative run is going for the book.
          */
         post: operations["refine_narrative_api_v1_narrative_refine_post"];
         delete?: never;
@@ -1367,6 +1372,8 @@ export interface paths {
          * @description Start Campbell's Hero's Journey stage mapping for a book.
          *
          *     Returns 202 with ``task_id``. Poll ``GET /narrative/hero-journey/{task_id}``.
+         *
+         *     409 (``code: batch_running``) while another narrative run is going for the book.
          */
         post: operations["map_hero_journey_api_v1_narrative_hero_journey_post"];
         delete?: never;
@@ -1384,6 +1391,29 @@ export interface paths {
         };
         /** Get Hero Journey Task */
         get: operations["get_hero_journey_task_api_v1_narrative_hero_journey__task_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/narrative/running": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Running Narrative
+         * @description The classify / refine / hero-journey run going for this book (#21m).
+         *
+         *     Read-only: lets the page pick a run back up after a remount (or from
+         *     another tab) instead of offering to start one the POSTs would refuse with 409.
+         */
+        get: operations["get_running_narrative_api_v1_narrative_running_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -3940,6 +3970,16 @@ export interface components {
             eventId: string;
             /** Taskid */
             taskId: string;
+        };
+        /**
+         * RunningNarrativeResponse
+         * @description The narrative run going for a book (#21m), or both fields null.
+         */
+        RunningNarrativeResponse: {
+            /** Op */
+            op?: ("classify" | "refine" | "heroJourney") | null;
+            /** Taskid */
+            taskId?: string | null;
         };
         /**
          * RunningSymbolAnalysesResponse
@@ -7100,6 +7140,15 @@ export interface operations {
                     "application/json": components["schemas"]["TaskStatus"];
                 };
             };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -7162,6 +7211,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaskStatus"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Validation Error */
@@ -7228,6 +7286,15 @@ export interface operations {
                     "application/json": components["schemas"]["TaskStatus"];
                 };
             };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -7257,6 +7324,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaskStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_running_narrative_api_v1_narrative_running_get: {
+        parameters: {
+            query: {
+                /** @description Book identifier */
+                book_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunningNarrativeResponse"];
                 };
             };
             /** @description Validation Error */

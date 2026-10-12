@@ -1665,6 +1665,13 @@ a.nl-sd-ev:hover {
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
 }
+/* Another narrative run holds the book's lock: why a trigger waits. Visible
+   text, not a tooltip — a disabled button cannot be focused to reveal one. */
+.nl-busy-note {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+}
 /* Running state: spinner + percent on one line, then the progress bar. */
 .nl-progress {
   display: flex;

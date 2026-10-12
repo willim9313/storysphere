@@ -28,6 +28,8 @@ interface UnclassifiedBlockProps {
   refusedMessage: string | null;
   /** The refine trigger was answered with the app's own 503 (no LLM provider). */
   llmBlocked: boolean;
+  /** Another narrative run holds the book's lock (#21m); why both buttons wait. */
+  busyReason: string | null;
 }
 
 export function UnclassifiedBlock({
@@ -43,10 +45,11 @@ export function UnclassifiedBlock({
   error,
   refusedMessage,
   llmBlocked,
+  busyReason,
 }: Readonly<UnclassifiedBlockProps>) {
   const { t } = useTranslation('analysis');
   if (count === 0) return null;
-  const busy = classifyRunning || refineRunning;
+  const busy = classifyRunning || refineRunning || busyReason !== null;
   const eventsPath = `/books/${bookId}/events`;
 
   const facts = [
@@ -98,6 +101,11 @@ export function UnclassifiedBlock({
           </Link>
         )}
       </div>
+      {busyReason && (
+        <div className="nl-busy-note" role="status">
+          {busyReason}
+        </div>
+      )}
     </div>
   );
 }

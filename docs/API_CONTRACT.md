@@ -2897,6 +2897,8 @@ HITL 審核 NarrativeStructure（approved / rejected / pending）。
 回單筆而非清單：鎖是書級的，同時至多一項。頁面重新掛載（或另一個分頁已開始）時用它接手，而不是再給一次觸發鈕。
 記錄與 #7k／#15k 同一套進程內 registry：單一 worker 有效，後端重啟後為 null。#21h（時序分析）不在這把鎖內。
 
+**UI 使用頁面**：敘事結構頁——進頁面時接手進行中的任務、任一 POST 回 409 `batch_running` 時接手（`fetchRunningNarrative`，不走 react-query）
+
 ---
 
 ## 跨書搜尋
