@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic.alias_generators import to_camel
 
 from storysphere.domain.narrative import NarrativeStructure
 
@@ -28,6 +29,18 @@ class HeroJourneyRequest(BaseModel):
     document_id: str
     language: str = "en"
     force: bool = False
+
+
+NarrativeOp = Literal["classify", "refine", "heroJourney"]
+
+
+class RunningNarrativeResponse(BaseModel):
+    """The narrative run going for a book (#21m), or both fields null."""
+
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+    op: NarrativeOp | None = None
+    task_id: str | None = None
 
 
 class NarrativeReviewRequest(BaseModel):
