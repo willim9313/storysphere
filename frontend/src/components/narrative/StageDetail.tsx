@@ -124,9 +124,17 @@ export function StageDetail({ stage, theory, events, allStages, bookId, kernelCh
               </>
             );
             return bookId ? (
-              <Link key={id} className="nl-sd-ev" to={`/books/${bookId}/events?event=${id}`}>
-                {inner}
-              </Link>
+              <div key={id} className="nl-sd-ev-item">
+                <Link className="nl-sd-ev" to={`/books/${bookId}/events?event=${id}`}>
+                  {inner}
+                </Link>
+                {/* One step to the source chapter, beside the analysis link. */}
+                {ev.chapter != null && (
+                  <Link className="nl-sd-src" to={`/books/${bookId}`} state={{ chapterNumber: ev.chapter }}>
+                    {t('narrative.toSource', { ch: ev.chapter })}
+                  </Link>
+                )}
+              </div>
             ) : (
               <div key={id} className="nl-sd-ev">
                 {inner}

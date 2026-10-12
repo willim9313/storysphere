@@ -1,6 +1,6 @@
 // Event Spine — book-level Kernel/Satellite stats + kernel events, by chapter.
 import { useMemo, useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { TriangleAlert } from 'lucide-react';
 import type { KernelSpineEvent, NarrativeStructure } from '@/api/narrative';
@@ -27,7 +27,6 @@ export function PlotSpine({
   staleNote = null,
 }: Readonly<PlotSpineProps>) {
   const { t } = useTranslation('analysis');
-  const navigate = useNavigate();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   const counts = {
@@ -187,13 +186,12 @@ export function PlotSpine({
                 {t(`timeline.eventTypes.${selected.event_type}`, { defaultValue: selected.event_type })}
               </span>
               <span className="nl-evbox-title">{selected.title}</span>
-              <button
-                type="button"
-                className="nl-evbox-link"
-                onClick={() => navigate(`/books/${bookId}/events?event=${selected.id}`)}
-              >
+              <Link className="nl-evbox-link" to={`/books/${bookId}`} state={{ chapterNumber: selected.chapter }}>
+                {t('narrative.toSource', { ch: selected.chapter })}
+              </Link>
+              <Link className="nl-evbox-link" to={`/books/${bookId}/events?event=${selected.id}`}>
                 {t('narrative.spine.openInEvents')}
-              </button>
+              </Link>
             </div>
             <p className="nl-evbox-sig">{selected.significance || selected.description || '—'}</p>
           </>
@@ -206,13 +204,9 @@ export function PlotSpine({
 
       <div className="nl-spine-foot">
         <span className="nl-spine-foot-t">{t('narrative.spine.footnote')}</span>
-        <button
-          type="button"
-          onClick={() => navigate(`/books/${bookId}/events`)}
-          className="ss-btn ss-btn-md ss-btn-secondary"
-        >
+        <Link to={`/books/${bookId}/events`} className="ss-btn ss-btn-md ss-btn-secondary">
           {t('narrative.spine.jump')} →
-        </button>
+        </Link>
       </div>
     </section>
   );
