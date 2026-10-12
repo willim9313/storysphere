@@ -1725,6 +1725,8 @@
       "barKernel": "Kernel {{n}}",
       "barSatellite": "Satellite {{n}}",
       "barSatelliteNone": "Satellite 0 · this book has none",
+      "dominantKernel": "{{count}} of {{total}} events in this book are classed as kernels — event analysis judges each event alone, with no book-wide baseline, so it cannot yet tell major from minor (B-133).",
+      "dominantSatellite": "{{count}} of {{total}} events in this book are classed as satellites — event analysis judges each event alone, with no book-wide baseline, so it cannot yet tell major from minor (B-133).",
       "barUnclassified": "Unclassified {{n}}",
       "noKernel": "No kernel events",
       "evHint": "Pick an event to see what it signifies, and the way through to it.",
@@ -1762,7 +1764,7 @@
       "rowKernelSub": "{{n}} total",
       "rowTension": "Tension peak",
       "rowTensionSub": "highest TEU per chapter",
-      "notePeak": "Chapter {{ch}} is where the layers peak together: tension {{tension}}, stage {{stages}}, {{kernels}} kernel events.",
+      "notePeak": "Among chapters where all three layers register, chapter {{ch}} has the highest tension ({{tension}}): it falls in stage {{stages}} and has {{kernels}} kernel events.",
       "noteGap": "Chapter {{ch}} carries tension and a stage but no kernel events at all — event classification stops at chapter {{last}}; the chapter is not empty.",
       "temporalTitle": "Temporal structure",
       "temporalSub": "Genette · narrative order vs story order",
@@ -1816,7 +1818,7 @@
       "classifyFailed": "Reclassification failed.",
       "refineTrigger": "Failed to start LLM refinement. Please try again.",
       "refineFailed": "LLM refinement failed.",
-      "classifyRefused": "Cannot reclassify: none of the {{total}} events still have an event-analysis (EEP) cache entry, so all {{classified}} classified events would be reset to unclassified. Re-run event analysis first.",
+      "classifyRefused": "Cannot reclassify: none of the {{total}} events has an event-analysis (EEP) result yet, so this run would change nothing (the {{classified}} classified events stay as they are). Run event analysis first.",
       "reviewFailed": "Could not update the review status. Please try again later."
     },
     "busy": {

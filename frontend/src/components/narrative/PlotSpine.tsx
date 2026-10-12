@@ -4,6 +4,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { KernelSpineEvent, NarrativeStructure } from '@/api/narrative';
 import { ReviewBadge } from './atoms';
+import { IMPORTANCE_DOMINANT_SHARE, IMPORTANCE_MIN_SAMPLE } from '@/components/analysis/overview/eventBackboneModel';
 
 interface PlotSpineProps {
   structure: NarrativeStructure;
@@ -26,6 +27,18 @@ export function PlotSpine({ structure, kernelEvents, bookId, chapterCount = 0, c
   };
   const total = counts.kernel + counts.satellite + counts.unclassified;
   const pct = (n: number) => (total > 0 ? (n / total) * 100 : 0);
+  // EEP judges each event alone and has put whole books on one side (B-133).
+  // Past the event page's thresholds, the split is the classifier's, not the
+  // book's — so say that rather than "this book has no satellites".
+  const classified = counts.kernel + counts.satellite;
+  const dominant =
+    classified >= IMPORTANCE_MIN_SAMPLE
+      ? counts.kernel / classified >= IMPORTANCE_DOMINANT_SHARE
+        ? 'kernel'
+        : counts.satellite / classified >= IMPORTANCE_DOMINANT_SHARE
+          ? 'satellite'
+          : null
+      : null;
 
   const srcLabel = {
     summary_heuristic: t('narrative.source.heuristic'),
@@ -89,13 +102,21 @@ export function PlotSpine({ structure, kernelEvents, bookId, chapterCount = 0, c
             <span>{t('narrative.spine.barKernel', { n: counts.kernel })}</span>
             {/* "衛星 0 · 本書未出現此分類" and a bare "衛星 0" are different
                 statements; only the first says the book has no such class. */}
-            {counts.satellite > 0 ? (
+            {counts.satellite > 0 || dominant ? (
               <span>{t('narrative.spine.barSatellite', { n: counts.satellite })}</span>
             ) : (
               <span className="is-muted">{t('narrative.spine.barSatelliteNone')}</span>
             )}
             <span>{t('narrative.spine.barUnclassified', { n: counts.unclassified })}</span>
           </div>
+          {dominant && (
+            <p className="nl-lead">
+              {t(dominant === 'kernel' ? 'narrative.spine.dominantKernel' : 'narrative.spine.dominantSatellite', {
+                count: dominant === 'kernel' ? counts.kernel : counts.satellite,
+                total: classified,
+              })}
+            </p>
+          )}
         </div>
       </div>
 
