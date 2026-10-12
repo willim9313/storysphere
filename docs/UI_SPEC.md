@@ -2163,7 +2163,7 @@ en 對應：Previewing／Requirement not met: Standard mode · KG backend set to
 
 #### 事件骨幹（`PlotSpine`，`#nl-spine`）
 
-標題列「事件骨幹」＋ `Chatman kernel / satellite`（方法論連結）＋ lead；右側來源 badge（LLM 分類帶 `.ss-llm-glyph` 字符，因為那是 LLM 成本的記號）＋審核 badge。比例列：`核心 N`／`衛星 N` 或 `衛星 0 · 本書未出現此分類`（與 `衛星 0` 是兩回事，衛星為 0 時比例條不佔寬）／`未分類 N`。逐章核心事件欄（`repeat(auto-fill, minmax(106px, 1fr))`，空章顯示「無核心事件」），選取事件顯示意義與深連結。選取態＝`--accent` 底、accent-fg 字。
+標題列「事件骨幹」＋ `Chatman kernel / satellite`（方法論連結）＋ lead；右側來源 badge（LLM 分類帶 `.ss-llm-glyph` 字符，因為那是 LLM 成本的記號）＋審核 badge。比例列：`核心 N`／`衛星 N` 或 `衛星 0 · 本書未出現此分類`（與 `衛星 0` 是兩回事，衛星為 0 時比例條不佔寬）／`未分類 N`。**重要度退化**（已分類 ≥ 10 件且單一類 ≥ 90%，門檻沿用事件頁 `dominantImportance`）：圖例改寫裸的 `衛星 N`，下方加一句 `narrative.spine.dominantKernel`／`dominantSatellite`（「本書 N／M 件判為核心——…分不出主次（B-133）」），不再說「本書未出現此分類」（NL-3）。逐章核心事件欄（`repeat(auto-fill, minmax(106px, 1fr))`，空章顯示「無核心事件」），選取事件顯示意義與深連結。選取態＝`--accent` 底、accent-fg 字。
 
 **未分類區塊**（`UnclassifiedBlock`，數量 0 時不渲染）：三段說明（為什麼／影響什麼／可以怎麼做）＋兩顆按鈕，三條軸互不蘊含：
 
@@ -2174,12 +2174,12 @@ en 對應：Previewing／Requirement not met: Standard mode · KG backend set to
 
 - 重新分類按鈕旁提示「零成本 · 寫入資料」，精煉旁提示「會呼叫 LLM，消耗 token」（`tension.state.tokenHintShort`，成本提示文字本身不帶字符）。
 - 確認框（`ConfirmDialog`）：重新分類 `costHint`＝`classifyCost`，`sections`＝`classifyAffects`（以 `splitAffects` 拆成「將被刪除／覆寫」標題與一個項目；內文用既有 `classifyConfirmBody`）；精煉 `spendsTokens`、`costHint`＝`tokenHintShort`、`sections`＝`refineAffects`。稿上「將被標記為過期」段目前沒有下游產物清單可列，**空段不渲染**（`visibleSections`）。
-- **409**（第四種失敗）：照現況文案（`narrative.errors.classifyRefused`，**標待修、歸 i18n 線**——B-096 後 409 的真實理由是「這次執行不會改變任何東西」，不是「會抹成未分類」），框內唯一出口「前往事件分析頁 →」，**不設 force 鈕**。
+- **409**（第四種失敗）：文案 `narrative.errors.classifyRefused` 已於 2026-10-12 改為現況（B-096 後 409 的理由是「這次執行不會改變任何東西」，不是「會抹成未分類」）；只對不帶 `code` 的 409，`batch_running` 見 #21m，框內唯一出口「前往事件分析頁 →」，**不設 force 鈕**。
 - 精煉的 503（未設定 LLM provider）→ 就地 `LlmUnconfiguredNotice`。
 
 #### 交叉證據（`CrossEvidence`，`#nl-cross`）
 
-三列同軸（階段覆蓋／核心事件／張力峰值＋章號尺規），照真實資料畫、不補假的隆起；無資料的章是虛線細線。「階段覆蓋」同樣只算實際章節（遇見導師 1、2、5、8 不覆蓋 3、4）。判讀句即時計算。下方兩欄：
+三列同軸（階段覆蓋／核心事件／張力峰值＋章號尺規），照真實資料畫、不補假的隆起；無資料的章是虛線細線。「階段覆蓋」同樣只算實際章節（遇見導師 1、2、5、8 不覆蓋 3、4）。判讀句即時計算：取「三層都有值的章」中張力最高者，文案照實說「三層都有訊號的章節中，第 N 章張力最高」，不宣稱各層同時到頂（NL-3）。下方兩欄：
 
 - **時序結構**（Genette）：未分析＝虛線佔位＋說明＋覆蓋率（`coverage_sufficient` 取後端，不複寫門檻）＋「在時間軸頁補齊並執行 →」；已分析＝判定句（線性／部分線性／非線性）＋倒敘／預敘筆數（timeline `temporalDisplacement.type` 計數，字串沿用 `timeline.action.displacementDone`）。
 - **張力**：強度最高三章，各標涵蓋它的階段與核心事件數。

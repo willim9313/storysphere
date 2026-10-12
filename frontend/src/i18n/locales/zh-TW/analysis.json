@@ -1725,6 +1725,8 @@
       "barKernel": "核心 {{n}}",
       "barSatellite": "衛星 {{n}}",
       "barSatelliteNone": "衛星 0 · 本書未出現此分類",
+      "dominantKernel": "本書 {{count}}／{{total}} 件判為核心——事件分析逐件判定、缺全書基準，目前分不出主次（B-133）。",
+      "dominantSatellite": "本書 {{count}}／{{total}} 件判為衛星——事件分析逐件判定、缺全書基準，目前分不出主次（B-133）。",
       "barUnclassified": "未分類 {{n}}",
       "noKernel": "無核心事件",
       "evHint": "點任一事件，這裡顯示它的意義與深連結。",
@@ -1762,7 +1764,7 @@
       "rowKernelSub": "{{n}} 件",
       "rowTension": "張力峰值",
       "rowTensionSub": "每章最高 TEU",
-      "notePeak": "第 {{ch}} 章是各層同時到頂的地方：張力 {{tension}}、階段 {{stages}} 的落點、{{kernels}} 件核心事件。",
+      "notePeak": "三層都有訊號的章節中，第 {{ch}} 章張力最高（{{tension}}）：落在階段 {{stages}}，有 {{kernels}} 件核心事件。",
       "noteGap": "第 {{ch}} 章有張力也有階段，卻沒有任何核心事件——那是事件分類只跑到第 {{last}} 章，不是那一章沒有事發生。",
       "temporalTitle": "時序結構",
       "temporalSub": "Genette · 敘述順序 vs 故事順序",
@@ -1816,7 +1818,7 @@
       "classifyFailed": "重新分類失敗。",
       "refineTrigger": "觸發 LLM 精煉失敗，請稍後再試。",
       "refineFailed": "LLM 精煉失敗。",
-      "classifyRefused": "無法重新分類：全書 {{total}} 個事件都已經沒有事件分析（EEP）快取，執行下去會把目前 {{classified}} 個已分類事件全部抹成未分類。請先在事件分析頁重跑分析。",
+      "classifyRefused": "無法重新分類：全書 {{total}} 個事件都還沒有事件分析（EEP）結果，這次執行不會改變任何東西（目前 {{classified}} 個已分類事件維持原樣）。請先到事件分析頁執行分析。",
       "reviewFailed": "更新審核狀態失敗，請稍後再試。"
     },
     "busy": {
