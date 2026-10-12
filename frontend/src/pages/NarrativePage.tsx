@@ -361,6 +361,7 @@ export default function NarrativePage() {
   const runClassify = () => {
     setPendingAction(null);
     setClassifyRefused(null);
+    refineOp.clearError();
     triggerFollowing('classify', classifyOp, async () => {
       try {
         return await classifyNarrative(bookId!);
@@ -383,6 +384,10 @@ export default function NarrativePage() {
   };
   const runRefine = () => {
     setPendingAction(null);
+    // The block shows one message, classify's first: a refusal or failure left
+    // over from an earlier classify would otherwise stand in for this run's.
+    setClassifyRefused(null);
+    classifyOp.clearError();
     triggerFollowing(
       'refine',
       refineOp,
@@ -517,6 +522,11 @@ export default function NarrativePage() {
             {staleBanner}
             {heroJourneyOp.llmBlocked && <LlmUnconfiguredNotice />}
             {heroJourneyOp.error && <div className="nl-empty-error">{heroJourneyOp.error}</div>}
+            {reviewMutation.isError && (
+              <div className="nl-empty-error" role="alert">
+                {t('narrative.errors.reviewFailed')}
+              </div>
+            )}
             {runningOp && runningOp !== 'heroJourney' && (
               <div className="nl-busy-note" role="status">
                 {busyReason}

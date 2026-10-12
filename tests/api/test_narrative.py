@@ -558,6 +558,71 @@ class TestUpdateReview:
         assert await svc.update_review("no-such-book", "approved") is None
 
 
+class TestHeroRerunResetsReview:
+    """A fresh mapping replaces the card the review buttons sit on."""
+
+    def _service(self, review_status: str, source: str):
+        from types import SimpleNamespace
+
+        from storysphere.services.narrative_service import NarrativeService
+
+        structure = NarrativeStructure(
+            document_id="book-1", review_status=review_status, classification_source=source
+        )
+        kg = AsyncMock()
+        kg.get_events.return_value = [
+            Event(
+                id="e1",
+                title="e1",
+                event_type=EventType.PLOT,
+                description="…",
+                chapter=1,
+                narrative_weight="kernel",
+                narrative_weight_source="llm_classified",
+            )
+        ]
+        doc = AsyncMock()
+        doc.get_document.return_value = SimpleNamespace(
+            chapters=[SimpleNamespace(summary="ch1 summary")]
+        )
+        cache = AsyncMock()
+        cache.get_as.return_value = structure
+        svc = NarrativeService(kg, doc, cache)
+        svc._call_hero_journey_llm = AsyncMock(
+            return_value=[
+                HeroJourneyStage(
+                    stage_id="ordinary_world",
+                    stage_name="Ordinary World",
+                    chapter_range=[1],
+                    confidence=0.9,
+                )
+            ]
+        )
+        return svc, structure
+
+    @pytest.mark.asyncio
+    async def test_forced_rerun_sends_an_approval_back_to_pending(self):
+        svc, structure = self._service("approved", "human_verified")
+        await svc.map_hero_journey("book-1", force=True)
+        assert structure.review_status == "pending"
+        assert structure.classification_source == "llm_classified"
+
+    @pytest.mark.asyncio
+    async def test_forced_rerun_clears_a_rejection(self):
+        svc, structure = self._service("rejected", "llm_classified")
+        await svc.map_hero_journey("book-1", force=True)
+        assert structure.review_status == "pending"
+        assert structure.classification_source == "llm_classified"
+
+    @pytest.mark.asyncio
+    async def test_pending_stays_pending_without_touching_the_kg(self):
+        svc, structure = self._service("pending", "summary_heuristic")
+        await svc.map_hero_journey("book-1", force=True)
+        assert structure.review_status == "pending"
+        assert structure.classification_source == "summary_heuristic"
+        svc._kg.get_events.assert_not_awaited()
+
+
 # ── Background tasks are cancellable ─────────────────────────────────────────
 
 

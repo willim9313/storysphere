@@ -2588,6 +2588,8 @@ interface ChapterDistribution {
 
 **Response 202**：`TaskStatus`（含 taskId；`result.stages` 為 HeroJourneyStage[]）
 
+**副作用（審核）**：新映射寫回 NarrativeStructure 時，若 `review_status` 不是 `pending`，一律重設為 `pending`（已核可時 `classification_source` 依 #21l 撤回規則還原）——審核鈕就在英雄旅程卡上，重跑換掉了整張卡的內容。#21a／#21c 刻意**保留**審核狀態（只改部分事件權重）。
+
 **Response 409 `batch_running`**：同 #21a（三者共用一把鎖）。在 503 之前檢查。
 
 **Response 503**：未設定 LLM provider（見「通用規則」）；第 5 批新增，不建立 task
@@ -3130,6 +3132,7 @@ response schema 與測試檔。
   - 2026-08-12：#21k 的 `representative_event_ids` 改為讀取時推導（response schema 不變，欄位早已存在）。詳見 #21k 段落。
   - 2026-08-12：#21a 新增 409（分類會抹除既有分類時拒絕啟動），service 層同步加守衛。詳見 #21a 段落。
   - 2026-10-04（DS v3 第 5 批）：#21c／#21e 補 503；#21l 開放 `pending`；#21k 過期來源加 `summarization`、代表事件改只取 `chapter_range` 實際列出的章；#21a 的 409 說明改為現況（`_would_wipe` 已於 B-096 刪除）；#21j `narrative_weight` 更正為 string；#15h 加選用 `evidence_summary`。
+  - 2026-10-12：#21e 新映射寫回時審核重設為 `pending`。
   - 2026-10-12：#21a／#21c／#21e 同書共用一把鎖，執行中回 409 `batch_running`；新增 #21m `GET /narrative/running`。
   - 2026-08-12：#21l 核可時一併寫入 `classification_source='human_verified'`（撤回核可時由事件來源還原）。詳見 #21l 段落。
 - [x] **#2-a / #3 lastOpenedAt**：`POST /books/:bookId/opened`（#2-c）寫入，#1 / #2-a / #3 回傳 `lastOpenedAt`
