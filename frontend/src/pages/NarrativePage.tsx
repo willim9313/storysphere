@@ -61,7 +61,9 @@ function PrereqRow({
 }>) {
   return (
     <div className="nl-prereq-row">
-      <span className={ready ? 'nl-prereq-mark is-ready' : 'nl-prereq-mark'}>{ready ? '●' : '○'}</span>
+      <span className={ready ? 'nl-prereq-mark is-ready' : 'nl-prereq-mark'} aria-hidden="true">
+        {ready ? '●' : '○'}
+      </span>
       <span className="nl-prereq-name">{name}</span>
       <span className="nl-prereq-count">{count}</span>
       <span className="nl-prereq-hint">{hint}</span>
@@ -343,7 +345,11 @@ export default function NarrativePage() {
       warn: heroWarn,
       href: '#nl-hero',
     },
-    {
+  ];
+  // The spine is only drawn once a classification exists (GET /narrative 404
+  // otherwise) — same rule as card 3 below.
+  if (structure) {
+    indexCards.push({
       n: 2,
       role: t('narrative.index.role2'),
       title: t('narrative.index.title2'),
@@ -351,8 +357,8 @@ export default function NarrativePage() {
       status: t('narrative.index.kernelStatus', { n: kernelCount }),
       warn: false,
       href: '#nl-spine',
-    },
-  ];
+    });
+  }
   if (hasHeroJourney) {
     // Only listed once the section it points at exists — a table-of-contents
     // entry for nothing is worse than no entry.
@@ -523,7 +529,7 @@ export default function NarrativePage() {
               <Trans i18nKey="narrative.guide.body" ns="analysis" components={{ strong: <strong /> }} />
             </GuidanceRibbon>
 
-            <nav className="nl-index">
+            <nav className="nl-index" aria-label={t('narrative.index.navLabel')}>
               {indexCards.map((c) => (
                 <a key={c.n} className="nl-index-card" href={c.href}>
                   <div className="nl-index-top">
@@ -549,11 +555,6 @@ export default function NarrativePage() {
             {reviewMutation.isError && (
               <div className="nl-empty-error" role="alert">
                 {t('narrative.errors.reviewFailed')}
-              </div>
-            )}
-            {runningOp && runningOp !== 'heroJourney' && (
-              <div className="nl-busy-note" role="status">
-                {busyReason}
               </div>
             )}
             <HeroJourneySection
@@ -600,11 +601,11 @@ export default function NarrativePage() {
 
         {!loading && !pageError && !hasHeroJourney && (
           <>
-          <div className="nl-empty">
+          <div className="nl-empty" id="nl-hero">
             <div className="nl-empty-icon">
               <Compass size={36} />
             </div>
-            <h3 className="nl-empty-title">{t('narrative.empty.title')}</h3>
+            <h2 className="nl-empty-title">{t('narrative.empty.title')}</h2>
             <div className="nl-empty-msg">{t('narrative.empty.message')}</div>
 
             {/* Prerequisites, stated before the click rather than after it. */}
