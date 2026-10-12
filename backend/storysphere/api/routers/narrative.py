@@ -6,6 +6,7 @@ POST /api/v1/narrative/refine                 — start LLM refinement (async)
 GET  /api/v1/narrative/refine/{task_id}       — poll result
 POST /api/v1/narrative/hero-journey           — start Hero's Journey mapping (async)
 GET  /api/v1/narrative/hero-journey/{task_id} — poll result
+GET  /api/v1/narrative/running                — the narrative run going for a book (#21m)
 POST /api/v1/narrative/temporal               — start Genette temporal analysis (async)
 GET  /api/v1/narrative/temporal/{task_id}     — poll result
 GET  /api/v1/narrative/temporal/coverage      — check story_time_hint coverage (sync)
@@ -18,19 +19,22 @@ from __future__ import annotations
 
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import JSONResponse
 
-from storysphere.api import task_runner
+from storysphere.api import batch_guard, task_runner
 from storysphere.api.deps import NarrativeServiceDep
 from storysphere.api.llm_guard import primary_config_error, require_llm_provider
-from storysphere.api.schemas.common import TaskStatus
+from storysphere.api.schemas.common import ErrorResponse, TaskStatus
 from storysphere.api.schemas.narrative import (
     ClassifyNarrativeRequest,
     HeroJourneyRequest,
     KernelSpineEvent,
+    NarrativeOp,
     NarrativeReviewRequest,
     NarrativeStructureResponse,
     RefineNarrativeRequest,
+    RunningNarrativeResponse,
     TemporalAnalysisRequest,
 )
 from storysphere.api.store import get_task, task_store
@@ -38,6 +42,37 @@ from storysphere.domain.narrative import NarrativeStructure
 from storysphere.services.query_models import TemporalCoverageStats
 
 router = APIRouter(prefix="/narrative", tags=["narrative"])
+
+
+# ── One narrative run per book ────────────────────────────────────────────────
+#
+# Classify, refine and hero-journey all read the book's cached
+# NarrativeStructure, change part of it and write the whole thing back —
+# classify and refine also rewrite the KG's narrative weights. Two of them
+# running on one book overwrite each other, and a second hero-journey or refine
+# pays the LLM twice. So the three share one lock per book: the op is held as
+# batch_guard's item_id, and any live item blocks every op.
+
+_GUARD_KIND = "narrative"
+
+
+def _running_op(book_id: str) -> tuple[NarrativeOp, str] | None:
+    """``(op, task_id)`` of the narrative run going for *book_id*, or None."""
+    for op, task_id in batch_guard.running_items(_GUARD_KIND, book_id).items():
+        return op, task_id  # type: ignore[return-value]
+    return None
+
+
+def _busy(book_id: str) -> JSONResponse | None:
+    """409 ``batch_running`` when any narrative run is going for the book."""
+    running = _running_op(book_id)
+    if running is None:
+        return None
+    body = ErrorResponse(
+        detail=f"A narrative {running[0]} run is already going for book '{book_id}'",
+        code="batch_running",
+    )
+    return JSONResponse(status_code=409, content=body.model_dump())
 
 
 # ── Background runners ────────────────────────────────────────────────────────
@@ -78,11 +113,16 @@ async def _hero_journey(task_id: str, req: HeroJourneyRequest, narrative_service
 # ── Classify (async) ──────────────────────────────────────────────────────────
 
 
-@router.post("/classify", response_model=TaskStatus, status_code=202)
+@router.post(
+    "/classify",
+    response_model=TaskStatus,
+    status_code=202,
+    responses={409: {"model": ErrorResponse}},
+)
 async def classify_narrative(
     req: ClassifyNarrativeRequest,
     narrative_service: NarrativeServiceDep,
-) -> TaskStatus:
+) -> TaskStatus | JSONResponse:
     """Start heuristic Kernel/Satellite classification for a book.
 
     Returns 202 with ``task_id``. Poll ``GET /narrative/classify/{task_id}``.
@@ -92,7 +132,12 @@ async def classify_narrative(
     is genuinely nothing — a run no longer resets weights it cannot reproduce —
     but a task that "succeeds" having done nothing is not an answer, so the
     caller is told instead of watching a no-op complete.
+
+    Also 409 (``code: batch_running``) while another narrative run is going for
+    the book — see ``_busy``.
     """
+    if (busy := _busy(req.document_id)) is not None:
+        return busy
     hits, classified, total = await narrative_service.eep_coverage(req.document_id)
     if hits == 0:
         raise HTTPException(
@@ -105,9 +150,13 @@ async def classify_narrative(
             ),
         )
 
+    # eep_coverage awaited: re-check, then claim with no await in between.
+    if (busy := _busy(req.document_id)) is not None:
+        return busy
     task_id = str(uuid4())
     task_store.create(task_id, kind="narrative", title="敘事模式標註")
     task_runner.launch(task_id, _classify(task_id, req, narrative_service))
+    batch_guard.hold(_GUARD_KIND, req.document_id, task_id, item_id="classify")
     return TaskStatus(task_id=task_id, status="pending")
 
 
@@ -122,20 +171,31 @@ async def get_classify_task(task_id: str) -> TaskStatus:
 # ── Refine (async) ────────────────────────────────────────────────────────────
 
 
-@router.post("/refine", response_model=TaskStatus, status_code=202)
+@router.post(
+    "/refine",
+    response_model=TaskStatus,
+    status_code=202,
+    responses={409: {"model": ErrorResponse}},
+)
 async def refine_narrative(
     req: RefineNarrativeRequest,
     narrative_service: NarrativeServiceDep,
-) -> TaskStatus:
+) -> TaskStatus | JSONResponse:
     """Start LLM refinement of Kernel/Satellite classification.
 
     By default refines all satellite events. Supply ``event_ids`` to target
     specific events. Requires heuristic classification to have run first.
+
+    409 (``code: batch_running``) while another narrative run is going for the book.
     """
+    # No await between the check and the claim (see batch_guard).
+    if (busy := _busy(req.document_id)) is not None:
+        return busy
     require_llm_provider()
     task_id = str(uuid4())
     task_store.create(task_id, kind="narrative", title="敘事模式校正")
     task_runner.launch(task_id, _refine(task_id, req, narrative_service))
+    batch_guard.hold(_GUARD_KIND, req.document_id, task_id, item_id="refine")
     return TaskStatus(task_id=task_id, status="pending")
 
 
@@ -150,19 +210,30 @@ async def get_refine_task(task_id: str) -> TaskStatus:
 # ── Hero's Journey (async) ────────────────────────────────────────────────────
 
 
-@router.post("/hero-journey", response_model=TaskStatus, status_code=202)
+@router.post(
+    "/hero-journey",
+    response_model=TaskStatus,
+    status_code=202,
+    responses={409: {"model": ErrorResponse}},
+)
 async def map_hero_journey(
     req: HeroJourneyRequest,
     narrative_service: NarrativeServiceDep,
-) -> TaskStatus:
+) -> TaskStatus | JSONResponse:
     """Start Campbell's Hero's Journey stage mapping for a book.
 
     Returns 202 with ``task_id``. Poll ``GET /narrative/hero-journey/{task_id}``.
+
+    409 (``code: batch_running``) while another narrative run is going for the book.
     """
+    # No await between the check and the claim (see batch_guard).
+    if (busy := _busy(req.document_id)) is not None:
+        return busy
     require_llm_provider()
     task_id = str(uuid4())
     task_store.create(task_id, kind="narrative", title="英雄旅程對應")
     task_runner.launch(task_id, _hero_journey(task_id, req, narrative_service))
+    batch_guard.hold(_GUARD_KIND, req.document_id, task_id, item_id="heroJourney")
     return TaskStatus(task_id=task_id, status="pending")
 
 
@@ -172,6 +243,25 @@ async def get_hero_journey_task(task_id: str) -> TaskStatus:
     if task is None:
         raise HTTPException(status_code=404, detail=f"Task '{task_id}' not found")
     return task
+
+
+# ── Running run (sync) ────────────────────────────────────────────────────────
+
+
+@router.get("/running", response_model=RunningNarrativeResponse)
+async def get_running_narrative(
+    book_id: str = Query(..., description="Book identifier"),
+) -> dict:
+    """The classify / refine / hero-journey run going for this book (#21m).
+
+    Read-only: lets the page pick a run back up after a remount (or from
+    another tab) instead of offering to start one the POSTs would refuse with 409.
+    """
+    running = _running_op(book_id)
+    if running is None:
+        return RunningNarrativeResponse().model_dump(by_alias=True)
+    op, task_id = running
+    return RunningNarrativeResponse(op=op, task_id=task_id).model_dump(by_alias=True)
 
 
 # ── Temporal analysis (async) ────────────────────────────────────────────────

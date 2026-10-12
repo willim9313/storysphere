@@ -612,3 +612,80 @@ class TestCancellation:
         assert status["status"] == "error"
         assert status["error"] == "KG 掛了"
 
+
+
+# ── One narrative run per book (#21a / #21c / #21e 409, #21m) ─────────────────
+
+
+class TestNarrativeRunGuard:
+    """Classify, refine and hero-journey share one lock per book.
+
+    All three read-modify-write the cached NarrativeStructure; two at once
+    overwrite each other, and a second LLM run pays twice.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _provider_configured(self, monkeypatch):
+        monkeypatch.setattr("storysphere.api.llm_guard._primary_config_error", lambda: None)
+
+    def _post(self, client, op: str):
+        path = {"classify": "classify", "refine": "refine", "heroJourney": "hero-journey"}[op]
+        return client.post(f"/api/v1/narrative/{path}", json={"document_id": "book-1"})
+
+    def _hang_all(self, client):
+        client.mock_narrative.eep_coverage.return_value = (12, 38, 47)
+        client.mock_narrative.classify_from_eep.side_effect = hanging_call()
+        client.mock_narrative.refine_with_llm.side_effect = hanging_call()
+        client.mock_narrative.map_hero_journey.side_effect = hanging_call()
+
+    @pytest.mark.parametrize("first", ["classify", "refine", "heroJourney"])
+    @pytest.mark.parametrize("second", ["classify", "refine", "heroJourney"])
+    def test_any_run_blocks_every_op(self, narrative_client, first, second):
+        self._hang_all(narrative_client)
+        task_id = self._post(narrative_client, first).json()["taskId"]
+
+        resp = self._post(narrative_client, second)
+        assert resp.status_code == 409
+        assert resp.json()["code"] == "batch_running"
+
+        narrative_client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+    def test_other_book_is_not_blocked(self, narrative_client):
+        self._hang_all(narrative_client)
+        first = self._post(narrative_client, "heroJourney").json()["taskId"]
+
+        resp = narrative_client.post(
+            "/api/v1/narrative/hero-journey", json={"document_id": "book-2"}
+        )
+        assert resp.status_code == 202
+
+        narrative_client.post(f"/api/v1/tasks/{first}/cancel")
+        narrative_client.post(f"/api/v1/tasks/{resp.json()['taskId']}/cancel")
+
+    def test_running_names_the_op_and_task(self, narrative_client):
+        self._hang_all(narrative_client)
+        task_id = self._post(narrative_client, "refine").json()["taskId"]
+
+        resp = narrative_client.get("/api/v1/narrative/running", params={"book_id": "book-1"})
+        assert resp.status_code == 200
+        assert resp.json() == {"op": "refine", "taskId": task_id}
+
+        narrative_client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+    def test_running_is_null_once_the_run_ends(self, narrative_client):
+        self._hang_all(narrative_client)
+        task_id = self._post(narrative_client, "classify").json()["taskId"]
+        narrative_client.post(f"/api/v1/tasks/{task_id}/cancel")
+        poll_until_terminal(narrative_client, task_id)
+
+        resp = narrative_client.get("/api/v1/narrative/running", params={"book_id": "book-1"})
+        assert resp.json() == {"op": None, "taskId": None}
+        assert self._post(narrative_client, "classify").status_code == 202
+
+    def test_refused_classify_does_not_hold_the_lock(self, narrative_client):
+        """The nothing-to-classify 409 launches nothing, so nothing is held."""
+        narrative_client.mock_narrative.eep_coverage.return_value = (0, 0, 47)
+        assert self._post(narrative_client, "classify").status_code == 409
+
+        resp = narrative_client.get("/api/v1/narrative/running", params={"book_id": "book-1"})
+        assert resp.json() == {"op": None, "taskId": None}
