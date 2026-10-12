@@ -2,12 +2,13 @@
 // + the active chart beside a sticky stage-detail column.
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { HeroJourneyStage, NarrativeReviewStatus } from '@/api/narrative';
 import { Tooltip } from '@/components/ui/Tooltip';
 import type { LayoutId, StageTheory } from './heroJourney';
-import { LAYOUT_IDS, STAGE_ORDER, stageState } from './heroJourney';
-import { ReviewBadge } from './atoms';
+import { LAYOUT_IDS, STAGE_ORDER, stagePhase, stageState } from './heroJourney';
+import { ReviewBadge, StateBadge } from './atoms';
 import { LayoutBand, LayoutColumns, LayoutRing, LayoutTrack, type VizProps } from './layouts';
 import { StageDetail, type EventInfo } from './StageDetail';
 import { nextReviewStatus } from './narrativeModel';
@@ -59,6 +60,15 @@ export function HeroJourneySection({
   const [sel, setSel] = useState<string>(
     () => stages.find((s) => s.stage_id === 'ordeal')?.stage_id ?? stages[0]?.stage_id ?? '',
   );
+  // Under 1100px the detail is pinned to the viewport bottom (#213). It starts
+  // folded to one line so the chart is visible on arrival, and opens when a
+  // stage is picked — the click #213 made visible still is. Above 1100px the
+  // detail is a side column and the fold control is hidden by CSS.
+  const [detailOpen, setDetailOpen] = useState(false);
+  const selectStage = (id: string) => {
+    setSel(id);
+    setDetailOpen(true);
+  };
   const Chart = LAYOUTS[layout];
   const selStage = stages.find((s) => s.stage_id === sel) ?? stages[0];
 
@@ -200,22 +210,41 @@ export function HeroJourneySection({
             stages={stages}
             theory={theory}
             sel={selStage?.stage_id ?? ''}
-            onSelect={setSel}
+            onSelect={selectStage}
             chapterCount={chapterCount}
             kernelChapters={kernelChapters}
           />
         </div>
-        <aside className="nl-detail">
+        <aside className={detailOpen ? 'nl-detail' : 'nl-detail is-folded'}>
           {selStage && (
-            <StageDetail
-              stage={selStage}
-              theory={theory}
-              events={events}
-              allStages={stages}
-              bookId={bookId}
-              kernelChapters={kernelChapters}
-              wide={layout === 'track'}
-            />
+            <button
+              type="button"
+              className="nl-detail-fold"
+              aria-expanded={detailOpen}
+              aria-controls="nl-detail-body"
+              onClick={() => setDetailOpen((o) => !o)}
+            >
+              <span className="nl-sd-phase">{t(`narrative.phase.${stagePhase(selStage.stage_id)}`)}</span>
+              <span className="nl-detail-fold-name">{theory[selStage.stage_id]?.name ?? selStage.stage_name}</span>
+              <StateBadge stage={selStage} />
+              <span className="nl-detail-fold-act">
+                {detailOpen ? t('narrative.detailFold.close') : t('narrative.detailFold.open')}
+                {detailOpen ? <ChevronDown size={14} aria-hidden="true" /> : <ChevronUp size={14} aria-hidden="true" />}
+              </span>
+            </button>
+          )}
+          {selStage && (
+            <div id="nl-detail-body" className="nl-detail-body">
+              <StageDetail
+                stage={selStage}
+                theory={theory}
+                events={events}
+                allStages={stages}
+                bookId={bookId}
+                kernelChapters={kernelChapters}
+                wide={layout === 'track'}
+              />
+            </div>
           )}
         </aside>
       </div>
