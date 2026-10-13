@@ -29,6 +29,7 @@
   overflow-y: auto;
 }
 .tl-inner {
+  container: tl-inner / inline-size;
   max-width: 1280px;
   margin: 0 auto;
   padding: var(--space-7) var(--space-7) var(--space-8);
@@ -462,6 +463,24 @@
 .tl-main.with-panel {
   grid-template-columns: minmax(0, 1fr) 320px;
 }
+/* …except where narrowing would leave the stave unusable (720 with the panel
+   open left it 228px): below 880 the panel becomes a drawer over the right of
+   the canvas, sticky like the side panel, and the stave keeps its full width. */
+@container tl-inner (max-width: 879px) {
+  .tl-main.with-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tl-main.with-panel > .tl-canvas,
+  .tl-main.with-panel > .tl-panel {
+    grid-area: 1 / 1;
+  }
+  .tl-main.with-panel > .tl-panel {
+    justify-self: end;
+    width: min(320px, 100%);
+    z-index: 6;
+    box-shadow: var(--shadow-lg);
+  }
+}
 .tl-canvas {
   display: flex;
   flex-direction: column;
@@ -838,11 +857,30 @@
   font-weight: 600;
   border-bottom: 1px solid var(--accent);
 }
+/* Notes live in the strip under the plot (STAVE_NOTE_STRIP); a dotted hairline
+   runs up from the note's anchored edge to its point (--tl-note-tick). */
+.tl-stave-note {
+  line-height: 16px;
+}
+.tl-stave-note::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  height: var(--tl-note-tick, 0);
+  border-left: 1px dotted var(--accent);
+}
 .tl-stave-note.right {
-  transform: translate(9px, -7px);
+  padding-left: 4px;
+}
+.tl-stave-note.right::before {
+  left: 0;
 }
 .tl-stave-note.left {
-  transform: translate(-9px, -7px) translateX(-100%);
+  padding-right: 4px;
+  transform: translateX(-100%);
+}
+.tl-stave-note.left::before {
+  right: 0;
 }
 .tl-stave-unranked {
   position: absolute;

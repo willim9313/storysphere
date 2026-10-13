@@ -63,6 +63,7 @@ import { DensityMatrix } from '@/components/timeline/DensityMatrix';
 import { CharacterLanes } from '@/components/timeline/CharacterLanes';
 import { EventDetailPanel } from '@/components/timeline/EventDetailPanel';
 import {
+  annotationText,
   compareState,
   displacementSkipped,
   drawsDeviation,
@@ -97,6 +98,14 @@ function readStoredLanes(bookId: string): string[] | null {
   } catch {
     return null;
   }
+}
+
+/** Rough rendered width of an annotation (11px text): CJK glyphs are a full
+ *  em, the rest about 0.6em, plus room for the leading hairline. */
+function labelWidthPx(text: string): number {
+  let px = 8;
+  for (const ch of text) px += /[\u2E80-\u9FFF\uFF00-\uFFEF]/.test(ch) ? 11 : 6.6;
+  return px;
 }
 
 export default function TimelinePage() {
@@ -263,14 +272,20 @@ export default function TimelinePage() {
     return counts;
   }, [timelineData]);
 
+  /* Annotation labels are sized against the stave's real plot width, so a
+     narrow stave (720, or with the detail panel open) keeps only what fits. */
+  const [plotWidth, setPlotWidth] = useState(0);
   const staveRows = useMemo(
     () =>
       buildStaveRows(
         timelineData,
         (d) => (anyFilter && filterMode === 'only' ? matches.has(d.id) : true),
         comparing,
+        plotWidth > 0
+          ? (a) => (labelWidthPx(annotationText(t, a)) / plotWidth) * 100
+          : undefined,
       ),
-    [timelineData, matches, anyFilter, filterMode, comparing],
+    [timelineData, matches, anyFilter, filterMode, comparing, plotWidth, t],
   );
 
   const activeChapter = selectedChapter ?? chapters[0] ?? 1;
@@ -941,6 +956,7 @@ export default function TimelinePage() {
                 <TimelineStave
                   rows={staveRows}
                   hasRanked={stats.ranked > 0}
+                  onPlotWidth={setPlotWidth}
                   selectedChapter={activeChapter}
                   selectedEventId={selectedEventId}
                   dimmedIds={dimmedIds}

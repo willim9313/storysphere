@@ -11,29 +11,20 @@
  * and survives resize without recomputation.
  */
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type CSSProperties } from "react";
 import { useTranslation } from "react-i18next";
 import { Tooltip } from "@/components/ui/Tooltip";
+import { useElementWidth } from "@/hooks/useElementWidth";
+import { annotationText } from "./timelineModel";
 import {
   STAVE_MID,
+  STAVE_NOTE_STRIP,
   STAVE_ROW_HEIGHT,
   STAVE_ROW_HEIGHT_UNRANKED,
   STAVE_UNRANKED_BAND,
-  type StaveAnnotation,
   type StaveRow,
   type TimelineDatum,
 } from "@/lib/timelineGeometry";
-
-function noteKey(a: StaveAnnotation): string {
-  if (a.confirmed) {
-    return a.kind === "flashback"
-      ? "timeline.stave.flashbackJudged"
-      : "timeline.stave.flashforwardJudged";
-  }
-  return a.kind === "flashback"
-    ? "timeline.stave.flashbackNote"
-    : "timeline.stave.flashforwardNote";
-}
 
 interface TimelineStaveProps {
   rows: StaveRow[];
@@ -47,6 +38,9 @@ interface TimelineStaveProps {
   dimmedIds: Set<string>;
   onSelectChapter: (chapter: number) => void;
   onSelectEvent: (d: TimelineDatum) => void;
+  /** Reports the plot column's pixel width, which annotation collisions are
+   *  measured against. */
+  onPlotWidth?: (px: number) => void;
 }
 
 export function TimelineStave({
@@ -57,10 +51,15 @@ export function TimelineStave({
   dimmedIds,
   onSelectChapter,
   onSelectEvent,
+  onPlotWidth,
 }: TimelineStaveProps) {
   const { t } = useTranslation("analysis");
   const plotHeight = hasRanked ? STAVE_ROW_HEIGHT : STAVE_ROW_HEIGHT_UNRANKED;
   const rootRef = useRef<HTMLDivElement>(null);
+  const [plotRef, plotWidth] = useElementWidth<HTMLDivElement>();
+  useEffect(() => {
+    if (plotWidth > 0) onPlotWidth?.(plotWidth);
+  }, [plotWidth, onPlotWidth]);
 
   /* Roving tabindex: the stave's event marks are one Tab stop. It lands on
      the selected event (else the first drawn one); ← → then step through the
@@ -97,11 +96,13 @@ export function TimelineStave({
 
   return (
     <div className={`tl-stave${hasRanked ? "" : " is-collapsed"}`} ref={rootRef}>
-      {rows.map((row, i) => (
+      {rows.map((row, i) => {
+        const strip = row.annotations.length > 0 ? STAVE_NOTE_STRIP : 0;
+        return (
         <div
           className="tl-stave-row"
           key={i}
-          style={{ height: plotHeight + STAVE_UNRANKED_BAND }}
+          style={{ height: plotHeight + strip + STAVE_UNRANKED_BAND }}
         >
           {/* 44px gutter holds the 未排序 label; every plotted thing lives in
               the 1fr plot column so a point can never sit under the label. */}
@@ -111,7 +112,7 @@ export function TimelineStave({
           >
             {t("timeline.stave.unranked")}
           </span>
-          <div className="tl-stave-plot">
+          <div className="tl-stave-plot" ref={i === 0 ? plotRef : undefined}>
             {/* Chapter bands sit behind everything and are the click target
                 for changing chapter. They cover filtered-out chapters too, so
                 a chapter never disappears from the navigation. */}
@@ -123,7 +124,7 @@ export function TimelineStave({
                 style={{
                   left: `${band.x1Pct}%`,
                   width: `${band.x2Pct - band.x1Pct}%`,
-                  bottom: STAVE_UNRANKED_BAND,
+                  bottom: STAVE_UNRANKED_BAND + strip,
                 }}
                 onClick={() => onSelectChapter(band.chapter)}
                 aria-label={t("timeline.gotoChapter", { n: band.chapter })}
@@ -220,14 +221,22 @@ export function TimelineStave({
             ))}
 
             {/* Two sources, two voices: a judged event states what it is, a
-                merely-displaced one only reports where it sits. */}
+                merely-displaced one only reports where it sits. Written in a
+                strip under the plot, with a hairline up to the point, so a
+                label never covers a point, a link or a chapter label. */}
             {row.annotations.map((a) => (
               <span
                 key={a.id}
                 className={`tl-stave-note ${a.align}${a.confirmed ? " confirmed" : ""}`}
-                style={{ left: `${a.xPct}%`, top: a.yPx }}
+                style={
+                  {
+                    left: `${a.xPct}%`,
+                    top: plotHeight,
+                    "--tl-note-tick": `${Math.max(0, plotHeight - a.yPx - 4)}px`,
+                  } as CSSProperties
+                }
               >
-                {t(noteKey(a), { ch: a.chapter, count: a.count })}
+                {annotationText(t, a)}
               </span>
             ))}
 
@@ -272,7 +281,8 @@ export function TimelineStave({
             </div>
           </div>
         </div>
-      ))}
+        );
+      })}
     </div>
   );
 }

@@ -19,8 +19,11 @@ import type { EventImportance, TemporalDisplacement, TimelineEvent } from '@/api
 
 /** |deviation| above which an event reads as genuinely displaced. */
 export const OUTLIER_THRESHOLD = 0.15;
-/** Minimum X gap (% of row width) between two stave annotations. */
+/** Assumed label width (% of row width) when the caller cannot measure one. */
 export const ANNOTATION_MIN_GAP_PCT = 17;
+/** Height of the strip under a row's plot where its annotations are written,
+ *  so they never sit on a point, a link or a chapter label. */
+export const STAVE_NOTE_STRIP = 16;
 
 /* ── Stave (章節順序 view) ─────────────────────────────────────── */
 
@@ -174,6 +177,8 @@ export interface StaveAnnotation {
   yPx: number;
   /** Which side of the point the text sits on. */
   align: 'left' | 'right';
+  /** The label's width as a % of the row — what collisions are judged by. */
+  widthPct: number;
   kind: 'flashback' | 'flashforward';
   /** True when #21h judged this event, false when only geometry flagged it. */
   confirmed: boolean;
@@ -206,10 +211,16 @@ export function staveRowCount(n: number): number {
  * otherwise imply adjacency that the filter removed). In dim mode the caller
  * passes `() => true` and dims via CSS instead, so the line stays intact.
  */
+/** Width of an annotation's label as a % of the row, from its text and the
+ *  row's real pixel width. Without one every label is assumed
+ *  ANNOTATION_MIN_GAP_PCT wide — which is wrong on any narrow row. */
+export type AnnotationWidth = (a: Omit<StaveAnnotation, 'align' | 'widthPct'>) => number;
+
 export function buildStaveRows(
   data: TimelineDatum[],
   isVisible: (d: TimelineDatum) => boolean = () => true,
   compare = true,
+  annotationWidth: AnnotationWidth = () => ANNOTATION_MIN_GAP_PCT,
 ): StaveRow[] {
   const rowCount = staveRowCount(data.length);
   if (rowCount === 0) return [];
@@ -218,7 +229,7 @@ export function buildStaveRows(
   const rows: StaveRow[] = [];
   for (let r = 0; r < rowCount; r++) {
     const slice = data.slice(r * perRow, (r + 1) * perRow);
-    rows.push(buildStaveRow(slice, isVisible, compare));
+    rows.push(buildStaveRow(slice, isVisible, compare, annotationWidth));
   }
   return rows;
 }
@@ -227,6 +238,7 @@ function buildStaveRow(
   slice: TimelineDatum[],
   isVisible: (d: TimelineDatum) => boolean,
   compare: boolean,
+  annotationWidth: AnnotationWidth,
 ): StaveRow {
   const n = slice.length;
   const xOf = (k: number) =>
@@ -292,7 +304,7 @@ function buildStaveRow(
     links,
     bands,
     unranked,
-    annotations: compare ? buildAnnotations(points) : [],
+    annotations: compare ? buildAnnotations(points, annotationWidth) : [],
     hasUnranked: unranked.length > 0,
   };
 }
@@ -307,7 +319,10 @@ function buildStaveRow(
  * flag an event the analysis never reached. Within a chapter a judged event
  * outranks a merely-displaced one, because it is the stronger claim.
  */
-function buildAnnotations(points: StavePoint[]): StaveAnnotation[] {
+function buildAnnotations(
+  points: StavePoint[],
+  annotationWidth: AnnotationWidth,
+): StaveAnnotation[] {
   const byChapter = new Map<number, StavePoint[]>();
   for (const p of points) {
     if (!p.outlier && !verdictKind(p.datum.displacement)) continue;
@@ -325,17 +340,21 @@ function buildAnnotations(points: StavePoint[]): StaveAnnotation[] {
       return Math.abs(b.datum.deviation ?? 0) > Math.abs(a.datum.deviation ?? 0) ? b : a;
     });
     const verdict = verdictKind(worst.datum.displacement);
-    out.push({
+    const base = {
       id: worst.id,
       xPct: worst.xPct,
       yPx: worst.yPx,
-      // Keep late-row annotations from running off the right edge.
-      align: worst.xPct > 70 ? 'left' : 'right',
       kind: verdict ?? ((worst.datum.deviation ?? 0) < 0 ? 'flashback' : 'flashforward'),
       confirmed: verdict !== null,
       chapter,
       count: group.length,
-    });
+    } as const;
+    const widthPct = annotationWidth(base);
+    // Written rightwards from the point unless that runs off the row; a label
+    // that fits on neither side is not drawn (the point and the panel still say it).
+    const align = base.xPct + widthPct <= 100 ? 'right' : 'left';
+    if (align === 'left' && base.xPct - widthPct < 0) continue;
+    out.push({ ...base, align, widthPct });
   }
 
   /* One annotation per chapter is not enough on its own: a label occupies a
@@ -344,8 +363,8 @@ function buildAnnotations(points: StavePoint[]): StaveAnnotation[] {
      the spans, not the points. On a collision keep the earlier one — unless
      the other is a judged verdict, which is the stronger claim. */
   const span = (a: StaveAnnotation) => {
-    const start = a.align === 'left' ? a.xPct - ANNOTATION_MIN_GAP_PCT : a.xPct;
-    return { start, end: start + ANNOTATION_MIN_GAP_PCT };
+    const start = a.align === 'left' ? a.xPct - a.widthPct : a.xPct;
+    return { start, end: start + a.widthPct };
   };
 
   const kept: StaveAnnotation[] = [];
@@ -361,6 +380,31 @@ function buildAnnotations(points: StavePoint[]): StaveAnnotation[] {
 }
 
 /* ── Character lanes ──────────────────────────────────────────── */
+
+/**
+ * Which axis labels to print when they cannot all fit: the first and the last
+ * always, the rest left to right whenever the label would clear both the one
+ * before it and the last one. `xs` are % positions (ascending), `labelPx` the
+ * width each label needs. The tick marks themselves are always drawn.
+ */
+export function sparseLabels(xs: number[], widthPx: number, labelPx: number[]): boolean[] {
+  const show = xs.map(() => widthPx <= 0);
+  if (widthPx <= 0 || xs.length === 0) return show;
+  const px = xs.map((x) => (x / 100) * widthPx);
+  const last = xs.length - 1;
+  show[0] = true;
+  show[last] = true;
+  let prev = 0;
+  for (let i = 1; i < last; i++) {
+    if (px[i] - px[prev] >= labelPx[prev] && px[last] - px[i] >= labelPx[i]) {
+      show[i] = true;
+      prev = i;
+    }
+  }
+  // Two labels alone can still collide (a one-chapter-wide lane): keep the first.
+  if (last > 0 && px[last] - px[prev] < labelPx[prev]) show[last] = false;
+  return show;
+}
 
 export interface LaneRun {
   x1Pct: number;

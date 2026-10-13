@@ -8,6 +8,7 @@ import {
   STAVE_TARGET_PER_ROW,
   buildLane,
   buildStaveRows,
+  sparseLabels,
   buildTimelineData,
   chapterList,
   coPresence,
@@ -421,5 +422,57 @@ describe('chapterList', () => {
   it('returns sorted unique chapters', () => {
     const events = [3, 1, 3, 2].map((chapter, i) => makeEvent({ id: 'e' + i, chapter }));
     expect(chapterList(buildTimelineData(events))).toEqual([1, 2, 3]);
+  });
+});
+
+describe('sparseLabels', () => {
+  it('shows everything when there is room', () => {
+    expect(sparseLabels([0, 25, 50, 75, 100], 1000, [40, 40, 40, 40, 40])).toEqual([
+      true, true, true, true, true,
+    ]);
+  });
+
+  it('keeps first and last and drops what would collide', () => {
+    // 200px wide, 40px labels: 0 / 50 / 100 / 150 / 200px.
+    expect(sparseLabels([0, 25, 50, 75, 100], 200, [40, 40, 40, 40, 40])).toEqual([
+      true, true, true, true, true,
+    ]);
+    // 100px wide: 0 / 25 / 50 / 75 / 100px — every other one fits.
+    expect(sparseLabels([0, 25, 50, 75, 100], 100, [40, 40, 40, 40, 40])).toEqual([
+      true, false, true, false, true,
+    ]);
+  });
+
+  it('drops the last label rather than overprint the one before it', () => {
+    expect(sparseLabels([0, 10], 100, [40, 40])).toEqual([true, false]);
+  });
+
+  it('shows all labels until the width is measured', () => {
+    expect(sparseLabels([0, 50, 100], 0, [40, 40, 40])).toEqual([true, true, true]);
+  });
+});
+
+describe('annotations against a measured width', () => {
+  it('drops labels that collide at their real width', () => {
+    // Two adjacent chapters, both displaced: at the default 17% they clear
+    // each other (points are ~33% apart); at 40% each they do not.
+    const events = [
+      makeEvent({ id: 'a', chapter: 1, chronologicalRank: 0.6 }),
+      makeEvent({ id: 'b', chapter: 1, chronologicalRank: 0.33 }),
+      makeEvent({ id: 'c', chapter: 2, chronologicalRank: 0 }),
+      makeEvent({ id: 'd', chapter: 2, chronologicalRank: 1 }),
+    ];
+    const data = buildTimelineData(events);
+    expect(buildStaveRows(data)[0].annotations.length).toBe(2);
+    expect(buildStaveRows(data, () => true, true, () => 40)[0].annotations.length).toBe(1);
+  });
+
+  it('skips a label that fits on neither side of its point', () => {
+    const data = buildTimelineData([
+      makeEvent({ id: 'a', chronologicalRank: 1 }),
+      makeEvent({ id: 'b', chronologicalRank: 0.5 }),
+      makeEvent({ id: 'c', chronologicalRank: 0 }),
+    ]);
+    expect(buildStaveRows(data, () => true, true, () => 120)[0].annotations).toEqual([]);
   });
 });
