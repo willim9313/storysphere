@@ -346,16 +346,17 @@ export default function NarrativePage() {
       href: '#nl-hero',
     },
   ];
-  // The spine is only drawn once a classification exists (GET /narrative 404
-  // otherwise) — same rule as card 3 below.
-  if (structure) {
+  // The spine section exists once a classification does, or as the
+  // first-classification entry when event analysis has results — same rule as
+  // card 3 below: no entry for a section that is not on the page.
+  if (structure || eventDone > 0) {
     indexCards.push({
       n: 2,
       role: t('narrative.index.role2'),
       title: t('narrative.index.title2'),
       answers: t('narrative.index.answers2'),
-      status: t('narrative.index.kernelStatus', { n: kernelCount }),
-      warn: false,
+      status: structure ? t('narrative.index.kernelStatus', { n: kernelCount }) : t('narrative.index.notAnalyzed'),
+      warn: !structure,
       href: '#nl-spine',
     });
   }
@@ -392,7 +393,8 @@ export default function NarrativePage() {
         // string. `batch_running` is the lock, handled by triggerFollowing.
         if (err instanceof ApiError && err.status === 409 && err.code !== 'batch_running') {
           const message = t('narrative.errors.classifyRefused', {
-            total: eventCount,
+            // No structure yet on a first run: count from the event list.
+            total: eventCount || eventTotal,
             classified: kernelCount + satelliteCount,
           });
           setClassifyRefused(message);
@@ -671,15 +673,49 @@ export default function NarrativePage() {
               </PlotSpine>
             </div>
           )}
+          {/* Never classified: the spine needs one classification to exist,
+              and nothing runs it behind the page any more (#21j is read-only).
+              Offered once event analysis has something to classify from. */}
+          {!structure && eventDone > 0 && (
+            <section className="nl-card" id="nl-spine">
+              <h2 className="nl-h2">{t('narrative.spine.title')}</h2>
+              <p className="nl-lead">{t('narrative.empty.classifyFirstNote', { n: eventDone })}</p>
+              {classifyRefused && (
+                <div className="nl-empty-error" role="alert">
+                  {classifyRefused}
+                </div>
+              )}
+              {!classifyRefused && classifyOp.error && (
+                <div className="nl-empty-error" role="alert">
+                  {classifyOp.error}
+                </div>
+              )}
+              <div className="nl-trigger-row">
+                <button
+                  type="button"
+                  className="ss-btn ss-btn-md ss-btn-secondary"
+                  onClick={() => setPendingAction('classify')}
+                  disabled={runningOp !== null}
+                >
+                  {classifyOp.running
+                    ? t('narrative.unclassified.running', { progress: classifyOp.task?.progress ?? 0 })
+                    : t('narrative.empty.classifyFirst')}
+                </button>
+                <span className={runningOp && !classifyOp.running ? 'nl-busy-note' : 'nl-trigger-reason'}>
+                  {runningOp && !classifyOp.running ? busyReason : t('narrative.unclassified.classifyCost')}
+                </span>
+              </div>
+            </section>
+          )}
           </>
         )}
       </div>
 
       <ConfirmDialog
         open={pendingAction === 'classify'}
-        title={t('narrative.unclassified.classifyConfirmTitle')}
+        title={structure ? t('narrative.unclassified.classifyConfirmTitle') : t('narrative.empty.classifyFirstTitle')}
         message={t('narrative.unclassified.classifyConfirmBody', { n: unclassifiedIds.length })}
-        confirmLabel={t('narrative.unclassified.classify')}
+        confirmLabel={structure ? t('narrative.unclassified.classify') : t('narrative.empty.classifyFirst')}
         titleBadge={{ label: t('narrative.unclassified.badgeFree'), tone: 'info' }}
         sections={[{ title: lastClassifyDetail.title, items: lastClassifyDetail.item ? [lastClassifyDetail.item] : [] }]}
         onConfirm={runClassify}

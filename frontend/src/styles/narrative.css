@@ -1757,6 +1757,12 @@ a.nl-sd-ev:hover {
   align-items: center;
   gap: var(--space-4);
 }
+/* In a left-aligned card (first-classification entry) the row follows the text. */
+.nl-card > .nl-trigger-row {
+  flex-direction: row;
+  align-items: center;
+  margin-top: var(--space-5);
+}
 .nl-trigger-reason {
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);

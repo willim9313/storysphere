@@ -1747,7 +1747,7 @@
       "jump": "前往事件分析頁 →",
       "running": "處理中… {{progress}}%",
       "classifyConfirmTitle": "依 EEP 重新分類？",
-      "classifyConfirmBody": "會依現有的事件分析（EEP）快取重算全書的核心／衛星分類，不呼叫 LLM、不消耗 token。快取已全數遺失時系統會拒絕執行，避免把既有分類抹成未分類。",
+      "classifyConfirmBody": "會依現有的事件分析（EEP）結果重算全書的核心／衛星分類，不呼叫 LLM、不消耗 token。沒有 EEP 結果的事件維持原本的分類。",
       "refineConfirmTitle": "用 LLM 精煉 {{n}} 件未分類事件？",
       "refineConfirmBody": "會對這 {{n}} 件事件各發一次 LLM 請求逐筆判斷核心／衛星，會消耗 token，件數越多越久。判定結果會覆寫這些事件目前的權重。",
       "classifyCost": "零成本 · 寫入資料",
@@ -1796,6 +1796,9 @@
       "human": "人工驗證"
     },
     "empty": {
+      "classifyFirst": "依 EEP 分類事件",
+      "classifyFirstTitle": "依 EEP 分類事件？",
+      "classifyFirstNote": "事件骨幹要先依事件分析（EEP）結果分類一次才畫得出來；目前有 {{n}} 件事件已有分析結果。",
       "title": "尚未產生英雄旅程",
       "message": "這段分析讀的是章節摘要，不是原文。摘要沒有備齊時，分析會回報成功但產出 0 個階段——所以先確認下面兩項。",
       "trigger": "開始英雄旅程分析",

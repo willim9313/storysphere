@@ -121,6 +121,14 @@ def narrative_client(mock_kg, mock_doc, mock_vector, mock_analysis_agent, mock_c
 
     app.router.lifespan_context = _noop_lifespan
 
+    # Narrative routes 404 an unknown book; these tests use several ids, so
+    # every id is a book except the one that stands for a missing one. The
+    # routes only test the document for None.
+    def _get_doc(doc_id):
+        return None if doc_id == "no-such-book" else object()
+
+    mock_doc.get_document.side_effect = _get_doc
+
     mock_narrative = AsyncMock()
     mock_narrative.structure_staleness.return_value = (False, None)
     # Concrete, so the background classify task has a real structure to dump.
@@ -170,11 +178,27 @@ class TestGetNarrativeStructure:
         assert stages[0]["representative_event_ids"] == ["ev-1", "ev-2"]
         assert stages[1]["representative_event_ids"] == []
 
-    def test_reads_kernels_without_the_auto_classify_path(self, narrative_client):
+    def test_reads_kernels_without_classifying(self, narrative_client):
         narrative_client.get("/api/v1/narrative?book_id=book-1")
-        # get_kernel_spine() can write to the KG; a read must not reach it.
         narrative_client.mock_narrative.get_kernel_events.assert_awaited_once()
-        narrative_client.mock_narrative.get_kernel_spine.assert_not_awaited()
+        narrative_client.mock_narrative.classify_from_eep.assert_not_awaited()
+
+
+class TestKernelSpineIsReadOnly:
+    """#21j used to classify an unclassified book on GET — a write outside the
+    narrative run lock (#21m). The first classification is now an explicit POST."""
+
+    def test_returns_kernels_without_classifying(self, narrative_client):
+        resp = narrative_client.get("/api/v1/narrative/kernel-spine", params={"book_id": "book-1"})
+        assert resp.status_code == 200
+        assert [e["id"] for e in resp.json()] == ["ev-1", "ev-2", "ev-3"]
+        narrative_client.mock_narrative.classify_from_eep.assert_not_awaited()
+
+    def test_unclassified_book_gets_an_empty_spine(self, narrative_client):
+        narrative_client.mock_narrative.get_kernel_events.return_value = []
+        resp = narrative_client.get("/api/v1/narrative/kernel-spine", params={"book_id": "book-1"})
+        assert resp.json() == []
+        narrative_client.mock_narrative.classify_from_eep.assert_not_awaited()
 
     def test_skips_the_kernel_lookup_when_there_are_no_stages(self, narrative_client):
         narrative_client.mock_narrative.get_cached_structure.return_value = (
@@ -247,7 +271,7 @@ class TestWeightsArePersisted:
     """分類結果要落盤 —— B-097。
 
     `Event.narrative_weight` 存在 KG 裡，而每個消費端都當它是耐久的：
-    `get_kernel_spine` 每次進頁面讀它、`unraveling_manifest` 數它、
+    核心事件骨幹每次進頁面讀它、`unraveling_manifest` 數它、
     `_rebuild_structure_from_kg` 更是**從它重建**遺失的 NarrativeStructure ——
     最後那個只有在權重活得比 process 久的時候才誠實。
 
@@ -754,3 +778,50 @@ class TestNarrativeRunGuard:
 
         resp = narrative_client.get("/api/v1/narrative/running", params={"book_id": "book-1"})
         assert resp.json() == {"op": None, "taskId": None}
+
+
+# ── Unknown book / foreign task → 404 ────────────────────────────────────────
+
+
+class TestUnknownBookAndForeignTask:
+    @pytest.fixture(autouse=True)
+    def _provider_configured(self, monkeypatch):
+        monkeypatch.setattr("storysphere.api.llm_guard._primary_config_error", lambda: None)
+
+    @pytest.mark.parametrize(
+        "path",
+        ["/api/v1/narrative", "/api/v1/narrative/kernel-spine", "/api/v1/narrative/temporal/coverage"],
+    )
+    def test_reads_404_an_unknown_book(self, narrative_client, path):
+        resp = narrative_client.get(path, params={"book_id": "no-such-book"})
+        assert resp.status_code == 404
+        assert "no-such-book" in resp.json()["detail"]
+
+    @pytest.mark.parametrize("path", ["classify", "refine", "hero-journey"])
+    def test_triggers_404_an_unknown_book_without_a_task(self, narrative_client, path):
+        resp = narrative_client.post(
+            f"/api/v1/narrative/{path}", json={"document_id": "no-such-book"}
+        )
+        assert resp.status_code == 404
+        running = narrative_client.get(
+            "/api/v1/narrative/running", params={"book_id": "no-such-book"}
+        )
+        assert running.json() == {"op": None, "taskId": None}
+
+    @pytest.mark.parametrize("path", ["classify", "refine", "hero-journey", "temporal"])
+    def test_poll_404s_a_task_of_another_kind(self, narrative_client, path):
+        from uuid import uuid4
+
+        from storysphere.api.store import task_store
+
+        task_id = str(uuid4())
+        task_store.create(task_id, kind="symbol", title="other")
+        resp = narrative_client.get(f"/api/v1/narrative/{path}/{task_id}")
+        assert resp.status_code == 404
+
+    def test_poll_still_returns_a_narrative_task(self, narrative_client):
+        narrative_client.mock_narrative.eep_coverage.return_value = (12, 38, 47)
+        task_id = narrative_client.post(
+            "/api/v1/narrative/classify", json={"document_id": "book-1"}
+        ).json()["taskId"]
+        assert poll_until_terminal(narrative_client, task_id)["status"] == "done"

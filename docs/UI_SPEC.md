@@ -2191,6 +2191,7 @@ en 對應：Previewing／Requirement not met: Standard mode · KG backend set to
 #### 空態、閘門、分析中、過期
 
 - **空態**（英雄旅程未產生）：羅盤圖＋標題＋說明＋**前置條件列**（章節摘要、事件分析 EEP；在按鈕之前）＋「開始英雄旅程分析」（`.ss-btn-primary .ss-btn-llm`）＋成本提示；**事件骨幹仍渲染在下方**（前提是已有 narrative structure；全書 0 件已分類事件時 `GET /narrative` 回 404、不畫骨幹，空態卡已說明前提，比照事件分析頁 EV-1）。
+- **第一次分類入口**（2026-10-12，NL-6）：尚無 NarrativeStructure（`GET /narrative` 404）但事件分析已有結果（≥ 1 件）時，英雄旅程空態卡下方出一張 `#nl-spine` 卡：h2「事件骨幹」＋說明（`narrative.empty.classifyFirstNote`）＋「依 EEP 分類事件」（`.ss-btn-secondary`，無字符；確認框同重新分類，標題／按鈕改 `classifyFirst*`）＋「零成本 · 寫入資料」。409 與失敗訊息就地顯示；其他敘事任務執行中時停用並以 busy 句說明。目錄卡 2 此時顯示「尚未分析」。先前這一步由 `GET /narrative/kernel-spine` 在背景自動執行（#21j 已改唯讀）。事件分析 0 件時不出（前置條件列已指向事件分析頁）。
 - **摘要缺章硬閘門**（`summaryGate`）：disabled＋「缺 N 章摘要，補齊後才會有可映射的內容」。**三條路徑共用同一道閘門**：空態按鈕、卡片標題列的重新分析、過期帶的「重新分析 →」。章節清單查詢不再因「已有分析」而停用（現況繞過閘門）。
 - **過期帶**（`.nl-stale`）：標題前有 `TriangleAlert` 圖示（兩主題；Ink 下警示底色與一般資訊框同灰，只靠字形辨識）。已有英雄旅程時疊在英雄旅程卡上方。尚無英雄旅程時不出（#217），改在**事件骨幹卡**標題列下方顯示同一外觀的文字提示、無按鈕（`narrative.stale.spine`；有未分類事件時用 `spineWithAction`，指向下方「依 EEP 重新分類」）——過期的是核心／衛星分類，英雄旅程鈕修不到（2026-10-12 裁決）。`{step}` 用 `timelineModel.staleStepKey` 對到 reader 的步驟名（章節摘要／特徵萃取／知識圖譜／符號探索），不插原始 id；「重新分析 →」是 `.ss-btn-ghost .ss-btn-llm`，與卡內同一動作、同一道閘門。5-0 後重跑章節摘要也會使本頁過期。
 

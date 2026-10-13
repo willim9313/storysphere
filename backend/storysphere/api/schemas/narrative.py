@@ -56,7 +56,7 @@ class TemporalAnalysisRequest(BaseModel):
 class KernelSpineEvent(BaseModel):
     """One kernel event in the plot spine (response shape for #21j).
 
-    Mirrors the dict assembled in ``get_kernel_spine``. Field names stay
+    Mirrors the dict assembled in the ``get_kernel_spine`` route. Field names stay
     snake_case (no camel alias) to match the existing JSON contract.
     """
 

@@ -1747,7 +1747,7 @@
       "jump": "Go to event analysis →",
       "running": "Working… {{progress}}%",
       "classifyConfirmTitle": "Reclassify from EEP?",
-      "classifyConfirmBody": "Recomputes kernel/satellite for the whole book from the existing event-analysis (EEP) cache. No LLM call, no token cost. If every cache entry is gone the server refuses, so existing classifications cannot be wiped.",
+      "classifyConfirmBody": "Recomputes kernel/satellite for the whole book from the existing event-analysis (EEP) results. No LLM call, no token cost. Events without an EEP result keep the classification they have.",
       "refineConfirmTitle": "Refine {{n}} unclassified events with the LLM?",
       "refineConfirmBody": "Sends one LLM request per event to judge kernel vs satellite. This spends tokens, and takes longer the more events there are. The verdicts overwrite these events\\u2019 current weights.",
       "classifyCost": "Zero cost · writes data",
@@ -1796,6 +1796,9 @@
       "human": "Human-verified"
     },
     "empty": {
+      "classifyFirst": "Classify events from EEP",
+      "classifyFirstTitle": "Classify events from EEP?",
+      "classifyFirstNote": "The plot spine needs one classification from event analysis (EEP) before it can be drawn; {{n}} events have an analysis so far.",
       "title": "No Hero's Journey yet",
       "message": "This analysis reads chapter summaries, not the source text. With summaries missing it reports success and produces zero stages — so check the two below first.",
       "trigger": "Start Hero's Journey analysis",
