@@ -2526,8 +2526,10 @@ interface ChapterDistribution {
 `detail` 為英文一句（`Nothing to classify: none of the N events has an event-analysis (EEP) entry … Run event analysis first.`），
 帶出總事件數與目前已分類數；body 只有 `{ detail }`，沒有結構化欄位。`force` 參數對此檢查沒有作用。
 
-> `GET /narrative/kernel-spine` 與 `POST /narrative/refine` 在「全書皆未分類」時會自動呼叫 `classify_from_eep`；
-> 命中守衛時只記 warning、回傳既有快取結構，不拋例外（一個 GET 不該因此讓整頁壞掉）。
+> `POST /narrative/refine` 在「全書皆未分類」時會先呼叫 `classify_from_eep`（在同一個 task 內，受 #21m 鎖保護）。
+> `GET /narrative/kernel-spine` 自 2026-10-12 起不再這麼做（見 #21j）。
+
+**Response 404**：書不存在（#21a／#21c／#21e 皆同，2026-10-12 起；先前 #21e 會建立 task 並「成功」回空結果）。在 409 之前檢查。
 
 **說明**：polling 走 #21b。
 
@@ -2538,6 +2540,9 @@ interface ChapterDistribution {
 #21a 專用 polling endpoint。
 
 **Response 200**：`TaskStatus`（`result` 為 NarrativeStructure）
+
+
+**Response 404**：taskId 不存在，或該 task 不是敘事類（`kind != "narrative"`；2026-10-12 起，先前會回任何 task）。
 
 ---
 
@@ -2557,6 +2562,8 @@ interface ChapterDistribution {
 
 **Response 202**：`TaskStatus`（含 taskId）
 
+**Response 404**：書不存在。
+
 **Response 409 `batch_running`**：同 #21a（三者共用一把鎖）。在 503 之前檢查。
 
 **Response 503**：未設定 LLM provider（見「通用規則」）；第 5 批新增，不建立 task
@@ -2570,6 +2577,9 @@ interface ChapterDistribution {
 #21c 專用 polling endpoint。
 
 **Response 200**：`TaskStatus`（`result` 為 NarrativeStructure）
+
+
+**Response 404**：taskId 不存在，或該 task 不是敘事類（`kind != "narrative"`；2026-10-12 起，先前會回任何 task）。
 
 ---
 
@@ -2590,6 +2600,8 @@ interface ChapterDistribution {
 
 **副作用（審核）**：新映射寫回 NarrativeStructure 時，若 `review_status` 不是 `pending`，一律重設為 `pending`（已核可時 `classification_source` 依 #21l 撤回規則還原）——審核鈕就在英雄旅程卡上，重跑換掉了整張卡的內容。#21a／#21c 刻意**保留**審核狀態（只改部分事件權重）。
 
+**Response 404**：書不存在。
+
 **Response 409 `batch_running`**：同 #21a（三者共用一把鎖）。在 503 之前檢查。
 
 **Response 503**：未設定 LLM provider（見「通用規則」）；第 5 批新增，不建立 task
@@ -2604,6 +2616,9 @@ interface ChapterDistribution {
 
 **Response 200**：`TaskStatus`
 
+
+**Response 404**：taskId 不存在，或該 task 不是敘事類（`kind != "narrative"`；2026-10-12 起，先前會回任何 task）。
+
 ---
 
 ### #21g GET /narrative/temporal/coverage
@@ -2613,6 +2628,8 @@ interface ChapterDistribution {
 **Query Params**：`book_id=<bookId>`（必填）
 
 **Response 200**：`TemporalCoverageStats`（含覆蓋率 fraction 及是否達 60% 門檻）
+
+**Response 404**：書不存在（2026-10-12 起；先前回 200 全 0）。
 
 **說明**：覆蓋率 ≥ 60% 才能觸發 #21h。
 
@@ -2647,11 +2664,16 @@ interface ChapterDistribution {
 
 **Response 200**：`TaskStatus`
 
+
+**Response 404**：taskId 不存在，或該 task 不是敘事類（`kind != "narrative"`；2026-10-12 起，先前會回任何 task）。
+
 ---
 
 ### #21j GET /narrative/kernel-spine
 
-取得 Kernel 事件清單（情節骨幹），依章節和敘事位置排序。若尚未分類則自動觸發啟發式分類。
+取得 Kernel 事件清單（情節骨幹），依章節和敘事位置排序。**唯讀**（2026-10-12 起）：尚未分類的書回 `[]`，不再自動觸發分類——那是一次在 #21m 鎖之外的 KG 寫入；第一次分類改由敘事頁空態的「依 EEP 分類事件」明確呼叫 #21a。
+
+**Response 404**：書不存在。
 
 **Query Params**：`book_id=<bookId>`（必填）
 
@@ -2708,8 +2730,9 @@ interface ChapterDistribution {
 沿用 #21j 的章節遞增順序，每階段上限 4 筆。**不寫入快取**，因此既有快取無需 force
 重跑即生效，重複呼叫結果穩定。
 
-推導時讀 KG 事件但**不觸發自動分類**（`get_kernel_spine` 在全書皆未分類時會呼叫
-`classify_from_eep` 並寫回 KG；本端點走的是無副作用的讀取路徑）。
+推導時讀 KG 事件、不寫入（#21j 亦已改為唯讀，兩者共用 `get_kernel_events`）。
+
+**Response 404**：書不存在（`detail` 帶書 id）；或書存在但尚無 NarrativeStructure 且無法重建（`detail`：`No narrative structure for this book yet…`）——頁面把後者當「尚未分析」的空態。
 
 階段共用同一段 `chapter_range` 時會拿到相同的事件，落在 kernel 事件範圍之外的階段
 則為空陣列——階段是章節級、事件在章節內，兩者本就不是一對一。快取中若已帶有值，
@@ -3132,6 +3155,7 @@ response schema 與測試檔。
   - 2026-08-12：#21k 的 `representative_event_ids` 改為讀取時推導（response schema 不變，欄位早已存在）。詳見 #21k 段落。
   - 2026-08-12：#21a 新增 409（分類會抹除既有分類時拒絕啟動），service 層同步加守衛。詳見 #21a 段落。
   - 2026-10-04（DS v3 第 5 批）：#21c／#21e 補 503；#21l 開放 `pending`；#21k 過期來源加 `summarization`、代表事件改只取 `chapter_range` 實際列出的章；#21a 的 409 說明改為現況（`_would_wipe` 已於 B-096 刪除）；#21j `narrative_weight` 更正為 string；#15h 加選用 `evidence_summary`。
+  - 2026-10-12：#21j 改為唯讀（不再自動分類）；#21a／#21c／#21e／#21g／#21j／#21k 書不存在回 404；#21b／#21d／#21f／#21i 只回敘事類 task。
   - 2026-10-12：#21e 新映射寫回時審核重設為 `pending`。
   - 2026-10-12：#21a／#21c／#21e 同書共用一把鎖，執行中回 409 `batch_running`；新增 #21m `GET /narrative/running`。
   - 2026-08-12：#21l 核可時一併寫入 `classification_source='human_verified'`（撤回核可時由事件來源還原）。詳見 #21l 段落。

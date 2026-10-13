@@ -10,7 +10,7 @@ GET  /api/v1/narrative/running                — the narrative run going for a 
 POST /api/v1/narrative/temporal               — start Genette temporal analysis (async)
 GET  /api/v1/narrative/temporal/{task_id}     — poll result
 GET  /api/v1/narrative/temporal/coverage      — check story_time_hint coverage (sync)
-GET  /api/v1/narrative/kernel-spine           — return kernel events (sync)
+GET  /api/v1/narrative/kernel-spine           — return kernel events (sync, read-only)
 GET  /api/v1/narrative                        — return cached NarrativeStructure
 PATCH /api/v1/narrative/{document_id}/review  — update review_status
 """
@@ -23,7 +23,7 @@ from fastapi import APIRouter, HTTPException, Query
 from fastapi.responses import JSONResponse
 
 from storysphere.api import batch_guard, task_runner
-from storysphere.api.deps import NarrativeServiceDep
+from storysphere.api.deps import DocServiceDep, NarrativeServiceDep
 from storysphere.api.llm_guard import primary_config_error, require_llm_provider
 from storysphere.api.schemas.common import ErrorResponse, TaskStatus
 from storysphere.api.schemas.narrative import (
@@ -61,6 +61,22 @@ def _running_op(book_id: str) -> tuple[NarrativeOp, str] | None:
     for op, task_id in batch_guard.running_items(_GUARD_KIND, book_id).items():
         return op, task_id  # type: ignore[return-value]
     return None
+
+
+async def _require_book(doc_service, book_id: str) -> None:
+    """404 for a book that does not exist — not an empty answer or a task
+    that "succeeds" on nothing."""
+    if await doc_service.get_document(book_id) is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+
+async def _narrative_task(task_id: str) -> TaskStatus:
+    """The task behind a narrative poll endpoint; 404 for an unknown id or a
+    task of another kind (these endpoints used to hand back any task)."""
+    task = await get_task(task_id)
+    if task is None or task.kind != "narrative":
+        raise HTTPException(status_code=404, detail=f"Task '{task_id}' not found")
+    return task
 
 
 def _busy(book_id: str) -> JSONResponse | None:
@@ -122,6 +138,7 @@ async def _hero_journey(task_id: str, req: HeroJourneyRequest, narrative_service
 async def classify_narrative(
     req: ClassifyNarrativeRequest,
     narrative_service: NarrativeServiceDep,
+    doc_service: DocServiceDep,
 ) -> TaskStatus | JSONResponse:
     """Start heuristic Kernel/Satellite classification for a book.
 
@@ -134,8 +151,9 @@ async def classify_narrative(
     caller is told instead of watching a no-op complete.
 
     Also 409 (``code: batch_running``) while another narrative run is going for
-    the book — see ``_busy``.
+    the book — see ``_busy``. 404 for a book that does not exist.
     """
+    await _require_book(doc_service, req.document_id)
     if (busy := _busy(req.document_id)) is not None:
         return busy
     hits, classified, total = await narrative_service.eep_coverage(req.document_id)
@@ -162,10 +180,7 @@ async def classify_narrative(
 
 @router.get("/classify/{task_id}", response_model=TaskStatus)
 async def get_classify_task(task_id: str) -> TaskStatus:
-    task = await get_task(task_id)
-    if task is None:
-        raise HTTPException(status_code=404, detail=f"Task '{task_id}' not found")
-    return task
+    return await _narrative_task(task_id)
 
 
 # ── Refine (async) ────────────────────────────────────────────────────────────
@@ -180,14 +195,17 @@ async def get_classify_task(task_id: str) -> TaskStatus:
 async def refine_narrative(
     req: RefineNarrativeRequest,
     narrative_service: NarrativeServiceDep,
+    doc_service: DocServiceDep,
 ) -> TaskStatus | JSONResponse:
     """Start LLM refinement of Kernel/Satellite classification.
 
     By default refines all satellite events. Supply ``event_ids`` to target
     specific events. Requires heuristic classification to have run first.
 
-    409 (``code: batch_running``) while another narrative run is going for the book.
+    409 (``code: batch_running``) while another narrative run is going for the
+    book; 404 for a book that does not exist.
     """
+    await _require_book(doc_service, req.document_id)
     # No await between the check and the claim (see batch_guard).
     if (busy := _busy(req.document_id)) is not None:
         return busy
@@ -201,10 +219,7 @@ async def refine_narrative(
 
 @router.get("/refine/{task_id}", response_model=TaskStatus)
 async def get_refine_task(task_id: str) -> TaskStatus:
-    task = await get_task(task_id)
-    if task is None:
-        raise HTTPException(status_code=404, detail=f"Task '{task_id}' not found")
-    return task
+    return await _narrative_task(task_id)
 
 
 # ── Hero's Journey (async) ────────────────────────────────────────────────────
@@ -219,13 +234,16 @@ async def get_refine_task(task_id: str) -> TaskStatus:
 async def map_hero_journey(
     req: HeroJourneyRequest,
     narrative_service: NarrativeServiceDep,
+    doc_service: DocServiceDep,
 ) -> TaskStatus | JSONResponse:
     """Start Campbell's Hero's Journey stage mapping for a book.
 
     Returns 202 with ``task_id``. Poll ``GET /narrative/hero-journey/{task_id}``.
 
-    409 (``code: batch_running``) while another narrative run is going for the book.
+    409 (``code: batch_running``) while another narrative run is going for the
+    book; 404 for a book that does not exist.
     """
+    await _require_book(doc_service, req.document_id)
     # No await between the check and the claim (see batch_guard).
     if (busy := _busy(req.document_id)) is not None:
         return busy
@@ -239,10 +257,7 @@ async def map_hero_journey(
 
 @router.get("/hero-journey/{task_id}", response_model=TaskStatus)
 async def get_hero_journey_task(task_id: str) -> TaskStatus:
-    task = await get_task(task_id)
-    if task is None:
-        raise HTTPException(status_code=404, detail=f"Task '{task_id}' not found")
-    return task
+    return await _narrative_task(task_id)
 
 
 # ── Running run (sync) ────────────────────────────────────────────────────────
@@ -281,12 +296,14 @@ async def _temporal(task_id: str, req: TemporalAnalysisRequest, narrative_servic
 async def temporal_coverage(
     book_id: str,
     narrative_service: NarrativeServiceDep,
+    doc_service: DocServiceDep,
 ) -> TemporalCoverageStats:
     """Check story_time_hint coverage for a book.
 
     Returns coverage fraction and whether it meets the 60% threshold
-    required to run temporal analysis.
+    required to run temporal analysis. 404 for a book that does not exist.
     """
+    await _require_book(doc_service, book_id)
     return await narrative_service.check_temporal_coverage(book_id)
 
 
@@ -315,10 +332,7 @@ async def analyze_temporal(
 
 @router.get("/temporal/{task_id}", response_model=TaskStatus)
 async def get_temporal_task(task_id: str) -> TaskStatus:
-    task = await get_task(task_id)
-    if task is None:
-        raise HTTPException(status_code=404, detail=f"Task '{task_id}' not found")
-    return task
+    return await _narrative_task(task_id)
 
 
 # ── Sync queries ──────────────────────────────────────────────────────────────
@@ -328,13 +342,15 @@ async def get_temporal_task(task_id: str) -> TaskStatus:
 async def get_kernel_spine(
     book_id: str,
     narrative_service: NarrativeServiceDep,
+    doc_service: DocServiceDep,
 ) -> list:
     """Return kernel events (plot spine) sorted by chapter and narrative position.
 
-    Runs heuristic classification automatically if events have not been
-    classified yet.
+    Read-only: a book nothing has classified yet gets ``[]`` — the page offers
+    POST /narrative/classify for that. 404 for a book that does not exist.
     """
-    events = await narrative_service.get_kernel_spine(book_id)
+    await _require_book(doc_service, book_id)
+    events = await narrative_service.get_kernel_events(book_id)
     return [
         {
             "id": e.id,
@@ -394,6 +410,7 @@ def _with_representative_events(stages: list[dict], kernels: list) -> list[dict]
 async def get_narrative_structure(
     book_id: str,
     narrative_service: NarrativeServiceDep,
+    doc_service: DocServiceDep,
 ) -> dict:
     """Return the cached NarrativeStructure for a book.
 
@@ -403,13 +420,15 @@ async def get_narrative_structure(
     Hero's Journey stage is resolved from the kernel spine. All three are
     derived per request and never persisted.
 
-    Returns 404 if neither classify nor hero-journey has been run yet.
+    Returns 404 for a book that does not exist, and 404 when neither classify
+    nor hero-journey has been run yet (the page treats that as "not analyzed").
     """
+    await _require_book(doc_service, book_id)
     structure = await narrative_service.get_cached_structure(book_id)
     if structure is None:
         raise HTTPException(
             status_code=404,
-            detail="No narrative structure found. Run POST /narrative/classify first.",
+            detail="No narrative structure for this book yet. Run POST /narrative/classify first.",
         )
     is_stale, reason = await narrative_service.structure_staleness(book_id)
     payload = structure.model_dump()

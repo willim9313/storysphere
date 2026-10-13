@@ -2,7 +2,7 @@
 
 Phase 1 (B-033):
   classify_from_eep(document_id) — reads EEP event_importance as authoritative K/S signal
-  get_kernel_spine(document_id)  — returns kernel events sorted by narrative position
+  get_kernel_events(document_id) — returns kernel events sorted by narrative position (read-only)
 
 Phase 2 (B-034):
   refine_with_llm(document_id)        — LLM re-classification of satellite events
@@ -186,10 +186,10 @@ class NarrativeService:
         Two buttons sitting side by side in the same panel pulled in opposite
         directions on the same events.
 
-        This method is reached automatically as well as on request —
-        ``get_kernel_spine`` runs it on every narrative page load when nothing is
-        classified yet — so it must be safe to run at any coverage. It now is:
-        a run with no EEP entries at all writes nothing but the cache entry.
+        It must be safe to run at any coverage, and is: a run with no EEP
+        entries at all writes nothing but the cache entry. (It used to be
+        reached automatically too — a GET of the kernel spine ran it on every
+        page load of an unclassified book — until that read became read-only.)
 
         Returns:
             NarrativeStructure with classified event ID lists, persisted to cache.
@@ -270,27 +270,13 @@ class NarrativeService:
 
     # ── Kernel spine query ────────────────────────────────────────────────────
 
-    async def get_kernel_spine(self, document_id: str) -> list[Event]:
-        """Return kernel events (plot spine) sorted by chapter then narrative position.
-
-        If events have not been classified yet, runs classify_from_eep first.
-        """
-        events = await self._kg.get_events(document_id=document_id)
-
-        # Auto-classify from EEP if no events have been classified yet
-        all_unclassified = all(e.narrative_weight == "unclassified" for e in events)
-        if all_unclassified and events:
-            await self.classify_from_eep(document_id)
-            events = await self._kg.get_events(document_id=document_id)
-
-        return self._sorted_kernels(events)
-
     async def get_kernel_events(self, document_id: str) -> list[Event]:
-        """Same ordering as get_kernel_spine, without its auto-classify side effect.
+        """Kernel events (plot spine) sorted by chapter then narrative position.
 
-        get_kernel_spine() writes to the KG when nothing has been classified yet;
-        callers that are only reading (GET /narrative resolving representative
-        events) must not be able to trigger that.
+        Read-only. A former twin, ``get_kernel_spine``, ran ``classify_from_eep``
+        when nothing was classified yet, so a GET wrote to the KG — outside the
+        narrative run lock (#21m). The first classification of a book is now an
+        explicit POST /narrative/classify from the page.
         """
         return self._sorted_kernels(await self._kg.get_events(document_id=document_id))
 
@@ -441,7 +427,7 @@ class NarrativeService:
         """Write the KG to disk when a classification actually changed something.
 
         ``Event.narrative_weight`` lives in the KG, and every consumer treats it
-        as durable: ``get_kernel_spine`` reads it on each page load,
+        as durable: the kernel spine reads it on each page load,
         ``unraveling_manifest`` counts it, and ``_rebuild_structure_from_kg``
         rebuilds a lost NarrativeStructure *from* it — that last one is only
         honest if the weights outlive the process. Until B-097 nothing here
@@ -451,9 +437,8 @@ class NarrativeService:
         `story_time` at all.
 
         Guarded by an actual diff rather than saved unconditionally: a classify
-        run that changes nothing is the common case — ``get_kernel_spine``
-        triggers one on every narrative page load of an unclassified book — and
-        rewriting the whole graph JSON to record no change is a cost with no
+        run that changes nothing is common (a re-run on an unchanged EEP cache),
+        and rewriting the whole graph JSON to record no change is a cost with no
         product.
 
         Neo4j's ``save()`` is a no-op (it persists on write), so this is correct
