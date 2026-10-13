@@ -166,6 +166,17 @@ export function TimelineStave({
                     y2={l.y2Px}
                   />
                 ))}
+                {row.points
+                  .filter((p) => p.outlier)
+                  .map((p) => (
+                    <circle
+                      key={`halo-${p.id}`}
+                      className={`tl-stave-halo${dimmedIds.has(p.id) ? " dim" : ""}`}
+                      cx={`${p.xPct}%`}
+                      cy={p.yPx}
+                      r={p.radius + 3}
+                    />
+                  ))}
                 {row.points.map((p) => (
                   <circle
                     key={p.id}
