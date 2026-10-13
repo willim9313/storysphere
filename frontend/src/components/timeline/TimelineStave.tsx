@@ -16,6 +16,7 @@ import { Tooltip } from "@/components/ui/Tooltip";
 import {
   STAVE_MID,
   STAVE_ROW_HEIGHT,
+  STAVE_ROW_HEIGHT_UNRANKED,
   STAVE_UNRANKED_BAND,
   type StaveAnnotation,
   type StaveRow,
@@ -35,6 +36,10 @@ function noteKey(a: StaveAnnotation): string {
 
 interface TimelineStaveProps {
   rows: StaveRow[];
+  /** Whether any event in the whole book has a rank. Without one the plot
+   *  area above the unranked band could only ever be empty, so it collapses
+   *  to the chapter labels (whole book, not the filter — like the switch). */
+  hasRanked: boolean;
   selectedChapter: number;
   selectedEventId: string | null;
   /** Ids excluded by the filter in *dim* mode (they are still drawn). */
@@ -45,6 +50,7 @@ interface TimelineStaveProps {
 
 export function TimelineStave({
   rows,
+  hasRanked,
   selectedChapter,
   selectedEventId,
   dimmedIds,
@@ -52,6 +58,7 @@ export function TimelineStave({
   onSelectEvent,
 }: TimelineStaveProps) {
   const { t } = useTranslation("analysis");
+  const plotHeight = hasRanked ? STAVE_ROW_HEIGHT : STAVE_ROW_HEIGHT_UNRANKED;
 
   // Per-chapter event total (ranked + unranked) for the selected-band tag.
   const chapterCounts = new Map<number, number>();
@@ -65,12 +72,12 @@ export function TimelineStave({
   }
 
   return (
-    <div className="tl-stave">
+    <div className={`tl-stave${hasRanked ? "" : " is-collapsed"}`}>
       {rows.map((row, i) => (
         <div
           className="tl-stave-row"
           key={i}
-          style={{ height: STAVE_ROW_HEIGHT + STAVE_UNRANKED_BAND }}
+          style={{ height: plotHeight + STAVE_UNRANKED_BAND }}
         >
           {/* 44px gutter holds the 未排序 label; every plotted thing lives in
               the 1fr plot column so a point can never sit under the label. */}
@@ -109,48 +116,50 @@ export function TimelineStave({
               </button>
             ))}
 
-            <svg
-              className="tl-stave-svg"
-              width="100%"
-              height={STAVE_ROW_HEIGHT}
-              aria-hidden="true"
-              focusable="false"
-            >
-              <line
-                className="tl-stave-midline"
-                x1="0"
-                y1={STAVE_MID}
-                x2="100%"
-                y2={STAVE_MID}
-              />
-              {row.links.map((l, k) => (
+            {hasRanked && (
+              <svg
+                className="tl-stave-svg"
+                width="100%"
+                height={STAVE_ROW_HEIGHT}
+                aria-hidden="true"
+                focusable="false"
+              >
                 <line
-                  key={k}
-                  className={`tl-stave-link${l.outlier ? " outlier" : ""}`}
-                  x1={`${l.x1Pct}%`}
-                  y1={l.y1Px}
-                  x2={`${l.x2Pct}%`}
-                  y2={l.y2Px}
+                  className="tl-stave-midline"
+                  x1="0"
+                  y1={STAVE_MID}
+                  x2="100%"
+                  y2={STAVE_MID}
                 />
-              ))}
-              {row.points.map((p) => (
-                <circle
-                  key={p.id}
-                  className={[
-                    "tl-stave-dot",
-                    p.outlier ? "outlier" : "",
-                    p.hasAnalysis ? "analyzed" : "unanalyzed",
-                    p.id === selectedEventId ? "selected" : "",
-                    dimmedIds.has(p.id) ? "dim" : "",
-                  ]
-                    .filter(Boolean)
-                    .join(" ")}
-                  cx={`${p.xPct}%`}
-                  cy={p.yPx}
-                  r={p.radius}
-                />
-              ))}
-            </svg>
+                {row.links.map((l, k) => (
+                  <line
+                    key={k}
+                    className={`tl-stave-link${l.outlier ? " outlier" : ""}`}
+                    x1={`${l.x1Pct}%`}
+                    y1={l.y1Px}
+                    x2={`${l.x2Pct}%`}
+                    y2={l.y2Px}
+                  />
+                ))}
+                {row.points.map((p) => (
+                  <circle
+                    key={p.id}
+                    className={[
+                      "tl-stave-dot",
+                      p.outlier ? "outlier" : "",
+                      p.hasAnalysis ? "analyzed" : "unanalyzed",
+                      p.id === selectedEventId ? "selected" : "",
+                      dimmedIds.has(p.id) ? "dim" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
+                    cx={`${p.xPct}%`}
+                    cy={p.yPx}
+                    r={p.radius}
+                  />
+                ))}
+              </svg>
+            )}
 
             {/* Hit targets are separate from the SVG so each point gets a real
                 focusable button with an accessible name. */}
@@ -185,7 +194,11 @@ export function TimelineStave({
 
             {/* rank === null is a stable class of events, so it gets a
                 permanent home — rendered on every row even when it is empty,
-                because the strip is part of the stave, not an empty state. */}
+                because the strip is part of the stave, not an empty state.
+                Its marks speak the stave's own vocabulary (solid = analysed,
+                dashed = not, larger = kernel): "unranked" is said by the band
+                itself, so a mark never has to carry three meanings. The
+                button is a 24px hit area around the small mark. */}
             <div
               className="tl-stave-unranked"
               style={{ height: STAVE_UNRANKED_BAND }}
@@ -199,9 +212,15 @@ export function TimelineStave({
                 >
                   <button
                     type="button"
-                    className={`tl-stave-unranked-dot${
-                      u.id === selectedEventId ? " selected" : ""
-                    }${dimmedIds.has(u.id) ? " dim" : ""}`}
+                    className={[
+                      "tl-stave-unranked-dot",
+                      u.datum.isKernel ? "kernel" : "",
+                      u.datum.hasAnalysis ? "analyzed" : "unanalyzed",
+                      u.id === selectedEventId ? "selected" : "",
+                      dimmedIds.has(u.id) ? "dim" : "",
+                    ]
+                      .filter(Boolean)
+                      .join(" ")}
                     onClick={() => onSelectEvent(u.datum)}
                   >
                     <span className="sr-only">{u.datum.title}</span>

@@ -720,6 +720,19 @@
   white-space: nowrap;
   pointer-events: none;
 }
+/* Whole book unranked: the plot area is only as tall as the chapter labels,
+   so the selected chapter's tag takes its label's place instead of sitting
+   under it (the tag already names the chapter). */
+.tl-stave.is-collapsed .tl-stave-band-tag {
+  top: 2px;
+  bottom: auto;
+  left: 2px;
+  padding-block: 0;
+  line-height: 16px;
+}
+.tl-stave.is-collapsed .tl-stave-band.active .tl-stave-band-label {
+  visibility: hidden;
+}
 .tl-stave-band-label {
   position: absolute;
   left: 4px;
@@ -824,21 +837,40 @@
   z-index: 2;
 }
 .tl-stave-unranked-dot {
-  display: block;
-  width: 5px;
-  height: 5px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
   padding: 0;
-  border: 1px solid var(--fg-muted);
+  border: none;
   border-radius: 50%;
-  background: var(--bg-primary);
+  background: transparent;
   cursor: pointer;
+}
+/* The visible mark: same sizes and fills as the stave's own dots (r 3 / 4.5),
+   inside the 24px hit area. */
+.tl-stave-unranked-dot::before {
+  content: "";
+  box-sizing: border-box;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fg-primary);
+}
+.tl-stave-unranked-dot.kernel::before {
+  width: 9px;
+  height: 9px;
+}
+.tl-stave-unranked-dot.unanalyzed::before {
+  background: var(--bg-primary);
+  border: 1px dashed var(--fg-muted);
 }
 .tl-stave-unranked-anchor {
   position: absolute;
-  top: 4px;
-  margin-left: -2.5px;
+  top: 50%;
+  transform: translate(-50%, -50%);
 }
-.tl-stave-unranked-dot.selected {
+.tl-stave-unranked-dot.selected::before {
   box-shadow: 0 0 0 3px var(--timeline-selected-ring);
 }
 .tl-stave-unranked-dot.dim {
@@ -1076,12 +1108,15 @@
   background: var(--bg-primary);
   border: 1px dashed var(--fg-muted);
 }
-/* The unranked strip's mark, so the legend can name it apart from 未分析. */
+/* The unranked strip itself (its dotted top edge), not a mark: the strip's
+   marks use the same solid / dashed vocabulary as the rest of the stave. */
 .tl-legend-dot.unranked {
-  width: 5px;
-  height: 5px;
-  background: var(--bg-primary);
-  border: 1px solid var(--fg-muted);
+  width: 14px;
+  height: 6px;
+  border-radius: 0;
+  background: transparent;
+  border-top: 1px dotted var(--fg-muted);
+  border-bottom: 1px solid var(--border);
 }
 .tl-legend-dot.outlier {
   background: var(--accent);
@@ -1236,14 +1271,24 @@
   border-top: 1px dashed var(--border);
 }
 .tl-lane-dot {
-  display: block;
-  width: 6px;
-  height: 6px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
   padding: 0;
   border: none;
   border-radius: 50%;
-  background: var(--fg-primary);
+  background: transparent;
   cursor: pointer;
+}
+/* The visible dot; the button around it is a 24px hit area. */
+.tl-lane-dot::before {
+  content: "";
+  box-sizing: border-box;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fg-primary);
 }
 /* 錨點負責絕對定位與置中（點的大小隨 kernel 變，用 translate 而非固定 margin） */
 .tl-lane-dot-anchor {
@@ -1252,15 +1297,15 @@
   transform: translate(-50%, -50%);
   z-index: 2;
 }
-.tl-lane-dot.kernel {
+.tl-lane-dot.kernel::before {
   width: 9px;
   height: 9px;
 }
-.tl-lane-dot.unanalyzed {
+.tl-lane-dot.unanalyzed::before {
   background: var(--bg-primary);
   border: 1px dashed var(--fg-muted);
 }
-.tl-lane-dot.selected {
+.tl-lane-dot.selected::before {
   box-shadow: 0 0 0 3px var(--timeline-selected-ring);
 }
 /* Absence captions are chips under the track, never on the dots. */

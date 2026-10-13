@@ -26,12 +26,15 @@ export const ANNOTATION_MIN_GAP_PCT = 17;
 
 /** Row height in px. */
 export const STAVE_ROW_HEIGHT = 68;
+/** Row height while the whole book has no rank: nothing can be plotted above
+ *  the unranked band, so the row keeps only room for the chapter labels. */
+export const STAVE_ROW_HEIGHT_UNRANKED = 20;
 /** Y of the "narrative order === story order" midline, within a row. */
 export const STAVE_MID = 26;
 /** px per 1.0 of deviation. */
 export const STAVE_SCALE = 38;
 /** Height of the trailing unranked band inside a row. */
-export const STAVE_UNRANKED_BAND = 13;
+export const STAVE_UNRANKED_BAND = 20;
 /** Target events per row; row count is derived from this, never hardcoded. */
 export const STAVE_TARGET_PER_ROW = 22;
 /** Horizontal inset so end points aren't flush against the row edges. */
