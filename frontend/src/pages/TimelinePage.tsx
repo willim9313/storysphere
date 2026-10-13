@@ -133,6 +133,9 @@ export default function TimelinePage() {
   const [llmBlocked, setLlmBlocked] = useState(false);
 
   const filterRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
+  /** Bumped by a click / Enter pick so the detail panel takes focus. */
+  const [panelFocus, setPanelFocus] = useState(0);
   /** Which book's lanes have already been seeded — see the seeding effect. */
   const laneSeedRef = useRef<string | undefined>(undefined);
 
@@ -409,7 +412,7 @@ export default function TimelinePage() {
 
   /* ── Selection ─────────────────────────────────────────────── */
 
-  const selectEvent = useCallback(
+  const showEvent = useCallback(
     (d: TimelineDatum) => {
       setParam('event', d.id);
       setPanelOpen(true);
@@ -418,35 +421,77 @@ export default function TimelinePage() {
     [setParam],
   );
 
+  /** A pick by click / Enter: the panel takes focus. */
+  const selectEvent = useCallback(
+    (d: TimelineDatum) => {
+      showEvent(d);
+      setPanelFocus((n) => n + 1);
+    },
+    [showEvent],
+  );
+
+  /** A step with ← →: focus stays where it is (the panel, or the stave,
+   *  whose roving focus follows the selection). */
   const selectByIndex = useCallback(
     (index: number) => {
       const next = timelineData[Math.min(timelineData.length - 1, Math.max(0, index))];
-      if (next) selectEvent(next);
+      if (next) showEvent(next);
     },
-    [timelineData, selectEvent],
+    [timelineData, showEvent],
   );
+
+  /** Close the panel; if focus was in it, hand it back to the event's mark
+   *  on the stave (or the stave's Tab stop when that mark is not drawn). */
+  const closePanel = useCallback(() => {
+    const panel = rootRef.current?.querySelector('.tl-panel');
+    const hadFocus = !!panel && panel.contains(document.activeElement);
+    setPanelOpen(false);
+    if (!hadFocus) return;
+    requestAnimationFrame(() => {
+      const stave = rootRef.current?.querySelector('.tl-stave');
+      const mark =
+        (selectedEventId &&
+          stave?.querySelector<HTMLElement>(`[data-event-id="${CSS.escape(selectedEventId)}"]`)) ||
+        stave?.querySelector<HTMLElement>('[data-event-id][tabindex="0"]');
+      mark?.focus();
+    });
+  }, [selectedEventId]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
+      // The confirm dialog is a native modal: it handles its own Esc, and
+      // nothing behind it may move while it is open.
+      if (confirm !== null) return;
       const target = e.target as HTMLElement | null;
       if (target && /^(INPUT|TEXTAREA|SELECT)$/.test(target.tagName)) return;
 
+      // One layer per Esc: the filter popover first, then the panel.
       if (e.key === 'Escape') {
-        setConfirm(null);
-        setFilterOpen(false);
-        setPanelOpen(false);
+        if (filterOpen) setFilterOpen(false);
+        else if (panelOpen) closePanel();
         return;
       }
       if (e.key === 'ArrowRight' || e.key === 'ArrowLeft') {
-        if (timelineData.length === 0) return;
-        const base = selectedDatum?.index ?? 0;
+        if (timelineData.length === 0 || filterOpen) return;
+        // Only on this page (not the rail or the chat), and not on controls
+        // that are not about events.
+        const inPage = !target || target === document.body || !!rootRef.current?.contains(target);
+        if (!inPage || target?.closest('.ss-seg, [role="dialog"]')) return;
+        // ← → step through events while the panel is open (its hint says so),
+        // or while focus is on the stave's marks (its roving Tab stop).
+        const onStave = !!target?.closest('.tl-stave');
+        if (!(panelOpen && selectedDatum) && !onStave) return;
+        // On a stave mark, step from that mark; otherwise from the selection.
+        const focusedId = onStave ? target?.closest<HTMLElement>('[data-event-id]')?.dataset.eventId : undefined;
+        const from = focusedId ? timelineData.find((d) => d.id === focusedId) : selectedDatum;
+        const base = from?.index ?? (e.key === 'ArrowRight' ? -1 : 1);
         selectByIndex(base + (e.key === 'ArrowRight' ? 1 : -1));
         e.preventDefault();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [selectedDatum, timelineData.length, selectByIndex]);
+  }, [selectedDatum, timelineData, selectByIndex, confirm, filterOpen, panelOpen, closePanel]);
 
   /** Close the filter popover on an outside click. */
   useEffect(() => {
@@ -686,8 +731,9 @@ export default function TimelinePage() {
   const staleStep = staleStepKey(data?.temporalStaleReason);
 
   return (
-    <div className="tl">
+    <div className="tl" ref={rootRef}>
       <div className="tl-inner">
+        <h1 className="sr-only">{tn('tabs.timeline')}</h1>
         <GuidanceRibbon surface="timeline">
           <strong>{t('timeline.guide.prefix')}</strong>{' '}
           <Trans
@@ -956,7 +1002,8 @@ export default function TimelinePage() {
               chapterTitle={selectedDatum.event.chapterTitle}
               eventTypeLabel={(ty) => t(`timeline.eventTypes.${ty}`, ty)}
               sourceJumpPending={pendingKey === selectedDatum.id}
-              onClose={() => setPanelOpen(false)}
+              onClose={closePanel}
+              focusRequest={panelFocus}
               onJumpToSource={() => {
                 void jump(
                   selectedDatum.id,

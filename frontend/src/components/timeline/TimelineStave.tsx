@@ -11,6 +11,7 @@
  * and survives resize without recomputation.
  */
 
+import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Tooltip } from "@/components/ui/Tooltip";
 import {
@@ -59,6 +60,29 @@ export function TimelineStave({
 }: TimelineStaveProps) {
   const { t } = useTranslation("analysis");
   const plotHeight = hasRanked ? STAVE_ROW_HEIGHT : STAVE_ROW_HEIGHT_UNRANKED;
+  const rootRef = useRef<HTMLDivElement>(null);
+
+  /* Roving tabindex: the stave's event marks are one Tab stop. It lands on
+     the selected event (else the first drawn one); ← → then step through the
+     book (the page's handler) and focus follows the selection here. */
+  const drawnIds = new Set<string>();
+  for (const row of rows) {
+    for (const p of row.points) drawnIds.add(p.id);
+    for (const u of row.unranked) drawnIds.add(u.id);
+  }
+  const firstId = rows
+    .flatMap((row) => [...row.points, ...row.unranked])
+    .sort((a, b) => a.datum.index - b.datum.index)[0]?.id;
+  const rovingId =
+    selectedEventId && drawnIds.has(selectedEventId) ? selectedEventId : firstId;
+
+  useEffect(() => {
+    const root = rootRef.current;
+    if (!root || !selectedEventId || !root.contains(document.activeElement)) return;
+    root
+      .querySelector<HTMLElement>(`[data-event-id="${CSS.escape(selectedEventId)}"]`)
+      ?.focus();
+  }, [selectedEventId]);
 
   // Per-chapter event total (ranked + unranked) for the selected-band tag.
   const chapterCounts = new Map<number, number>();
@@ -72,7 +96,7 @@ export function TimelineStave({
   }
 
   return (
-    <div className={`tl-stave${hasRanked ? "" : " is-collapsed"}`}>
+    <div className={`tl-stave${hasRanked ? "" : " is-collapsed"}`} ref={rootRef}>
       {rows.map((row, i) => (
         <div
           className="tl-stave-row"
@@ -103,6 +127,7 @@ export function TimelineStave({
                 }}
                 onClick={() => onSelectChapter(band.chapter)}
                 aria-label={t("timeline.gotoChapter", { n: band.chapter })}
+                aria-current={band.chapter === selectedChapter ? "true" : undefined}
               >
                 <span className="tl-stave-band-label">Ch.{band.chapter}</span>
                 {band.chapter === selectedChapter && (
@@ -174,6 +199,9 @@ export function TimelineStave({
                   type="button"
                   className={`tl-stave-hit${p.id === selectedEventId ? " selected" : ""}`}
                   onClick={() => onSelectEvent(p.datum)}
+                  data-event-id={p.id}
+                  tabIndex={p.id === rovingId ? 0 : -1}
+                  aria-pressed={p.id === selectedEventId}
                 >
                   <span className="sr-only">{p.datum.title}</span>
                 </button>
@@ -222,6 +250,9 @@ export function TimelineStave({
                       .filter(Boolean)
                       .join(" ")}
                     onClick={() => onSelectEvent(u.datum)}
+                    data-event-id={u.id}
+                    tabIndex={u.id === rovingId ? 0 : -1}
+                    aria-pressed={u.id === selectedEventId}
                   >
                     <span className="sr-only">{u.datum.title}</span>
                   </button>

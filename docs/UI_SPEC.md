@@ -1402,7 +1402,13 @@ off／disabled 時分段切換不出現。分段狀態與開關一樣是頁面 l
 
 - **badge 一律看 `eventImportance`，不看 `hasAnalysis`**（兩者會不一致）：核心事件 KERNEL / 衛星事件 SATELLITE（`ss-badge`）；**重要度未評**＝中性灰 badge。
 - 「需要故事時間提示」用 partial 色（與動作面板被擋行同一組 token）。敘事模式 chip 無左邊框強調。
-- 「前往閱讀該段落」走 `useSourceJump`（章節 scope）。**不再有「時序關係」區塊**（`priorEventIds`／`subsequentEventIds` 語意非時序，不得在本頁出現「因果」「前驅／後續」）。
+- 「前往閱讀該段落」走 `useSourceJump`（章節 scope）。
+- **鍵盤**（2026-10-13）：← → 只在面板開著、或焦點在譜面的點上時切換事件；焦點在輸入框、`ss-seg`、篩選 popover、頁外（側欄、chat）或確認框開著時不攔截。
+  Esc 一次只關一層：篩選 → 面板（確認框自己處理 Esc）。點擊／Enter 選事件時焦點移到面板標題；← → 切換時焦點留在原處。
+  面板關閉時若焦點在面板內，交還給譜面上該事件的點（不在畫面上則交還譜面的 Tab 停駐點）。面板不覆蓋譜面，不鎖 Tab。
+- **Tab 序**：譜面（含未排序帶）的事件點是 roving tabindex——整個譜面一個停駐點，落在選中事件（否則第一筆），← → 移動、焦點跟著選取。
+  角色軌跡的點 `tabIndex=-1`（與譜面同一批事件，鍵盤從譜面進）；事件點帶 `aria-pressed`，選中章的章節帶帶 `aria-current`。
+  篩選 popover 走 `useDialogFocus`：打開焦點移到標題、Tab 留在內、關閉交還篩選鈕。頁面有 sr-only `h1`（`nav:tabs.timeline`）。**不再有「時序關係」區塊**（`priorEventIds`／`subsequentEventIds` 語意非時序，不得在本頁出現「因果」「前驅／後續」）。
 
 #### 3.7.9 狀態涵蓋（失敗四分）
 
