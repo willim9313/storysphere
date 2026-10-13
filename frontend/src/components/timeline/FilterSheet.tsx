@@ -39,6 +39,9 @@ function FilterChip({
       }`}
       onClick={onClick}
       aria-pressed={active}
+      // Picking an option no event has can only empty the result. An active
+      // one stays clickable so it can be taken off again.
+      disabled={count === 0 && !active}
     >
       {label}
       {count !== undefined && <span className="tl-filter-chip-n">{count}</span>}
