@@ -185,7 +185,7 @@ export default function TimelinePage() {
   const timelineData = useMemo(() => buildTimelineData(events), [events]);
   const stats = useMemo(() => timelineStats(timelineData), [timelineData]);
   const chapters = useMemo(() => chapterList(timelineData), [timelineData]);
-  const filterOptions = useMemo(() => buildFilterOptions(events), [events]);
+  const filterOptions = useMemo(() => buildFilterOptions(timelineData), [timelineData]);
 
   /** Whole-book rank presence decides the switch, never the filter. */
   const cmpState = compareState(stats.ranked, wantsCompare);
@@ -212,7 +212,7 @@ export default function TimelinePage() {
     const set = new Set<string>();
     for (const d of timelineData) {
       const passesScope = !onlyAnalyzed || d.hasAnalysis;
-      const passesFilter = !filterActive || eventPassesFilter(d.event, filter);
+      const passesFilter = !filterActive || eventPassesFilter(d, filter);
       if (passesScope && passesFilter) set.add(d.id);
     }
     return set;
@@ -240,7 +240,7 @@ export default function TimelinePage() {
     const bump = (k: string) => counts.set(k, (counts.get(k) ?? 0) + 1);
     for (const d of timelineData) {
       bump(`eventTypes:${d.event.eventType}`);
-      bump(`narrativeModes:${d.event.narrativeMode}`);
+      bump(`narrativeModes:${d.mode}`);
       if (d.event.eventImportance) bump(`importance:${d.event.eventImportance}`);
       for (const p of d.event.participants) {
         if (p.type === 'character') bump(`characters:${p.id}`);

@@ -988,7 +988,7 @@
       "desc": "{{n}} conditions applied. Relax one, or clear the filter."
     },
     "noRanked": {
-      "desc": "All {{n}} matching events have no story time (chronological_rank is empty), so they cannot be ordered."
+      "desc": "None of the book's {{n}} events has a story order yet, so they cannot be ordered."
     },
     "displacementTypes": {
       "analepsis": "flashback",

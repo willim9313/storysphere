@@ -7,7 +7,7 @@
  * character in the book.
  */
 
-import type { TimelineEvent } from '@/api/types';
+import type { TimelineDatum } from '@/lib/timelineGeometry';
 
 export interface FilterState {
   eventTypes: Set<string>;
@@ -57,9 +57,17 @@ export function activeFilterCount(f: FilterState): number {
   return count;
 }
 
-export function eventPassesFilter(event: TimelineEvent, filter: FilterState): boolean {
+/**
+ * Narrative mode is the one *derived* from deviation (`TimelineDatum.mode`),
+ * never the backend's `narrativeMode` field — the same value the detail panel
+ * and the matrix show, so a filter hit can never open as a different mode.
+ */
+export function eventPassesFilter(
+  { event, mode }: Pick<TimelineDatum, 'event' | 'mode'>,
+  filter: FilterState,
+): boolean {
   if (filter.eventTypes.size > 0 && !filter.eventTypes.has(event.eventType)) return false;
-  if (filter.narrativeModes.size > 0 && !filter.narrativeModes.has(event.narrativeMode)) {
+  if (filter.narrativeModes.size > 0 && !filter.narrativeModes.has(mode)) {
     return false;
   }
   if (filter.importance.size > 0 && !filter.importance.has(event.eventImportance ?? '')) {
@@ -127,16 +135,19 @@ export function buildActiveFilterTags(
   return tags;
 }
 
-/** Build the filter's option lists from the events actually present. */
-export function buildFilterOptions(events: TimelineEvent[]): FilterOptions {
+/** Build the filter's option lists from the events actually present.
+ *  Narrative modes are the derived ones (see `eventPassesFilter`). */
+export function buildFilterOptions(
+  data: Pick<TimelineDatum, 'event' | 'mode'>[],
+): FilterOptions {
   const eventTypes = new Set<string>();
   const narrativeModes = new Set<string>();
   const characters = new Map<string, string>();
   const locations = new Map<string, string>();
 
-  for (const e of events) {
+  for (const { event: e, mode } of data) {
     eventTypes.add(e.eventType);
-    narrativeModes.add(e.narrativeMode);
+    narrativeModes.add(mode);
     for (const p of e.participants) {
       if (p.type === 'character') characters.set(p.id, p.name);
       if (p.type === 'location') locations.set(p.id, p.name);

@@ -988,7 +988,7 @@
       "desc": "目前套用 {{n}} 個條件。放寬其中一項，或清除全部篩選。"
     },
     "noRanked": {
-      "desc": "符合條件的 {{n}} 筆全部沒有故事時間（chronological_rank 為空），因此無法排出先後。"
+      "desc": "全書 {{n}} 筆事件都還沒有故事時序，因此無法排出先後。"
     },
     "displacementTypes": {
       "analepsis": "倒敘",

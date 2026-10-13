@@ -104,21 +104,26 @@ export function FilterSheet({
         </div>
       </div>
 
-      <div className="tl-filter-sheet-section">
-        <div className="tl-filter-sheet-label">{t('timeline.filterSections.narrativeModes')}</div>
-        <div className="tl-filter-chips">
-          {options.narrativeModes.map((v) => (
-            <FilterChip
-              key={v}
-              label={modeLabel(v)}
-              count={countOf('narrativeModes', v)}
-              active={filter.narrativeModes.has(v)}
-              onClick={() => toggleSet('narrativeModes', v)}
-              variant={`narrative-${v}`}
-            />
-          ))}
+      {/* Modes are derived from story order, so a book without ranks has only
+          未明 — one option filters nothing, and the section stays hidden until
+          a second mode exists (same rule as an empty 地點). */}
+      {options.narrativeModes.length > 1 && (
+        <div className="tl-filter-sheet-section">
+          <div className="tl-filter-sheet-label">{t('timeline.filterSections.narrativeModes')}</div>
+          <div className="tl-filter-chips">
+            {options.narrativeModes.map((v) => (
+              <FilterChip
+                key={v}
+                label={modeLabel(v)}
+                count={countOf('narrativeModes', v)}
+                active={filter.narrativeModes.has(v)}
+                onClick={() => toggleSet('narrativeModes', v)}
+                variant={`narrative-${v}`}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="tl-filter-sheet-section">
         <div className="tl-filter-sheet-label">{t('timeline.filterSections.importance')}</div>
