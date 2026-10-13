@@ -1458,6 +1458,11 @@ off／disabled 時分段切換不出現。分段狀態與開關一樣是頁面 l
 **這 3 句是草稿・待設計定案**（稿上出現、補稿字串表與 README §5 都沒列；i18n `analysis:timeline.matrix.*`，見 5-TL-3）：
 `legendFourPlus`「4 以上」、`selectedTitle`「選取的格」、`clearSelection`「清除選取」（與 `unraveling.toolbar.clearSelection` 同字、時間軸專用 key）。
 
+**這 2 句是草稿・待設計定案**（2026-10-13，見 FEEDBACK TL-5；zh-TW 與 en 都已改／補）：
+`stave.headline` 改寫為「故事順序有 {{outliers}} 處明顯偏離敘述順序」（原句以版面行數 `rows` 為量，已不傳）；
+新增 `panel.storyPosition`「故事時序第 {{i}} / {{n}}」（n＝已排序事件數），取代詳情面板的 `rank 0.098` 原值，與 `panel.position` 並列。
+矩陣縱軸標 `matrix.yAxisLabel` 在中文介面直排正立（`.tl-mx-ylabel.is-cjk`），英文維持由下往上。
+
 **既有字串重用**（未新增）：失敗頁名 `nav:tabs.timeline`、「回書籍總覽」`analysis:character.error.backToBook`、被跳過卡 `toast.displacementSkipped*`、
 「關閉」`closePanel`、步驟名 `reader:rerun.steps.*`、中線圖例 `stave.legend`。
 

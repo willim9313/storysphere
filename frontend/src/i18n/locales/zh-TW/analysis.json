@@ -830,6 +830,7 @@
       "morePills": "＋{{n}} 位",
       "timing": "時序",
       "noRank": "尚未排入故事時序",
+      "storyPosition": "故事時序第 {{i}} / {{n}}",
       "position": "敘述位置 {{i}} / {{n}}",
       "mode": "敘事模式",
       "needsStoryTime": "需要故事時間提示",
@@ -922,7 +923,7 @@
       "cancelFailed": "取消失敗，任務仍在進行。"
     },
     "stave": {
-      "headline": "敘述順序走了 {{rows}} 行，故事順序掉出去 {{outliers}} 次",
+      "headline": "故事順序有 {{outliers}} 處明顯偏離敘述順序",
       "meta": "{{onLine}} 筆貼線 · {{outliers}} 筆明顯偏離 · {{unranked}} 筆排不進故事時序",
       "legend": "中線＝兩種順序一致　下＝倒敘　上＝預敘　大點＝KERNEL",
       "legendUnranked": "底部「未排序」帶＝排不進故事時序（與尚未分析是兩回事）",

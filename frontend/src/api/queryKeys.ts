@@ -130,6 +130,10 @@ export const qk = {
     order: (bookId: Id, order: TimelineOrder) =>
       ['books', bookId, 'timeline', order] as const,
     config: (bookId: Id) => ['books', bookId, 'timeline-config'] as const,
+    /** #21g story-time-hint coverage. Under the books tree (not `narrative`)
+     *  so a pipeline rerun's `invalidate(qk.book(id))` reaches it — the hints
+     *  come from the knowledge-graph step. */
+    coverage: (bookId: Id) => ['books', bookId, 'timeline', 'temporal-coverage'] as const,
   },
 
   tasks: {
