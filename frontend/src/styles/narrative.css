@@ -325,6 +325,11 @@
 .nl-detail {
   position: sticky;
   top: 16px;
+  /* Capped to the viewport so the grid row follows the chart, not a detail
+     twice its height (band layout: 1109px of detail beside a 520px chart left
+     ~590px of blank page). The rest scrolls inside. */
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
   min-width: 0;
   padding: var(--space-6);
   background: var(--bg-secondary);
@@ -1688,6 +1693,14 @@ a.nl-sd-ev:hover {
   line-height: 1.7;
   color: var(--fg-secondary);
   text-wrap: pretty;
+}
+.nl-fail-detail {
+  margin-top: var(--space-3);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+}
+.nl-fail-detail summary {
+  cursor: pointer;
 }
 .nl-empty-error {
   font-family: var(--font-sans);

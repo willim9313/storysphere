@@ -84,6 +84,24 @@ const HERO_STEPS: Record<string, 'load' | 'llm' | 'parse'> = {
   'parsing hero journey stages': 'parse',
 };
 
+// A failure in the page's own words; whatever the server or task said goes
+// under "technical details" instead of being the message (it is often an
+// English exception string).
+function FailureText({ message, detail }: Readonly<{ message: string; detail?: string }>) {
+  const { t } = useTranslation('common');
+  return (
+    <>
+      {message}
+      {detail && (
+        <details className="nl-fail-detail">
+          <summary>{t('failure.techDetail')}</summary>
+          <code className="ss-state-code">{detail}</code>
+        </details>
+      )}
+    </>
+  );
+}
+
 // 404 here means "not analyzed yet" — an empty state, not a failure.
 const isNotFound = (err: unknown) => err instanceof ApiError && err.status === 404;
 
@@ -164,6 +182,20 @@ export default function NarrativePage() {
         ? 'refine'
         : null;
   const busyReason = runningOp ? t(`narrative.busy.${runningOp}`) : null;
+
+  // Errors arrive as strings: either one this page wrote (a localized trigger
+  // or busy message — shown as is) or the server's / task's own text, which is
+  // demoted to technical detail under `fallback`.
+  const ownMessages = new Set<string>(
+    [
+      ...(['heroJourney', 'classify', 'refine', 'other'] as const).map((k) => t(`narrative.busy.${k}`)),
+      ...(['triggerHero', 'heroFailed', 'classifyTrigger', 'classifyFailed', 'refineTrigger', 'refineFailed'] as const).map(
+        (k) => t(`narrative.errors.${k}`),
+      ),
+    ],
+  );
+  const failure = (raw: string | null, fallback: string) =>
+    raw == null ? null : ownMessages.has(raw) ? <FailureText message={raw} /> : <FailureText message={fallback} detail={raw} />;
 
   // The hero-journey runner reports three fixed steps (10/20/90) around one
   // LLM call; name the step rather than show a number that reads as measured.
@@ -429,7 +461,11 @@ export default function NarrativePage() {
       classifyRunning={classifyOp.running}
       refineRunning={refineOp.running}
       progress={(classifyOp.running ? classifyOp.task?.progress : refineOp.task?.progress) ?? 0}
-      error={classifyOp.error ?? refineOp.error}
+      error={
+        classifyOp.error
+          ? failure(classifyOp.error, t('narrative.errors.classifyFailed'))
+          : failure(refineOp.error, t('narrative.errors.refineFailed'))
+      }
       refusedMessage={classifyRefused}
       llmBlocked={refineOp.llmBlocked}
       busyReason={runningOp === 'heroJourney' ? busyReason : null}
@@ -553,7 +589,11 @@ export default function NarrativePage() {
           <>
             {staleBanner}
             {heroJourneyOp.llmBlocked && <LlmUnconfiguredNotice />}
-            {heroJourneyOp.error && <div className="nl-empty-error">{heroJourneyOp.error}</div>}
+            {heroJourneyOp.error && (
+              <div className="nl-empty-error" role="alert">
+                {failure(heroJourneyOp.error, t('narrative.errors.heroFailed'))}
+              </div>
+            )}
             {reviewMutation.isError && (
               <div className="nl-empty-error" role="alert">
                 {t('narrative.errors.reviewFailed')}
@@ -632,7 +672,11 @@ export default function NarrativePage() {
             </div>
 
             {heroJourneyOp.llmBlocked && <LlmUnconfiguredNotice />}
-            {heroJourneyOp.error && <div className="nl-empty-error">{heroJourneyOp.error}</div>}
+            {heroJourneyOp.error && (
+              <div className="nl-empty-error" role="alert">
+                {failure(heroJourneyOp.error, t('narrative.errors.heroFailed'))}
+              </div>
+            )}
             {heroJourneyOp.running ? (
               <div className="nl-progress" role="status">
                 <div className="nl-progress-line">
@@ -687,7 +731,7 @@ export default function NarrativePage() {
               )}
               {!classifyRefused && classifyOp.error && (
                 <div className="nl-empty-error" role="alert">
-                  {classifyOp.error}
+                  {failure(classifyOp.error, t('narrative.errors.classifyFailed'))}
                 </div>
               )}
               <div className="nl-trigger-row">

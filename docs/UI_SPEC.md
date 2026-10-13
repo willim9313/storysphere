@@ -2132,9 +2132,9 @@ en 對應：Previewing／Requirement not met: Standard mode · KG backend set to
 - **標題列**：「英雄旅程」h2＋框架連結（方法論頁）＋「已映射 N ／ 12 階段」。右側：狀態 badge（`ReviewBadge`）、**重新分析**（`.ss-btn-sm .ss-btn-secondary .ss-btn-llm`，無圖示）、**核可**（secondary）、**標記不適用**（ghost），後兩者無圖示。
 - **書級審核三值**（系統生成 · 未審閱／已核可／標記為不適用，沒有「已修改」，不套 15 頁逐條審核工具列）。核可與標記不適用是 `aria-pressed` 切換鈕：**再按一次亮著的鈕＝回到未審閱**（`PATCH …/review` 送 `pending`，計畫 Q5；邏輯在 `nextReviewStatus`）。亮著態＝`--bg-tertiary` 底＋粗體＋accent 字；亮著時 Tooltip 說明撤銷。
 - **重新分析的閘門**：與空態按鈕同一道摘要閘門（`summaryGate`）；缺章時 disabled，Tooltip 顯示「缺 N 章摘要，補齊後才會有可映射的內容」。分析中按鈕就地換成「分析中 · {步驟}」（`narrative.empty.runningStep`，步驟由後端 stage 字串對到 `narrative.heroStep.*`：讀取章節摘要／LLM 對應階段中／整理結果；認不得時「分析中…」）。**不顯示百分比**——後端的 10／20／90 在整段 LLM 呼叫期間停在 20，讀起來像有量測（2026-10-12 裁決）；進度條改為不定長度（`.nl-progress-indet`，reduced-motion 下為靜止淡條），不承諾 ETA。
-- **版面切換**：`.ss-seg`（`.nl-seg` 撐成四等分），每顆兩行＝名稱＋副標（`narrative.layout.*`／`narrative.viewHint.*`，spec §6 不可丟失）。`role="radiogroup"`／`radio`。一次只顯示一種，每種＝圖＋圖例＋階段詳情。預設章節對位帶。選取的階段在切換版面時保留（狀態在 `HeroJourneySection`）。
+- **版面切換**：`.ss-seg`（`.nl-seg` 撐成四等分），每顆兩行＝名稱＋副標（`narrative.layout.*`／`narrative.viewHint.*`，spec §6 不可丟失）。`role="radiogroup"`／`radio`。一次只顯示一種，每種＝圖＋圖例＋階段詳情。預設章節對位帶。選取的階段在切換版面時保留。版面與階段寫進網址（`?layout=band|track|columns|ring&stage=<stage_id>`，`replace` 不塞歷史；無效值退回預設），重整保留、可分享；網址帶 `stage` 進頁時單欄詳情預設展開（2026-10-12）。
 - **缺席說明**（`.nl-absent-note`）：虛線框，只在有未識別階段時出現。
-- **圖＋詳情**（`.nl-hj-body`）：卡不限高；詳情欄 `.nl-detail` `position: sticky; top: 16px`。對位帶在右側（欄寬 340）、三相位分欄在右側（欄寬 380），圓環右側（圓環欄 460），**水平軌跡在下方全寬**（代表事件兩欄）。視窗 ≤ 1100 時單欄，詳情改為 `position: sticky; bottom: 0`（`max-height: 35vh`、內部捲動），點階段後不必捲到圖下方就看得到。單欄時詳情**可收合**（`.nl-detail-fold`，`aria-expanded`）：收合列＝相位 · 階段名 · 狀態 badge · 「展開詳情／收合」；進頁面預設收合（不然預設選取的階段一進來就蓋住約一半的圖），點任一階段自動展開。寬版（> 1100）不出收合列（NL-4，2026-10-12 裁決）。
+- **圖＋詳情**（`.nl-hj-body`）：卡不限高；詳情欄 `.nl-detail` `position: sticky; top: 16px`，寬版上限 `calc(100vh - 32px)`、內部捲動（不讓比圖高一倍的詳情撐出圖下方的大片空白）。對位帶在右側（欄寬 340）、三相位分欄在右側（欄寬 380），圓環右側（圓環欄 460），**水平軌跡在下方全寬**（代表事件兩欄）。視窗 ≤ 1100 時單欄，詳情改為 `position: sticky; bottom: 0`（`max-height: 35vh`、內部捲動），點階段後不必捲到圖下方就看得到。單欄時詳情**可收合**（`.nl-detail-fold`，`aria-expanded`）：收合列＝相位 · 階段名 · 狀態 badge · 「展開詳情／收合」；進頁面預設收合（不然預設選取的階段一進來就蓋住約一半的圖），點任一階段自動展開。寬版（> 1100）不出收合列（NL-4，2026-10-12 裁決）。
 
 **章節對位帶（`LayoutBand`）**
 
@@ -2196,6 +2196,8 @@ en 對應：Previewing／Requirement not met: Standard mode · KG backend set to
 - **過期帶**（`.nl-stale`）：標題前有 `TriangleAlert` 圖示（兩主題；Ink 下警示底色與一般資訊框同灰，只靠字形辨識）。已有英雄旅程時疊在英雄旅程卡上方。尚無英雄旅程時不出（#217），改在**事件骨幹卡**標題列下方顯示同一外觀的文字提示、無按鈕（`narrative.stale.spine`；有未分類事件時用 `spineWithAction`，指向下方「依 EEP 重新分類」）——過期的是核心／衛星分類，英雄旅程鈕修不到（2026-10-12 裁決）。`{step}` 用 `timelineModel.staleStepKey` 對到 reader 的步驟名（章節摘要／特徵萃取／知識圖譜／符號探索），不插原始 id；「重新分析 →」是 `.ss-btn-ghost .ss-btn-llm`，與卡內同一動作、同一道閘門。5-0 後重跑章節摘要也會使本頁過期。
 
 #### 錯誤四分
+
+就地錯誤（英雄旅程、分類、精煉的觸發或任務失敗）主訊息一律用本頁文案（`narrative.errors.*Failed`；本頁自己寫的 busy／觸發句照原樣），後端或任務回傳的原文收進可展開的「技術細節」（`common:failure.techDetail`）——它常是英文 exception（2026-10-12）。
 
 | 種類 | 觸發 | 呈現 |
 |---|---|---|
