@@ -120,3 +120,16 @@ class TimelineResponse(BaseModel):
     """True when a pipeline step re-ran after the temporal analysis was cached."""
     temporal_stale_reason: str | None = None
     """Pipeline step whose rerun overtook the cached temporal analysis."""
+
+
+class RunningTimelineTasksResponse(BaseModel):
+    """The timeline page's two token-spending runs going for a book (#13c).
+
+    ``compute_task_id`` is #13b (story order), ``temporal_task_id`` is #21h
+    (analepsis / prolepsis); each is null when that run is not going.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+    compute_task_id: str | None = None
+    temporal_task_id: str | None = None
