@@ -2220,7 +2220,7 @@ en 對應：Previewing／Requirement not met: Standard mode · KG backend set to
   2. `review.withdrawRejected`：「再按一次撤銷，回到「系統生成 · 未審閱」」
   3. `repEventsNoneGap`：「這個階段落在第 {{ch}} 章，但這些章節沒有核心事件可展示——沒有可展示的事件不代表階段不成立。」
 - 其餘皆為既有字串一字不改；跨命名空間沿用：`tension.state.tokenHintShort`（成本提示）、`timeline.action.displacementDone`（倒敘預敘筆數）、`reader:rerun.steps.*`（過期步驟名）、`character.error.backToBook`。無「原寫死字串移入 i18n」。
-- 前置於本批的既有問題（不在 5-3 修）：en `narrative.unclassified.refineConfirmBody` 含字面 `\\u2019`（5-NR-10）。
+- 前置於本批的既有問題：en `narrative.unclassified.refineConfirmBody` 含字面 `\\u2019`（5-NR-10）——已於 2026-10-12 修正。
 
 #### 已清除的孤兒（2026-10-04 刪除，B-129）
 
