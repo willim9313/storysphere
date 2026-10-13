@@ -2104,6 +2104,7 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 | # | 類型 | 狀態 |
 |---|------|------|
 | TL-1 | 矛盾 · 篩選的敘事模式與詳情面板不同源；「對照不可開啟」說明句的計數與欄位名 | 待同步 |
+| TL-2 | 主題分化 · Ink 下偏離點、偏離連線與矩陣 3／4+ 只靠色相；未分析偏離點被填實 | 待同步 |
 
 ### TL-1 篩選的敘事模式與「對照不可開啟」說明句
 
@@ -2111,3 +2112,11 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 - **問題**：篩選的選項與命中數讀後端 `narrativeMode`，詳情面板與矩陣讀推導值——名字的潮汐篩「回敘」命中 7 件，點開卻是「未明」。說明卡寫「符合條件的 {n} 筆」，但開關的 disabled 判準與 n 都是全書，篩到剩 8 筆時仍寫 46 筆；句中直接露出欄位名 `chronological_rank`。
 - **目前處置**（使用者 2026-10-13 裁決）：篩選改用推導值；推導後只有一種值（沒有 rank 的書全是「未明」）時整區隱藏，與地點同一條規則。`noRanked.desc` 改為「全書 {{n}} 筆事件都還沒有故事時序，因此無法排出先後。」／「None of the book's {{n}} events has a story order yet, so they cannot be ordered.」——工程草稿。
 - **請設計端**：定案說明句；確認單值時隱藏分區（或改為顯示說明）。
+
+### TL-2 Ink 下偏離點、偏離連線與矩陣 3／4+ 只靠色相
+
+- **出處**：12 時間軸稿雙軌譜（outlier 點與連線用 accent）、12 補稿密度矩陣圖例（四階色票）；PRODUCT.md「狀態與分類不得只靠色相」；impeccable critique／audit 時間軸頁（2026-10-13）P1
+- **問題**：Ink 的 accent `#111`、一般點 `#151515`、border `#1a1a1a` 幾乎同色，偏離點與偏離連線在 Ink 下和一般的分不開；矩陣 3（`#151515`）與 4+（`#000`）色票同為黑。另外兩主題都有：outlier 把填色整個蓋成 accent，未分析的偏離點失去虛線空心。
+- **目前處置**（使用者 2026-10-13 裁決）：outlier 只改線色、不改填色（已分析偏離 accent 實心不變；未分析偏離改 accent 虛線空心，兩主題）。Ink 專屬三個 shape token：`--tl-outlier-halo-display`（偏離點外圈，半徑 +3、1px）、`--tl-outlier-link-width`（偏離連線 2px）、`--density-peak-inset`（4+ 格與色票紙色內框 2px）。Warm 除未分析偏離點外不變。
+- **請設計端**：確認 Ink 偏離點外圈與 4+ 內框的畫法；確認未分析偏離點的呈現。
+

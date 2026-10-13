@@ -762,6 +762,7 @@
 }
 .tl-stave-link.outlier {
   stroke: var(--accent);
+  stroke-width: var(--tl-outlier-link-width);
 }
 .tl-stave-dot.analyzed {
   fill: var(--fg-primary);
@@ -778,9 +779,24 @@
   stroke-width: 1;
   stroke-dasharray: 2 1.6;
 }
+/* Displacement and analysis are independent axes: an outlier recolours the
+   mark, it does not refill it — an unanalysed outlier keeps its dashed hollow. */
 .tl-stave-dot.outlier {
-  fill: var(--accent);
   stroke: var(--accent);
+}
+.tl-stave-dot.outlier.analyzed {
+  fill: var(--accent);
+}
+/* Ink: accent and the plain mark are both near-black, so an outlier is said by
+   a ring around it instead (--tl-outlier-halo-display). */
+.tl-stave-halo {
+  display: var(--tl-outlier-halo-display);
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1;
+}
+.tl-stave-halo.dim {
+  opacity: 0.18;
 }
 .tl-stave-dot.selected {
   stroke: var(--timeline-selected-ring);
@@ -1816,7 +1832,11 @@
 .tl-mx-cell.is-step-3,
 .tl-mx-swatch.is-step-3 { background: var(--symbol-density-high); }
 .tl-mx-cell.is-step-4,
-.tl-mx-swatch.is-step-4 { background: var(--symbol-density-peak); }
+.tl-mx-swatch.is-step-4 {
+  background: var(--symbol-density-peak);
+  /* Ink: 3 and 4+ are both black — 4+ gets a paper inner frame. */
+  box-shadow: inset 0 0 0 var(--density-peak-inset) var(--bg-primary);
+}
 .tl-mx-cell.is-step-3,
 .tl-mx-cell.is-step-4 {
   color: var(--accent-fg);

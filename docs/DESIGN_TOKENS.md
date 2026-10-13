@@ -317,6 +317,9 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 | `--symbol-glyph-display` | `none` | `inline-flex` | 象徵意象頁左欄清單的輔助字形：類別色塊內的 lucide 圖示（object `Box`、nature `Leaf`、spatial `MapPin`、body `Hand`、color `Palette`、other `Circle`），以及 12px 狀態槽內的極性字形（`+` `−` `○` `±`）。Warm 靠色相區分；Ink 類別色塊與極性點只差灰階，改由圖示／字形承載 |
 | `--symbol-dot-display` | `block` | `none` | 象徵意象頁左欄清單 12px 狀態槽的極性點；與 `--symbol-glyph-display` 成對，兩主題各只顯示點或字形其一，槽寬不變 |
 | `--cross-tension-pattern` | `none` | 斜紋（`repeating-linear-gradient(-45deg, transparent 0 2px, var(--bg-primary) 2px 3.5px)`） | 敘事結構頁交叉證據「張力峰值」列的格子疊紋。Warm 靠色相即可；Ink 下張力列與「階段覆蓋」列同為 accent 黑，只能靠列名分辨，改由斜紋承載 |
+| `--tl-outlier-halo-display` | `none` | `inline` | 時間軸譜面偏離點（outlier）外圍的同心環（半徑 +3、1px accent）。Warm 偏離點靠 accent 色相；Ink 的 accent `#111` 與一般點 `#151515` 同色，改由外圈承載 |
+| `--tl-outlier-link-width` | `1px` | `2px` | 時間軸譜面偏離連線的線重。Warm 靠 accent 色相；Ink 的 accent 與 border `#1a1a1a` 同色，改由線重承載 |
+| `--density-peak-inset` | `0` | `2px` | 時間軸密度矩陣「4 以上」格與圖例色票的紙色內框（inset box-shadow）。Ink 的 3（`#151515`）與 4+（`#000`）同為黑，4+ 加內框區分 |
 | `--badge-radius` | `20px` | `4px` | status badge |
 | `--control-radius` | `var(--radius-md)` | `var(--radius-sm)` | input、toggle、select |
 | `--input-radius` | `var(--control-radius)` | `var(--control-radius)` | 文字框、搜尋、select 共用的框 |
