@@ -31,9 +31,10 @@ import { useChatDispatch } from '@/contexts/ChatContext';
 import { useToast } from '@/contexts/ToastContext';
 import { useBook } from '@/hooks/useBook';
 import { useTimeline } from '@/hooks/useTimeline';
-import { useTaskPolling } from '@/hooks/useTaskPolling';
+import { isGone, useTaskPolling } from '@/hooks/useTaskPolling';
 import { useSourceJump } from '@/hooks/useSourceJump';
-import { computeTimeline } from '@/api/timeline';
+import { computeTimeline, fetchRunningTimelineTasks } from '@/api/timeline';
+import { ApiError } from '@/api/client';
 import { cancelTask } from '@/api/ingest';
 import { fetchTemporalCoverage, triggerTemporalAnalysis } from '@/api/narrative';
 import { failureKind, isLlmUnconfigured, techDetailOf } from '@/api/failureKind';
@@ -163,8 +164,9 @@ export default function TimelinePage() {
   const { data, isLoading, error, refetch } = useTimeline(bookId, 'narrative', {
     refetchOnMount: 'always',
   });
-  const { data: computeTask } = useTaskPolling(computeTaskId);
-  const { data: displacementTask } = useTaskPolling(displacementTaskId);
+  const { data: computeTask, error: computePollError } = useTaskPolling(computeTaskId);
+  const { data: displacementTask, error: displacementPollError } =
+    useTaskPolling(displacementTaskId);
   const { jump, pendingKey } = useSourceJump(bookId);
 
   const { data: coverage } = useQuery({
@@ -340,6 +342,39 @@ export default function TimelinePage() {
     }
   }, [bookId, laneIds]);
 
+  /* Each run has its own lock per book (#13c): pick up one that is already
+     going — started in another tab, or before a remount — instead of
+     offering to start one the server would refuse with 409. */
+  useEffect(() => {
+    if (!bookId) return;
+    let live = true;
+    fetchRunningTimelineTasks(bookId)
+      .then((run) => {
+        if (!live) return;
+        if (run.computeTaskId) setComputeTaskId(run.computeTaskId);
+        if (run.temporalTaskId) setDisplacementTaskId(run.temporalTaskId);
+      })
+      .catch(() => {}); // a failed lookup just leaves the page idle
+    return () => {
+      live = false;
+    };
+  }, [bookId]);
+
+  /* 404 on the poll: the task is gone (backend restarted, or cleaned up), so
+     nothing is running any more. Go back to idle quietly, as the batch pages
+     do, and refetch in case it finished before it went. */
+  useEffect(() => {
+    if (!isGone(computePollError)) return;
+    setComputeTaskId(null);
+    queryClient.invalidateQueries({ queryKey: qk.timeline.all(bookId) });
+  }, [computePollError, bookId, queryClient]);
+
+  useEffect(() => {
+    if (!isGone(displacementPollError)) return;
+    setDisplacementTaskId(null);
+    queryClient.invalidateQueries({ queryKey: qk.timeline.all(bookId) });
+  }, [displacementPollError, bookId, queryClient]);
+
   useEffect(() => {
     if (computeTask?.status === 'done') {
       setComputeTaskId(null);
@@ -441,6 +476,21 @@ export default function TimelinePage() {
     [push, t],
   );
 
+  /** A 409 `batch_running` started nothing: the same run is already going
+   *  (another tab, say). Follow that one instead of reporting a failure.
+   *  Returns false when the refusal was something else. */
+  const adoptRunning = useCallback(
+    async (err: unknown, key: 'computeTaskId' | 'temporalTaskId', adopt: (id: string) => void) => {
+      if (!(err instanceof ApiError && err.status === 409 && err.code === 'batch_running')) return false;
+      const run = await fetchRunningTimelineTasks(bookId!).catch(() => null);
+      const taskId = run?.[key];
+      if (!taskId) return false;
+      adopt(taskId);
+      return true;
+    },
+    [bookId],
+  );
+
   const runStoryOrder = useCallback(async () => {
     if (!bookId || isComputing) return;
     setConfirm(null);
@@ -449,9 +499,10 @@ export default function TimelinePage() {
       const { taskId } = await computeTimeline(bookId);
       setComputeTaskId(taskId);
     } catch (err) {
+      if (await adoptRunning(err, 'computeTaskId', setComputeTaskId)) return;
       onTriggerFailed(err, 'timeline.toast.storyOrderFailed');
     }
-  }, [bookId, isComputing, onTriggerFailed]);
+  }, [bookId, isComputing, onTriggerFailed, adoptRunning]);
 
   const runDisplacement = useCallback(async () => {
     if (!bookId || isRunningDisplacement) return;
@@ -464,16 +515,28 @@ export default function TimelinePage() {
       const task = await triggerTemporalAnalysis(bookId, bookLanguage, true);
       setDisplacementTaskId(task.taskId);
     } catch (err) {
+      if (await adoptRunning(err, 'temporalTaskId', setDisplacementTaskId)) return;
       onTriggerFailed(err, 'timeline.toast.displacementFailed');
     }
-  }, [bookId, bookLanguage, isRunningDisplacement, onTriggerFailed]);
+  }, [bookId, bookLanguage, isRunningDisplacement, onTriggerFailed, adoptRunning]);
 
   /** 中止 hits the backend (`POST /tasks/:id/cancel`) rather than just
-   *  forgetting the id, which would leave the run going. */
-  const cancelRunning = useCallback((taskId: string | null, clear: () => void) => {
-    if (taskId) void cancelTask(taskId).catch(() => undefined);
-    clear();
-  }, []);
+   *  forgetting the id, which would leave the run going. If the cancel
+   *  fails the run is still going, so the id — and the running row — stay. */
+  const cancelRunning = useCallback(
+    async (taskId: string | null, clear: () => void) => {
+      if (taskId) {
+        try {
+          await cancelTask(taskId);
+        } catch {
+          push({ type: 'error', title: t('timeline.toast.cancelFailed') });
+          return;
+        }
+      }
+      clear();
+    },
+    [push, t],
+  );
 
   /** What #21h actually produced for this book. */
   const temporalAnalyzed = data?.temporalAnalyzed === true;
@@ -651,11 +714,11 @@ export default function TimelinePage() {
             <TimelineActionPanel
               storyOrder={storyOrderState}
               onRunStoryOrder={() => setConfirm('story')}
-              onCancelStoryOrder={() => cancelRunning(computeTaskId, () => setComputeTaskId(null))}
+              onCancelStoryOrder={() => void cancelRunning(computeTaskId, () => setComputeTaskId(null))}
               displacement={displacementState}
               onRunDisplacement={() => setConfirm('displacement')}
               onCancelDisplacement={() =>
-                cancelRunning(displacementTaskId, () => setDisplacementTaskId(null))
+                void cancelRunning(displacementTaskId, () => setDisplacementTaskId(null))
               }
               displacementSkipped={skippedNotice}
               onDismissSkipped={() => setSkippedNotice(false)}

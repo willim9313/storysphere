@@ -1321,6 +1321,9 @@ off／disabled 時分段切換不出現。分段狀態與開關一樣是頁面 l
   （`events_with_hint`／`total_events`，來自 #21g）；第三格為可點連結「…到建構概覽重跑知識圖譜 →」（導向 `/books/:id/unraveling`）。
 - **執行中**：第三格改放 `leavePageOk`，第四段為「中止」（零成本、不掛字符），呼叫 `POST /tasks/:id/cancel`（`cancelTask`），
   並清除本地 task id。故事時序列的進度句用 `storyOrderRunning` 原文。**兩個任務可同時在跑。**
+- **接手**（2026-10-13）：兩項各有一把同書鎖（#13b／#21h 執行中再觸發回 409 `batch_running`）。進頁面時打 #13c，有進行中的任務就接回執行中狀態；
+  觸發回 409 `batch_running` 時改查 #13c 接手那個任務，不報錯。輪詢回 404（任務已不存在，例如後端重啟）時**安靜**回到可執行狀態並重抓時間軸。
+  **中止失敗**時保留 task id、維持執行中，並出 error toast `toast.cancelFailed`（與象徵頁 `symbol.generating.cancelFailed` 同句）。
 - **「識別倒敘與預敘」一律 `force: true`**（使用者明示要跑；否則舊的「覆蓋率不足」快取會一直擋住）。
 - **被跳過**（任務 `done` 但 `coverage_sufficient !== true`，即沒呼叫 LLM）：面板內可關閉的 **partial 卡**
   （`toast.displacementSkipped`／`Desc`，沿用既有字串）取代 toast——「沒跑」不是「跑壞」，所以用 partial 色而非 error 色。

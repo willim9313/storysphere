@@ -918,7 +918,8 @@
       "displacementDone": "倒敘與預敘分析完成",
       "displacementFailed": "倒敘與預敘分析失敗",
       "displacementSkipped": "倒敘與預敘未進行",
-      "displacementSkippedDesc": "故事時間提示覆蓋率不足 60%，這次沒有呼叫 LLM，也沒有產生任何判定。"
+      "displacementSkippedDesc": "故事時間提示覆蓋率不足 60%，這次沒有呼叫 LLM，也沒有產生任何判定。",
+      "cancelFailed": "取消失敗，任務仍在進行。"
     },
     "stave": {
       "headline": "敘述順序走了 {{rows}} 行，故事順序掉出去 {{outliers}} 次",
