@@ -181,7 +181,7 @@ export function CrossEvidence({
               {t('narrative.cross.notePeak', {
                 ch: reading.complete.ch,
                 tension: reading.complete.tension.toFixed(2),
-                stages: reading.complete.covering.map((s) => stageOrdinal(s.stage_id)).join('、'),
+                stages: reading.complete.covering.map((s) => stageOrdinal(s.stage_id)).join(t('narrative.a11y.listSep')),
                 kernels: reading.complete.kernels.length,
               })}
               {reading.gap ? ' ' + t('narrative.cross.noteGap', { ch: reading.gap.ch, last: lastKernelChapter }) : ''}
@@ -253,7 +253,7 @@ export function CrossEvidence({
                   <span className="nl-cross-peak-v">{p.tension.toFixed(2)}</span>
                   <span className="nl-cross-peak-note">
                     {p.covering.length > 0
-                      ? p.covering.map((s) => `${stageOrdinal(s.stage_id)} ${stageName(s)}`).join('、')
+                      ? p.covering.map((s) => `${stageOrdinal(s.stage_id)} ${stageName(s)}`).join(t('narrative.a11y.listSep'))
                       : t('narrative.cross.peakNoStage')}
                     {' · '}
                     {t('narrative.cross.peakKernel', { n: p.kernels.length })}

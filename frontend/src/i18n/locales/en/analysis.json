@@ -1749,7 +1749,7 @@
       "classifyConfirmTitle": "Reclassify from EEP?",
       "classifyConfirmBody": "Recomputes kernel/satellite for the whole book from the existing event-analysis (EEP) results. No LLM call, no token cost. Events without an EEP result keep the classification they have.",
       "refineConfirmTitle": "Refine {{n}} unclassified events with the LLM?",
-      "refineConfirmBody": "Sends one LLM request per event to judge kernel vs satellite. This spends tokens, and takes longer the more events there are. The verdicts overwrite these events\\u2019 current weights.",
+      "refineConfirmBody": "Sends one LLM request per event to judge kernel vs satellite. This spends tokens, and takes longer the more events there are. The verdicts overwrite these events’ current weights.",
       "classifyCost": "Zero cost · writes data",
       "badgeFree": "Zero cost",
       "badgeTokens": "Consumes tokens",

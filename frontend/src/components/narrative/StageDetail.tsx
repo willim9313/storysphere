@@ -72,7 +72,7 @@ export function StageDetail({ stage, theory, events, allStages, bookId, kernelCh
     if (reason === 'noEvidence') emptyText = t('narrative.repEventsNoneAbsent');
     else if (reason === 'beyondKernel') emptyText = t('narrative.repEventsNoneRange', { ch: first, last });
     else if (reason === 'shared')
-      emptyText = t('narrative.repEventsShared', { list: sharing.map((s) => stageOrdinal(s.stage_id)).join('、') });
+      emptyText = t('narrative.repEventsShared', { list: sharing.map((s) => stageOrdinal(s.stage_id)).join(t('narrative.a11y.listSep')) });
     else emptyText = t('narrative.repEventsNoneGap', { ch: first });
   }
 
@@ -106,12 +106,14 @@ export function StageDetail({ stage, theory, events, allStages, bookId, kernelCh
       <Section label={t('narrative.repEvents')} extra={evs.length ? t('narrative.evCount', { n: evs.length }) : undefined}>
         {sharing.length > 0 && evs.length > 0 && (
           <div className="nl-sd-shared">
-            {t('narrative.repEventsShared', { list: sharing.map((s) => stageOrdinal(s.stage_id)).join('、') })}
+            {t('narrative.repEventsShared', { list: sharing.map((s) => stageOrdinal(s.stage_id)).join(t('narrative.a11y.listSep')) })}
           </div>
         )}
         {evs.length === 0 && <div className="nl-sd-empty">{emptyText}</div>}
         <div className={wide ? 'nl-sd-evs is-wide' : 'nl-sd-evs'}>
-          {evs.map(({ id, ev }) => {
+          {evs.map(({ id, ev }, i) => {
+            // One source link per run of same-chapter events, under its last card.
+            const lastOfChapter = evs[i + 1]?.ev.chapter !== ev.chapter;
             const inner = (
               <>
                 <div className="nl-sd-ev-top">
@@ -129,7 +131,7 @@ export function StageDetail({ stage, theory, events, allStages, bookId, kernelCh
                   {inner}
                 </Link>
                 {/* One step to the source chapter, beside the analysis link. */}
-                {ev.chapter != null && (
+                {ev.chapter != null && lastOfChapter && (
                   <Link className="nl-sd-src" to={`/books/${bookId}`} state={{ chapterNumber: ev.chapter }}>
                     {t('narrative.toSource', { ch: ev.chapter })}
                   </Link>
