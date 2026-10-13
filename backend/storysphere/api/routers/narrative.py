@@ -307,16 +307,32 @@ async def temporal_coverage(
     return await narrative_service.check_temporal_coverage(book_id)
 
 
-@router.post("/temporal", response_model=TaskStatus, status_code=202)
+# #21h has its own lock, apart from the classify / refine / hero-journey one:
+# it only writes its own ``temporal_analysis`` cache, so it cannot overwrite
+# them — but a second run on the same book pays the LLM twice. The timeline
+# page reads this lock back through ``GET /books/:id/timeline/running`` (#13c).
+TEMPORAL_GUARD_KIND = "temporal"
+
+
+@router.post(
+    "/temporal",
+    response_model=TaskStatus,
+    status_code=202,
+    responses={409: {"model": ErrorResponse}},
+)
 async def analyze_temporal(
     req: TemporalAnalysisRequest,
     narrative_service: NarrativeServiceDep,
-) -> TaskStatus:
+    doc_service: DocServiceDep,
+) -> TaskStatus | JSONResponse:
     """Start Genette temporal order analysis for a book.
 
     Requires story_time_hint coverage ≥ 60% (check with GET /narrative/temporal/coverage).
     Returns 202 with ``task_id``. Poll ``GET /narrative/temporal/{task_id}``.
+    404 for a book that does not exist; 409 (``code: batch_running``) while a
+    temporal analysis is already going for the book.
     """
+    await _require_book(doc_service, req.document_id)
     # 覆蓋率不足時 analyze_temporal_order 直接回 coverage_sufficient=False、不碰 LLM，
     # 這種情況不該因沒設 provider 而 503。只在 provider 未設定時才多查一次覆蓋率
     # （與 GET /temporal/coverage 同一個公開方法），一般路徑行為不變。
@@ -324,9 +340,13 @@ async def analyze_temporal(
         coverage = await narrative_service.check_temporal_coverage(req.document_id)
         if coverage.coverage_sufficient:
             require_llm_provider()
+    # No await between the check and the claim (see batch_guard).
+    if (busy := batch_guard.conflict(TEMPORAL_GUARD_KIND, req.document_id)) is not None:
+        return busy
     task_id = str(uuid4())
     task_store.create(task_id, kind="narrative", title="時序分析")
     task_runner.launch(task_id, _temporal(task_id, req, narrative_service))
+    batch_guard.hold(TEMPORAL_GUARD_KIND, req.document_id, task_id)
     return TaskStatus(task_id=task_id, status="pending")
 
 

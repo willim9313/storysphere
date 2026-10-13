@@ -780,6 +780,72 @@ class TestNarrativeRunGuard:
         assert resp.json() == {"op": None, "taskId": None}
 
 
+# ── One temporal analysis per book (#21h 409, read back by #13c) ─────────────
+
+
+class TestTemporalRunGuard:
+    """#21h has its own lock: a second run on one book pays the LLM twice, but
+    it never blocks (or is blocked by) classify / refine / hero-journey."""
+
+    @pytest.fixture(autouse=True)
+    def _provider_configured(self, monkeypatch):
+        monkeypatch.setattr("storysphere.api.llm_guard._primary_config_error", lambda: None)
+
+    def _post(self, client, book_id="book-1"):
+        return client.post("/api/v1/narrative/temporal", json={"document_id": book_id})
+
+    def test_second_run_is_refused_while_one_runs(self, narrative_client):
+        narrative_client.mock_narrative.analyze_temporal_order.side_effect = hanging_call()
+        task_id = self._post(narrative_client).json()["taskId"]
+
+        resp = self._post(narrative_client)
+        assert resp.status_code == 409
+        assert resp.json()["code"] == "batch_running"
+
+        narrative_client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+    def test_timeline_running_names_the_task(self, narrative_client):
+        narrative_client.mock_narrative.analyze_temporal_order.side_effect = hanging_call()
+        task_id = self._post(narrative_client).json()["taskId"]
+
+        resp = narrative_client.get("/api/v1/books/book-1/timeline/running")
+        assert resp.json() == {"computeTaskId": None, "temporalTaskId": task_id}
+
+        narrative_client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+    def test_lock_is_released_once_the_run_ends(self, narrative_client):
+        narrative_client.mock_narrative.analyze_temporal_order.side_effect = hanging_call()
+        task_id = self._post(narrative_client).json()["taskId"]
+        narrative_client.post(f"/api/v1/tasks/{task_id}/cancel")
+        poll_until_terminal(narrative_client, task_id)
+
+        resp = narrative_client.get("/api/v1/books/book-1/timeline/running")
+        assert resp.json()["temporalTaskId"] is None
+        second = self._post(narrative_client)
+        assert second.status_code == 202
+        narrative_client.post(f"/api/v1/tasks/{second.json()['taskId']}/cancel")
+
+    def test_does_not_share_the_narrative_lock(self, narrative_client):
+        narrative_client.mock_narrative.analyze_temporal_order.side_effect = hanging_call()
+        narrative_client.mock_narrative.map_hero_journey.side_effect = hanging_call()
+        temporal = self._post(narrative_client).json()["taskId"]
+
+        hero = narrative_client.post(
+            "/api/v1/narrative/hero-journey", json={"document_id": "book-1"}
+        )
+        assert hero.status_code == 202
+
+        narrative_client.post(f"/api/v1/tasks/{temporal}/cancel")
+        narrative_client.post(f"/api/v1/tasks/{hero.json()['taskId']}/cancel")
+
+    def test_unknown_book_404s_without_a_task(self, narrative_client):
+        resp = self._post(narrative_client, "no-such-book")
+        assert resp.status_code == 404
+        narrative_client.mock_narrative.analyze_temporal_order.assert_not_awaited()
+        running = narrative_client.get("/api/v1/books/no-such-book/timeline/running")
+        assert running.json() == {"computeTaskId": None, "temporalTaskId": None}
+
+
 # ── Unknown book / foreign task → 404 ────────────────────────────────────────
 
 

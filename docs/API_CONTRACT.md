@@ -1342,12 +1342,36 @@ interface TimelineQuality {
 
 **Response 503**：未設定 LLM provider（見「通用規則」）；在 404／400 之後檢查
 
+**Response 409 `batch_running`**（2026-10-13 起）：同一本書已有時序計算在執行。body 為 `{ detail, code: "batch_running" }`，不建立 task。
+pipeline 是先刪舊時序關係、再逐筆寫入（中間有 await），兩次交錯會讓每條關係重複一份，LLM 也付兩次。前端改以 #13c 取回進行中的 taskId 接手。
+在 404／400／503 之後檢查。
+
 **說明**：polling #8，完成後重新拉取 #13a。
 
 **成功才覆蓋（第 4 批）**：時序關係與 `chronological_rank` 只在 LLM 推論成功之後才清舊寫新。
 推論失敗時**不刪**既有時序關係與排序，任務狀態為 `error`（`error` 為可讀訊息），不再以 `done` 結束。
 
 **UI 使用頁面**：時間軸頁工具列「重新計算時序」
+
+---
+
+### #13c GET /books/:bookId/timeline/running
+
+這本書目前執行中的時間軸頁兩項花 token 任務。唯讀、不花 token。2026-10-13 新增。
+
+**Response 200**
+```ts
+{ computeTaskId: string | null; temporalTaskId: string | null }  // 沒有時皆為 null（不回 404）
+```
+
+- `computeTaskId`：#13b 時序計算
+- `temporalTaskId`：#21h 時序分析（倒敘與預敘）
+
+**說明**：兩項**各有一把鎖**，可以同時在跑（#13b 寫 KG 的時序關係與 `chronological_rank`，#21h 只寫自己的 `temporal_analysis` 快取，互不覆蓋）；
+同一項在同一本書上一次只跑一個，第二次觸發回 409 `batch_running`。頁面重新掛載（或另一個分頁已開始）時用它接手，而不是再給一次觸發鈕。
+記錄與 #7k／#15k／#21m 同一套進程內 registry：單一 worker 有效，後端重啟後為 null。
+
+**UI 使用頁面**：無（前端尚未接上；時間軸頁接手執行中任務於下一個子任務實作，屆時改為「時間軸頁——進頁面時、任一 POST 回 409 `batch_running` 時接手」）
 
 ---
 
@@ -2654,6 +2678,10 @@ interface ChapterDistribution {
 只回 `coverage_sufficient=false`，此時即使沒設定 provider 也照常 202；只有「會真的呼叫 LLM」才回 503。
 （僅在 provider 未設定時才多查一次覆蓋率；已設定時行為與先前完全相同。已有快取且未 `force` 的情形不特別判斷，仍回 503。）
 
+**Response 404**（2026-10-13 起）：書不存在。先前照樣建立 task 並把覆蓋率 0 的結果寫進快取。
+
+**Response 409 `batch_running`**（2026-10-13 起）：同一本書已有 #21h 在執行（自己一把鎖，不與 #21m 的分類／精煉／英雄旅程共用，見 #13c）。不建立 task。在 404／503 之後檢查。
+
 **說明**：polling 走 #21i。需先確認 #21g 覆蓋率 ≥ 60%。
 
 ---
@@ -2920,7 +2948,7 @@ HITL 審核 NarrativeStructure（approved / rejected / pending）。
 
 **說明**：三者都會讀取、改寫同一份快取的 NarrativeStructure（分類與精煉還會改寫 KG 的 `narrative_weight`），同書並行會互相覆蓋，重複的精煉／英雄旅程則各付一次 LLM，所以**同一本書一次只跑一項**——任一項執行中，三個 POST 都回 409 `batch_running`。
 回單筆而非清單：鎖是書級的，同時至多一項。頁面重新掛載（或另一個分頁已開始）時用它接手，而不是再給一次觸發鈕。
-記錄與 #7k／#15k 同一套進程內 registry：單一 worker 有效，後端重啟後為 null。#21h（時序分析）不在這把鎖內。
+記錄與 #7k／#15k 同一套進程內 registry：單一 worker 有效，後端重啟後為 null。#21h（時序分析）不在這把鎖內（它有自己的鎖，執行中的 task 由 #13c 取回）。
 
 **UI 使用頁面**：敘事結構頁——進頁面時接手進行中的任務、任一 POST 回 409 `batch_running` 時接手（`fetchRunningNarrative`，不走 react-query）
 
@@ -3158,6 +3186,7 @@ response schema 與測試檔。
   - 2026-10-12：#21j 改為唯讀（不再自動分類）；#21a／#21c／#21e／#21g／#21j／#21k 書不存在回 404；#21b／#21d／#21f／#21i 只回敘事類 task。
   - 2026-10-12：#21e 新映射寫回時審核重設為 `pending`。
   - 2026-10-12：#21a／#21c／#21e 同書共用一把鎖，執行中回 409 `batch_running`；新增 #21m `GET /narrative/running`。
+  - 2026-10-13：#21h 書不存在回 404、同書執行中回 409 `batch_running`（自己一把鎖）；#13b 同書執行中回 409；新增 #13c `GET /books/:bookId/timeline/running`。
   - 2026-08-12：#21l 核可時一併寫入 `classification_source='human_verified'`（撤回核可時由事件來源還原）。詳見 #21l 段落。
 - [x] **#2-a / #3 lastOpenedAt**：`POST /books/:bookId/opened`（#2-c）寫入，#1 / #2-a / #3 回傳 `lastOpenedAt`
 - [x] **#23a 跨書語意搜尋**：`POST /api/v1/search/`，metadata 欄位（`documentId`、`chapterNumber`、`position`）已修復；前端頁面 `/search` 已實作，Sidebar 圖示已啟用（2026-06-13）
