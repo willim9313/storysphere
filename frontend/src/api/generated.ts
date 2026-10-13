@@ -234,8 +234,34 @@ export interface paths {
          * @description Trigger temporal timeline computation for a book.
          *
          *     Requires EEP (event analysis) to have been run first for best results.
+         *     409 (``code: batch_running``) while a computation is already going for the
+         *     book — #13c hands back its task id.
          */
         post: operations["compute_book_timeline_api_v1_books__book_id__timeline_compute_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/timeline/running": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Running Timeline Tasks
+         * @description The #13b and #21h runs going for this book (#13c).
+         *
+         *     Read-only: lets the timeline page pick a run back up after a remount (or
+         *     from another tab) instead of offering to start one the POSTs would refuse
+         *     with 409.
+         */
+        get: operations["get_running_timeline_tasks_api_v1_books__book_id__timeline_running_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -1290,7 +1316,7 @@ export interface paths {
          *     caller is told instead of watching a no-op complete.
          *
          *     Also 409 (``code: batch_running``) while another narrative run is going for
-         *     the book — see ``_busy``.
+         *     the book — see ``_busy``. 404 for a book that does not exist.
          */
         post: operations["classify_narrative_api_v1_narrative_classify_post"];
         delete?: never;
@@ -1332,7 +1358,8 @@ export interface paths {
          *     By default refines all satellite events. Supply ``event_ids`` to target
          *     specific events. Requires heuristic classification to have run first.
          *
-         *     409 (``code: batch_running``) while another narrative run is going for the book.
+         *     409 (``code: batch_running``) while another narrative run is going for the
+         *     book; 404 for a book that does not exist.
          */
         post: operations["refine_narrative_api_v1_narrative_refine_post"];
         delete?: never;
@@ -1373,7 +1400,8 @@ export interface paths {
          *
          *     Returns 202 with ``task_id``. Poll ``GET /narrative/hero-journey/{task_id}``.
          *
-         *     409 (``code: batch_running``) while another narrative run is going for the book.
+         *     409 (``code: batch_running``) while another narrative run is going for the
+         *     book; 404 for a book that does not exist.
          */
         post: operations["map_hero_journey_api_v1_narrative_hero_journey_post"];
         delete?: never;
@@ -1434,7 +1462,7 @@ export interface paths {
          * @description Check story_time_hint coverage for a book.
          *
          *     Returns coverage fraction and whether it meets the 60% threshold
-         *     required to run temporal analysis.
+         *     required to run temporal analysis. 404 for a book that does not exist.
          */
         get: operations["temporal_coverage_api_v1_narrative_temporal_coverage_get"];
         put?: never;
@@ -1460,6 +1488,8 @@ export interface paths {
          *
          *     Requires story_time_hint coverage ≥ 60% (check with GET /narrative/temporal/coverage).
          *     Returns 202 with ``task_id``. Poll ``GET /narrative/temporal/{task_id}``.
+         *     404 for a book that does not exist; 409 (``code: batch_running``) while a
+         *     temporal analysis is already going for the book.
          */
         post: operations["analyze_temporal_api_v1_narrative_temporal_post"];
         delete?: never;
@@ -1496,8 +1526,8 @@ export interface paths {
          * Get Kernel Spine
          * @description Return kernel events (plot spine) sorted by chapter and narrative position.
          *
-         *     Runs heuristic classification automatically if events have not been
-         *     classified yet.
+         *     Read-only: a book nothing has classified yet gets ``[]`` — the page offers
+         *     POST /narrative/classify for that. 404 for a book that does not exist.
          */
         get: operations["get_kernel_spine_api_v1_narrative_kernel_spine_get"];
         put?: never;
@@ -1525,7 +1555,8 @@ export interface paths {
          *     Hero's Journey stage is resolved from the kernel spine. All three are
          *     derived per request and never persisted.
          *
-         *     Returns 404 if neither classify nor hero-journey has been run yet.
+         *     Returns 404 for a book that does not exist, and 404 when neither classify
+         *     nor hero-journey has been run yet (the page treats that as "not analyzed").
          */
         get: operations["get_narrative_structure_api_v1_narrative_get"];
         put?: never;
@@ -3587,7 +3618,7 @@ export interface components {
          * KernelSpineEvent
          * @description One kernel event in the plot spine (response shape for #21j).
          *
-         *     Mirrors the dict assembled in ``get_kernel_spine``. Field names stay
+         *     Mirrors the dict assembled in the ``get_kernel_spine`` route. Field names stay
          *     snake_case (no camel alias) to match the existing JSON contract.
          */
         KernelSpineEvent: {
@@ -4002,6 +4033,19 @@ export interface components {
             imageryId: string;
             /** Taskid */
             taskId: string;
+        };
+        /**
+         * RunningTimelineTasksResponse
+         * @description The timeline page's two token-spending runs going for a book (#13c).
+         *
+         *     ``compute_task_id`` is #13b (story order), ``temporal_task_id`` is #21h
+         *     (analepsis / prolepsis); each is null when that run is not going.
+         */
+        RunningTimelineTasksResponse: {
+            /** Computetaskid */
+            computeTaskId?: string | null;
+            /** Temporaltaskid */
+            temporalTaskId?: string | null;
         };
         /**
          * SEP
@@ -5517,6 +5561,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaskIdResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_running_timeline_tasks_api_v1_books__book_id__timeline_running_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunningTimelineTasksResponse"];
                 };
             };
             /** @description Validation Error */
@@ -7420,6 +7504,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaskStatus"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Validation Error */

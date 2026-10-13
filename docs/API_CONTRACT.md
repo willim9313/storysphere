@@ -1371,7 +1371,7 @@ pipeline 是先刪舊時序關係、再逐筆寫入（中間有 await），兩�
 同一項在同一本書上一次只跑一個，第二次觸發回 409 `batch_running`。頁面重新掛載（或另一個分頁已開始）時用它接手，而不是再給一次觸發鈕。
 記錄與 #7k／#15k／#21m 同一套進程內 registry：單一 worker 有效，後端重啟後為 null。
 
-**UI 使用頁面**：無（前端尚未接上；時間軸頁接手執行中任務於下一個子任務實作，屆時改為「時間軸頁——進頁面時、任一 POST 回 409 `batch_running` 時接手」）
+**UI 使用頁面**：時間軸頁——進頁面時接手進行中的任務、任一 POST 回 409 `batch_running` 時接手（`fetchRunningTimelineTasks`，不走 react-query）
 
 ---
 
