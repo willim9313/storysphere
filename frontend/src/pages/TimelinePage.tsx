@@ -894,15 +894,16 @@ export default function TimelinePage() {
                 )}
                 <TimelineStave
                   rows={staveRows}
+                  hasRanked={stats.ranked > 0}
                   selectedChapter={activeChapter}
                   selectedEventId={selectedEventId}
                   dimmedIds={dimmedIds}
                   onSelectChapter={setSelectedChapter}
                   onSelectEvent={selectEvent}
                 />
-                {/* Position and analysis state are independent axes, and the
-                    unranked strip used to share the hollow mark with 未分析.
-                    Each axis gets its own line so neither reads as the other. */}
+                {/* Position and analysis state are independent axes: the
+                    unranked strip's marks use the same solid / dashed marks,
+                    and the strip is named by its own swatch on a second line. */}
                 <div className="tl-legend">
                   {comparing && <p className="tl-view-legend">{t('timeline.stave.legend')}</p>}
                   <p className="tl-view-legend">
