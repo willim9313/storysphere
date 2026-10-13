@@ -171,6 +171,10 @@ export function CharacterLanes({
                     .filter(Boolean)
                     .join(' ')}
                   onClick={() => onSelectEvent(dot.datum)}
+                  // The same events as the stave, which is the keyboard way
+                  // in; 3 lanes × every appearance would be ~80 Tab stops.
+                  tabIndex={-1}
+                  aria-pressed={dot.id === selectedEventId}
                 >
                   <span className="sr-only">{dot.datum.title}</span>
                 </button>

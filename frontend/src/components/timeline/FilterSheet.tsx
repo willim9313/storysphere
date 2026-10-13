@@ -6,9 +6,10 @@
  * 8 event types and 67 characters. The shell is new, the content is not.
  */
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Search } from 'lucide-react';
+import { useDialogFocus } from '@/hooks/useDialogFocus';
 import {
   createDefaultFilter,
   type FilterOptions,
@@ -65,6 +66,10 @@ export function FilterSheet({
 }: FilterSheetProps) {
   const { t } = useTranslation('analysis');
   const [charSearch, setCharSearch] = useState('');
+  // Mounted only while open: focus moves to the title, Tab stays inside, and
+  // closing hands focus back to the 篩選 button that opened it.
+  const dialogRef = useDialogFocus(true);
+  const titleId = useId();
 
   const toggleSet = (key: keyof FilterState, value: string) => {
     const next = { ...filter, [key]: new Set(filter[key]) };
@@ -82,9 +87,11 @@ export function FilterSheet({
   );
 
   return (
-    <div className="tl-filter-sheet" role="dialog" aria-label={t('timeline.filter')}>
+    <div className="tl-filter-sheet" role="dialog" aria-labelledby={titleId} ref={dialogRef}>
       <div className="tl-filter-sheet-head">
-        <span className="tl-filter-sheet-title">{t('timeline.toolbar.filter')}</span>
+        <span className="tl-filter-sheet-title" id={titleId} tabIndex={-1}>
+          {t('timeline.toolbar.filter')}
+        </span>
         <button type="button" className="tl-filter-sheet-clear" onClick={reset}>
           {t('timeline.clearAll')}
         </button>

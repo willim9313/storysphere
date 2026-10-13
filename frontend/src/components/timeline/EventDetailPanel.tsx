@@ -13,6 +13,7 @@
  * is the primary one here, not an edge case.
  */
 
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import { OUTLIER_THRESHOLD, type TimelineDatum } from '@/lib/timelineGeometry';
@@ -30,6 +31,9 @@ interface EventDetailPanelProps {
   onClose: () => void;
   onJumpToSource: () => void;
   onOpenGraph: () => void;
+  /** Bumped when an event is picked by click / Enter: focus moves to the
+   *  title. Stepping with ← → leaves focus where it is. */
+  focusRequest: number;
 }
 
 export function EventDetailPanel({
@@ -42,8 +46,13 @@ export function EventDetailPanel({
   onClose,
   onJumpToSource,
   onOpenGraph,
+  focusRequest,
 }: EventDetailPanelProps) {
   const { t } = useTranslation('analysis');
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (focusRequest > 0) titleRef.current?.focus();
+  }, [focusRequest]);
 
   const participants = datum.event.participants;
   const visible = participants.slice(0, PILL_LIMIT);
@@ -92,7 +101,9 @@ export function EventDetailPanel({
           {/* Sits under the kicker, not in the toolbar: it is how you move
               through the events this panel shows (稿 12 E：kicker → 鍵位 → 標題). */}
           <span className="tl-panel-keys">{t('timeline.keyHint')}</span>
-          <h2 className="tl-panel-title">{datum.title}</h2>
+          <h2 className="tl-panel-title" ref={titleRef} tabIndex={-1}>
+            {datum.title}
+          </h2>
           {/* Muting tracks the label it styles: the unrated state is the one
               that should read as absent, whether or not analysis ran. */}
           <span className={kindClass}>{kind}</span>
