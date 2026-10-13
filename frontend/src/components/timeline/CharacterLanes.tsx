@@ -14,10 +14,12 @@
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { useElementWidth } from '@/hooks/useElementWidth';
 import {
   MAX_LANES,
   buildLane,
   coPresence,
+  sparseLabels,
   type TimelineDatum,
 } from '@/lib/timelineGeometry';
 
@@ -59,6 +61,15 @@ export function CharacterLanes({
     const first = data.findIndex((d) => d.chapter === ch);
     return { ch, xPct: n > 1 ? (first / (n - 1)) * 100 : 0 };
   });
+
+  // Narrow lanes cannot print every Ch.N: the marks all stay, the labels thin
+  // out (first and last kept). 11px text, ~0.6em a glyph, plus padding.
+  const [ticksRef, ticksWidth] = useElementWidth<HTMLDivElement>();
+  const tickShown = sparseLabels(
+    ticks.map((tk) => tk.xPct),
+    ticksWidth,
+    ticks.map((tk) => `Ch.${tk.ch}`.length * 6.6 + 10),
+  );
 
   const unselected = available.filter((c) => !selected.some((s) => s.id === c.id));
 
@@ -117,10 +128,10 @@ export function CharacterLanes({
       {selected.length === 0 && <p className="tl-lanes-empty">{t('timeline.lanes.empty')}</p>}
 
       {selected.length > 0 && (
-        <div className="tl-lanes-ticks">
-          {ticks.map((tick) => (
+        <div className="tl-lanes-ticks" ref={ticksRef}>
+          {ticks.map((tick, i) => (
             <span className="tl-lanes-tick" key={tick.ch} style={{ left: `${tick.xPct}%` }}>
-              Ch.{tick.ch}
+              {tickShown[i] ? `Ch.${tick.ch}` : ''}
             </span>
           ))}
         </div>

@@ -3,6 +3,9 @@
  * hint gate, and how a finished displacement task is read. No React.
  */
 
+import type { TFunction } from 'i18next';
+import type { StaveAnnotation } from '@/lib/timelineGeometry';
+
 /** Gate for 識別倒敘與預敘 — mirrors the backend's coverage threshold. */
 export const HINT_GATE_PCT = 60;
 
@@ -68,4 +71,26 @@ export interface EepPrereq {
 
 export function eepPrereq(analyzed: number, total: number): EepPrereq {
   return { done: analyzed, total, pct: total > 0 ? Math.round((analyzed / total) * 100) : 0 };
+}
+
+/* ── Stave annotations ──────────────────────────────────────── */
+
+function noteKey(a: Pick<StaveAnnotation, 'confirmed' | 'kind'>): string {
+  if (a.confirmed) {
+    return a.kind === 'flashback'
+      ? 'timeline.stave.flashbackJudged'
+      : 'timeline.stave.flashforwardJudged';
+  }
+  return a.kind === 'flashback'
+    ? 'timeline.stave.flashbackNote'
+    : 'timeline.stave.flashforwardNote';
+}
+
+/** The text an annotation prints — exported so the page can size it before
+ *  layout decides which labels fit. */
+export function annotationText(
+  t: TFunction,
+  a: Pick<StaveAnnotation, 'confirmed' | 'kind' | 'chapter' | 'count'>,
+): string {
+  return t(noteKey(a), { ch: a.chapter, count: a.count });
 }
