@@ -23,7 +23,8 @@ interface UnclassifiedBlockProps {
   classifyRunning: boolean;
   refineRunning: boolean;
   progress: number;
-  error: string | null;
+  /** Already worded by the page (localized message, raw text as detail). */
+  error: React.ReactNode;
   /** The server refused with 409; the localized reason, counts included. */
   refusedMessage: string | null;
   /** The refine trigger was answered with the app's own 503 (no LLM provider). */

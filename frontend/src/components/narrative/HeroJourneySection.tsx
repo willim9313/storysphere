@@ -1,7 +1,7 @@
 // Hero's Journey — main section: header + book-level review + layout switcher
 // + the active chart beside a sticky stage-detail column.
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { HeroJourneyStage, NarrativeReviewStatus } from '@/api/narrative';
@@ -56,17 +56,36 @@ export function HeroJourneySection({
   bookId,
 }: Readonly<HeroJourneySectionProps>) {
   const { t } = useTranslation('analysis');
-  const [layout, setLayout] = useState<LayoutId>(LAYOUT_IDS[0]);
-  const [sel, setSel] = useState<string>(
-    () => stages.find((s) => s.stage_id === 'ordeal')?.stage_id ?? stages[0]?.stage_id ?? '',
-  );
+  // Layout and stage live in the URL (?layout=…&stage=…) so a reload keeps
+  // them and a researcher can cite or share one view. replace, not push: a
+  // click through the stages should not fill the back history.
+  const [params, setParams] = useSearchParams();
+  const urlLayout = params.get('layout') as LayoutId | null;
+  const layout: LayoutId = urlLayout && LAYOUT_IDS.includes(urlLayout) ? urlLayout : LAYOUT_IDS[0];
+  const urlStage = params.get('stage');
+  const sel =
+    (urlStage && stages.some((s) => s.stage_id === urlStage) ? urlStage : null) ??
+    stages.find((s) => s.stage_id === 'ordeal')?.stage_id ??
+    stages[0]?.stage_id ??
+    '';
+  const setParam = (key: 'layout' | 'stage', value: string) =>
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set(key, value);
+        return next;
+      },
+      { replace: true },
+    );
+  const setLayout = (id: LayoutId) => setParam('layout', id);
   // Under 1100px the detail is pinned to the viewport bottom (#213). It starts
   // folded to one line so the chart is visible on arrival, and opens when a
-  // stage is picked — the click #213 made visible still is. Above 1100px the
-  // detail is a side column and the fold control is hidden by CSS.
-  const [detailOpen, setDetailOpen] = useState(false);
+  // stage is picked — the click #213 made visible still is; a shared link that
+  // names a stage arrives open. Above 1100px the detail is a side column and
+  // the fold control is hidden by CSS.
+  const [detailOpen, setDetailOpen] = useState(() => !!urlStage);
   const selectStage = (id: string) => {
-    setSel(id);
+    setParam('stage', id);
     setDetailOpen(true);
   };
   const Chart = LAYOUTS[layout];
