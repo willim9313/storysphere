@@ -117,7 +117,7 @@ function ActionRow({
   const hollow = state.blocked && !state.running;
 
   return (
-    <div className={`tl-action-row${first ? ' is-first' : ''}`}>
+    <div className={`tl-action-row${first ? ' is-first' : ''}${hollow ? ' is-blocked' : ''}`}>
       <div className="tl-action-name">
         {state.running ? (
           <Loader2 size={13} className="tl-spinner" aria-hidden="true" />

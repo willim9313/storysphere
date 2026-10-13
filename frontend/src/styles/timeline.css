@@ -142,8 +142,11 @@
   border-right: var(--border-width) solid var(--border);
 }
 .tl-toolbar-right {
+  container: tl-actions / inline-size;
   flex: 1;
-  min-width: 420px;
+  /* A blocked row now spans the panel's width, so the panel can sit beside the
+     left clusters a little narrower than the 420 it needed before. */
+  min-width: 360px;
 }
 .tl-cluster {
   display: flex;
@@ -162,8 +165,8 @@
 }
 /* One line, muted, follows the selected filterMode. */
 .tl-cluster-hint {
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
   white-space: nowrap;
 }
 .tl-filter-anchor {
@@ -201,8 +204,8 @@
   font-weight: 600;
 }
 .tl-actions-note {
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
 }
 /* 動作 / 目前狀態 / 成本或阻擋原因 / 按鈕 — the status and cost share the
    middle column as two stacked lines. */
@@ -216,6 +219,21 @@
 }
 .tl-action-row.is-first {
   border-top: none;
+}
+/* Blocked, beside the left clusters (a narrow panel): the button cannot run
+   anyway, so the reason — the status, the gate and the way out — gets the
+   row's full width instead of a narrow middle column (it folded into four
+   lines and pushed the stave down). A full-width panel keeps the one row. */
+@container tl-actions (max-width: 559px) {
+  .tl-action-row.is-blocked {
+    grid-template-areas:
+      "name . button"
+      "text text text";
+    row-gap: var(--space-3);
+  }
+  .tl-action-row.is-blocked > .tl-action-name { grid-area: name; }
+  .tl-action-row.is-blocked > .tl-action-text { grid-area: text; }
+  .tl-action-row.is-blocked > .ss-btn { grid-area: button; }
 }
 .tl-action-name {
   display: flex;
@@ -254,8 +272,8 @@
   color: var(--status-partial-fg);
 }
 .tl-action-sub {
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
   line-height: 1.6;
   text-align: left;
 }
@@ -391,7 +409,11 @@
   opacity: 1;
 }
 
-.tl-filter-chip:hover {
+.tl-filter-chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.tl-filter-chip:hover:not(:disabled) {
   background: var(--bg-secondary);
 }
 .tl-filter-chip.active {
@@ -511,9 +533,9 @@
 }
 .tl-base-sub {
   margin: 0;
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-xs);
   line-height: 1.6;
-  color: var(--fg-muted);
+  color: var(--fg-secondary);
 }
 .tl-compare {
   display: flex;
@@ -594,7 +616,7 @@
 .tl-compare-blocked-desc {
   margin: 0;
   max-width: 86ch;
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-xs);
   line-height: 1.7;
   color: var(--fg-secondary);
   text-wrap: pretty;
@@ -1261,8 +1283,8 @@
 }
 .tl-lanes-note {
   margin: 0;
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
 }
 .tl-lanes-empty {
   margin: 0;
@@ -1370,7 +1392,7 @@
 }
 .tl-lane-chip {
   font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
+  color: var(--fg-secondary);
   padding: var(--space-1) var(--space-4);
   background: var(--bg-secondary);
   border-radius: var(--badge-radius);
