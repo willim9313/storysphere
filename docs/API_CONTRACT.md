@@ -1269,7 +1269,7 @@ interface EventDetail {
 
 取得時間軸資料。
 
-**Query Params**：`order=narrative|chronological|matrix`
+**Query Params**：`order=narrative|chronological`（預設 `chronological`）。後端只認這兩值；其他值（含舊文件列的 `matrix`）**不報錯、照 `narrative` 排序回傳**——矩陣由前端用同一份 payload 畫，不另抓。
 
 **Response 200**
 ```ts
@@ -2682,7 +2682,7 @@ interface ChapterDistribution {
 
 **Response 409 `batch_running`**（2026-10-13 起）：同一本書已有 #21h 在執行（自己一把鎖，不與 #21m 的分類／精煉／英雄旅程共用，見 #13c）。不建立 task。在 404／503 之後檢查。
 
-**說明**：polling 走 #21i。需先確認 #21g 覆蓋率 ≥ 60%。
+**說明**：polling 可走 #21i（只回敘事類 task）或通用的 #8——時間軸頁走 #8（`useTaskPolling`）。需先確認 #21g 覆蓋率 ≥ 60%。
 
 ---
 

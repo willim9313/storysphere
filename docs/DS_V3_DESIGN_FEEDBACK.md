@@ -1165,6 +1165,7 @@ Handoff `redesign_v3_handoff_batch_4.zip`（`design_handoff_04_views/`）。下�
 - **問題**：B 檢視內容寬是 1280 − 兩側 24 ＝ 1232。左段四格加上 `filterMode` 單行 hint（稿要求單行）約 770，右段若要 460 就在 1440 視窗下也會換行。
 - **目前處置**：右段最小寬降為 420（1440 下兩段同列，中間欄約 300，阻擋解法連結會折成三行）。窄於約 1230 時右段換行到左段下方。
 - **請設計端**：確認 hint 是否一定單行，或左段是否可改成兩列。
+- **現況**（2026-10-13，TL-4）：右段最小寬再降為 360；被擋列在面板窄時改兩行、阻擋原因跨整列寬，上文「中間欄約 300、折成三行」已不成立（實測原本為四行）。
 
 #### 4-TL-9 譜面與軌跡的點無法換成共用 Tooltip
 
@@ -1172,6 +1173,7 @@ Handoff `redesign_v3_handoff_batch_4.zip`（`design_handoff_04_views/`）。下�
 - **問題**：點是以百分比座標絕對定位的 `<button>`（每行 20 多顆、軌跡再加數十顆），共用 `Tooltip` 的包裹 `<span>` 無法承接定位，且每顆各掛一組計時器與 portal 不划算。
 - **目前處置**：保留原生 `title`（事件標題、rank），並在 `sr-only` 內有相同文字。其餘控制項沒有 `title`。
 - **請設計端**：若要統一，需要能「掛在定位元素上」的 Tooltip 變體，或單一浮層跟隨游標。
+- **現況**（2026-10-13 對照）：實作已改用共用 `Tooltip` 的 `anchorClassName`／`anchorStyle`（錨點承接定位，見 UI_SPEC 3.2），譜面點、未排序點與軌跡點都不再用原生 `title`；上文「保留原生 title」已不成立。
 
 #### 4-TL-10 稿的篩選清單列與逐格軌道，現況是 chips 與連續軌道
 
@@ -2107,6 +2109,7 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 | TL-2 | 主題分化 · Ink 下偏離點、偏離連線與矩陣 3／4+ 只靠色相；未分析偏離點被填實 | 待同步 |
 | TL-3 | 矛盾 · 註記壓在點與章節標籤上；720 開面板譜面只剩 228px；軌跡章號黏連 | 待同步 |
 | TL-4 | 缺陷 · 整句說明 11px／fg-muted、缺席 chip 對比 2.86、被擋列折四行推低譜面 | 待同步 |
+| TL-5 | 矛盾 · 對照標題以版面行數為量；詳情面板露出 rank 原值；矩陣縱軸中文側躺 | 待同步 |
 
 ### TL-1 篩選的敘事模式與「對照不可開啟」說明句
 
@@ -2135,4 +2138,11 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 - **問題**：同 NL-1——整句說明畫成 11px 與 `fg-muted`（3.15:1），其中包括花 token 前要看懂的阻擋原因；缺席區間 chip 是 muted 疊在 `bg-secondary` 上，2.86:1。被擋的「識別倒敘與預敘」列阻擋說明擠在中欄折成四行，1440 寬工具列 262px、譜面從 y≈588 才開始。
 - **目前處置**（使用者 2026-10-13 裁決，比照 NL-1）：僅本頁——`tl-action-sub`、`tl-actions-note`、`tl-compare-blocked-desc`、`tl-cluster-hint`、`tl-lanes-note`、`tl-base-sub` 升 `--font-size-xs`，帶資訊的 muted 改 `--fg-secondary`（6.5:1）；`tl-lane-chip` 字色改 secondary（5.9:1）。被擋列在面板窄時改兩行（狀態與阻擋原因跨整列寬），面板最小寬 420 → 360；1440 工具列 262 → 231px。1024／720 工具列本就換行，字級升 12px 各高 6–7px。不改 token。
 - **請設計端**：12 稿把上述句子改 12px／secondary；補畫被擋列的兩行排法。
+
+### TL-5 對照標題、詳情面板的故事時序位置、矩陣縱軸
+
+- **出處**：12 時間軸稿 headline（`stave.headline`）、E 區事件詳情「時序」區、12 補稿矩陣縱軸標；impeccable critique／audit 時間軸頁（2026-10-13）P3
+- **問題**：標題「敘述順序走了 {rows} 行」的「行」是版面換行數（`ceil(n/22)`），隨寬度與事件數變，對讀者無意義。詳情面板寫 `rank 0.098`，一般讀者讀不懂。矩陣縱軸用 `vertical-rl`＋旋轉 180°，中文字側躺。
+- **目前處置**（使用者 2026-10-13 裁決）：`stave.headline` 改為「故事順序有 {{outliers}} 處明顯偏離敘述順序」／「Story order breaks from the telling at {{outliers}} points」；面板 rank 改為新字串 `panel.storyPosition`「故事時序第 {{i}} / {{n}}」／「Story order {{i}} / {{n}}」（n＝已排序事件數），與既有「敘述位置 i / n」並列；偏離值不變。縱軸在中文介面直排正立、由上往下，英文維持由下往上。三句為工程草稿。
+- **請設計端**：定案 headline 與 storyPosition 兩句。
 

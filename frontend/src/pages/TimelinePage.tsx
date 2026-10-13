@@ -182,7 +182,7 @@ export default function TimelinePage() {
   const { jump, pendingKey } = useSourceJump(bookId);
 
   const { data: coverage } = useQuery({
-    queryKey: ['narrative', bookId, 'temporal-coverage'],
+    queryKey: qk.timeline.coverage(bookId),
     queryFn: () => fetchTemporalCoverage(bookId!),
     enabled: !!bookId,
     staleTime: 60_000,
@@ -293,6 +293,15 @@ export default function TimelinePage() {
     () => timelineData.find((d) => d.id === selectedEventId) ?? null,
     [timelineData, selectedEventId],
   );
+
+  /** Each ranked event's place in story order (1-based) among the ranked —
+   *  read beside its narrative position, the two say how far it moved. */
+  const storyPositions = useMemo(() => {
+    const ranked = timelineData
+      .filter((d) => d.chronologicalRank !== null)
+      .sort((a, b) => a.chronologicalRank! - b.chronologicalRank! || a.index - b.index);
+    return new Map(ranked.map((d, i) => [d.id, { i: i + 1, n: ranked.length }]));
+  }, [timelineData]);
 
   const laneCharacters = useMemo(() => {
     const byId = new Map(filterOptions.characters.map((c) => [c.id, c]));
@@ -939,10 +948,7 @@ export default function TimelinePage() {
                 {comparing && (
                   <header className="tl-view-head">
                     <h3 className="tl-view-headline">
-                      {t('timeline.stave.headline', {
-                        rows: stats.rows,
-                        outliers: stats.outliers,
-                      })}
+                      {t('timeline.stave.headline', { outliers: stats.outliers })}
                     </h3>
                     <p className="tl-view-meta">
                       {t('timeline.stave.meta', {
@@ -1013,6 +1019,7 @@ export default function TimelinePage() {
           {panelOpen && selectedDatum && (
             <EventDetailPanel
               datum={selectedDatum}
+              storyPosition={storyPositions.get(selectedDatum.id) ?? null}
               totalEvents={stats.total}
               unanalyzedCount={stats.total - stats.analyzed}
               chapterTitle={selectedDatum.event.chapterTitle}

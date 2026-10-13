@@ -1541,7 +1541,6 @@
   gap: 8px;
 }
 .tl-panel-rank-value {
-  font-family: var(--font-mono);
   font-size: var(--font-size-2xs);
   color: var(--fg-primary);
 }
@@ -1840,6 +1839,13 @@
   transform: rotate(180deg);
   white-space: nowrap;
   color: var(--fg-secondary);
+}
+/* CJK reads top-down with its glyphs upright; the rotation above (bottom-up,
+   for Latin) laid them on their side. */
+.tl-mx-ylabel.is-cjk span {
+  transform: none;
+  /* upright, not mixed: mixed turns the label's ↑ into → */
+  text-orientation: upright;
 }
 .tl-mx-ylabel-tick {
   display: flex;

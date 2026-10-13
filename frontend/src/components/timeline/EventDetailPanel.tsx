@@ -23,6 +23,8 @@ const PILL_LIMIT = 8;
 
 interface EventDetailPanelProps {
   datum: TimelineDatum;
+  /** Place in story order among the ranked events; null when unranked. */
+  storyPosition: { i: number; n: number } | null;
   totalEvents: number;
   unanalyzedCount: number;
   chapterTitle?: string;
@@ -38,6 +40,7 @@ interface EventDetailPanelProps {
 
 export function EventDetailPanel({
   datum,
+  storyPosition,
   totalEvents,
   unanalyzedCount,
   chapterTitle,
@@ -141,9 +144,9 @@ export function EventDetailPanel({
           <div className="tl-panel-label">{t('timeline.panel.timing')}</div>
           <div className="tl-panel-rank">
             <span className="tl-panel-rank-value">
-              {datum.chronologicalRank === null
+              {storyPosition === null
                 ? t('timeline.panel.noRank')
-                : `rank ${datum.chronologicalRank.toFixed(3)}`}
+                : t('timeline.panel.storyPosition', storyPosition)}
             </span>
             <span className="tl-panel-position">
               {t('timeline.panel.position', { i: datum.index + 1, n: totalEvents })}

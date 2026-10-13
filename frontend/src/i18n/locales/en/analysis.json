@@ -830,6 +830,7 @@
       "morePills": "+{{n}}",
       "timing": "Timing",
       "noRank": "Not placed in story order",
+      "storyPosition": "Story order {{i}} / {{n}}",
       "position": "Narrative position {{i}} / {{n}}",
       "mode": "Narrative mode",
       "needsStoryTime": "Needs a story-time hint",
@@ -922,7 +923,7 @@
       "cancelFailed": "Could not cancel — the task is still running."
     },
     "stave": {
-      "headline": "The narrative runs {{rows}} rows; story order breaks away {{outliers}} times",
+      "headline": "Story order breaks from the telling at {{outliers}} points",
       "meta": "{{onLine}} on the line · {{outliers}} clearly displaced · {{unranked}} with no story order",
       "legend": "Midline = both orders agree　below = flashback　above = flashforward　large = KERNEL",
       "legendUnranked": "The \"unranked\" strip below = no place in story order (not the same as unanalyzed)",

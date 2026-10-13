@@ -60,6 +60,7 @@ describe('query keys', () => {
     expect(qk.timeline.all('b1')).toEqual(['books', 'b1', 'timeline']);
     expect(qk.timeline.order('b1', 'narrative')).toEqual(['books', 'b1', 'timeline', 'narrative']);
     expect(qk.timeline.config('b1')).toEqual(['books', 'b1', 'timeline-config']);
+    expect(qk.timeline.coverage('b1')).toEqual(['books', 'b1', 'timeline', 'temporal-coverage']);
   });
 
   it('keeps the tasks family shapes', () => {
@@ -100,6 +101,7 @@ describe('query keys', () => {
       qk.timeline.all('b1'),
       qk.timeline.order('b1', 'narrative'),
       qk.timeline.config('b1'),
+      qk.timeline.coverage('b1'),
     ];
 
     for (const key of nested) {

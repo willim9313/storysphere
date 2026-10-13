@@ -45,7 +45,7 @@ export function DensityMatrix({
   selectedEventId,
   onSelectEvent,
 }: DensityMatrixProps) {
-  const { t } = useTranslation('analysis');
+  const { t, i18n } = useTranslation('analysis');
   const [sel, setSel] = useState<string | null>(null);
 
   const { cells, unranked } = buildMatrix(data);
@@ -64,7 +64,10 @@ export function DensityMatrix({
           className="tl-mx-grid"
           style={{ gridTemplateColumns: `24px 64px repeat(${chapters.length}, minmax(22px, 1fr))` }}
         >
-          <div className="tl-mx-ylabel" style={{ gridRow: `span ${RANK_BUCKETS + 1}` }}>
+          <div
+            className={`tl-mx-ylabel${i18n.language.startsWith('zh') ? ' is-cjk' : ''}`}
+            style={{ gridRow: `span ${RANK_BUCKETS + 1}` }}
+          >
             <span>{t('timeline.matrix.yAxisLabel')}</span>
           </div>
           {rows.map((b) => {
