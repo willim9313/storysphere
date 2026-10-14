@@ -118,7 +118,12 @@ export function TensionChapterGrid({ lines, teus, openId, onOpen, assign }: Read
           const lineTeus = byLine.get(line.id) ?? [];
           return (
             <div key={line.id} className="tn-grid-rowgroup" data-open={line.id === openId}>
-              <button type="button" className="tn-grid-rowlabel" onClick={() => onOpen(line.id)}>
+              <button
+                type="button"
+                className="tn-grid-rowlabel"
+                onClick={() => onOpen(line.id)}
+                aria-expanded={line.id === openId}
+              >
                 <span className="tn-grid-poles">
                   {line.canonical_pole_a}
                   <span className="tn-vs">vs</span>
@@ -143,6 +148,9 @@ export function TensionChapterGrid({ lines, teus, openId, onOpen, assign }: Read
                     type="button"
                     key={ch}
                     className="tn-grid-cell"
+                    // Out of the tab order: a cell does exactly what its row
+                    // label does, and 6 lines × 11 chapters made 66 stops.
+                    tabIndex={-1}
                     onClick={() => onOpen(line.id)}
                     aria-label={cellLabel('tension.grid.cellLabel', ch, cellTeus)}
                   >
@@ -182,6 +190,7 @@ export function TensionChapterGrid({ lines, teus, openId, onOpen, assign }: Read
                 type="button"
                 key={ch}
                 className="tn-grid-cell"
+                tabIndex={-1}
                 onClick={() => setOrphansOpen((v) => !v)}
                 aria-label={cellLabel('tension.grid.orphanCellLabel', ch, cellOrphans)}
               >

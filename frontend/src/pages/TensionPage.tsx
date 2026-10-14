@@ -427,14 +427,17 @@ export default function TensionPage() {
   );
 
   // Review shortcuts. Deliberately scoped: no modifier combos (those belong to
-  // the browser) and nothing fires while a text field has focus, or typing a
-  // pole label would review the line instead.
+  // the browser) and nothing fires while a form control has focus, or typing a
+  // pole label (or picking a line in the assign <select>) would review a line.
+  // The writes — a / x / e / Space — act only on the row whose drawer is open:
+  // with nothing open there is no row on screen to say which one they hit.
   useEffect(() => {
     if (!hasLines || mode !== 'lines') return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
       const el = e.target as HTMLElement | null;
-      const typing = !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA');
+      const typing =
+        !!el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT' || el.isContentEditable);
       if (typing) {
         if (e.key === 'Escape') setEditing(false);
         return;
@@ -445,9 +448,13 @@ export default function TensionPage() {
         if (e.key === 'Escape') setRerunOpen(false);
         return;
       }
+      // Space / Enter on a button, link or checkbox is that control's own
+      // activation (a filter chip, a row's poles button) — not a shortcut.
+      if ((e.key === ' ' || e.key === 'Enter') && el?.closest('button, a, [role="checkbox"]')) return;
       const rows = filteredLines;
       if (rows.length === 0) return;
-      const cur = openIndex >= 0 ? openIndex : 0;
+      const open = openIndex >= 0;
+      const cur = openIndex;
       const key = e.key.toLowerCase();
 
       if (key === 'escape') {
@@ -457,11 +464,16 @@ export default function TensionPage() {
       } else if (key === 'j') {
         e.preventDefault();
         setEditing(false);
-        setFocusedId(rows[Math.min(cur + 1, rows.length - 1)].id);
+        setFocusedId(rows[open ? Math.min(cur + 1, rows.length - 1) : 0].id);
       } else if (key === 'k') {
         e.preventDefault();
         setEditing(false);
-        setFocusedId(rows[Math.max(cur - 1, 0)].id);
+        setFocusedId(rows[open ? Math.max(cur - 1, 0) : 0].id);
+      } else if (key === 'v') {
+        e.preventDefault();
+        toggleAll();
+      } else if (!open) {
+        // a / x / e / Space with no drawer open: nothing to act on.
       } else if (key === 'a') {
         e.preventDefault();
         reviewMutation.mutate({ id: rows[cur].id, status: 'approved' });
@@ -470,14 +482,10 @@ export default function TensionPage() {
         reviewMutation.mutate({ id: rows[cur].id, status: 'rejected' });
       } else if (key === 'e') {
         e.preventDefault();
-        setFocusedId(rows[cur].id);
         setEditing(true);
       } else if (key === ' ') {
         e.preventDefault();
         toggleSelect(rows[cur].id);
-      } else if (key === 'v') {
-        e.preventDefault();
-        toggleAll();
       }
     };
     window.addEventListener('keydown', onKey);

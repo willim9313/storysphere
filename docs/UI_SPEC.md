@@ -1566,7 +1566,7 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
   批次**逐筆** PATCH（無批次端點），一筆失敗不中斷其餘；失敗的留在選取中並提示（`batchFailed`）。
   線表欄寬 `13 / 1fr / 128 / 64 / 152 / 72 / 236`，列高 ≥48 固定、審核欄 `nowrap`、章節欄 `ellipsis` 不溢入證據欄；勾選框 13×13 圓角 2；「核准」為次要鈕。
   < 1080px 章節與證據落到極點對下方第二行。篩到空：一行字＋ghost「顯示全部 N 條」。
-- 鍵位列逐字（J／K 移動　A 核准　X 拒絕　E 改標籤　Space 多選　V 全選　Esc 關閉）；快捷鍵在重跑確認框開啟或 `mode !== 'lines'` 時停用。
+- 鍵位列逐字（J／K 移動　A 核准　X 拒絕　E 改標籤　Space 多選　V 全選　Esc 關閉）；快捷鍵在重跑確認框開啟或 `mode !== 'lines'` 時停用。寫入類（A／X／E／Space）只作用於抽屜開著的那一列，沒開抽屜時忽略；J／K 在沒開抽屜時打開第一列。焦點在輸入框／下拉／可編輯區、或輸入法組字中時全部不觸發；焦點在按鈕／連結上時 Space／Enter 交給元素本身。章節格點的格子不進 tab 順序（動作同列標籤，列標籤帶 `aria-expanded`）。
 - 「重新執行 Step 2」：`ss-btn-danger ss-btn-llm`＋左側成本提示 → `ConfirmDialog`（標題 `rerun.title`、內文 `rerun.body`、`sections`＝會失去（0 的項目不出現）／會連帶過期（有主題才有）、`costHint`、`danger`＋`spendsTokens`）。
 
 #### TEU 逐章
