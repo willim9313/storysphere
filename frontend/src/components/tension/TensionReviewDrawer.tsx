@@ -60,7 +60,7 @@ export function TensionReviewDrawer({
   return (
     <aside ref={ref} tabIndex={-1} className="tn-drawer" aria-label={t('tension.drawer.title')}>
       <header className="tn-drawer-head">
-        <h3 className="tn-drawer-title">{t('tension.drawer.title')}</h3>
+        <h2 className="tn-drawer-title">{t('tension.drawer.title')}</h2>
         <span className="tn-spacer" />
         <span className="tn-drawer-pos">
           {t('tension.drawer.position', { index: position.index, total: position.total })}

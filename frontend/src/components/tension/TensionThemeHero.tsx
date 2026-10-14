@@ -57,7 +57,7 @@ export function TensionThemeHero({
 
   if (theme.is_stale) {
     return (
-      <section className="tn-note is-warning tn-alert" role="alert">
+      <section className="tn-note is-warning tn-alert">
         <span className="tn-alert-title">{t('tension.theme.staleTitle')}</span>
         <span className="tn-alert-body">
           {t(`tension.theme.staleReason.${theme.stale_reason ?? 'lines_regrouped'}`)}
@@ -95,7 +95,7 @@ export function TensionThemeHero({
   return (
     <section className="tn-card tn-hero">
       <div className="tn-hero-top">
-        <span className="tn-hero-eyebrow">{t('tension.theme.eyebrow')}</span>
+        <h2 className="tn-hero-eyebrow">{t('tension.theme.eyebrow')}</h2>
         <span className="ss-badge ss-badge-success">{t('tension.theme.fresh')}</span>
         {/* Both chips read just "悲劇" for a tragedy, so a 2xs label says which
             framework each one is. The chip text itself is untouched. */}
@@ -127,6 +127,7 @@ export function TensionThemeHero({
           <textarea
             className="tn-input is-serif"
             rows={4}
+            aria-label={t('tension.modifyProposition')}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
           />
