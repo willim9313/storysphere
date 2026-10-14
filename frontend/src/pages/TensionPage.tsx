@@ -156,6 +156,16 @@ export default function TensionPage() {
   const groupOp = useTensionTask(fetchGroupTensionLinesTask, invalidateTension, t('tension.errors.groupFailed'));
   const synthesizeOp = useTensionTask(fetchSynthesizeThemeTask, invalidateTension, t('tension.errors.synthFailed'));
 
+  // Whichever step holds the book's lock; every LLM trigger waits for it.
+  const busyOp: TensionOp | null = analyzeOp.running
+    ? 'analyze'
+    : groupOp.running
+      ? 'group'
+      : synthesizeOp.running
+        ? 'synthesize'
+        : null;
+  const busyReason = busyOp ? t(`tension.busy.${busyOp}`) : null;
+
   // The three runs share one lock per book (#14k): pick up whichever one holds
   // it — started in another tab, or before a remount — instead of showing the
   // page idle and offering to start one the server would refuse.
@@ -232,7 +242,7 @@ export default function TensionPage() {
               adoptRun(run.op, run.taskId);
               handedOff = true;
             }
-            throw err;
+            throw new ApiError(409, t('tension.busy.other'));
           }
         }, triggerError)
         .then(() => {
@@ -709,6 +719,7 @@ export default function TensionPage() {
           {!loading && !hasTeus && !analyzeOp.running && (
             <TensionEmptyCard
               onStart={() => runStep(1, false)}
+              busyReason={busyReason}
               bookId={bookId!}
               conceptsMissing={conceptsMissing}
             />
@@ -736,6 +747,7 @@ export default function TensionPage() {
               }
               retryLabel={t('tension.state.retryGroup')}
               onRetry={() => runStep(2, true)}
+              busyReason={busyReason}
               meta={lineProvenance}
             />
           )}
@@ -755,6 +767,7 @@ export default function TensionPage() {
               chapterCounts={teuChapterCounts}
               failures={teuFailures}
               onGroup={() => runStep(2, false)}
+              busyReason={busyReason}
             />
           )}
 
@@ -766,7 +779,11 @@ export default function TensionPage() {
           )}
 
           {hasLines && !hasTheme && !synthesizeOp.running && (
-            <TensionSoftGate unreviewed={unreviewedCount} onSynthesize={() => runStep(3, false)} />
+            <TensionSoftGate
+              unreviewed={unreviewedCount}
+              onSynthesize={() => runStep(3, false)}
+              busyReason={busyReason}
+            />
           )}
 
           {theme && (
@@ -779,6 +796,7 @@ export default function TensionPage() {
               onReject={() => themeReviewMutation.mutate({ status: 'rejected' })}
               onModify={(prop) => themeReviewMutation.mutate({ status: 'modified', proposition: prop })}
               pending={themeReviewMutation.isPending}
+              busyReason={busyReason}
             />
           )}
 
@@ -865,11 +883,19 @@ export default function TensionPage() {
                     <div className="tn-shortcuts">
                       <span className="tn-meta-mono">{t('tension.table.shortcuts')}</span>
                       <span className="tn-spacer" />
-                      <span className="tn-hint">{t('tension.state.tokenHintShort')}</span>
+                      {busyReason ? (
+                        <span className="tn-busy-note" role="status">
+                          {busyReason}
+                        </span>
+                      ) : (
+                        <span className="tn-hint">{t('tension.state.tokenHintShort')}</span>
+                      )}
                       <button
                         type="button"
                         className="ss-btn ss-btn-sm ss-btn-danger ss-btn-llm"
                         onClick={() => setRerunOpen(true)}
+                        disabled={!!busyReason}
+                        title={busyReason ?? undefined}
                       >
                         {t('tension.rerun.trigger')}
                       </button>

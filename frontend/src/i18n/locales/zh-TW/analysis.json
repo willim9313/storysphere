@@ -523,6 +523,12 @@
     }
   },
   "tension": {
+    "busy": {
+      "analyze": "TEU 組裝進行中，完成後才能執行其他張力分析步驟。",
+      "group": "TensionLine 聚合進行中，完成後才能執行其他張力分析步驟。",
+      "synthesize": "TensionTheme 合成進行中，完成後才能執行其他張力分析步驟。",
+      "other": "另一項張力分析步驟進行中，完成後再試。"
+    },
     "status": {
       "pending": "待審",
       "approved": "已核准",

@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import type { components } from '@/api/generated';
 import { relativeIntensity } from './intensity';
 import type { TensionLineDetail } from './reviewTypes';
+import { TriggerNote } from './TensionStateCards';
 
 type TensionTheme = components['schemas']['TensionThemeResponse'];
 
@@ -24,6 +25,8 @@ interface Props {
   onReject: () => void;
   onModify: (proposition: string) => void;
   pending?: boolean;
+  /** Another tension run is going; 重新合成 waits for it. */
+  busyReason?: string | null;
 }
 
 /**
@@ -43,6 +46,7 @@ export function TensionThemeHero({
   onReject,
   onModify,
   pending = false,
+  busyReason = null,
 }: Readonly<Props>) {
   const { t } = useTranslation('analysis');
   const [editing, setEditing] = useState(false);
@@ -60,9 +64,16 @@ export function TensionThemeHero({
         </span>
         <div className="tn-stale-old">{theme.proposition}</div>
         <div className="tn-alert-actions">
-          <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm" onClick={onResynthesize}>
+          <button
+            type="button"
+            className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+            onClick={onResynthesize}
+            disabled={!!busyReason}
+            title={busyReason ?? undefined}
+          >
             {t('tension.theme.resynthesize')}
           </button>
+          <TriggerNote busyReason={busyReason} />
           {meta && <span className="tn-meta-mono">{meta}</span>}
         </div>
       </section>
@@ -167,7 +178,13 @@ export function TensionThemeHero({
       )}
 
       <div className="tn-hero-foot">
-        <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm" onClick={onResynthesize}>
+        <button
+          type="button"
+          className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+          onClick={onResynthesize}
+          disabled={!!busyReason}
+          title={busyReason ?? undefined}
+        >
           {t('tension.theme.resynthesizeShort')}
         </button>
         <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary" onClick={onApprove} disabled={pending}>
@@ -179,6 +196,7 @@ export function TensionThemeHero({
         <button type="button" className="ss-btn ss-btn-sm ss-btn-ghost" onClick={onReject} disabled={pending}>
           {t('tension.reject')}
         </button>
+        <TriggerNote busyReason={busyReason} />
         <span className="tn-spacer" />
         <span className="tn-meta-mono">
           {meta}

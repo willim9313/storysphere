@@ -81,6 +81,14 @@
   padding: var(--space-1) var(--space-5);
   border-radius: var(--badge-radius);
 }
+/* Another tension run holds the book's lock: why an LLM trigger waits. Takes
+   the cost hint's place — visible text, since a disabled button cannot be
+   focused to reveal a tooltip. */
+.tn-busy-note {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+}
 .tn-empty-line {
   display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap;
   padding: var(--space-5);
