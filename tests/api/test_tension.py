@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+from types import SimpleNamespace
 from unittest.mock import AsyncMock
 
 import pytest
@@ -60,6 +61,12 @@ def tension_client(mock_tension, mock_kg, mock_doc, mock_vector):
         yield
 
     app.router.lifespan_context = _noop_lifespan
+    # The shared mock_doc only knows "doc-1"; these tests run on BOOK (and a
+    # second book for the per-book lock), so answer for both here.
+    known = {BOOK, "book-2"}
+    mock_doc.get_document.side_effect = (
+        lambda doc_id: SimpleNamespace(id=doc_id, pipeline_status=None) if doc_id in known else None
+    )
     app.dependency_overrides[deps.get_tension_service] = lambda: mock_tension
     app.dependency_overrides[deps.get_kg_service] = lambda: mock_kg
     app.dependency_overrides[deps.get_doc_service] = lambda: mock_doc
@@ -442,3 +449,112 @@ class TestTeuSceneIndex:
 
         assert [teus[t]["narrative_run_index"] for t in ("t1", "t2")] == [1, 1]
         assert [teus[t]["scene_index"] for t in ("t1", "t2")] == [1, 2]
+
+
+# ── One tension run per book (#14a / #14c / #14g 409, #14k) ───────────────────
+
+
+_PATHS = {"analyze": "analyze", "group": "lines/group", "synthesize": "theme/synthesize"}
+
+
+class TestTensionRunGuard:
+    """Assembly, grouping and synthesis share one lock per book.
+
+    Each step reads what the previous one wrote; two at once either pay the
+    LLM twice or build on half-replaced output.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _provider_configured(self, monkeypatch):
+        monkeypatch.setattr("storysphere.api.llm_guard._primary_config_error", lambda: None)
+
+    def _post(self, client, op: str, book: str = BOOK):
+        return client.post(f"/api/v1/tension/{_PATHS[op]}", json={"document_id": book})
+
+    def _hang_all(self, mock_tension):
+        mock_tension.analyze_book_tensions.side_effect = hanging_call()
+        mock_tension.group_teus.side_effect = hanging_call()
+        mock_tension.synthesize_theme.side_effect = hanging_call()
+
+    @pytest.mark.parametrize("first", ["analyze", "group", "synthesize"])
+    @pytest.mark.parametrize("second", ["analyze", "group", "synthesize"])
+    def test_any_run_blocks_every_op(self, tension_client, mock_tension, first, second):
+        self._hang_all(mock_tension)
+        task_id = self._post(tension_client, first).json()["taskId"]
+
+        resp = self._post(tension_client, second)
+        assert resp.status_code == 409
+        assert resp.json()["code"] == "batch_running"
+
+        tension_client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+    def test_other_book_is_not_blocked(self, tension_client, mock_tension):
+        self._hang_all(mock_tension)
+        first = self._post(tension_client, "group").json()["taskId"]
+
+        resp = self._post(tension_client, "group", book="book-2")
+        assert resp.status_code == 202
+
+        tension_client.post(f"/api/v1/tasks/{first}/cancel")
+        tension_client.post(f"/api/v1/tasks/{resp.json()['taskId']}/cancel")
+
+    def test_running_names_the_op_and_task(self, tension_client, mock_tension):
+        self._hang_all(mock_tension)
+        task_id = self._post(tension_client, "synthesize").json()["taskId"]
+
+        resp = tension_client.get("/api/v1/tension/running", params={"book_id": BOOK})
+        assert resp.status_code == 200
+        assert resp.json() == {"op": "synthesize", "taskId": task_id}
+
+        tension_client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+    def test_running_is_null_once_the_run_ends(self, tension_client, mock_tension):
+        self._hang_all(mock_tension)
+        task_id = self._post(tension_client, "analyze").json()["taskId"]
+        tension_client.post(f"/api/v1/tasks/{task_id}/cancel")
+        poll_until_terminal(tension_client, task_id)
+
+        resp = tension_client.get("/api/v1/tension/running", params={"book_id": BOOK})
+        assert resp.json() == {"op": None, "taskId": None}
+        mock_tension.analyze_book_tensions.side_effect = None
+        mock_tension.analyze_book_tensions.return_value = {}
+        assert self._post(tension_client, "analyze").status_code == 202
+
+    @pytest.mark.parametrize("op", ["analyze", "group", "synthesize"])
+    def test_unknown_book_is_404_and_holds_nothing(self, tension_client, op):
+        resp = self._post(tension_client, op, book="no-such-book")
+        assert resp.status_code == 404
+
+        resp = tension_client.get("/api/v1/tension/running", params={"book_id": "no-such-book"})
+        assert resp.json() == {"op": None, "taskId": None}
+
+
+# ── Book ownership on reads and polls ─────────────────────────────────────────
+
+
+class TestUnknownBook:
+    @pytest.mark.parametrize("path", ["lines", "teus", "theme"])
+    def test_read_endpoints_404(self, tension_client, path):
+        resp = tension_client.get(f"/api/v1/tension/{path}", params={"book_id": "no-such-book"})
+        assert resp.status_code == 404
+        assert "Book 'no-such-book' not found" in resp.json()["detail"]
+
+    def test_theme_not_yet_synthesised_is_a_different_404(self, tension_client, mock_tension):
+        mock_tension.get_theme.return_value = None
+        resp = tension_client.get("/api/v1/tension/theme", params={"book_id": BOOK})
+        assert resp.status_code == 404
+        assert "Run synthesis first" in resp.json()["detail"]
+
+
+class TestPollKind:
+    @pytest.mark.parametrize("path", ["analyze", "lines/group", "theme/synthesize"])
+    def test_task_of_another_kind_is_404(self, tension_client, path):
+        from uuid import uuid4
+
+        from storysphere.api.store import task_store
+
+        task_id = str(uuid4())
+        task_store.create(task_id, kind="narrative", title="x")
+        resp = tension_client.get(f"/api/v1/tension/{path}/{task_id}")
+        assert resp.status_code == 404
+
