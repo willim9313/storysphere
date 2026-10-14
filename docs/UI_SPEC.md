@@ -1536,6 +1536,8 @@ i18n `matrix.legendTitle／legendDesc／legendFoot`、`noRanked.story／matrix`�
 
 成本提示文字（`tension.state.tokenHintShort／Long`，逐字）一律純文字、不帶字符。
 
+**執行中停用**（2026-10-14）：三步同書共用一把鎖（API #14k）。任一步執行中，上表「是」那兩列的所有觸發一律 `disabled`、`title` 寫原因，成本提示的位置改顯示可見的原因句 `tension.busy.{analyze|group|synthesize}`（`.tn-busy-note`、`role="status"`；停用的按鈕無法聚焦，不能只靠 tooltip）。零成本的審核／指派不停用。進頁面以 #14k 接手進行中的任務；觸發被 409 擋下時改跟佔鎖的任務，找不到才顯示 `tension.busy.other`。
+
 #### 階段條
 
 五格 grid。計算格圓形記號、關卡格方形記號——形狀本身是「三步 LLM＋兩道 HITL」的編碼，**不統一**。

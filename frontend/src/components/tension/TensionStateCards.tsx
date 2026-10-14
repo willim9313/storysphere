@@ -11,6 +11,20 @@ function CostHint({ text }: { text: string }) {
   return <span className="tn-cost-hint">{text}</span>;
 }
 
+/** Beside an LLM trigger: the cost, or — while another tension run holds the
+ *  book's lock — why the trigger is disabled. Visible text, not a tooltip: a
+ *  disabled button cannot be focused to reveal one. */
+export function TriggerNote({ busyReason, cost }: { busyReason?: string | null; cost?: string }) {
+  if (busyReason) {
+    return (
+      <span className="tn-busy-note" role="status">
+        {busyReason}
+      </span>
+    );
+  }
+  return cost ? <CostHint text={cost} /> : null;
+}
+
 export interface TeuFailure {
   event_id: string;
   title: string;
@@ -47,8 +61,11 @@ export function TensionEmptyCard({
   onStart,
   bookId,
   conceptsMissing = false,
+  busyReason = null,
 }: {
   onStart: () => void;
+  /** Another tension run is going; the trigger waits for it. */
+  busyReason?: string | null;
   bookId: string;
   /** The build manifest loaded and no inferred Concept nodes exist. */
   conceptsMissing?: boolean;
@@ -69,10 +86,16 @@ export function TensionEmptyCard({
       )}
       {/* One button only: no "run all three", which would skip both gates. */}
       <div className="tn-empty-cta">
-        <button type="button" className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm" onClick={onStart}>
+        <button
+          type="button"
+          className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm"
+          onClick={onStart}
+          disabled={!!busyReason}
+          title={busyReason ?? undefined}
+        >
           {t('tension.state.startStep1')}
         </button>
-        <CostHint text={t('tension.state.tokenHintLong')} />
+        <TriggerNote busyReason={busyReason} cost={t('tension.state.tokenHintLong')} />
       </div>
     </div>
   );
@@ -85,6 +108,7 @@ export function TensionStep1Card({
   chapterCounts,
   failures,
   onGroup,
+  busyReason = null,
 }: {
   teuCount: number;
   /** Stretches of continuous narration; equals teuCount when nothing groups. */
@@ -95,6 +119,7 @@ export function TensionStep1Card({
   chapterCounts: [number, number, number, number | null][];
   failures: TeuFailure[];
   onGroup: () => void;
+  busyReason?: string | null;
 }) {
   const { t } = useTranslation('analysis');
   const max = chapterCounts.reduce((m, [, teus]) => Math.max(m, teus), 0);
@@ -143,10 +168,16 @@ export function TensionStep1Card({
       </div>
       <p className="tn-step1-body">{t('tension.state.step1Body')}</p>
       <div className="tn-step1-actions">
-        <button type="button" className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm" onClick={onGroup}>
+        <button
+          type="button"
+          className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm"
+          onClick={onGroup}
+          disabled={!!busyReason}
+          title={busyReason ?? undefined}
+        >
           {t('tension.state.runStep2')}
         </button>
-        <CostHint text={t('tension.state.tokenHintShort')} />
+        <TriggerNote busyReason={busyReason} cost={t('tension.state.tokenHintShort')} />
       </div>
       <TensionFailureList failures={failures} />
     </div>
@@ -179,21 +210,30 @@ export function TensionErrorCard({
   retryLabel,
   onRetry,
   meta,
+  busyReason = null,
 }: {
   title: string;
   message: ReactNode;
   retryLabel: string;
   onRetry: () => void;
   meta?: string | null;
+  busyReason?: string | null;
 }) {
   return (
     <div className="tn-note is-error tn-alert" role="alert">
       <span className="tn-alert-title">{title}</span>
       <span className="tn-alert-body">{message}</span>
       <div className="tn-alert-actions">
-        <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm" onClick={onRetry}>
+        <button
+          type="button"
+          className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+          onClick={onRetry}
+          disabled={!!busyReason}
+          title={busyReason ?? undefined}
+        >
           {retryLabel}
         </button>
+        <TriggerNote busyReason={busyReason} />
         {meta && <span className="tn-meta-mono">{meta}</span>}
       </div>
     </div>
@@ -205,9 +245,11 @@ export function TensionErrorCard({
 export function TensionSoftGate({
   unreviewed,
   onSynthesize,
+  busyReason = null,
 }: {
   unreviewed: number;
   onSynthesize: () => void;
+  busyReason?: string | null;
 }) {
   const { t } = useTranslation('analysis');
   return (
@@ -220,10 +262,16 @@ export function TensionSoftGate({
       ) : (
         <>
           <span className="tn-gate-text">{t('tension.stage.themeReady')}</span>
-          <button type="button" className="ss-btn ss-btn-sm ss-btn-primary ss-btn-llm" onClick={onSynthesize}>
+          <button
+            type="button"
+            className="ss-btn ss-btn-sm ss-btn-primary ss-btn-llm"
+            onClick={onSynthesize}
+            disabled={!!busyReason}
+            title={busyReason ?? undefined}
+          >
             {t('tension.stage.synthesize')}
           </button>
-          <CostHint text={t('tension.state.tokenHintShort')} />
+          <TriggerNote busyReason={busyReason} cost={t('tension.state.tokenHintShort')} />
         </>
       )}
     </div>

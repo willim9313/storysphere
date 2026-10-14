@@ -523,6 +523,12 @@
     }
   },
   "tension": {
+    "busy": {
+      "analyze": "TEU assembly is running; other tension steps can start once it finishes.",
+      "group": "TensionLine grouping is running; other tension steps can start once it finishes.",
+      "synthesize": "TensionTheme synthesis is running; other tension steps can start once it finishes.",
+      "other": "Another tension step is running; try again once it finishes."
+    },
     "status": {
       "pending": "Pending",
       "approved": "Approved",
