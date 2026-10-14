@@ -1388,13 +1388,17 @@ Step 1：觸發全書 TEU 組裝。
 ```ts
 {
   document_id: string;
-  language?: string;    // 'zh'（預設）
+  language?: string;    // 書的語言；省略時為 'en'（前端一律帶 book.language）
   force?: boolean;
   concurrency?: number; // 預設 5
 }
 ```
 
 **Response 202**：`TaskStatus`（含 taskId）
+
+**Response 404**：`document_id` 對應的書不存在（不建立 task）
+
+**Response 409 `batch_running`**：同一本書已有 #14a／#14c／#14g 其中一項在執行（三步共用一把鎖，見 #14k）。body 為 `{ detail, code: "batch_running" }`，不建立 task。前端改以 #14k 取回進行中的 taskId 接手。
 
 **Response 503**：未設定 LLM provider（見「通用規則」）
 
@@ -1405,6 +1409,8 @@ Step 1：觸發全書 TEU 組裝。
 Step 1 專用 polling endpoint。
 
 **Response 200**：`TaskStatus`（同 #8）
+
+**Response 404**：taskId 不存在，或不是張力類（`kind !== "tension"`）的 task。
 
 `status === 'done'` 時 `result` 的形狀（`TaskStatus.result` 是 `dict[str, Any]`，
 故不出現在 `generated.ts`，前端需自行 narrow）：
@@ -1436,12 +1442,16 @@ Step 2：觸發 TensionLine 聚合。
 ```ts
 {
   document_id: string;
-  language?: string;
+  language?: string;    // 省略時為 'en'
   force?: boolean;
 }
 ```
 
 **Response 202**：`TaskStatus`（含 taskId）
+
+**Response 404**：`document_id` 對應的書不存在（不建立 task）
+
+**Response 409 `batch_running`**：同一本書已有 #14a／#14c／#14g 其中一項在執行（三步共用一把鎖，見 #14k）。body 為 `{ detail, code: "batch_running" }`，不建立 task。前端改以 #14k 取回進行中的 taskId 接手。
 
 **Response 503**：未設定 LLM provider（見「通用規則」）
 
@@ -1452,6 +1462,8 @@ Step 2：觸發 TensionLine 聚合。
 Step 2 專用 polling endpoint。
 
 **Response 200**：`TaskStatus`
+
+**Response 404**：taskId 不存在，或不是張力類的 task。
 
 完成時 `result` 內容：
 
@@ -1485,6 +1497,8 @@ TensionLine 收錄。
 Step 2 丟掉」的管道。**
 
 **Query Params**：`book_id=<bookId>`（必填）
+
+**Response 404**：書不存在（尚未組裝則是 200 `[]`）。
 
 **Response 200**
 
@@ -1583,6 +1597,8 @@ interface TEUDetail {
 
 **Query Params**：`book_id=<bookId>`（必填）
 
+**Response 404**：書不存在（尚未聚合則是 200 `[]`）。
+
 **Response 200**
 ```ts
 TensionLineDetail[]
@@ -1595,7 +1611,7 @@ interface TensionLineDetail {
   canonical_pole_a: string;
   canonical_pole_b: string;
   intensity_summary: number;            // 0–1
-  chapter_range: number[];              // [firstChapter, ..., lastChapter]
+  chapter_range: number[];              // [minChapter, maxChapter]（同 #14d-3）
   thematic_note?: string | null;        // LLM 在分組時提出的全線主題註記
   review_status: 'pending' | 'approved' | 'modified' | 'rejected';
   assembled_by: string;                 // 產生此線的聚合步驟版本（'tension_grouper_v1'）
@@ -1696,12 +1712,16 @@ Step 3：觸發 TensionTheme 合成。
 ```ts
 {
   document_id: string;
-  language?: string;
+  language?: string;    // 省略時為 'en'
   force?: boolean;
 }
 ```
 
 **Response 202**：`TaskStatus`（含 taskId）
+
+**Response 404**：`document_id` 對應的書不存在（不建立 task）
+
+**Response 409 `batch_running`**：同一本書已有 #14a／#14c／#14g 其中一項在執行（三步共用一把鎖，見 #14k）。body 為 `{ detail, code: "batch_running" }`，不建立 task。前端改以 #14k 取回進行中的 taskId 接手。
 
 **Response 503**：未設定 LLM provider（見「通用規則」）
 
@@ -1712,6 +1732,8 @@ Step 3：觸發 TensionTheme 合成。
 Step 3 專用 polling endpoint。
 
 **Response 200**：`TaskStatus`
+
+**Response 404**：taskId 不存在，或不是張力類的 task。
 
 ---
 
@@ -1737,7 +1759,7 @@ interface TensionTheme {
   assembled_at: string;
   review_status: 'pending' | 'approved' | 'modified' | 'rejected';
   is_stale: boolean;             // 主題是否已不反映目前的 TensionLine
-  stale_reason: 'no_lines' | 'lines_regrouped' | 'review_changed' | null;
+  stale_reason: 'pipeline_rerun' | 'no_lines' | 'lines_regrouped' | 'review_changed' | null;
   reviewed_line_count: number | null;  // 合成當下已審核的線數
   total_line_count: number | null;     // 合成當下的線總數
 }
@@ -1749,6 +1771,7 @@ interface TensionTheme {
 > - `lines_regrouped` — 完全沒有交集，代表 Step 2 重跑過、舊 id 全成孤兒
 > - `review_changed` — 有交集但集合不同，代表審核決定改變了輸入範圍
 > - `no_lines` — 已無任何 TensionLine
+> - `pipeline_rerun` — 事件在主題合成後重新抽取過；優先於其他三者（線描述的是已不存在的那一版書）
 >
 > **已知限制**：抓不到「線沒變、只有極點標籤被 `modified` 改寫」的情形——集合相同。
 >
@@ -1777,7 +1800,11 @@ interface TensionTheme {
 >
 > 前端據此以 id 查 i18n（`tension.frye.<id>`）與 CSS（`[data-mode="<id>"]`）。
 
-**UI 使用頁面**：張力分析頁 TensionThemePanel
+**Response 404**：兩種情形，以 `detail` 區分——
+- 尚未合成：`No TensionTheme found for book '…'. Run synthesis first.`（頁面視為「沒有主題」）
+- 書不存在：`Book '…' not found`
+
+**UI 使用頁面**：張力分析頁 TensionThemeHero
 
 ---
 
@@ -1796,7 +1823,25 @@ interface TensionTheme {
 
 **Response 200**：`TensionTheme`（更新後）
 
-**UI 使用頁面**：張力分析頁 TensionThemePanel 審核按鈕
+**UI 使用頁面**：張力分析頁 TensionThemeHero 審核按鈕
+
+---
+
+### #14k GET /tension/running
+
+同一本書正在執行的張力任務（#14a／#14c／#14g 三者共用一把鎖，同時最多一個）。唯讀，供頁面重掛載（換頁回來、另一個分頁）時接手進行中的 task，而不是提供一顆按了會被 409 的按鈕。
+
+**Query Params**：`book_id=<bookId>`（必填）
+
+**Response 200**（camelCase）
+```ts
+{
+  op: 'analyze' | 'group' | 'synthesize' | null;  // 分別對應 #14a／#14c／#14g
+  taskId: string | null;                           // 無進行中任務時兩者皆 null
+}
+```
+
+記錄與 #7k／#15k／#21m 同一套進程內 registry：單一 worker 有效，後端重啟後為 null。
 
 ---
 
@@ -3151,8 +3196,9 @@ response schema 與測試檔。
 ['books', bookId, 'entities', entityId, 'epistemic-state']  // #12e
 ['books', bookId, 'entities', entityId, 'voice']            // #16a
 ['books', bookId, 'unraveling']                             // #19
-['tension', 'lines', bookId]                                // #14e
-['tension', 'theme', bookId]                                // #14i
+['books', bookId, 'tension', 'lines']                        // #14e
+['books', bookId, 'tension', 'teus']                        // #14d-2
+['books', bookId, 'tension', 'theme']                       // #14i
 ['books', bookId, 'symbols']                                // #15a
 ['symbols', bookId, 'overview']                             // #15i（例外：根在 symbols，見 queryKeys.ts）
 ['books', bookId, 'symbols', imageryId, 'timeline']         // #15b
@@ -3174,6 +3220,7 @@ response schema 與測試檔。
 - [x] **TaskStatus 欄位**：`subProgress`、`subTotal`、`subStage` 已加入（批次任務使用）
 - [x] **#9 GraphEdge 推斷欄位**：`inferred`、`confidence`、`inferredId` 已加入
 - [x] **#14 張力分析系列**：專用 polling pattern 已實作（非走 #8）
+  - 2026-10-14：#14a／#14c／#14g 同書共用一把鎖，執行中回 409 `batch_running`，書不存在回 404；新增 #14k `GET /tension/running`；#14b／#14d／#14h 只回張力類 task；#14d-2／#14e／#14i 書不存在回 404。文件更正：`language` 省略時為 `'en'`、#14i `stale_reason` 補 `pipeline_rerun`、#14e `chapter_range` 為 `[min, max]`、query key、元件名 TensionThemeHero。
 - [x] **#15d-#15h 象徵意象進階分析**：SEP + LLM 詮釋 + HITL 審核已實作（`backend/storysphere/api/routers/symbols.py`）
 - [x] **#16a VoiceProfile**：GET lazy 生成（無 404 表示未生成），DELETE 清快取；無另外的 POST trigger
 - [x] **#18c KG 遷移**：直接回傳 TaskStatus，polling 走 #18d（非走 #8）
