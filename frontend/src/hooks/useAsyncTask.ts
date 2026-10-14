@@ -2,7 +2,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react
 
 import { ApiError } from '@/api/client';
 import type { TaskStatus } from '@/api/types';
-import { useTaskPolling } from '@/hooks/useTaskPolling';
+import { isGone, useTaskPolling } from '@/hooks/useTaskPolling';
 
 /** Handed to the terminal callbacks so they can clear the task without having
  *  to reference the hook's own return value from inside its options object. */
@@ -64,7 +64,7 @@ export function useAsyncTask({
   const [taskId, setTaskId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const { data: task } = useTaskPolling(taskId, fetcher);
+  const { data: task, error: pollError } = useTaskPolling(taskId, fetcher);
 
   // Drops the id only, deliberately keeping `error`: every caller that resets
   // from its error path (tension, symbol interpretation) does so precisely to
@@ -108,6 +108,14 @@ export function useAsyncTask({
       onErrorRef.current?.(message, ctlRef.current);
     }
   }, [task, taskId, defaultError]);
+  // 404 = the task is gone (memory store restarted, or cleaned up). Polling has
+  // already stopped, but with the id still held `running` stayed true forever —
+  // a progress card spinning for a task that no longer exists. Drop the id
+  // quietly: there is no outcome to report, and the page falls back to what its
+  // own queries show.
+  useEffect(() => {
+    if (taskId && isGone(pollError)) setTaskId(null);
+  }, [taskId, pollError]);
   /* eslint-enable react-hooks/set-state-in-effect */
 
   const adopt = useCallback((id: string) => {
