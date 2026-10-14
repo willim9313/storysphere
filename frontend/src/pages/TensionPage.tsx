@@ -17,6 +17,8 @@ import {
   fetchTensionTheme,
   reviewTensionLine,
   reviewTensionTheme,
+  fetchRunningTension,
+  type TensionOp,
 } from '@/api/tension';
 import { fetchBuildOverview } from '@/api/buildOverview';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
@@ -101,7 +103,7 @@ export default function TensionPage() {
     queryFn: () => fetchTensionLines(bookId!),
     enabled: !!bookId,
   });
-  const { data: lines = [], isLoading: linesLoading, refetch: refetchLines } = linesQuery;
+  const { data: lines = [], isLoading: linesLoading } = linesQuery;
 
   const teusQuery = useQuery({
     queryKey: qk.tension.teus(bookId),
@@ -126,28 +128,57 @@ export default function TensionPage() {
     enabled: !!bookId,
     retry: false,
   });
-  const { data: theme, isLoading: themeLoading, refetch: refetchTheme } = themeQuery;
+  const { data: theme, isLoading: themeLoading } = themeQuery;
 
   // Only an error with nothing to show replaces the page: a failed background
   // refetch keeps the data it already has.
   const failedQueries = [linesQuery, teusQuery, themeQuery].filter((q) => q.isError && q.data === undefined);
   const loadError = failedQueries[0]?.error ?? null;
 
+  // Each step rewrites what the next one reads, so a finished run moves all
+  // three: assembly changes the TEUs (and the lines built on them), grouping
+  // changes the lines and every TEU's line_id (and leaves the theme stale), and
+  // synthesis replaces the theme. Refetching only the step's own output left
+  // the orphan count and the theme's stale banner a step behind.
+  const invalidateTension = () => {
+    queryClient.invalidateQueries({ queryKey: qk.tension.lines(bookId) });
+    queryClient.invalidateQueries({ queryKey: qk.tension.teus(bookId) });
+    queryClient.invalidateQueries({ queryKey: qk.tension.theme(bookId) });
+  };
   const analyzeOp = useTensionTask(
     fetchTensionAnalysisTask,
-    (task) => setAnalyzeResult(task.result as AnalyzeResult),
+    (task) => {
+      setAnalyzeResult(task.result as AnalyzeResult);
+      invalidateTension();
+    },
     t('tension.errors.analysisFailed'),
   );
-  const groupOp = useTensionTask(
-    fetchGroupTensionLinesTask,
-    () => refetchLines(),
-    t('tension.errors.groupFailed'),
+  const groupOp = useTensionTask(fetchGroupTensionLinesTask, invalidateTension, t('tension.errors.groupFailed'));
+  const synthesizeOp = useTensionTask(fetchSynthesizeThemeTask, invalidateTension, t('tension.errors.synthFailed'));
+
+  // The three runs share one lock per book (#14k): pick up whichever one holds
+  // it — started in another tab, or before a remount — instead of showing the
+  // page idle and offering to start one the server would refuse.
+  const adoptAnalyze = analyzeOp.adopt;
+  const adoptGroup = groupOp.adopt;
+  const adoptSynthesize = synthesizeOp.adopt;
+  const adoptRun = useCallback(
+    (op: TensionOp, taskId: string) =>
+      ({ analyze: adoptAnalyze, group: adoptGroup, synthesize: adoptSynthesize })[op](taskId),
+    [adoptAnalyze, adoptGroup, adoptSynthesize],
   );
-  const synthesizeOp = useTensionTask(
-    fetchSynthesizeThemeTask,
-    () => refetchTheme(),
-    t('tension.errors.synthFailed'),
-  );
+  useEffect(() => {
+    if (!bookId) return;
+    let live = true;
+    fetchRunningTension(bookId)
+      .then((run) => {
+        if (live && run.op && run.taskId) adoptRun(run.op, run.taskId);
+      })
+      .catch(() => {}); // a failed lookup just leaves the page idle
+    return () => {
+      live = false;
+    };
+  }, [bookId, adoptRun]);
 
   // The book's language, not the UI's. The backend turns this into the prompt's
   // "Respond in {name}.", so the two must not be confused: an English UI reading
@@ -174,30 +205,48 @@ export default function TensionPage() {
 
   // `force` has to be true to re-run a completed step: without it the backend
   // returns the cached result, reports success, and nothing changes.
+  //
+  // A trigger refused with 409 batch_running started nothing: follow the run
+  // that holds the lock. If it is this very step, that is the answer; if it is
+  // another, that step's progress card takes over and this one leaves no error
+  // behind.
   const runStep = useCallback(
     (key: 1 | 2 | 3, force: boolean) => {
-      if (key === 1) {
-        analyzeOp.trigger(
-          () => triggerTensionAnalysis(bookId!, bookLang, force),
-          t('tension.errors.triggerAnalysis'),
-        );
-      } else if (key === 2) {
-        groupOp.trigger(
-          () => triggerGroupTensionLines(bookId!, bookLang, force),
-          t('tension.errors.triggerGroup'),
-        );
-      } else {
-        synthesizeOp.trigger(
-          () => triggerSynthesizeTensionTheme(bookId!, bookLang, force),
-          t('tension.errors.triggerSynth'),
-        );
-      }
+      const [op, handle, create, triggerError] = (
+        {
+          1: ['analyze', analyzeOp, () => triggerTensionAnalysis(bookId!, bookLang, force), t('tension.errors.triggerAnalysis')],
+          2: ['group', groupOp, () => triggerGroupTensionLines(bookId!, bookLang, force), t('tension.errors.triggerGroup')],
+          3: ['synthesize', synthesizeOp, () => triggerSynthesizeTensionTheme(bookId!, bookLang, force), t('tension.errors.triggerSynth')],
+        } as const
+      )[key];
+      let handedOff = false;
+      void handle
+        .trigger(async () => {
+          try {
+            return await create();
+          } catch (err) {
+            if (!(err instanceof ApiError && err.status === 409 && err.code === 'batch_running')) throw err;
+            const run = await fetchRunningTension(bookId!).catch(() => null);
+            if (run?.op && run.taskId) {
+              if (run.op === op) return { taskId: run.taskId };
+              adoptRun(run.op, run.taskId);
+              handedOff = true;
+            }
+            throw err;
+          }
+        }, triggerError)
+        .then(() => {
+          if (handedOff) handle.clearError();
+        });
     },
-    [bookId, bookLang, analyzeOp, groupOp, synthesizeOp, t],
+    [bookId, bookLang, analyzeOp, groupOp, synthesizeOp, adoptRun, t],
   );
 
+  // The theme's stale_reason (review_changed) is derived from the lines' review
+  // states, so a review moves it too.
   const onLineReviewed = () => {
     queryClient.invalidateQueries({ queryKey: qk.tension.lines(bookId) });
+    queryClient.invalidateQueries({ queryKey: qk.tension.theme(bookId) });
   };
 
   const themeReviewMutation = useMutation({

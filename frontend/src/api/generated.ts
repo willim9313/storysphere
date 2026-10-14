@@ -1604,6 +1604,9 @@ export interface paths {
          *
          *     Returns 202 with ``task_id``.  Poll ``GET /tension/lines/group/{task_id}``
          *     until ``status`` is ``"done"`` or ``"error"``.
+         *
+         *     404 for an unknown book; 409 (``code: batch_running``) while another tension
+         *     run is going for the book (#14k).
          */
         post: operations["group_tension_lines_api_v1_tension_lines_group_post"];
         delete?: never;
@@ -1643,7 +1646,8 @@ export interface paths {
          *     Each line includes a ``teus`` list (chapter, intensity, description, evidence,
          *     typed carriers and stance per pole) so the UI can render evidence inline
          *     without a second request. Returns an empty list if grouping has not been run
-         *     yet — trigger grouping first with ``POST /tension/lines/group``.
+         *     yet — trigger grouping first with ``POST /tension/lines/group``; 404 for an
+         *     unknown book.
          */
         get: operations["list_tension_lines_api_v1_tension_lines_get"];
         put?: never;
@@ -1668,7 +1672,7 @@ export interface paths {
          *     ``line_id`` is null when no TensionLine claims the TEU. Grouping runs as a
          *     single LLM call that may silently omit TEUs, so this is the only way to see
          *     what Step 1 produced but Step 2 dropped. Returns an empty list if TEU
-         *     assembly has not been run yet.
+         *     assembly has not been run yet; 404 for an unknown book.
          */
         get: operations["list_teus_api_v1_tension_teus_get"];
         put?: never;
@@ -1747,6 +1751,9 @@ export interface paths {
          *     Assembles TEUs for all events with ``tension_signal != "none"``.
          *     Returns 202 with ``task_id``.  Poll ``GET /tension/analyze/{task_id}``
          *     for progress and final result.
+         *
+         *     404 for an unknown book; 409 (``code: batch_running``) while another tension
+         *     run is going for the book (#14k).
          */
         post: operations["analyze_book_tensions_api_v1_tension_analyze_post"];
         delete?: never;
@@ -1788,6 +1795,9 @@ export interface paths {
          *     Requires TensionLines to be generated first (``POST /tension/lines/group``).
          *     Returns 202 with ``task_id``.  Poll ``GET /tension/theme/synthesize/{task_id}``
          *     until ``status`` is ``"done"`` or ``"error"``.
+         *
+         *     404 for an unknown book; 409 (``code: batch_running``) while another tension
+         *     run is going for the book (#14k).
          */
         post: operations["synthesize_tension_theme_api_v1_tension_theme_synthesize_post"];
         delete?: never;
@@ -1833,7 +1843,8 @@ export interface paths {
          *     re-extracted, the lines the theme was built from describe a book that no
          *     longer exists.
          *
-         *     Returns 404 if synthesis has not been run yet.
+         *     Returns 404 if synthesis has not been run yet (or the book does not exist —
+         *     the two differ only in ``detail``).
          *     Trigger synthesis first with ``POST /tension/theme/synthesize``.
          */
         get: operations["get_tension_theme_api_v1_tension_theme_get"];
@@ -1865,6 +1876,29 @@ export interface paths {
          *     Optionally override ``proposition`` when ``review_status`` is ``"modified"``.
          */
         patch: operations["review_tension_theme_api_v1_tension_theme__theme_id__review_patch"];
+        trace?: never;
+    };
+    "/api/v1/tension/running": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Running Tension
+         * @description The assembly / grouping / synthesis run going for this book (#14k).
+         *
+         *     Read-only: lets the page pick a run back up after a remount (or from
+         *     another tab) instead of offering to start one the POSTs would refuse with 409.
+         */
+        get: operations["get_running_tension_api_v1_tension_running_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/symbols/": {
@@ -4033,6 +4067,16 @@ export interface components {
             imageryId: string;
             /** Taskid */
             taskId: string;
+        };
+        /**
+         * RunningTensionResponse
+         * @description The tension run going for a book (#14k), or both fields null.
+         */
+        RunningTensionResponse: {
+            /** Op */
+            op?: ("analyze" | "group" | "synthesize") | null;
+            /** Taskid */
+            taskId?: string | null;
         };
         /**
          * RunningTimelineTasksResponse
@@ -8037,6 +8081,38 @@ export interface operations {
                     "application/json": {
                         [key: string]: unknown;
                     };
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_running_tension_api_v1_tension_running_get: {
+        parameters: {
+            query: {
+                /** @description Book identifier */
+                book_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunningTensionResponse"];
                 };
             };
             /** @description Validation Error */

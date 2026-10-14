@@ -8,6 +8,8 @@ type TensionLineDetail = components['schemas']['TensionLineDetail'];
 type TEUDetail = components['schemas']['TEUDetail'];
 /** #14i — generated, so it carries reviewed_line_count / total_line_count. */
 type TensionThemeResponse = components['schemas']['TensionThemeResponse'];
+export type RunningTension = components['schemas']['RunningTensionResponse'];
+export type TensionOp = NonNullable<RunningTension['op']>;
 
 // ── Mode A: Full-book TEU assembly ──────────────────────────────
 
@@ -25,6 +27,14 @@ export function triggerTensionAnalysis(
 
 export function fetchTensionAnalysisTask(taskId: string): Promise<TaskStatus> {
   return apiFetch<TaskStatus>(`/tension/analyze/${taskId}`);
+}
+
+// ── The run going for a book (#14k) ─────────────────────────────
+
+/** Assembly, grouping and synthesis share one lock per book; this names the
+ *  one holding it, so the page can follow it instead of offering a second. */
+export function fetchRunningTension(bookId: string): Promise<RunningTension> {
+  return apiFetch<RunningTension>(`/tension/running?book_id=${bookId}`);
 }
 
 // ── TensionLine grouping ─────────────────────────────────────────
