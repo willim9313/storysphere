@@ -74,7 +74,7 @@ export function TensionEmptyCard({
   return (
     <div className="ss-state ss-state-stage ss-state-ready tn-empty">
       <Scale size={72} strokeWidth={1.5} absoluteStrokeWidth aria-hidden="true" className="tn-empty-spot" />
-      <h3 className="ss-state-title">{t('tension.state.emptyTitle')}</h3>
+      <h2 className="ss-state-title">{t('tension.state.emptyTitle')}</h2>
       <p className="ss-state-text">{t('tension.state.emptyBody')}</p>
       {/* A missing prerequisite, not a blocker: TEU assembly works without
           inferred Concepts, but the evidence cannot be topped up afterwards. */}
@@ -126,7 +126,7 @@ export function TensionStep1Card({
   return (
     <div className="tn-card tn-step1">
       <div className="tn-step1-head">
-        <h3>{t('tension.state.step1Title', { count: teuCount, runs: runCount })}</h3>
+        <h2>{t('tension.state.step1Title', { count: teuCount, runs: runCount })}</h2>
         {/* Scenes are text, never a bar: "cannot determine" must not read as 0
             or 1 (B-068). */}
         <span className="tn-step1-scenes">

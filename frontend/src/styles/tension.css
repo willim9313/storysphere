@@ -213,7 +213,7 @@
 
 .tn-step1 { padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-6); }
 .tn-step1-head { display: flex; flex-direction: column; gap: var(--space-3); }
-.tn-step1-head h3 { margin: 0; font-family: var(--font-serif); font-size: var(--font-size-lg); font-weight: 700; }
+.tn-step1-head h2 { margin: 0; font-family: var(--font-serif); font-size: var(--font-size-lg); font-weight: 700; }
 .tn-step1-scenes { font-size: var(--font-size-2xs); color: var(--fg-muted); }
 .tn-step1-body {
   margin: 0; max-width: 72ch; text-wrap: pretty;
@@ -249,7 +249,7 @@
 
 .tn-hero { padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-5); }
 .tn-hero-top { display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap; }
-.tn-hero-eyebrow { font-family: var(--font-mono); font-size: var(--font-size-2xs); letter-spacing: 0.06em; color: var(--fg-muted); }
+.tn-hero-eyebrow { margin: 0; font-weight: 400; line-height: inherit; font-family: var(--font-mono); font-size: var(--font-size-2xs); letter-spacing: 0.06em; color: var(--fg-muted); }
 .tn-chip-group { display: inline-flex; align-items: center; gap: var(--space-3); }
 .tn-chip-label { font-size: var(--font-size-2xs); color: var(--fg-muted); }
 
@@ -319,7 +319,7 @@
 .tn-grid-card { padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-5); }
 .tn-grid-head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-6); flex-wrap: wrap; }
 .tn-grid-title-wrap { display: flex; align-items: baseline; gap: var(--space-5); }
-.tn-grid-title { font-family: var(--font-serif); font-size: var(--font-size-base); font-weight: 700; }
+.tn-grid-title { margin: 0; line-height: inherit; font-family: var(--font-serif); font-size: var(--font-size-base); font-weight: 700; }
 .tn-grid-legend {
   display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap;
   font-size: var(--font-size-2xs); color: var(--fg-muted);
@@ -459,6 +459,7 @@
 .tn-bar-fill[data-band="high"] { background: var(--tension-intensity-high-edge); }
 
 .tn-check {
+  position: relative;
   width: 13px; height: 13px; padding: 0; flex-shrink: 0;
   display: inline-flex; align-items: center; justify-content: center;
   border-radius: 2px; cursor: pointer;
@@ -466,6 +467,8 @@
   background: transparent; color: var(--accent-fg);
 }
 .tn-check[data-state="on"], .tn-check[data-state="partial"] { background: var(--accent); border-color: var(--accent); }
+/* The box stays 13px; the hit area grows to 25px around it (WCAG 2.5.8). */
+.tn-check::before { content: ""; position: absolute; inset: -6px; }
 
 .tn-shortcuts { display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap; padding: var(--space-4) var(--space-5); }
 
@@ -624,4 +627,23 @@
   /* 五格在這個寬度比自己的標題還窄：改直向堆疊 */
   .tn-stepper { grid-template-columns: minmax(0, 1fr); }
   .tn-teu-items { padding-left: var(--space-5); }
+}
+
+/* Page heading for assistive tech only: the stepper and hero already name the
+   page visually. */
+.tn-sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  padding: 0; margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Reduced motion: the running cards stop spinning and the progress bar jumps
+   instead of easing. */
+@media (prefers-reduced-motion: reduce) {
+  .tn-spin { animation: none; }
+  .tn-run .ss-progress-fill { transition: none; }
 }

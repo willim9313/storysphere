@@ -79,7 +79,7 @@ export function TensionChapterGrid({ lines, teus, openId, onOpen, assign }: Read
     <section className="tn-card tn-grid-card">
       <header className="tn-grid-head">
         <div className="tn-grid-title-wrap">
-          <span className="tn-grid-title">{t('tension.grid.title')}</span>
+          <h2 className="tn-grid-title">{t('tension.grid.title')}</h2>
           <span className="tn-hint">
             {t('tension.grid.meta', { lines: lines.length, covered, total: teus.length })}
           </span>
