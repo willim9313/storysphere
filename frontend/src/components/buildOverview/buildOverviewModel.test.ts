@@ -21,6 +21,7 @@ import {
   nodeBox,
   scorePct,
   sharedTriggerPeers,
+  staledNodes,
   upstreamChain,
 } from './buildOverviewModel';
 
@@ -249,15 +250,29 @@ describe('blockers and action mode', () => {
     expect(actionModeFor({ nodeId: 'symbols', layer: 1, status: 'complete' }, 1)).toBe('trigger');
   });
 
+  it('offers no trigger once a fill-only node is complete', () => {
+    expect(actionModeFor({ nodeId: 'summaries', layer: 1, status: 'complete' }, 0)).toBe('done');
+    expect(actionModeFor({ nodeId: 'cep', layer: 2, status: 'complete' }, 0)).toBe('done');
+    expect(actionModeFor({ nodeId: 'summaries', layer: 1, status: 'partial' }, 0)).toBe('trigger');
+    expect(actionModeFor({ nodeId: 'kg_concept_inferred', layer: 1, status: 'complete' }, 0)).toBe('trigger');
+  });
+
   it('keeps the planned-feature note for triggerless nodes, and hides it once complete', () => {
     expect(actionModeFor({ nodeId: 'teu', layer: 2, status: 'partial' }, 0)).toBe('soon');
     expect(actionModeFor({ nodeId: 'tension_lines', layer: 3, status: 'complete' }, 0)).toBe('none');
   });
 
-  it('uses the partial wording for a complete node', () => {
-    expect(ctaStateFor('complete')).toBe('partial');
-    expect(ctaStateFor('partial')).toBe('partial');
-    expect(ctaStateFor('empty')).toBe('empty');
+  it('calls a rerun that redoes everything a rerun, not a fill-in', () => {
+    expect(ctaStateFor('kg_entity', 'complete')).toBe('rerun');
+    expect(ctaStateFor('kg_entity', 'partial')).toBe('rerun');
+    expect(ctaStateFor('symbols', 'partial')).toBe('rerun');
+    expect(ctaStateFor('kg_entity', 'empty')).toBe('empty');
+  });
+
+  it('keeps the fill-in wording only where a rerun fills gaps', () => {
+    expect(ctaStateFor('summaries', 'partial')).toBe('partial');
+    expect(ctaStateFor('cep', 'partial')).toBe('partial');
+    expect(ctaStateFor('kg_concept_inferred', 'complete')).toBe('again');
   });
 });
 
@@ -336,6 +351,28 @@ describe('neighborNode', () => {
     expect(neighborNode('kg_event', 'first', ALL)).toBe('book_meta');
     const last = neighborNode('kg_event', 'last', ALL)!;
     expect(NODE_SLOT[last].layer).toBe(4);
+  });
+});
+
+describe('staledNodes', () => {
+  const N = (nodeId: string, status: NodeStatus = 'complete'): BuildOverviewNode => ({
+    nodeId, layer: 3, label: nodeId, status, counts: {}, meta: {},
+  });
+
+  it('lists what a summarization rerun ages, though it only fills gaps', () => {
+    const nodes = [N('summaries'), N('narrative_structure'), N('hero_journey_stage')];
+    expect(staledNodes('summaries', nodes).map((n) => n.nodeId)).toEqual([
+      'narrative_structure', 'hero_journey_stage',
+    ]);
+  });
+
+  it('leaves out what was never built', () => {
+    const nodes = [N('kg_entity'), N('tension_lines', 'empty'), N('tension_theme')];
+    expect(staledNodes('kg_entity', nodes).map((n) => n.nodeId)).toEqual(['tension_theme']);
+  });
+
+  it('is empty for a trigger the backend does not age anything with', () => {
+    expect(staledNodes('symbols', [N('symbols'), N('tension_theme')])).toEqual([]);
   });
 });
 

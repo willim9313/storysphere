@@ -329,11 +329,55 @@ export const DROPS_BY_TRIGGER: Readonly<Partial<Record<TriggerKey, readonly stri
   ],
 };
 
+/**
+ * 過時表：重跑後保留、但被標為過時的已建立產物（內容與人工審核都還在）。逐條對照
+ * 後端 `services/cache_invalidation.py` 的 `_STALED_CACHES`——那裡以時間戳推導
+ * 過時，所以「只補洞」的摘要重跑也會讓敘事結構、英雄旅程過時。與刪除表分開：
+ * 刪掉的東西要重做，過時的只是要重看。
+ */
+export const STALES_BY_TRIGGER: Readonly<Partial<Record<TriggerKey, readonly string[]>>> = {
+  // hero_journey:, narrative_structure:
+  summarization: ['narrative_structure', 'hero_journey_stage'],
+  // event:%, character:%（B-111：id 不變，只是證據換了）＋五個書級產物
+  'feature-extraction': [
+    'cep',
+    'character_analysis_result',
+    'eep',
+    'causality_analysis',
+    'impact_analysis',
+    'narrative_structure',
+    'hero_journey_stage',
+    'temporal_analysis',
+    'tension_lines',
+    'tension_theme',
+  ],
+  'knowledge-graph': [
+    'narrative_structure',
+    'hero_journey_stage',
+    'temporal_analysis',
+    'tension_lines',
+    'tension_theme',
+  ],
+};
+
 export const triggerKeyOf = (nodeId: string): TriggerKey | null => NODE_TRIGGER_KEY[nodeId] ?? null;
 
 export function dropsDerived(nodeId: string): boolean {
   const key = triggerKeyOf(nodeId);
   return key !== null && DROPS_DERIVED_TRIGGERS.has(key);
+}
+
+/** The nodes a rerun of `nodeId` would mark stale — only the ones already built. */
+export function staledNodes(
+  nodeId: string,
+  nodes: readonly BuildOverviewNode[],
+): BuildOverviewNode[] {
+  const key = triggerKeyOf(nodeId);
+  if (!key) return [];
+  const byId = new Map(nodes.map((n) => [n.nodeId, n]));
+  return (STALES_BY_TRIGGER[key] ?? [])
+    .map((id) => byId.get(id))
+    .filter((n): n is BuildOverviewNode => !!n && n.status !== 'empty');
 }
 
 /** The nodes a rerun of `nodeId` would delete — only the ones already built. */
@@ -425,10 +469,15 @@ export function blockersOf(
  * - `hazard`  narrative_structure：刻意擋掉（重跑分類會洗掉 kernel 權重），優先於 blocker。
  * - `blocked` 上游沒齊：blocker chips＋disabled「還缺 N 項前置」。
  * - `trigger` 有觸發器。
+ * - `done`    已完整、觸發器只會補洞（摘要、角色／事件批次）：按了什麼都不做卻花
+ *             token，不給鈕，只說「已全部建立」。
  * - `soon`    尚無批次 endpoint：「觸發建構功能規劃中」。
  * - `none`    已完整、也沒有觸發器：不畫動作區。
  */
-export type ActionMode = 'source' | 'hazard' | 'blocked' | 'trigger' | 'soon' | 'none';
+export type ActionMode = 'source' | 'hazard' | 'blocked' | 'trigger' | 'done' | 'soon' | 'none';
+
+/** 已完整時重跑只會補洞（跳過已有的）的觸發器。推斷概念不在內：每次都會推出新命題。 */
+const FILL_ONLY_TRIGGERS: ReadonlySet<TriggerKey> = new Set(['summarization', 'entity-batch', 'event-batch']);
 
 export function actionModeFor(
   node: Pick<BuildOverviewNode, 'nodeId' | 'layer' | 'status'>,
@@ -437,13 +486,24 @@ export function actionModeFor(
   if (node.layer === 0) return 'source';
   if (node.nodeId === 'narrative_structure') return 'hazard';
   if (node.status !== 'complete' && blockerCount > 0) return 'blocked';
-  if (triggerKeyOf(node.nodeId)) return 'trigger';
+  const key = triggerKeyOf(node.nodeId);
+  if (key && node.status === 'complete' && FILL_ONLY_TRIGGERS.has(key)) return 'done';
+  if (key) return 'trigger';
   return node.status === 'complete' ? 'none' : 'soon';
 }
 
-/** 完整節點的觸發鈕沿用「補齊…」那一句（稿：完整的象徵 →「繼續探索象徵」）。 */
-export const ctaStateFor = (status: NodeStatus): 'partial' | 'empty' =>
-  status === 'empty' ? 'empty' : 'partial';
+/**
+ * 觸發鈕用哪一句。未建立＝「建立／開始」；會刪下游的三步（特徵、象徵、KG）一旦建過，
+ * 重跑就是整個重做，叫「重跑／重新…」而不是「補齊」；推斷概念完整後是「再推斷一次」；
+ * 其餘部分建立的才是「補齊／剩餘」。（稿原本完整節點沿用「補齊」，2026-10-15 裁決改。）
+ */
+export function ctaStateFor(nodeId: string, status: NodeStatus): 'empty' | 'partial' | 'rerun' | 'again' {
+  if (status === 'empty') return 'empty';
+  const key = triggerKeyOf(nodeId);
+  if (key && DROPS_DERIVED_TRIGGERS.has(key)) return 'rerun';
+  if (status === 'complete' && key === 'concept-inference') return 'again';
+  return 'partial';
+}
 
 /** 附加資訊的空值顯示「—」（2026-09-26 裁決）。 */
 export function metaValueText(value: string | number | boolean | undefined | null): string {

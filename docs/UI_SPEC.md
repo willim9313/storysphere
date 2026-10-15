@@ -1776,10 +1776,10 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 
 #### 右欄
 
-- **層次清單**（components-rows＋list-group-head）：標頭 `L{n} · {層名}` 左、`{N} · 已析 {M}` 右（**已析只算完整**）；列 grid `24px 1fr auto 12px`（L0 菱形／名稱／計數／狀態記號）。計數沿用既有 `nodeSubLabel`；推斷概念有待審時改顯示 `{n} 待審`（待審數由前端打 `GET /inferred-concepts?status=pending` 自算，**節點狀態仍照 manifest，不覆寫成 partial**）。
+- **層次清單**（components-rows＋list-group-head）：標頭 `L{n} · {層名}` 左、`{N} · 已建立 {M}` 右（**只算完整**）；列 grid `24px 1fr auto 12px`（L0 菱形／名稱／計數／狀態記號）。計數沿用既有 `nodeSubLabel`；推斷概念有待審時改顯示 `{n} 待審`（待審數由前端打 `GET /inferred-concepts?status=pending` 自算，**節點狀態仍照 manifest，不覆寫成 partial**）。
 - **節點細節**（標頭「節點細節」＋右側「返回層次清單」）。結構順序：節點名＋狀態 badge → `L{n} · nodeId` → 〔L0 說明條〕→ 章節分佈（只有 paragraphs／summaries／keywords／kg_event／symbols 五個節點）→ 同一次執行說明條 → 刪除說明條 → **動作區（下表）** → 前往對應頁面瀏覽 → 推斷概念審查佇列 → 原始計數 → 附加資訊（空值顯示「—」）。
 
-動作區六態（`actionModeFor`，順序即優先序）：
+動作區七態（`actionModeFor`，順序即優先序）：
 
 | 態 | 條件 | 呈現 |
 |----|------|------|
@@ -1787,7 +1787,8 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 | 來源（L0） | `layer === 0` | 沒有觸發鈕、沒有原始計數；說明條 `sourceHint`；「前往對應頁面瀏覽 · 尚未實作」；只有附加資訊 |
 | 刻意擋掉 | `narrative_structure`（優先於 blocker，完整時也是） | warning 底盒＋ `unraveling.detail.blockedByHazard` |
 | 被上游擋住 | 非完整且有未完成的一階上游 | 「尚未就緒」＋「需先完成上游 N 個依賴」＋ **blocker chips（可點，跳去該節點）**＋ disabled 鈕「還缺 N 項前置」 |
-| 觸發 | 有觸發器 | 觸發鈕（`.ss-btn-llm`；dropsDerived 觸發器用 `.ss-btn-danger`）＋鈕下「會呼叫 LLM，消耗 token」。**完整節點也可重跑**，沿用「補齊／繼續…」那一句 |
+| 已全部建立 | 完整、觸發器只會補洞（summarization、角色批次、事件批次——重跑會跳過已有的，按了什麼都不做卻花 token） | 不給鈕，說明條 `detail.allBuilt`「已全部建立，沒有可補的部分。」（2026-10-15） |
+| 觸發 | 有觸發器 | 觸發鈕（`.ss-btn-llm`；dropsDerived 觸發器用 `.ss-btn-danger`）＋鈕下「會呼叫 LLM，消耗 token」。鈕名依 `ctaStateFor(nodeId, status)`：未建立＝`empty`；dropsDerived 三步（特徵、象徵、KG）建過後是整個重做＝`rerun`「重跑知識圖譜／重新萃取關鍵字／重新探索象徵」（2026-10-15 起，原沿用「補齊」）；推斷概念完整＝`again`「再推斷一次」；其餘部分建立＝`partial`「補齊／剩餘」 |
 | 規劃中 | 無觸發器、非完整 | disabled「觸發建構功能規劃中」（其餘 8 顆無觸發器節點，回饋 4-UN-5） |
 
 - **同一次執行**：觸發鈕上方說明條 `與 {names} 是同一次執行的不同檢視`，`names` 由觸發器共用關係推（CEP＋角色分析；EEP＋因果＋影響力；實體＋概念＋關係＋事件）。
@@ -1802,19 +1803,24 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 
 #### 確認框（D 區，一律 `ConfirmDialog`）
 
-標題＝動作名、確認鈕＝動作名、`costHint`「會呼叫 LLM，消耗 token」在按鈕列左側（既有字串 `tension.state.tokenHintShort`）。內文只有一句：
+標題＝動作名、確認鈕＝動作名、`costHint`「會呼叫 LLM，消耗 token」在按鈕列左側（既有字串 `tension.state.tokenHintShort`）。內文一句＋最多兩段清單（項目「名稱 · 計數」，只列已建立的節點）：
 
-| 情況 | 適用 | 內文 | 按鈕 |
-|------|------|------|------|
-| 補洞 | summarization、概念推斷、角色批次、事件批次 | `keepsDownstream` | 一般＋字符 |
-| 刪除 | symbol-discovery、knowledge-graph | `affectsDownstream`＋分段清單（標頭 `dropsDownstream`，項目「名稱 · 計數」） | danger＋字符 |
-| 覆蓋 | feature-extraction（清單為空） | `overwrites`（清單整段不出現） | danger＋字符 |
+- 「會被刪除」段：`DROPS_BY_TRIGGER`，標頭 `dropsDownstream`。
+- 「會標為過時」段（2026-10-15）：`STALES_BY_TRIGGER`，逐條對照後端 `cache_invalidation._STALED_CACHES`（過時以時間戳推導，內容與人工審核保留），標頭 `staleDownstream`。summarization → 敘事結構、英雄旅程；feature-extraction → CEP／角色分析／EEP／因果／影響力＋敘事結構、英雄旅程、時序分析、張力線、張力主題；knowledge-graph → 後五項。
+
+| 情況（依序判斷） | 內文 | 按鈕 |
+|------|------|------|
+| 有會被刪除的 | `affectsDownstream` | danger＋字符 |
+| 只有會過時的 | `staleOnly` | 依觸發器（dropsDerived＝danger）＋字符 |
+| 節點未建立 | `firstBuild`「這是首次建立，不會覆蓋任何既有結果。」 | 依觸發器＋字符 |
+| dropsDerived、兩段皆空 | `overwrites` | danger＋字符 |
+| 其餘（補洞） | `keepsDownstream` | 一般＋字符 |
 
 舊的 `confirm.title／intro／start／token／dropsDerived` 已刪（2026-10-04 刪除，B-129）（舊句「已完成的部分會自動跳過」不留）。
 
 #### 推斷概念審查佇列（E 區，全頁唯一的 HITL）
 
-掛在 `kg_concept_inferred` 節點細節裡；無待審時整塊不渲染。標頭 `待審查命題（N）`＋右側「展開審查 ↓／收合審查 ↑」（預設展開，回饋 4-UN-11），下一行 `rejectPermanent`。每張卡：名稱（serif）＋`信心 {v}%`（mono、tabular-nums）、描述、證據逐字條列（`·` 前綴、無左邊框）、**採用＝次要鈕（冪等）、否決＝危險鈕（永久）**，兩顆零成本，**都不掛字符**。
+掛在 `kg_concept_inferred` 節點細節裡；無待審時整塊不渲染。標頭 `待審查命題（N）`＋右側「展開審查 ↓／收合審查 ↑」（預設展開，回饋 4-UN-11），下一行 `rejectPermanent`。每張卡：名稱（serif）＋`信心 {v}%`（mono、tabular-nums）、描述、證據逐字條列（`·` 前綴、無左邊框）、**採用＝次要鈕（冪等）、否決＝危險鈕（永久）**，兩顆零成本，**都不掛字符**。否決先開 `ConfirmDialog danger`（`concepts.dismissTitle`／`dismissBody`，無字符）；採用或否決失敗時該卡下方 `concepts.actionFailed`（`role=alert`）（2026-10-15）。
 
 #### 頁面狀態（F 區）
 
@@ -1869,7 +1875,12 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 | `selection.willDelete` | 會被刪除 |
 | `dag.kgGroup` | KG 特徵 · 同一次重跑 |
 | `dag.backEdge` | 回頭邊 · 時序關係要等 EEP（L2 → L1） |
-| `layerList.counts` | {{n}} · 已析 {{done}} |
+| `layerList.counts` | {{n}} · 已建立 {{done}}（2026-10-15 由「已析」改，與 `status.complete`「已建立」（原「完整」）、總覽圖例統一成 已建立／部分／未建立） |
+| `guide.body`（改寫） | 本頁是這本書的產出清單，由左到右分 L0 文本層到 L4 五層，左邊是右邊的輸入。節點右上的記號表示已建立（實心）／部分（半實）／未建立（空心）。可以從這裡觸發建構——有些重跑會刪掉或讓下游產物過時，執行前的確認框會列出受影響的東西。（2026-10-15，原句三處與畫面不符） |
+| `cta.node.*.rerun`／`*.again`、`cta.generic.rerun／again` | 重跑知識圖譜／重新萃取關鍵字／重新探索象徵／再推斷一次（2026-10-15） |
+| `cta.confirm.staleDownstream／staleOnly／firstBuild` | 見確認框表（2026-10-15） |
+| `detail.allBuilt` | 已全部建立，沒有可補的部分。（2026-10-15） |
+| `concepts.dismissTitle／dismissBody／actionFailed` | 否決這個命題？／「{{name}}」否決後不會再出現，即使重跑也一樣，無法復原。／操作沒有完成，請再試一次。（2026-10-15） |
 | `concepts.pendingCount` | {{n}} 待審 |
 | `concepts.expand` | 展開審查 ↓ |
 | `concepts.collapse` | 收合審查 ↑ |

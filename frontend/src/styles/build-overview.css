@@ -487,6 +487,7 @@
 }
 .bo-evidence-dot { flex-shrink: 0; color: var(--fg-muted); }
 .bo-concept-actions { display: flex; gap: var(--space-4); }
+.bo-concept-error { font-size: var(--font-size-2xs); color: var(--color-error); }
 
 /* ── 載入骨架：五欄固定、節點集寫死 ────────────────────────────── */
 

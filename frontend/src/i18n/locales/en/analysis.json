@@ -1023,7 +1023,7 @@
   },
   "unraveling": {
     "status": {
-      "complete": "complete",
+      "complete": "built",
       "partial": "partial",
       "empty": "not built"
     },
@@ -1031,7 +1031,7 @@
     "ranked": "ranked",
     "summary": {
       "eyebrow": "Build Overview",
-      "complete": "complete",
+      "complete": "built",
       "partial": "partial",
       "empty": "not built",
       "totalNodes": "{{n}} nodes total",
@@ -1055,7 +1055,8 @@
       "sharedTrigger": "Runs together with {{names}} — different views of one run",
       "missingPrereq": "Missing {{n}} prerequisites",
       "blockedByHazard": "Rerun is deliberately unavailable for this layer: reclassifying a book whose EEP cache is gone wipes the knowledge graph's existing kernel weights, and it cannot be undone.",
-      "nameJoin": ", "
+      "nameJoin": ", ",
+      "allBuilt": "All built — nothing left to fill in."
     },
     "run": {
       "banner": "Building: {{names}}",
@@ -1067,7 +1068,9 @@
       "failed": "Could not start the run",
       "generic": {
         "partial": "Fill in what's missing",
-        "empty": "Start building"
+        "empty": "Start building",
+        "rerun": "Rebuild",
+        "again": "Run again"
       },
       "node": {
         "summaries": {
@@ -1076,31 +1079,38 @@
         },
         "keywords": {
           "partial": "Extract the remaining keywords",
-          "empty": "Extract keywords"
+          "empty": "Extract keywords",
+          "rerun": "Re-extract keywords"
         },
         "symbols": {
           "partial": "Continue symbol discovery",
-          "empty": "Discover symbols"
+          "empty": "Discover symbols",
+          "rerun": "Rediscover symbols"
         },
         "kg_entity": {
           "partial": "Fill in the missing entities",
-          "empty": "Build the knowledge graph"
+          "empty": "Build the knowledge graph",
+          "rerun": "Rerun the knowledge graph"
         },
         "kg_concept": {
           "partial": "Fill in the missing concepts",
-          "empty": "Build the knowledge graph"
+          "empty": "Build the knowledge graph",
+          "rerun": "Rerun the knowledge graph"
         },
         "kg_concept_inferred": {
           "partial": "Infer the remaining concepts",
-          "empty": "Infer thematic propositions"
+          "empty": "Infer thematic propositions",
+          "again": "Infer again"
         },
         "kg_relation": {
           "partial": "Fill in the missing relations",
-          "empty": "Build the knowledge graph"
+          "empty": "Build the knowledge graph",
+          "rerun": "Rerun the knowledge graph"
         },
         "kg_event": {
           "partial": "Fill in the missing events",
-          "empty": "Build the knowledge graph"
+          "empty": "Build the knowledge graph",
+          "rerun": "Rerun the knowledge graph"
         },
         "cep": {
           "partial": "Analyze the remaining characters",
@@ -1127,7 +1137,10 @@
         "dropsDownstream": "Rerunning this node will discard {{n}} downstream outputs already built",
         "keepsDownstream": "Only fills in what is missing; no downstream output is affected",
         "affectsDownstream": "After the rerun, the downstream outputs listed below will be affected.",
-        "overwrites": "This overwrites the existing analysis results."
+        "overwrites": "This overwrites the existing analysis results.",
+        "staleDownstream": "{{n}} will be marked stale (content and reviews are kept)",
+        "staleOnly": "After the rerun, the built outputs below are marked stale: their content and human reviews are kept, and each can be rerun when you need it.",
+        "firstBuild": "This builds it for the first time; nothing existing is overwritten."
       }
     },
     "layer": {
@@ -1214,11 +1227,14 @@
       "rejectPermanent": "Dismissals are permanent: a dismissed proposition will not reappear even after a rerun",
       "pendingCount": "{{n}} pending",
       "expand": "Expand review ↓",
-      "collapse": "Collapse review ↑"
+      "collapse": "Collapse review ↑",
+      "dismissTitle": "Dismiss this proposition?",
+      "dismissBody": "Once dismissed, “{{name}}” will not come back, even after a rerun. This cannot be undone.",
+      "actionFailed": "That didn't go through. Please try again."
     },
     "guide": {
       "prefix": "Researcher guide:",
-      "body": "This page is the book's <strong>build inventory</strong>, in five layers from L0 (text) to L4, where <strong>each layer feeds the ones above it</strong>. Node colour shows built / partial / not built. Any layer can be re-run from here — <strong>but re-running discards whatever downstream depends on it</strong>, and the confirmation lists what that includes."
+      "body": "This page is the book's <strong>build inventory</strong>, in five layers from L0 (text) to L4, left to right, where <strong>each column feeds the ones to its right</strong>. The mark at each node's top right shows built (filled) / partial (half) / not built (hollow). Builds can be started from here — <strong>some reruns delete downstream outputs or mark them stale</strong>, and the confirmation lists what is affected."
     },
     "selection": {
       "hint": "Select a node to see what it depends on and what a rerun affects",
@@ -1232,7 +1248,7 @@
       "backEdge": "Back edge · temporal relations wait on EEP (L2 → L1)"
     },
     "layerList": {
-      "counts": "{{n}} · {{done}} analyzed"
+      "counts": "{{n}} · {{done}} built"
     }
   },
   "symbol": {
