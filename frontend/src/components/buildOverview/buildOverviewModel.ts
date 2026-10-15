@@ -5,20 +5,63 @@ import type { BuildOverviewEdge, BuildOverviewNode, NodeStatus } from '@/api/bui
  * 細節面板的動作模式。頁面只負責畫；能脫離 React 測的都在這裡。
  *
  * 幾何值取自決議紀錄 13 canvas 原始碼（`dagSvg`）：五欄各 184、節點框 150×36、
- * 列距 56、SVG 920×586。
+ * 列距 56、SVG 920×586。寬度方向改依實際像素排（`dagGeometry`），高度照稿。
  */
 
-// ── DAG 幾何（稿凍結值） ─────────────────────────────────────
+// ── DAG 幾何 ─────────────────────────────────────────────────
 
-export const SVG_W = 920;
 export const SVG_H = 586;
-export const NODE_W = 150;
 export const NODE_H = 36;
-/** 五欄的中心 x；欄寬 184（= SVG_W / 5）。 */
-export const COLUMN_CX = [92, 276, 460, 644, 828] as const;
 export const LAYERS = [0, 1, 2, 3, 4] as const;
 
-export const rowY = (row: number): number => 26 + row * 56;
+/** 稿的畫布寬（五欄各 184）。量到實際寬度之前先用它。 */
+export const DESIGN_W = 920;
+const NODE_W_MAX = 150;
+/** 最長的節點名（en「Narrative Structure」114px）加右側狀態記號還放得下。 */
+const NODE_W_MIN = 132;
+/** 欄距扣掉節點寬後至少留這麼多給邊線。 */
+const COLUMN_GAP_MIN = 16;
+/** 比這窄就不再壓縮，改橫向捲動：5 × (132 + 16)。 */
+export const DAG_MIN_W = 5 * (NODE_W_MIN + COLUMN_GAP_MIN);
+
+export interface DagGeometry {
+  /** 畫布寬，也是 viewBox 寬：SVG 以實際像素畫，字級不跟著縮放。 */
+  width: number;
+  nodeW: number;
+  /** 五欄的中心 x。 */
+  columnCx: readonly number[];
+  /** 虛線群組框「KG 特徵 · 同一次重跑」，圈住 L1 row 3–8。 */
+  kgGroupBox: { x: number; y: number; w: number; h: number };
+}
+
+/**
+ * The canvas laid out for `available` px. Columns split the width evenly; the
+ * node box narrows from 150 to 132 before the canvas stops shrinking at
+ * DAG_MIN_W and scrolls instead. At DESIGN_W this is the comp's geometry.
+ */
+export function dagGeometry(available: number): DagGeometry {
+  const width = Math.max(DAG_MIN_W, Math.round(available));
+  const pitch = width / LAYERS.length;
+  const nodeW = Math.max(NODE_W_MIN, Math.min(NODE_W_MAX, Math.floor(pitch - 20)));
+  const columnCx = LAYERS.map((l) => pitch * (l + 0.5));
+  return {
+    width,
+    nodeW,
+    columnCx,
+    kgGroupBox: {
+      x: columnCx[1] - nodeW / 2 - 10,
+      y: rowY(3) - 6,
+      w: nodeW + 20,
+      h: rowY(8) + NODE_H + 8 - (rowY(3) - 6),
+    },
+  };
+}
+
+export const DESIGN_GEOMETRY = dagGeometry(DESIGN_W);
+
+export function rowY(row: number): number {
+  return 26 + row * 56;
+}
 
 /** 回頭邊繞行的水平線 y：最後一列節點下方。 */
 export const BACK_EDGE_Y = rowY(8) + NODE_H + 26;
@@ -59,12 +102,6 @@ export const NODE_SLOT: Readonly<Record<string, { layer: number; row: number }>>
 };
 
 /** 虛線群組框「KG 特徵 · 同一次重跑」圈住的 L1 節點（row 3–8）。 */
-export const KG_GROUP_BOX = {
-  x: COLUMN_CX[1] - NODE_W / 2 - 10,
-  y: rowY(3) - 6,
-  w: NODE_W + 20,
-  h: rowY(8) + NODE_H + 8 - (rowY(3) - 6),
-};
 export const KG_CHILD_IDS: ReadonlySet<string> = new Set([
   'kg_entity',
   'kg_concept',
@@ -74,10 +111,13 @@ export const KG_CHILD_IDS: ReadonlySet<string> = new Set([
   'kg_temporal_relation',
 ]);
 
-export function nodeBox(nodeId: string): { x: number; y: number; layer: number; row: number } | null {
+export function nodeBox(
+  nodeId: string,
+  g: DagGeometry = DESIGN_GEOMETRY,
+): { x: number; y: number; layer: number; row: number } | null {
   const slot = NODE_SLOT[nodeId];
   if (!slot) return null;
-  return { x: COLUMN_CX[slot.layer] - NODE_W / 2, y: rowY(slot.row), ...slot };
+  return { x: g.columnCx[slot.layer] - g.nodeW / 2, y: rowY(slot.row), ...slot };
 }
 
 // ── 邊的畫法 ─────────────────────────────────────────────────
@@ -110,7 +150,10 @@ export function fanAnchorY(top: number, count: number, index: number): number {
  * Only `eep → kg_temporal_relation` runs against the column order (L2 → L1): it
  * goes under the whole canvas and comes up into the target from below.
  */
-export function layoutEdges(edges: readonly BuildOverviewEdge[]): LaidOutEdge[] {
+export function layoutEdges(
+  edges: readonly BuildOverviewEdge[],
+  g: DagGeometry = DESIGN_GEOMETRY,
+): LaidOutEdge[] {
   const outgoing = new Map<string, number[]>();
   const incoming = new Map<string, number[]>();
   edges.forEach((e, i) => {
@@ -121,15 +164,15 @@ export function layoutEdges(edges: readonly BuildOverviewEdge[]): LaidOutEdge[] 
 
   const result: LaidOutEdge[] = [];
   edges.forEach((e, i) => {
-    const a = nodeBox(e.source);
-    const b = nodeBox(e.target);
+    const a = nodeBox(e.source, g);
+    const b = nodeBox(e.target, g);
     if (!a || !b) return;
     const spansColumns = Math.abs(b.layer - a.layer) > 1;
 
     if (b.layer < a.layer) {
       const sx = a.x;
       const sy = a.y + NODE_H / 2;
-      const tx = COLUMN_CX[b.layer];
+      const tx = g.columnCx[b.layer];
       const ty = b.y + NODE_H;
       const d = `M${sx} ${sy} C${sx - 46} ${sy}, ${tx + 80} ${BACK_EDGE_Y}, ${tx} ${BACK_EDGE_Y} L${tx} ${ty}`;
       result.push({ index: i, source: e.source, target: e.target, kind: 'back', spansColumns, d });
@@ -137,7 +180,7 @@ export function layoutEdges(edges: readonly BuildOverviewEdge[]): LaidOutEdge[] 
     }
 
     if (b.layer === a.layer) {
-      const sx = a.x + NODE_W;
+      const sx = a.x + g.nodeW;
       const sy = a.y + NODE_H / 2;
       const ty = b.y + NODE_H / 2;
       const ox = sx + 12;
@@ -148,7 +191,7 @@ export function layoutEdges(edges: readonly BuildOverviewEdge[]): LaidOutEdge[] 
 
     const outs = outgoing.get(e.source) ?? [];
     const ins = incoming.get(e.target) ?? [];
-    const x1 = a.x + NODE_W;
+    const x1 = a.x + g.nodeW;
     const y1 = fanAnchorY(a.y, outs.length, outs.indexOf(i));
     const x2 = b.x;
     const y2 = fanAnchorY(b.y, ins.length, ins.indexOf(i));

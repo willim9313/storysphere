@@ -1734,15 +1734,18 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 │  eyebrow ／ 59%（3xl serif）＋ completionRule │ 分段總進度條 ＋ 圖例列   │
 ├─ DAG 面板（flex 1）──────────────────────────┬─ 右欄 340 ─────────┤
 │  五欄欄頭（L0–L4：x/y · N 部分 · 加權進度條）  │  層次清單 ↔ 節點細節 │
-│  選取時：圖例列＋「清除選取」                  │  （兩態同寬，DAG 寬度  │
-│  SVG 920×586：五欄各 184、節點框 150×36        │   不隨選取變動）      │
+│  選取列（固定一列，在捲動區外）：               │  （兩態同寬，DAG 寬度  │
+│   未選取＝提示；選取＝圖例列＋「清除選取」       │   不隨選取變動）      │
+│  SVG 依實際寬度畫：五欄均分、節點框 132–150×36  │                    │
 └───────────────────────────────────────────────┴────────────────────┘
 ```
 
 - 頁面本身是捲動容器（`.bo-page`），內容 `.bo-inner` max-w 1280（含左右內距 24，內容寬 1232，與時間軸 `.tl-inner` 同算法）置中；導覽條 margin-bottom 歸零，間距交給 gap。
 - **完成度總覽**：加權 `(complete + partial × 0.5) / total`（示例 `(14 + 4×0.5) / 27 = 59%`）；大百分比旁一行 `unraveling.summary.completionRule`；右側分段條（complete／partial／empty 各用該狀態的底＋框，段間 2px）加圖例列（形狀記號＋計數＋`共 N 節點`）。
 - **欄頭**：五層卡片下沉成 DAG 欄頭，`x/y`、`· N 部分`、進度條都保留，各層進度用同一套加權算法。
-- **DAG**：`NODE_SLOT`（`components/buildOverview/buildOverviewModel.ts`）照稿列序；邊表 43 條來自 manifest（與稿逐條相同）。SVG 以 `width:100%` 等比縮放，`.bo-dagwrap` 最小 860，再窄就橫向捲動——字級不再縮小（SVG 文字用 `--font-size-2xs`）。
+- **DAG**：`NODE_SLOT`（`components/buildOverview/buildOverviewModel.ts`）照稿列序；邊表 43 條來自 manifest（與稿逐條相同）。SVG 依捲動區實際寬度畫（`useElementWidth`＋`dagGeometry(width)`，viewBox＝px，字級不縮放，SVG 文字用 `--font-size-2xs`）：五欄均分，節點框寬 `clamp(欄距 − 20, 132, 150)`（132＝最長節點名 en「Narrative Structure」114px＋狀態記號）；窄於 `DAG_MIN_W` 740 才橫向捲動。寬度 920 時與稿相同。
+- **窄寬**（2026-10-15）：`.bo-inner` 是 container；寬度放不下「740 的 DAG＋340 右欄」（< 1122）時右欄移到 DAG 下方、全寬、不限高；選取節點時若右欄不在視窗內，捲到右欄頂端。實測（ageoffire）DAG 可視寬：1440＝850、1280＝802（節點 140）、1024＝902（右欄在下）、900＝778、720＝598／740（81%，其餘橫捲）。
+- **選取列**移出捲動區、固定一列（min-height 28）：未選取顯示 `unraveling.selection.hint`，選取後換成圖例＋「清除選取」，畫布不再隨選取下移。
   - 同層邊（L0 鏈、`kg_event → kg_temporal_relation`）走欄外短側接；
   - **回頭邊** `eep → kg_temporal_relation`（唯一一條 L2 → L1）繞到譜面下方、虛線、加箭頭與標記字；
   - `paragraphs`（出 7）、`kg_event`（出 6）等多條扇出／扇入沿節點邊緣分散錨點；
@@ -1841,6 +1844,7 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 | key | zh-TW |
 |-----|-------|
 | `selection.upstreamCount` | 上游依賴鏈 {{n}} 個 |
+| `selection.hint` | 點選節點，看它的上游依賴與重跑影響（2026-10-15 新增） |
 | `selection.willDelete` | 會被刪除 |
 | `dag.kgGroup` | KG 特徵 · 同一次重跑 |
 | `dag.backEdge` | 回頭邊 · 時序關係要等 EEP（L2 → L1） |
