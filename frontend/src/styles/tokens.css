@@ -282,6 +282,8 @@
   --row-open-marker-width: 0px; /* 開著詳情的列（如張力頁抽屜對應列）左側標記；Warm 靠底色即可 */
   --btn-radius:        var(--radius-md);
   --btn-border-width:  var(--border-width);
+  --btn-danger-border-width: var(--btn-border-width); /* 危險鈕框重：Warm 靠 error 色相，同一般鈕 */
+  --btn-danger-border-style: solid;
   --btn-shadow:        none;
   --pill-radius:       20px;
   --pill-border-width: 0.5px;
@@ -291,6 +293,9 @@
   --symbol-dot-display: block; /* 象徵清單極性點：Warm 畫點；Ink 由字形取代 */
   --tl-outlier-halo-display: none; /* 時間軸偏離點的外圈：Warm 靠 accent 色相，不畫 */
   --tl-outlier-link-width: 1px; /* 時間軸偏離連線的線重：Warm 靠 accent 色相，同一般連線 */
+  --dag-chain-halo-display: none; /* 建構概覽上游依賴鏈節點外圈：Warm 靠 accent 描邊即可 */
+  --dag-chain-edge-width: 1.5px; /* 建構概覽上游依賴邊線重：Warm 靠 accent 色相 */
+  --dag-link-edge-dash: none; /* 建構概覽直接相連邊：Warm 靠 fg-secondary 與 accent 色相區分，實線 */
   --density-peak-inset: 0; /* 密度矩陣「4 以上」格的紙色內框：Warm 四階色相可分，不畫 */
   --cross-tension-pattern: none; /* 敘事頁交叉證據「張力峰值」列：Warm 靠色相，不加紋 */
   --badge-radius:      20px;
@@ -448,6 +453,9 @@
   --row-open-marker-width: 3px;
   --btn-radius:        var(--radius-sm);
   --btn-border-width:  1.5px;
+  /* 近單色：危險鈕與次要鈕同為墨色外框，改由雙線框承載 */
+  --btn-danger-border-width: 3px;
+  --btn-danger-border-style: double;
   --btn-shadow:        none;
   --pill-radius:       4px;
   --pill-border-width: 1px;
@@ -457,6 +465,9 @@
   --symbol-dot-display: none; /* 近單色：極性點的灰階分不開，改畫字形 */
   --tl-outlier-halo-display: inline; /* 近單色：accent #111 與一般點 #151515 同色，偏離改由外圈承載 */
   --tl-outlier-link-width: 2px; /* 近單色：accent 與 border 同色，偏離連線改由線重承載 */
+  --dag-chain-halo-display: inline; /* 近單色：完整節點黑底黑框，accent 描邊看不見，鏈改由外圈承載 */
+  --dag-chain-edge-width: 2.5px; /* 近單色：上游邊與相連邊同為深色實線，上游改由線重承載 */
+  --dag-link-edge-dash: 4 3; /* 近單色：相連邊改虛線，與上游實線分開 */
   --density-peak-inset: 2px; /* 近單色：3（#151515）與 4+（#000）同為黑，4+ 加紙色內框 */
   /* 近單色：張力列與階段覆蓋列同為 accent 黑，張力改畫斜紋 */
   --cross-tension-pattern: repeating-linear-gradient(-45deg, transparent 0 2px, var(--bg-primary) 2px 3.5px);

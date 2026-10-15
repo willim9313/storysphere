@@ -1201,6 +1201,7 @@ Handoff `redesign_v3_handoff_batch_4.zip`（`design_handoff_04_views/`）。下�
 | 4-UN-13 | 遺漏 · 稿上新出現的字串沒進 README §5 | 待同步 |
 | 4-UN-14 | 遺漏 · DAG 窄於 920 時與「會被刪除」標記位置 | 待同步 |
 | 4-UN-15 | 遺漏 · 建構中只畫在單一節點，頁面其他地方看不出有任務在跑 | 待同步 |
+| 4-UN-16 | 矛盾 · Ink 下上游依賴鏈與危險鈕讀不出來 | 待同步 |
 
 #### 4-UN-1 knowledge-graph 的刪除表少 3 顆
 
@@ -1305,6 +1306,14 @@ Handoff `redesign_v3_handoff_batch_4.zip`（`design_handoff_04_views/`）。下�
 - **問題**：建構中只出現在被選取節點的細節裡。選別的節點或回到層次清單，整頁就看不出有任務在跑，觸發鈕又能按，同一個花 token 的任務可以重複啟動（impeccable 評估 P0）。
 - **目前處置**（使用者 2026-10-15 裁決）：(1) 任務狀態提到頁面層，換節點不再丟失，進頁面以 #19c／#7j／#7k 接手；(2) 本頁同時最多一個建構，任一在跑時其他節點的觸發鈕停用，下方一行 `unraveling.run.waitFor`；(3) 完成度總覽下方一條 `unraveling.run.banner`＋「查看」（選到該觸發器的第一顆節點），沿用 `.bo-box.is-running` 樣式。DAG 節點上的執行中記號未做（留待 Ink 分化子任務）。
 - **請設計端**：畫頁面層執行中提示的位置與樣式；畫停用中觸發鈕與說明；決定 DAG 節點是否要執行中記號。
+- **後續**（2026-10-15 使用者裁決）：DAG 上執行中的觸發器所建的節點，右上狀態記號換成轉動弧線（reduced-motion 靜止），aria-label 加「建構中…」。兩主題相同。
+
+#### 4-UN-16 Ink 下上游依賴鏈與危險鈕讀不出來
+
+- **出處**：13 B 區選取態（上游依賴鏈＝accent 描邊＋accent 邊，直接相連＝fg-secondary 邊）；DS 共用 `.ss-btn-danger`。
+- **問題**：Ink 的 accent `#111`，完整節點本來就黑底黑框，鏈上節點的 accent 描邊看不見；上游邊（accent）與相連邊（fg-secondary `#3f3f3f`）都是 1.5 實線分不開。Ink 危險鈕是墨色外框，與次要鈕一模一樣，比安全的 primary 還不顯眼（impeccable 評估 P1）。
+- **目前處置**（使用者 2026-10-15 裁決，shape token 層）：鏈上節點外 3px 加一圈 1.5px 實線（`--dag-chain-halo-display`）；上游邊 Ink 2.5px（`--dag-chain-edge-width`）；相連邊 Ink 虛線（`--dag-link-edge-dash`）。危險鈕**全站** Ink 改 3px 雙線框（`--btn-danger-border-width`／`--btn-danger-border-style`）。Warm 全部不變。
+- **請設計端**：確認 Ink 鏈的外圈與邊線語彙；確認 Ink 危險鈕雙線框（全站）。
 
 ### 知識圖譜 `/books/:bookId/graph`
 
