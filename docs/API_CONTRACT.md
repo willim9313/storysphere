@@ -948,7 +948,7 @@ type TaskListResponse = TaskStatus[];  // TaskStatus 定義見 #8；murmurEvents
 `knowledge-graph`（實體／關係／事件抽取）、`symbol-discovery`（意象抽取）。`feature-extraction`（embedding＋關鍵字）不呼叫 LLM，
 不檢查；唯一例外是 `KEYWORD_EXTRACTOR_TYPE` 設為 `llm` 或 `composite`（關鍵字抽取器本身走 LLM）時也檢查。422／404 優先於 503。
 
-**說明**：補跑完成後，對應 `pipelineStatus` 欄位更新為 `done` 或 `failed`。前端完成後需 invalidate `['book', bookId]` query 以重整書籍資料；若從建構概覽頁觸發，另需 invalidate `['buildOverview', bookId]`。
+**說明**：補跑完成後，對應 `pipelineStatus` 欄位更新為 `done` 或 `failed`。前端完成後需 invalidate `qk.book(bookId)`（`['books', bookId]`）以重整書籍資料；若從建構概覽頁觸發，另 invalidate `qk.buildOverview.manifest(bookId)`、`['narrative', bookId]`、`qk.symbols.overview(bookId)`（這三個 root 不在 books 樹下）。
 
 `summarization` 與 `feature-extraction` 的產物（章節摘要、章節關鍵字）寫在 Document 上，補跑會在步驟結束時落盤，**失敗時也會存下已完成的部分** —— summarization 會跳過已有摘要的章節，因此中斷後再次補跑是續跑而非重跑。`knowledge-graph` 與 `symbol-discovery` 的產物寫在 KG / symbol store，不經此路徑。
 | 事件深度分析（單一） | #7e |
@@ -2521,6 +2521,8 @@ interface ChapterDistribution {
 
 不驗書是否存在（未知書回兩者皆 null，同 #14k）。記錄與 #7k／#14k／#21m 同一套進程內 registry：單一 worker 有效，後端重啟後為 null。角色／事件批次（#7h／#7g）有各自的鎖，不在這把鎖內。
 
+**UI 使用頁面**：建構概覽頁 `/books/:bookId/unraveling`（進頁面與觸發被 409 時，連同 #7j／#7k 一起查，接手進行中的任務）
+
 ---
 
 ## 深度分析（通用非同步路由）
@@ -3244,6 +3246,7 @@ response schema 與測試檔。
   - 2026-10-14：#14a／#14c／#14g 同書共用一把鎖，執行中回 409 `batch_running`，書不存在回 404；新增 #14k `GET /tension/running`；#14b／#14d／#14h 只回張力類 task；#14d-2／#14e／#14i 書不存在回 404。文件更正：`language` 省略時為 `'en'`、#14i `stale_reason` 補 `pipeline_rerun`、#14e `chapter_range` 為 `[min, max]`、query key、元件名 TensionThemeHero。
 - [x] **#19 建構概覽**
   - 2026-10-15：#8d 與 #10e 同書共用一把鎖，執行中回 409 `batch_running`；新增 #19c `GET /books/:bookId/unraveling/running`。
+  - 2026-10-15：建構概覽頁接上 #19c；#8d 說明的 query key 更正（原寫單數 `['book', bookId]`，實際為 `['books', bookId]`）。
 - [x] **#15d-#15h 象徵意象進階分析**：SEP + LLM 詮釋 + HITL 審核已實作（`backend/storysphere/api/routers/symbols.py`）
 - [x] **#16a VoiceProfile**：GET lazy 生成（無 404 表示未生成），DELETE 清快取；無另外的 POST trigger
 - [x] **#18c KG 遷移**：直接回傳 TaskStatus，polling 走 #18d（非走 #8）

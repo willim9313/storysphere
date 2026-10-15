@@ -25,6 +25,7 @@ export interface BuildOverviewManifest {
 }
 
 export type ChapterDistribution = components['schemas']['ChapterDistribution'];
+export type RunningUnraveling = components['schemas']['RunningUnravelingResponse'];
 
 export function fetchBuildOverview(bookId: string): Promise<BuildOverviewManifest> {
   return apiFetch<BuildOverviewManifest>(`/books/${bookId}/unraveling`);
@@ -32,4 +33,9 @@ export function fetchBuildOverview(bookId: string): Promise<BuildOverviewManifes
 
 export function fetchChapterDistribution(bookId: string): Promise<ChapterDistribution> {
   return apiFetch<ChapterDistribution>(`/books/${bookId}/unraveling/chapter-distribution`);
+}
+
+/** #19c — the rerun / concept inference going for this book, if any. */
+export function fetchRunningUnraveling(bookId: string): Promise<RunningUnraveling> {
+  return apiFetch<RunningUnraveling>(`/books/${bookId}/unraveling/running`);
 }

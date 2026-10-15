@@ -374,6 +374,7 @@
 .bo-box-icon { flex-shrink: 0; margin-top: var(--space-1); }
 .bo-box.is-running { flex-direction: row; align-items: center; background: var(--color-info-bg); }
 .bo-box-spin { flex-shrink: 0; color: var(--color-info); }
+.bo-run-view { margin-left: auto; }
 .bo-box.is-fail { background: var(--color-error-bg); border-color: var(--color-error); }
 
 /* blocker chips：可點，跳去該節點 */

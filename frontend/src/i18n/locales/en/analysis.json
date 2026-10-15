@@ -1056,6 +1056,11 @@
       "blockedByHazard": "Rerun is deliberately unavailable for this layer: reclassifying a book whose EEP cache is gone wipes the knowledge graph's existing kernel weights, and it cannot be undone.",
       "nameJoin": ", "
     },
+    "run": {
+      "banner": "Building: {{names}}",
+      "view": "View",
+      "waitFor": "Other builds can start once “{{names}}” finishes"
+    },
     "cta": {
       "running": "Building…",
       "failed": "Could not start the run",

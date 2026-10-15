@@ -53,6 +53,10 @@ describe('query keys', () => {
     ]);
     expect(qk.symbols.overview('b1')).toEqual(['symbols', 'b1', 'overview']);
 
+    expect(qk.buildOverview.manifest('b1')).toEqual(['buildOverview', 'b1']);
+    expect(qk.buildOverview.chapterDistribution('b1')).toEqual([
+      'buildOverview', 'b1', 'chapter-distribution',
+    ]);
     expect(qk.tension.lines('b1')).toEqual(['books', 'b1', 'tension', 'lines']);
     expect(qk.tension.teus('b1')).toEqual(['books', 'b1', 'tension', 'teus']);
     expect(qk.tension.theme('b1')).toEqual(['books', 'b1', 'tension', 'theme']);
