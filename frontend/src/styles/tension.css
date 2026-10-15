@@ -32,7 +32,7 @@
 .tn-hint { font-size: var(--font-size-2xs); color: var(--fg-muted); }
 .tn-alert-mono { font-family: var(--font-mono); }
 .tn-meta-mono { font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-muted); }
-.tn-vs { font-family: var(--font-sans); font-size: var(--font-size-2xs); color: var(--fg-muted); padding: 0 var(--space-3); }
+.tn-vs { font-family: var(--font-sans); font-size: var(--font-size-2xs); color: var(--fg-secondary); padding: 0 var(--space-3); }
 .tn-spin { animation: spin 1s linear infinite; }
 .tn-actions-end { display: flex; gap: var(--space-4); justify-content: flex-end; }
 .tn-link {
@@ -147,8 +147,10 @@
 
 .tn-stage-kicker {
   font-family: var(--font-mono); font-size: var(--font-size-2xs);
-  letter-spacing: 0.04em; color: var(--fg-muted);
-  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  letter-spacing: 0.04em; color: var(--fg-secondary);
+  /* Narrow cards wrap the kicker instead of clipping it; keep-all so 跨場景
+     breaks at the space, not inside the word. */
+  word-break: keep-all;
 }
 .tn-stage-title { font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 700; color: var(--fg-primary); }
 .tn-stage[data-notready="true"] .tn-stage-title { color: var(--fg-muted); }
@@ -230,7 +232,7 @@
 }
 /* 單色中性：TEU 數不是強度，不借任何分析族的色 */
 .tn-density-bar { display: block; background: var(--fg-muted); }
-.tn-density-ch { font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-muted); text-align: center; }
+.tn-density-ch { font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-secondary); text-align: center; }
 
 /* ── 執行中／軟閘門 ─────────────────────────────────────────────── */
 
@@ -249,9 +251,9 @@
 
 .tn-hero { padding: var(--space-6); display: flex; flex-direction: column; gap: var(--space-5); }
 .tn-hero-top { display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap; }
-.tn-hero-eyebrow { margin: 0; font-weight: 400; line-height: inherit; font-family: var(--font-mono); font-size: var(--font-size-2xs); letter-spacing: 0.06em; color: var(--fg-muted); }
+.tn-hero-eyebrow { margin: 0; font-weight: 400; line-height: inherit; font-family: var(--font-mono); font-size: var(--font-size-2xs); letter-spacing: 0.06em; color: var(--fg-secondary); }
 .tn-chip-group { display: inline-flex; align-items: center; gap: var(--space-3); }
-.tn-chip-label { font-size: var(--font-size-2xs); color: var(--fg-muted); }
+.tn-chip-label { font-size: var(--font-size-2xs); color: var(--fg-secondary); }
 
 .tn-frye-badge, .tn-booker-badge {
   display: inline-flex; align-items: center; gap: var(--space-2);
@@ -322,7 +324,7 @@
 .tn-grid-title { margin: 0; line-height: inherit; font-family: var(--font-serif); font-size: var(--font-size-base); font-weight: 700; }
 .tn-grid-legend {
   display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap;
-  font-size: var(--font-size-2xs); color: var(--fg-muted);
+  font-size: var(--font-size-2xs); color: var(--fg-secondary);
 }
 .tn-legend-item { display: inline-flex; align-items: flex-end; gap: var(--space-2); }
 .tn-grid-legend-note { border-left: var(--line-weight) var(--border-style) var(--border); padding-left: var(--space-5); }
@@ -351,7 +353,7 @@
 }
 .tn-grid-rowgroup { display: contents; }
 .tn-grid-corner, .tn-grid-colhead {
-  font-size: var(--font-size-2xs); color: var(--fg-muted);
+  font-size: var(--font-size-2xs); color: var(--fg-secondary);
   padding-bottom: var(--space-3);
   border-bottom: var(--line-weight) var(--border-style) var(--border);
   background: var(--bg-primary);
@@ -387,6 +389,10 @@
 .tn-grid-rowgroup[data-open="true"] .tn-grid-rowlabel,
 .tn-grid-rowgroup[data-open="true"] .tn-grid-cell { background: var(--bg-secondary); }
 .tn-grid-rowgroup[data-open="true"] .tn-grid-poles { font-weight: 700; }
+/* The open line's marker: Warm reads the tinted row as is; Ink's tint is too
+   close to white, so a rule on the left carries it (--row-open-marker-width). */
+.tn-grid-rowgroup[data-open="true"] .tn-grid-rowlabel,
+.tn-row[data-open="true"] { box-shadow: inset var(--row-open-marker-width) 0 0 var(--fg-primary); }
 
 .tn-grid-rowgroup.is-orphan .tn-grid-rowlabel,
 .tn-grid-rowgroup.is-orphan .tn-grid-cell { border-top: 1.5px solid var(--fg-muted); border-bottom: none; }
@@ -423,7 +429,7 @@
 }
 .tn-table-head {
   border-bottom: var(--line-weight) var(--border-style) var(--border);
-  font-size: var(--font-size-2xs); font-weight: 600; color: var(--fg-muted);
+  font-size: var(--font-size-2xs); font-weight: 600; color: var(--fg-secondary);
 }
 .tn-col-right { text-align: right; }
 .tn-row {

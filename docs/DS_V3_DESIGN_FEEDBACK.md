@@ -2146,3 +2146,23 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 - **目前處置**（使用者 2026-10-13 裁決）：`stave.headline` 改為「故事順序有 {{outliers}} 處明顯偏離敘述順序」／「Story order breaks from the telling at {{outliers}} points」；面板 rank 改為新字串 `panel.storyPosition`「故事時序第 {{i}} / {{n}}」／「Story order {{i}} / {{n}}」（n＝已排序事件數），與既有「敘述位置 i / n」並列；偏離值不變。縱軸在中文介面直排正立、由上往下，英文維持由下往上。三句為工程草稿。
 - **請設計端**：定案 headline 與 storyPosition 兩句。
 
+## 稿外新增 · 張力分析
+
+| # | 類型 | 狀態 |
+|---|------|------|
+| TN-1 | 遺漏 · 某一步執行中，其他 LLM 觸發仍可按 | 待同步 |
+| TN-2 | 缺陷 · 結構標籤用 fg-muted、720 小標截斷、Ink 開著的列分不出 | 待同步 |
+
+### TN-1 某一步執行中，其他 LLM 觸發仍可按
+
+- **出處**：15 張力分析稿各狀態卡（空態、Step 1、聚合失敗、軟閘門）、主題 hero「重新合成」、表格下「重新執行 Step 2」；只畫了閒置態。impeccable critique／audit 張力頁（2026-10-14）P0／P1
+- **問題**：三步讀寫同一串資料（TEU → 張力線 → 主題），後端原本無互斥；聚合進行中仍可按重新合成，會用舊線合成並重複花 token。
+- **目前處置**（使用者 2026-10-14 裁決，比照 NL-2／SY-2）：後端三步同書一把鎖（409 `batch_running`、#14k running）；前端任一步執行中，7 處 LLM 觸發 `disabled`＋`title`，成本提示位置改顯示可見原因句 `tension.busy.{analyze|group|synthesize}`（xs／secondary）。四句為工程草稿。
+- **請設計端**：定案原因句；確認停用態與原因句位置。
+
+### TN-2 結構標籤對比、720 階段條小標、Ink 開著的列
+
+- **出處**：15 張力分析稿階段條（kicker 2xs muted、單行）、章節格點欄號與圖例、表頭、極點間「vs」、hero 眉標與 Frye／Booker 小標；選中列只畫了 Warm 的底色。impeccable critique／audit 張力頁（2026-10-14）P1／P2
+- **問題**：上述結構標籤用 `fg-muted`，Warm 3.15:1、疊在人工關卡卡片（bg-tertiary）上只有 2.59:1（Ink 2.84）；DESIGN.md 的 muted 只給註記、計數、placeholder。720 寬階段條 kicker 單行截斷成「CROSS-SCE…」。Ink 的 bg-secondary `#f6f6f4` 與白底太近，開著抽屜的列與一般列分不出來。
+- **目前處置**（使用者 2026-10-14 裁決）：僅本頁——上述標籤改 `--fg-secondary`（Warm 5.37–6.51、Ink 8.9）；kicker 改可換行；新 shape token `--row-open-marker-width`（Warm 0／Ink 3px），開著的表格列與格點列標籤左側 inset 粗線。提示、計數、鎖定階段維持 muted。人工關卡卡片上的 warning 字 4.0:1 併入全站色彩延後項，未改。
+- **請設計端**：確認結構標籤改 secondary；補畫窄寬 kicker 換行與 Ink 開著列的標記。
