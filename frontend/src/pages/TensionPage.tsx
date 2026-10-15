@@ -81,7 +81,7 @@ export default function TensionPage() {
   const navigate = useNavigate();
   const { setPageContext } = useChatDispatch();
   const { data: book } = useBook(bookId);
-  const { t } = useTranslation('analysis');
+  const { t, i18n } = useTranslation('analysis');
   const { t: tn } = useTranslation('nav');
 
   useEffect(() => {
@@ -359,9 +359,11 @@ export default function TensionPage() {
       setBatch({ failed: 0, busy: true });
       // Sequential (every call rewrites the same cached blob). A failure no
       // longer aborts the rest: the failed lines stay selected for a retry.
-      const { failed } = await runSequentially(selected, (id) =>
-        reviewMutation.mutateAsync({ id, status }),
-      );
+      // Calls the API directly rather than through reviewMutation, whose
+      // onSuccess refetches lines and theme after every line — N rows meant 2N
+      // refetches, each a full KG pass on the server. One refresh at the end.
+      const { failed } = await runSequentially(selected, (id) => reviewTensionLine(id, bookId!, status));
+      onLineReviewed();
       setSelected(new Set(failed));
       setBatch({ failed: failed.length, busy: false });
   };
@@ -561,9 +563,11 @@ export default function TensionPage() {
   const lineProvenance = useMemo(() => {
     const first = lines[0];
     if (!first) return null;
-    const at = first.assembled_at ? new Date(first.assembled_at).toLocaleString() : null;
+    // The UI language's format, not the browser's (an English UI on a zh-TW
+    // browser read 「2026/9/13 上午9:46」).
+    const at = first.assembled_at ? new Date(first.assembled_at).toLocaleString(i18n.language) : null;
     return at ? `${first.assembled_by} · ${at}` : first.assembled_by;
-  }, [lines]);
+  }, [lines, i18n.language]);
 
   const stages: TensionStageSpec[] = [
     {
