@@ -247,40 +247,6 @@ export interface TEU {
   review_status: 'pending' | 'approved' | 'rejected';
 }
 
-export type Carrier = components['schemas']['Carrier'];
-
-export type TEUSummary = components['schemas']['TEUSummary'];
-
-export interface TensionLine {
-  id: string;
-  document_id: string;
-  teu_ids: string[];
-  canonical_pole_a: string;
-  canonical_pole_b: string;
-  intensity_summary: number;
-  chapter_range: number[];
-  thematic_note?: string | null;
-  review_status: 'pending' | 'approved' | 'modified' | 'rejected';
-  teus?: TEUSummary[];
-}
-
-export interface TensionTheme {
-  id: string;
-  document_id: string;
-  tension_line_ids: string[];
-  proposition: string;
-  frye_mythos?: string;
-  booker_plot?: string;
-  assembled_by: string;
-  assembled_at: string;
-  review_status: 'pending' | 'approved' | 'modified' | 'rejected';
-  /** True when the theme no longer reflects the current TensionLines. */
-  is_stale?: boolean;
-  stale_reason?: StaleReason | null;
-}
-
-export type StaleReason = 'no_lines' | 'lines_regrouped' | 'review_changed';
-
 // ── Event Analysis Detail (EEP) ────────────────────────────────
 
 export interface ParticipantRole {

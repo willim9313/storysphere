@@ -1564,7 +1564,7 @@ interface TEUDetail {
 }
 ```
 
-**Response 200**：`TensionLine`（更新後，欄位同 `#14e` 但不含 `teus`）
+**Response 200**：`TensionLine`（更新後，欄位同 `#14e` 但不含 `teus`；`generated.ts` 的 `components["schemas"]["TensionLine"]`）
 
 | 狀態碼 | 情形 |
 |--------|------|
@@ -1685,7 +1685,7 @@ interface Carrier {
 }
 ```
 
-**Response 200**：`TensionLine`（更新後，含 `edit`）
+**Response 200**：`TensionLine`（更新後，含 `edit`；`generated.ts` 的 `components["schemas"]["TensionLine"]`）
 
 > **`modified` 會留下 `edit` 紀錄。** `canonical_pole_a/b` 是原地覆寫，模型原本的
 > 用字若不另存就永久消失，而審核抽屜要同時顯示「現在的標籤」與「原始：舊 A vs 舊 B」。
@@ -1821,7 +1821,7 @@ interface TensionTheme {
 }
 ```
 
-**Response 200**：`TensionTheme`（更新後）
+**Response 200**：`TensionTheme`（更新後；domain 原形，不含 #14i 的 `is_stale`／`stale_reason`；`generated.ts` 的 `components["schemas"]["TensionTheme"]`）
 
 **UI 使用頁面**：張力分析頁 TensionThemeHero 審核按鈕
 
@@ -3220,6 +3220,7 @@ response schema 與測試檔。
 - [x] **TaskStatus 欄位**：`subProgress`、`subTotal`、`subStage` 已加入（批次任務使用）
 - [x] **#9 GraphEdge 推斷欄位**：`inferred`、`confidence`、`inferredId` 已加入
 - [x] **#14 張力分析系列**：專用 polling pattern 已實作（非走 #8）
+  - 2026-10-15：#14d-3／#14f／#14j 加 `response_model`（domain `TensionLine`／`TensionTheme`），回傳型別進 `generated.ts`；JSON 形狀不變。前端 `types.ts` 手寫的 `TensionLine`／`TensionTheme`／`StaleReason` 已刪。
   - 2026-10-14：#14a／#14c／#14g 同書共用一把鎖，執行中回 409 `batch_running`，書不存在回 404；新增 #14k `GET /tension/running`；#14b／#14d／#14h 只回張力類 task；#14d-2／#14e／#14i 書不存在回 404。文件更正：`language` 省略時為 `'en'`、#14i `stale_reason` 補 `pipeline_rerun`、#14e `chapter_range` 為 `[min, max]`、query key、元件名 TensionThemeHero。
 - [x] **#15d-#15h 象徵意象進階分析**：SEP + LLM 詮釋 + HITL 審核已實作（`backend/storysphere/api/routers/symbols.py`）
 - [x] **#16a VoiceProfile**：GET lazy 生成（無 404 表示未生成），DELETE 清快取；無另外的 POST trigger
