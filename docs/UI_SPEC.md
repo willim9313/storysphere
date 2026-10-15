@@ -1839,6 +1839,12 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 - 執行中 spinner 與節點淡出 transition 尊重 `prefers-reduced-motion`。
 - 實測（ageoffire）：頁面 tab 停點 29（含 DAG 1 個）。
 
+#### Ink 分化（2026-10-15，4-UN-16）
+
+- 上游依賴鏈：鏈上節點外加一圈（`--dag-chain-halo-display`，Warm none）；上游邊線重 `--dag-chain-edge-width`（Warm 1.5／Ink 2.5）；直接相連邊 `--dag-link-edge-dash`（Warm 實線／Ink `4 3`）。
+- 危險鈕（全站 `.ss-btn-danger`）：`--btn-danger-border-width`／`--btn-danger-border-style`（Warm 同一般鈕實線／Ink 3px 雙線）。
+- 執行中：執行中觸發器建的節點，右上狀態記號換成轉動弧線（`.bo-node-spin`，reduced-motion 靜止），aria-label 加 `cta.running`。兩主題相同。
+
 #### 本頁同時最多一個建構（2026-10-15）
 
 - 任一建構在跑（含觸發請求送出中）時，其他節點的觸發鈕停用，鈕下一行 `unraveling.run.waitFor`（`aria-describedby` 指向它）。角色／事件批次與重跑各有後端鎖，但 KG 重跑會改寫批次讀的資料，所以本頁一律一次一個。

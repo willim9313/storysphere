@@ -263,6 +263,8 @@ interface DagNodeProps {
   selection: Selection | null;
   /** The canvas's one tab stop (roving tabindex). */
   isTabStop: boolean;
+  /** The trigger that builds this node has a run going. */
+  running: boolean;
   onSelect: (id: string) => void;
   onNavigate: (from: string, direction: NavDirection) => void;
   t: TFunction;
@@ -278,7 +280,7 @@ const NAV_KEYS: Readonly<Record<string, NavDirection>> = {
 };
 
 function DagNode({
-  node, geometry, sub, label, selection, isTabStop, onSelect, onNavigate, t,
+  node, geometry, sub, label, selection, isTabStop, running, onSelect, onNavigate, t,
 }: Readonly<DagNodeProps>) {
   const box = nodeBox(node.nodeId, geometry);
   const NODE_W = geometry.nodeW;
@@ -305,7 +307,8 @@ function DagNode({
   let roleText: string | null = null;
   if (isDrop) roleText = t('unraveling.selection.willDelete');
   else if (isUp) roleText = t('unraveling.dag.roleUpstream');
-  const ariaLabel = [label, statusText, sub !== statusText ? sub : null, roleText]
+  const runningText = running ? t('unraveling.cta.running') : null;
+  const ariaLabel = [label, statusText, sub !== statusText ? sub : null, runningText, roleText]
     .filter(Boolean)
     .join(' · ');
 
@@ -345,6 +348,22 @@ function DagNode({
         fill="none"
         strokeDasharray="2 3"
       />
+      {isUp && (
+        // Ink: a complete node is black on black, so the accent stroke below
+        // vanishes; the chain is carried by this ring (display is a shape
+        // token, none in Warm).
+        <rect
+          className="bo-node-halo"
+          x={x - 3}
+          y={y - 3}
+          width={NODE_W + 6}
+          height={NODE_H + 6}
+          rx={6}
+          fill="none"
+          stroke="var(--accent)"
+          strokeWidth={1.5}
+        />
+      )}
       {isSelected && (
         <rect
           x={x - 4}
@@ -369,7 +388,22 @@ function DagNode({
         strokeWidth={isDrop || isUp ? 1.5 : 1}
         strokeDasharray={isDrop ? '4 3' : undefined}
       />
-      <SvgStatusMark status={node.status} cx={x + NODE_W - 10} cy={y + 10} />
+      {running ? (
+        // Building: the status mark becomes a turning arc (static under
+        // reduced motion) — on every node the running trigger builds.
+        <circle
+          className="bo-node-spin"
+          cx={x + NODE_W - 10}
+          cy={y + 10}
+          r={4}
+          fill="none"
+          stroke={fg}
+          strokeWidth={1.5}
+          strokeDasharray="12 13"
+        />
+      ) : (
+        <SvgStatusMark status={node.status} cx={x + NODE_W - 10} cy={y + 10} />
+      )}
       {isSource && (
         <path d={`M${x + 12} ${y + 12} l5 6 -5 6 -5 -6z`} fill="none" stroke={fg} strokeWidth={1.2} />
       )}
@@ -405,6 +439,7 @@ interface DagCanvasProps {
   manifest: BuildOverviewManifest;
   geometry: DagGeometry;
   selection: Selection | null;
+  runningKey: TriggerKey | null;
   pendingConcepts?: number;
   onSelect: (id: string | null) => void;
 }
@@ -414,7 +449,9 @@ function focusDagNode(root: Element | null, nodeId: string) {
   root?.querySelector<SVGGElement>(`g.bo-node[data-node-id="${nodeId}"]`)?.focus();
 }
 
-function DagCanvas({ manifest, geometry, selection, pendingConcepts, onSelect }: Readonly<DagCanvasProps>) {
+function DagCanvas({
+  manifest, geometry, selection, runningKey, pendingConcepts, onSelect,
+}: Readonly<DagCanvasProps>) {
   const { t } = useTranslation('analysis');
   const laid = useMemo(() => layoutEdges(manifest.edges, geometry), [manifest.edges, geometry]);
   const { width: SVG_W, columnCx: COLUMN_CX, kgGroupBox: KG_GROUP_BOX } = geometry;
@@ -499,6 +536,16 @@ function DagCanvas({ manifest, geometry, selection, pendingConcepts, onSelect }:
               strokeDasharray={e.kind === 'back' ? '5 3' : undefined}
               strokeLinejoin="round"
               opacity={opacity}
+              // Ink: upstream and direct links are both dark solid lines, so
+              // the chain carries weight and the links a dash (shape tokens;
+              // Warm keeps 1.5 solid for both and tells them apart by hue).
+              style={
+                role === 'up'
+                  ? { strokeWidth: 'var(--dag-chain-edge-width)' }
+                  : role === 'link' && e.kind !== 'back'
+                    ? { strokeDasharray: 'var(--dag-link-edge-dash)' }
+                    : undefined
+              }
             />
           );
         })}
@@ -527,6 +574,7 @@ function DagCanvas({ manifest, geometry, selection, pendingConcepts, onSelect }:
             sub={nodeSubLabel(t, n, pendingConcepts)}
             selection={selection}
             isTabStop={n.nodeId === tabStop}
+            running={runningKey !== null && NODE_TRIGGER_KEY[n.nodeId] === runningKey}
             onSelect={onSelect}
             onNavigate={navigate}
             t={t}
@@ -1387,6 +1435,7 @@ export default function BuildOverviewPage() {
                   manifest={manifest}
                   geometry={geometry}
                   selection={selection}
+                  runningKey={run.runningKey}
                   pendingConcepts={pendingCount}
                   onSelect={selectFromCanvas}
                 />

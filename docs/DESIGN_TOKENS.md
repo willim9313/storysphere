@@ -310,6 +310,8 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 | `--row-open-marker-width` | `0px` | `3px` | 開著詳情的列左側標記（張力頁抽屜對應的表格列與格點列標籤，以 inset box-shadow 畫 `--fg-primary`）。Warm 的 `bg-secondary` 底色已足以分辨；Ink 的 `#f6f6f4` 與白底太近 |
 | `--btn-radius` | `var(--radius-md)`（8px） | `var(--radius-sm)`（4px） | 按鈕 |
 | `--btn-border-width` | `1px` | `1.5px` | 按鈕外框 |
+| `--btn-danger-border-width` | `var(--btn-border-width)` | `3px` | 危險鈕（`.ss-btn-danger`，全站）外框線重。Ink 的危險鈕與次要鈕同為墨色外框，搭配 `double` 改畫雙線框 |
+| `--btn-danger-border-style` | `solid` | `double` | 同上（雙線需 ≥ 3px 才畫得出來） |
 | `--btn-shadow` | `none` | `none` | 按鈕 elevation |
 | `--pill-radius` | `20px`（全圓 lozenge） | `4px`（矩形 tag） | entity / symbol pill |
 | `--pill-border-width` | `0.5px` | `1px` | pill 外框 |
@@ -320,6 +322,9 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 | `--cross-tension-pattern` | `none` | 斜紋（`repeating-linear-gradient(-45deg, transparent 0 2px, var(--bg-primary) 2px 3.5px)`） | 敘事結構頁交叉證據「張力峰值」列的格子疊紋。Warm 靠色相即可；Ink 下張力列與「階段覆蓋」列同為 accent 黑，只能靠列名分辨，改由斜紋承載 |
 | `--tl-outlier-halo-display` | `none` | `inline` | 時間軸譜面偏離點（outlier）外圍的同心環（半徑 +3、1px accent）。Warm 偏離點靠 accent 色相；Ink 的 accent `#111` 與一般點 `#151515` 同色，改由外圈承載 |
 | `--tl-outlier-link-width` | `1px` | `2px` | 時間軸譜面偏離連線的線重。Warm 靠 accent 色相；Ink 的 accent 與 border `#1a1a1a` 同色，改由線重承載 |
+| `--dag-chain-halo-display` | `none` | `inline` | 建構概覽 DAG 上游依賴鏈節點的外圈（外 3px、1.5px accent）。Warm 靠節點 accent 描邊；Ink 完整節點黑底黑框，描邊看不見，改由外圈承載 |
+| `--dag-chain-edge-width` | `1.5px` | `2.5px` | 建構概覽 DAG 上游依賴邊的線重。Warm 靠 accent 色相；Ink 上游邊與直接相連邊同為深色實線，改由線重承載 |
+| `--dag-link-edge-dash` | `none` | `4 3` | 建構概覽 DAG 與選取節點直接相連（非上游）的邊。Warm 實線靠 fg-secondary 色相；Ink 改虛線，與上游實線分開（回頭邊本身已是虛線，不套） |
 | `--density-peak-inset` | `0` | `2px` | 時間軸密度矩陣「4 以上」格與圖例色票的紙色內框（inset box-shadow）。Ink 的 3（`#151515`）與 4+（`#000`）同為黑，4+ 加內框區分 |
 | `--badge-radius` | `20px` | `4px` | status badge |
 | `--control-radius` | `var(--radius-md)` | `var(--radius-sm)` | input、toggle、select |
