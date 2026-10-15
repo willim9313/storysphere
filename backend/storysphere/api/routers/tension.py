@@ -42,6 +42,7 @@ from storysphere.api.schemas.tension import (
 from storysphere.api.store import get_task, task_store
 from storysphere.domain.narrative_runs import group_narrative_runs
 from storysphere.domain.scene_groups import group_scenes
+from storysphere.domain.tension import TensionLine, TensionTheme
 
 router = APIRouter(prefix="/tension", tags=["tension"])
 
@@ -284,7 +285,7 @@ async def list_teus(
     ]
 
 
-@router.patch("/teus/{teu_id}/assign")
+@router.patch("/teus/{teu_id}/assign", response_model=TensionLine)
 async def assign_teu(
     teu_id: str,
     req: AssignTEURequest,
@@ -325,7 +326,7 @@ async def assign_teu(
 # ── HITL Review ────────────────────────────────────────────────────────────────
 
 
-@router.patch("/lines/{line_id}/review")
+@router.patch("/lines/{line_id}/review", response_model=TensionLine)
 async def review_tension_line(
     line_id: str,
     req: TensionLineReviewRequest,
@@ -515,7 +516,7 @@ async def get_tension_theme(
     )
 
 
-@router.patch("/theme/{theme_id}/review")
+@router.patch("/theme/{theme_id}/review", response_model=TensionTheme)
 async def review_tension_theme(
     theme_id: str,
     req: TensionThemeReviewRequest,

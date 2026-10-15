@@ -4797,6 +4797,63 @@ export interface components {
             confidence: number;
         };
         /**
+         * TensionLine
+         * @description Cross-scene tension pattern — grouping of related TEUs.
+         *
+         *     Stub model; full assembly logic implemented in B-027.
+         */
+        TensionLine: {
+            /** Id */
+            id?: string;
+            /** Document Id */
+            document_id: string;
+            /** Teu Ids */
+            teu_ids?: string[];
+            /**
+             * Canonical Pole A
+             * @description Canonical label for pole A
+             * @default
+             */
+            canonical_pole_a: string;
+            /**
+             * Canonical Pole B
+             * @description Canonical label for pole B
+             * @default
+             */
+            canonical_pole_b: string;
+            /**
+             * Intensity Summary
+             * @default 0
+             */
+            intensity_summary: number;
+            /** Chapter Range */
+            chapter_range?: number[];
+            /**
+             * Thematic Note
+             * @description Optional: the broader theme this line serves (LLM-suggested at grouping time)
+             */
+            thematic_note?: string | null;
+            /**
+             * Review Status
+             * @default pending
+             * @enum {string}
+             */
+            review_status: "pending" | "approved" | "modified" | "rejected";
+            /** @description Set once a reviewer has rewritten the pole labels */
+            edit?: components["schemas"]["TensionLineEdit"] | null;
+            /**
+             * Assembled By
+             * @description Version tag of the grouping step that produced this line
+             * @default tension_grouper_v1
+             */
+            assembled_by: string;
+            /**
+             * Assembled At
+             * @description When grouping produced this line; None for pre-provenance cache entries
+             */
+            assembled_at?: string | null;
+        };
+        /**
          * TensionLineDetail
          * @description A TensionLine with its constituent TEUs embedded for in-page review.
          */
@@ -4839,6 +4896,38 @@ export interface components {
             teus?: components["schemas"]["TEUSummary"][];
         };
         /**
+         * TensionLineEdit
+         * @description What a human changed when they rewrote a TensionLine's pole labels.
+         *
+         *     ``canonical_pole_a`` / ``_b`` on the line always hold the labels currently in
+         *     force; this preserves what grouping originally proposed, which the review
+         *     drawer shows alongside them. Editing a second time refreshes the note and
+         *     timestamp but leaves the originals alone — "original" means the model's
+         *     wording, not the previous edit's.
+         */
+        TensionLineEdit: {
+            /**
+             * Original Pole A
+             * @description Pole A label as grouping produced it
+             */
+            original_pole_a: string;
+            /**
+             * Original Pole B
+             * @description Pole B label as grouping produced it
+             */
+            original_pole_b: string;
+            /**
+             * Note
+             * @description Why the reviewer rewrote the labels
+             */
+            note?: string | null;
+            /**
+             * Edited At
+             * Format: date-time
+             */
+            edited_at?: string;
+        };
+        /**
          * TensionLineEditResponse
          * @description What a reviewer changed, for the drawer's "human edit" note.
          *
@@ -4872,6 +4961,60 @@ export interface components {
             canonical_pole_b?: string | null;
             /** Note */
             note?: string | null;
+        };
+        /**
+         * TensionTheme
+         * @description Book-level tension proposition — synthesised from TensionLines (B-029).
+         */
+        TensionTheme: {
+            /** Id */
+            id?: string;
+            /** Document Id */
+            document_id: string;
+            /** Tension Line Ids */
+            tension_line_ids?: string[];
+            /**
+             * Proposition
+             * @description The book-level thematic claim
+             * @default
+             */
+            proposition: string;
+            /**
+             * Frye Mythos
+             * @description Frye mythos id
+             */
+            frye_mythos?: string | null;
+            /**
+             * Booker Plot
+             * @description Booker plot id
+             */
+            booker_plot?: string | null;
+            /**
+             * Assembled By
+             * @default tension_synthesizer_v1
+             */
+            assembled_by: string;
+            /**
+             * Assembled At
+             * Format: date-time
+             */
+            assembled_at?: string;
+            /**
+             * Review Status
+             * @default pending
+             * @enum {string}
+             */
+            review_status: "pending" | "approved" | "modified" | "rejected";
+            /**
+             * Reviewed Line Count
+             * @description TensionLines already reviewed when this theme was synthesised
+             */
+            reviewed_line_count?: number | null;
+            /**
+             * Total Line Count
+             * @description TensionLines that existed when this theme was synthesised
+             */
+            total_line_count?: number | null;
         };
         /** TensionThemeResponse */
         TensionThemeResponse: {
@@ -7845,9 +7988,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TensionLine"];
                 };
             };
             /** @description Validation Error */
@@ -7882,9 +8023,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TensionLine"];
                 };
             };
             /** @description Validation Error */
@@ -8078,9 +8217,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TensionTheme"];
                 };
             };
             /** @description Validation Error */
