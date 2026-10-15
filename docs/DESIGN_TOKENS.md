@@ -307,6 +307,7 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 | `--card-shadow` | `var(--shadow-sm)` | `none` | 卡片 elevation（Ink 全平面） |
 | `--card-selected-border-width` | `var(--card-border-width)`（1px） | `2px` | 選中卡的框重（閱讀頁目前章）。Ink 的 accent `#111` 與 border `#1a1a1a` 幾乎同色，選中只能靠線重承載 |
 | `--card-attention-border-width` | `var(--card-border-width)`（1px） | `3px` | 要人處理的卡的框重（書庫人工閘門帶）。Warm 由 accent 框色承載；Ink 下 accent 與 border 同色，只能靠比「選中」更重的線 |
+| `--row-open-marker-width` | `0px` | `3px` | 開著詳情的列左側標記（張力頁抽屜對應的表格列與格點列標籤，以 inset box-shadow 畫 `--fg-primary`）。Warm 的 `bg-secondary` 底色已足以分辨；Ink 的 `#f6f6f4` 與白底太近 |
 | `--btn-radius` | `var(--radius-md)`（8px） | `var(--radius-sm)`（4px） | 按鈕 |
 | `--btn-border-width` | `1px` | `1.5px` | 按鈕外框 |
 | `--btn-shadow` | `none` | `none` | 按鈕 elevation |

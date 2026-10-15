@@ -279,6 +279,7 @@
   --card-shadow:       var(--shadow-sm);
   --card-selected-border-width: var(--card-border-width); /* 選中卡（如閱讀頁目前章）的框重 */
   --card-attention-border-width: var(--card-border-width); /* 要人處理的卡（如書庫人工閘門）的框重 */
+  --row-open-marker-width: 0px; /* 開著詳情的列（如張力頁抽屜對應列）左側標記；Warm 靠底色即可 */
   --btn-radius:        var(--radius-md);
   --btn-border-width:  var(--border-width);
   --btn-shadow:        none;
@@ -443,6 +444,8 @@
   --card-selected-border-width: 2px;
   /* 要人處理的卡要比選中更重：Ink 下 accent 框與一般卡框同色，只剩線重 */
   --card-attention-border-width: 3px;
+  /* Ink 的 bg-secondary 與白底太近，開著的列要靠左側粗線 */
+  --row-open-marker-width: 3px;
   --btn-radius:        var(--radius-sm);
   --btn-border-width:  1.5px;
   --btn-shadow:        none;
