@@ -29,17 +29,15 @@ import {
 } from '@/api/buildOverview';
 import {
   BACK_EDGE_Y,
-  COLUMN_CX,
+  DESIGN_W,
   KG_CHILD_IDS,
-  KG_GROUP_BOX,
   LAYERS,
   NODE_TRIGGER_KEY,
   NODE_H,
-  NODE_W,
   SVG_H,
-  SVG_W,
   actionModeFor,
   aggregate,
+  dagGeometry,
   blockersOf,
   ctaStateFor,
   dropsDerived,
@@ -54,8 +52,10 @@ import {
   sharedTriggerPeers,
   triggerKeyOf,
   upstreamChain,
+  type DagGeometry,
   type TriggerKey,
 } from '@/components/buildOverview/buildOverviewModel';
+import { useElementWidth } from '@/hooks/useElementWidth';
 import { useBuildRun, type BuildRun } from '@/components/buildOverview/useBuildRun';
 import '@/styles/build-overview.css';
 
@@ -255,6 +255,7 @@ function selectionOf(manifest: BuildOverviewManifest, nodeId: string | null): Se
 
 interface DagNodeProps {
   node: BuildOverviewNode;
+  geometry: DagGeometry;
   sub: string;
   label: string;
   selection: Selection | null;
@@ -262,8 +263,9 @@ interface DagNodeProps {
   t: TFunction;
 }
 
-function DagNode({ node, sub, label, selection, onSelect, t }: Readonly<DagNodeProps>) {
-  const box = nodeBox(node.nodeId);
+function DagNode({ node, geometry, sub, label, selection, onSelect, t }: Readonly<DagNodeProps>) {
+  const box = nodeBox(node.nodeId, geometry);
+  const NODE_W = geometry.nodeW;
   if (!box) return null;
   const { x, y } = box;
   const id = node.nodeId;
@@ -355,28 +357,31 @@ function DagNode({ node, sub, label, selection, onSelect, t }: Readonly<DagNodeP
 
 interface DagCanvasProps {
   manifest: BuildOverviewManifest;
+  geometry: DagGeometry;
   selection: Selection | null;
   pendingConcepts?: number;
   onSelect: (id: string | null) => void;
 }
 
-function DagCanvas({ manifest, selection, pendingConcepts, onSelect }: Readonly<DagCanvasProps>) {
+function DagCanvas({ manifest, geometry, selection, pendingConcepts, onSelect }: Readonly<DagCanvasProps>) {
   const { t } = useTranslation('analysis');
-  const laid = useMemo(() => layoutEdges(manifest.edges), [manifest.edges]);
+  const laid = useMemo(() => layoutEdges(manifest.edges, geometry), [manifest.edges, geometry]);
+  const { width: SVG_W, columnCx: COLUMN_CX, kgGroupBox: KG_GROUP_BOX } = geometry;
 
   const kgLit =
     !selection ||
     KG_CHILD_IDS.has(selection.nodeId) ||
     [...KG_CHILD_IDS].some((c) => selection.chain.has(c) || selection.neighbors.has(c));
-  const backBox = nodeBox('kg_temporal_relation');
-  const sourceNodes = manifest.nodes.filter((n) => n.layer === 0 && nodeBox(n.nodeId));
+  const backBox = nodeBox('kg_temporal_relation', geometry);
+  const sourceNodes = manifest.nodes.filter((n) => n.layer === 0 && nodeBox(n.nodeId, geometry));
 
   return (
     <div className="bo-svgbox">
       <svg
         className="bo-svg"
         viewBox={`0 0 ${SVG_W} ${SVG_H}`}
-        width="100%"
+        width={SVG_W}
+        height={SVG_H}
         onClick={(e) => {
           // Background click clears selection
           if (e.target === e.currentTarget) onSelect(null);
@@ -445,6 +450,7 @@ function DagCanvas({ manifest, selection, pendingConcepts, onSelect }: Readonly<
           <DagNode
             key={n.nodeId}
             node={n}
+            geometry={geometry}
             label={nodeLabel(t, n)}
             sub={nodeSubLabel(t, n, pendingConcepts)}
             selection={selection}
@@ -457,15 +463,12 @@ function DagCanvas({ manifest, selection, pendingConcepts, onSelect }: Readonly<
       {/* The L0 diamond explains itself. An SVG shape cannot host the shared
           Tooltip (it is a DOM span), so a transparent hit area sits over it. */}
       {sourceNodes.map((n) => {
-        const box = nodeBox(n.nodeId)!;
+        const box = nodeBox(n.nodeId, geometry)!;
         return (
           <span
             key={n.nodeId}
             className="bo-diahit"
-            style={{
-              left: `${((box.x + 4) / SVG_W) * 100}%`,
-              top: `${((box.y + 4) / SVG_H) * 100}%`,
-            }}
+            style={{ left: box.x + 4, top: box.y + 4 }}
           >
             <Tooltip label={t('unraveling.layer.sourceHint')}>
               <span className="bo-diahit-inner" onClick={() => onSelect(n.nodeId)} />
@@ -563,8 +566,15 @@ function LayerHeads({ manifest }: Readonly<{ manifest: BuildOverviewManifest }>)
 function SelectionBar({
   selection,
   onClear,
-}: Readonly<{ selection: Selection; onClear: () => void }>) {
+}: Readonly<{ selection: Selection | null; onClear: () => void }>) {
   const { t } = useTranslation('analysis');
+  if (!selection) {
+    return (
+      <div className="bo-selbar">
+        <span className="bo-selbar-item">{t('unraveling.selection.hint')}</span>
+      </div>
+    );
+  }
   return (
     <div className="bo-selbar">
       <div className="bo-selbar-legend">
@@ -1127,6 +1137,11 @@ export default function BuildOverviewPage() {
   const { t: tn } = useTranslation('nav');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const sideBodyRef = useRef<HTMLDivElement>(null);
+  const sideRef = useRef<HTMLElement>(null);
+  // The canvas is drawn at the scroll area's real width, so its text keeps its
+  // CSS size; below DAG_MIN_W it stops shrinking and scrolls.
+  const [dagScrollRef, dagWidth] = useElementWidth<HTMLDivElement>();
+  const geometry = useMemo(() => dagGeometry(dagWidth || DESIGN_W), [dagWidth]);
 
   const triggerRun = useCallback((key: TriggerKey) => TRIGGER_RUN[key](bookId!), [bookId]);
   const run = useBuildRun(bookId ?? '', triggerRun);
@@ -1160,8 +1175,14 @@ export default function BuildOverviewPage() {
   );
 
   // Picking another node (a blocker chip jumps to one) should show its top.
+  // When the inspector sits below the canvas (narrow layout) and is off
+  // screen, bring it into view — otherwise a click on the canvas shows nothing.
   useEffect(() => {
     sideBodyRef.current?.scrollTo?.({ top: 0 });
+    const side = sideRef.current;
+    if (selectedId && side && side.getBoundingClientRect().top > window.innerHeight - 80) {
+      side.scrollIntoView?.({ block: 'start' });
+    }
   }, [selectedId]);
 
   if (isLoading) {
@@ -1212,14 +1233,15 @@ export default function BuildOverviewPage() {
 
         <div className="bo-main">
           <div className="bo-dagpane">
-            <div className="bo-dagscroll">
-              <div className="bo-dagwrap">
+            {/* Outside the scroll area so「清除選取」is always reachable, and
+                always one row tall so selecting does not push the canvas down. */}
+            <SelectionBar selection={selection} onClear={() => setSelectedId(null)} />
+            <div className="bo-dagscroll" ref={dagScrollRef}>
+              <div className="bo-dagwrap" style={{ width: geometry.width }}>
                 <LayerHeads manifest={manifest} />
-                {selection && (
-                  <SelectionBar selection={selection} onClear={() => setSelectedId(null)} />
-                )}
                 <DagCanvas
                   manifest={manifest}
+                  geometry={geometry}
                   selection={selection}
                   pendingConcepts={pendingCount}
                   onSelect={setSelectedId}
@@ -1228,7 +1250,7 @@ export default function BuildOverviewPage() {
             </div>
           </div>
 
-          <aside className="bo-side">
+          <aside className="bo-side" ref={sideRef}>
             <div className="bo-side-head">
               <span className="bo-side-title">
                 {selectedNode ? t('unraveling.inspector.nodeDetail') : t('unraveling.inspector.layerList')}

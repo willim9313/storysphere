@@ -1220,6 +1220,7 @@
       "body": "This page is the book's <strong>build inventory</strong>, in five layers from L0 (text) to L4, where <strong>each layer feeds the ones above it</strong>. Node colour shows built / partial / not built. Any layer can be re-run from here — <strong>but re-running discards whatever downstream depends on it</strong>, and the confirmation lists what that includes."
     },
     "selection": {
+      "hint": "Select a node to see what it depends on and what a rerun affects",
       "upstreamCount": "{{n}} upstream dependencies",
       "willDelete": "Will be deleted"
     },

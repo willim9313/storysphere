@@ -22,6 +22,7 @@
 }
 /* max-w 1280 含左右內距，與時間軸 .tl-inner 同算法（內容寬 1232） */
 .bo-inner {
+  container-type: inline-size;
   max-width: 1280px;
   margin: 0 auto;
   padding-inline: var(--space-7);
@@ -119,15 +120,17 @@
 .bo-dagpane {
   flex: 1;
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
   padding: var(--space-5);
   border: var(--bo-border);
   border-radius: var(--card-radius);
   background: var(--bg-primary);
 }
-/* SVG 以 920 寬畫、等比縮放；再窄就橫向捲動，字級不再縮小 */
+/* SVG 依捲動區實際寬度畫（viewBox＝px，字級不縮放）；窄於 DAG_MIN_W（740）才橫向捲動 */
 .bo-dagscroll { overflow-x: auto; }
 .bo-dagwrap {
-  min-width: 860px;
   display: flex;
   flex-direction: column;
   gap: var(--space-5);
@@ -156,8 +159,9 @@
 .bo-head-bar { height: 4px; border-radius: 2px; background: var(--bg-tertiary); overflow: hidden; }
 .bo-head-fill { height: 100%; border-radius: 2px; background: var(--accent); }
 
-/* 選取：圖例＋清除選取 */
+/* 選取：圖例＋清除選取；未選取時一行提示。固定一列高，選取時畫布不跳動 */
 .bo-selbar {
+  min-height: 28px;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -492,3 +496,10 @@
 .bo-skel-list { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-5); min-height: 260px; }
 .bo-skel-row { display: flex; align-items: center; gap: var(--space-4); }
 .bo-inner[aria-busy="true"] .bo-summary { justify-content: flex-start; }
+
+/* 主體放不下「740 的 DAG＋340 右欄」（740 + 面板內距 26 + 間距 16 + 340 = 1122）：
+   右欄移到 DAG 下方、全寬、不限高 */
+@container (max-width: 1121px) {
+  .bo-main { flex-direction: column; }
+  .bo-side { width: auto; max-height: none; }
+}

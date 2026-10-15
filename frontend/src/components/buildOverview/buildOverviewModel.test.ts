@@ -2,11 +2,14 @@ import { describe, expect, it } from 'vitest';
 
 import type { BuildOverviewEdge, BuildOverviewNode, NodeStatus } from '@/api/buildOverview';
 import {
+  DAG_MIN_W,
+  DESIGN_W,
   NODE_SLOT,
   actionModeFor,
   aggregate,
   blockersOf,
   ctaStateFor,
+  dagGeometry,
   droppedNodes,
   edgeRole,
   fanAnchorY,
@@ -14,6 +17,7 @@ import {
   layoutEdges,
   metaValueText,
   neighborIds,
+  nodeBox,
   scorePct,
   sharedTriggerPeers,
   upstreamChain,
@@ -269,3 +273,39 @@ describe('metaValueText', () => {
     expect(metaValueText(false)).toBe('false');
   });
 });
+
+describe('dagGeometry', () => {
+  it('reproduces the comp at the design width', () => {
+    const g = dagGeometry(DESIGN_W);
+    expect(g.width).toBe(920);
+    expect(g.nodeW).toBe(150);
+    expect(g.columnCx).toEqual([92, 276, 460, 644, 828]);
+  });
+
+  it('narrows the node box before it stops shrinking', () => {
+    expect(dagGeometry(802).nodeW).toBe(140);
+    expect(dagGeometry(DAG_MIN_W).nodeW).toBe(132);
+  });
+
+  it('does not go below the minimum width — the canvas scrolls instead', () => {
+    const g = dagGeometry(572);
+    expect(g.width).toBe(DAG_MIN_W);
+    expect(g.nodeW).toBe(132);
+  });
+
+  it('keeps every column gap open for the edges at the minimum width', () => {
+    const g = dagGeometry(DAG_MIN_W);
+    const right = (id: string) => nodeBox(id, g)!.x + g.nodeW;
+    // L1 kg_entity's right edge vs L2 cep's left edge (same row band).
+    expect(nodeBox('cep', g)!.x - right('kg_entity')).toBeGreaterThanOrEqual(16);
+    expect(right('chronological_rank')).toBeLessThanOrEqual(g.width);
+  });
+
+  it('lays edges out on the geometry it is given', () => {
+    const wide = layoutEdges(EDGES, dagGeometry(1200));
+    const narrow = layoutEdges(EDGES, dagGeometry(DAG_MIN_W));
+    expect(wide).toHaveLength(43);
+    expect(wide[0].d).not.toBe(narrow[0].d);
+  });
+});
+
