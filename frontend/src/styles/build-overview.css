@@ -185,7 +185,10 @@
 .bo-svgbox { position: relative; }
 .bo-svg { display: block; overflow: visible; }
 .bo-node { cursor: pointer; outline: none; transition: opacity var(--transition-fast); }
-.bo-node:focus-visible .bo-node-box { stroke: var(--accent); stroke-width: 2; }
+/* 鍵盤焦點：點線外框（比選取環再外 2px），焦點節點即使被淡出也恢復不透明 */
+.bo-node-focus { display: none; stroke: var(--focus-ring-color); stroke-width: var(--focus-ring-width); }
+.bo-node:focus-visible { opacity: 1; }
+.bo-node:focus-visible .bo-node-focus { display: inline; }
 .bo-node-label {
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
@@ -502,4 +505,27 @@
 @container (max-width: 1121px) {
   .bo-main { flex-direction: column; }
   .bo-side { width: auto; max-height: none; }
+}
+
+/* 頁名 h1 只給輔助技術（同張力、時間軸頁） */
+.bo-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+/* 改成標題元素後，只去掉瀏覽器預設外距；字級字重照原 class */
+.bo-side-title, .bo-title, .bo-lgroup-name, .bo-section-h { margin: 0; }
+.bo-lgroup-name { font-size: inherit; font-weight: inherit; }
+.bo-title:focus { outline: none; }
+.bo-title:focus-visible { outline: var(--focus-ring-width) solid var(--focus-ring-color); outline-offset: var(--focus-ring-offset); }
+
+@media (prefers-reduced-motion: reduce) {
+  .bo-page .animate-spin { animation: none; }
+  .bo-node { transition: none; }
 }

@@ -1045,6 +1045,7 @@
     },
     "detail": {
       "chapterDist": "章節分佈",
+      "chapterDistItem": "第 {{n}} 章 {{v}}",
       "blockedTitle": "尚未就緒",
       "blockedHint": "需先完成上游 {{n}} 個依賴",
       "openPage": "前往對應頁面瀏覽",
@@ -1225,6 +1226,8 @@
       "willDelete": "會被刪除"
     },
     "dag": {
+      "label": "資料層依賴圖",
+      "roleUpstream": "上游依賴",
       "kgGroup": "KG 特徵 · 同一次重跑",
       "backEdge": "回頭邊 · 時序關係要等 EEP（L2 → L1）"
     },

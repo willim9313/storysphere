@@ -120,6 +120,51 @@ export function nodeBox(
   return { x: g.columnCx[slot.layer] - g.nodeW / 2, y: rowY(slot.row), ...slot };
 }
 
+// ── 鍵盤移動（roving tabindex） ──────────────────────────────
+
+export type NavDirection = 'up' | 'down' | 'left' | 'right' | 'first' | 'last';
+
+/**
+ * The node an arrow key moves to, by layout: up/down within the column,
+ * left/right to the nearest row in the next column that has any node (ties go
+ * to the upper one), Home/End to the first/last node in column-then-row order.
+ * Only nodes in `present` (the ones the manifest drew) count. Null at an edge.
+ */
+export function neighborNode(
+  nodeId: string,
+  direction: NavDirection,
+  present: ReadonlySet<string>,
+): string | null {
+  const slots = [...present]
+    .filter((id) => NODE_SLOT[id])
+    .map((id) => ({ id, ...NODE_SLOT[id] }))
+    .sort((a, b) => a.layer - b.layer || a.row - b.row);
+  if (slots.length === 0) return null;
+  if (direction === 'first') return slots[0].id;
+  if (direction === 'last') return slots[slots.length - 1].id;
+
+  const here = slots.find((s) => s.id === nodeId);
+  if (!here) return null;
+
+  if (direction === 'up' || direction === 'down') {
+    const column = slots.filter((s) => s.layer === here.layer);
+    const i = column.findIndex((s) => s.id === nodeId) + (direction === 'down' ? 1 : -1);
+    return column[i]?.id ?? null;
+  }
+
+  const step = direction === 'right' ? 1 : -1;
+  for (let layer = here.layer + step; layer >= 0 && layer < LAYERS.length; layer += step) {
+    const column = slots.filter((s) => s.layer === layer);
+    if (column.length === 0) continue;
+    let best = column[0];
+    for (const s of column) {
+      if (Math.abs(s.row - here.row) < Math.abs(best.row - here.row)) best = s;
+    }
+    return best.id;
+  }
+  return null;
+}
+
 // ── 邊的畫法 ─────────────────────────────────────────────────
 
 export type EdgeKind = 'forward' | 'same' | 'back';
