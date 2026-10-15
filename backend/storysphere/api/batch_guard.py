@@ -52,6 +52,29 @@ def running_items(kind: str, book_id: str) -> dict[str, str]:
     return {item: task_id for item, task_id in items.items() if task_id is not None}
 
 
+def running_op(kind: str, book_id: str) -> tuple[str, str] | None:
+    """``(item_id, task_id)`` of any single-item run of *kind* going for the book.
+
+    For kinds whose ops share one lock per book (the op is held as the
+    ``item_id``), at most one entry is live, so "any" is "the".
+    """
+    for item, task_id in running_items(kind, book_id).items():
+        return item, task_id
+    return None
+
+
+def op_conflict(kind: str, book_id: str) -> JSONResponse | None:
+    """409 ``batch_running`` when any op of *kind* is going for the book."""
+    held = running_op(kind, book_id)
+    if held is None:
+        return None
+    body = ErrorResponse(
+        detail=f"A {held[0]} run is already going for book '{book_id}'",
+        code="batch_running",
+    )
+    return JSONResponse(status_code=409, content=body.model_dump())
+
+
 def conflict(kind: str, book_id: str, item_id: str | None = None) -> JSONResponse | None:
     """409 when a run of *kind* is already going for the book (or the item).
 

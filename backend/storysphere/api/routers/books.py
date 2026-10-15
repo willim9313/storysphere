@@ -10,8 +10,9 @@ import logging
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import JSONResponse
 
-from storysphere.api import task_registry, task_runner
+from storysphere.api import batch_guard, task_registry, task_runner
 from storysphere.api.deps import (
     AnalysisAgentDep,
     AnalysisCacheDep,
@@ -23,6 +24,7 @@ from storysphere.api.deps import (
 )
 from storysphere.api.llm_guard import require_llm_provider
 from storysphere.api.routers._book_shared import cleanup_ingestion_checkpoint, now_iso
+from storysphere.api.routers.unraveling import UNRAVELING_GUARD_KIND
 from storysphere.api.schemas.books import (
     BookDetailResponse,
     BookResponse,
@@ -323,8 +325,12 @@ async def rerun_pipeline_step(
     step: str,
     doc: DocServiceDep,
     kg: KGServiceDep,
-) -> dict:
-    """Trigger a rerun of a single failed pipeline step for a book."""
+) -> dict | JSONResponse:
+    """Trigger a rerun of a single failed pipeline step for a book.
+
+    409 (``code: batch_running``) while another rerun or concept inference is
+    going for the book — they share one lock (#19c).
+    """
     if step not in _RERUN_STEPS:
         raise HTTPException(
             status_code=422,
@@ -334,12 +340,16 @@ async def rerun_pipeline_step(
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
 
+    # No await between the check and the claim (see batch_guard).
+    if (busy := batch_guard.op_conflict(UNRAVELING_GUARD_KIND, book_id)) is not None:
+        return busy
     if _rerun_uses_llm(step):
         require_llm_provider()
 
     task_id = str(uuid4())
     task_store.create(task_id, kind="ingestion", title="重跑處理步驟")
     task_runner.launch(task_id, _rerun_step(book_id, step, doc, kg))
+    batch_guard.hold(UNRAVELING_GUARD_KIND, book_id, task_id, item_id=step)
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
 
 

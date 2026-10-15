@@ -4,6 +4,9 @@ GET /books/{book_id}/unraveling returns a DAG-shaped manifest that
 surfaces counts and completion status for every data layer the system
 builds for a book.  No LLM calls are made; all data comes from
 existing services.
+
+GET /books/{book_id}/unraveling/running returns the pipeline rerun or concept
+inference going for the book (#19c) — the lock those two POSTs share.
 """
 
 from __future__ import annotations
@@ -14,6 +17,7 @@ from typing import Any
 
 from fastapi import APIRouter, HTTPException
 
+from storysphere.api import batch_guard
 from storysphere.api.deps import (
     AnalysisCacheDep,
     DocServiceDep,
@@ -23,6 +27,7 @@ from storysphere.api.deps import (
 from storysphere.api.schemas.unraveling import (
     ChapterDistribution,
     EdgeData,
+    RunningUnravelingResponse,
     UnravelingManifest,
 )
 from storysphere.api.unraveling_manifest import (
@@ -34,6 +39,15 @@ from storysphere.api.unraveling_manifest import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/books", tags=["unraveling"])
+
+# ── One build-overview run per book ───────────────────────────────────────────
+#
+# The four pipeline reruns (#8d) and concept inference (#10e) all rewrite or
+# read the same book-level layers: a knowledge-graph rerun replaces the events
+# and paragraphs concept inference reads, and a second rerun of a step pays the
+# LLM again for output the first is still writing. So they share one lock per
+# book, held with the op as batch_guard's item_id. #19c reads it back.
+UNRAVELING_GUARD_KIND = "unraveling"
 
 # ── Private helpers ───────────────────────────────────────────────────────────
 
@@ -200,3 +214,24 @@ async def get_chapter_distribution(
         total_chapters=doc.body_chapter_count,
         distributions=distributions,
     )
+
+
+# ── Running run endpoint ──────────────────────────────────────────────────────
+
+
+@router.get(
+    "/{book_id}/unraveling/running",
+    response_model=RunningUnravelingResponse,
+    summary="The rerun / concept-inference run going for a book",
+)
+async def get_running_unraveling(book_id: str) -> dict:
+    """The pipeline rerun or concept inference going for this book (#19c).
+
+    Read-only: lets the page pick a run back up after a remount (or from
+    another tab) instead of offering to start one the POSTs would refuse with 409.
+    """
+    running = batch_guard.running_op(UNRAVELING_GUARD_KIND, book_id)
+    if running is None:
+        return RunningUnravelingResponse().model_dump(by_alias=True)
+    op, task_id = running
+    return RunningUnravelingResponse(op=op, task_id=task_id).model_dump(by_alias=True)

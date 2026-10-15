@@ -62,3 +62,23 @@ class ChapterDistribution(BaseModel):
     book_id: str
     total_chapters: int
     distributions: dict[str, list[int]]
+
+
+# The four rerunnable pipeline steps (#8d) plus concept inference (#10e) —
+# the LLM-backed runs the build overview can start, sharing one lock per book.
+UnravelingOp = Literal[
+    "summarization",
+    "feature-extraction",
+    "knowledge-graph",
+    "symbol-discovery",
+    "concepts",
+]
+
+
+class RunningUnravelingResponse(BaseModel):
+    """The build-overview run going for a book (#19c), or both fields null."""
+
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+    op: UnravelingOp | None = None
+    task_id: str | None = None

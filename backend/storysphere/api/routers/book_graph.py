@@ -16,8 +16,9 @@ from fastapi import (
     HTTPException,
     Query,
 )
+from fastapi.responses import JSONResponse
 
-from storysphere.api import task_runner
+from storysphere.api import batch_guard, task_runner
 from storysphere.api.deps import (
     ConceptInferenceServiceDep,
     DocServiceDep,
@@ -26,6 +27,7 @@ from storysphere.api.deps import (
     LinkPredictionServiceDep,
 )
 from storysphere.api.llm_guard import require_llm_provider
+from storysphere.api.routers.unraveling import UNRAVELING_GUARD_KIND
 from storysphere.api.schemas.book_graph import (
     ClassifyVisibilityResponse,
     ConfirmInferredRequest,
@@ -302,24 +304,32 @@ async def run_concept_inference(
     book_id: str,
     doc: DocServiceDep,
     ci: ConceptInferenceServiceDep,
-) -> dict:
+) -> dict | JSONResponse:
     """Infer thematic Concept candidates for a book; returns a task id.
 
     Asynchronous because it makes an LLM call — unlike the graph-algorithm
     inference above, which returns its results inline.
+
+    409 (``code: batch_running``) while a pipeline rerun or another inference
+    is going for the book — they share one lock (#19c).
     """
     document = await doc.get_document(book_id)
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
 
+    # Resolved before the lock check: the check and the claim must have no
+    # await between them (see batch_guard).
+    language = await doc.get_document_language(book_id)
+    if (busy := batch_guard.op_conflict(UNRAVELING_GUARD_KIND, book_id)) is not None:
+        return busy
     require_llm_provider()
 
-    language = await doc.get_document_language(book_id)
     task_id = str(uuid4())
     task_store.create(task_id, kind="concept", title="概念推論")
     task_runner.launch(
         task_id, _run_concept_inference(task_id, book_id, ci, language)
     )
+    batch_guard.hold(UNRAVELING_GUARD_KIND, book_id, task_id, item_id="concepts")
     logger.info("Triggered concept inference: book=%s, task=%s", book_id, task_id)
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
 

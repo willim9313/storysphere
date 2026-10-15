@@ -942,6 +942,8 @@ type TaskListResponse = TaskStatus[];  // TaskStatus 定義見 #8；murmurEvents
 
 **Response 422**：step 名稱無效
 
+**Response 409 `batch_running`**（2026-10-15 起）：同一本書已有重跑（任一 step）或 #10e 概念推論在執行（五者共用一把鎖，見 #19c）。body 為 `{ detail, code: "batch_running" }`，不建立 task。前端改以 #19c 取回進行中的 taskId 接手。422／404 優先於 409，409 優先於 503。
+
 **Response 503**：未設定 LLM provider（見「通用規則」）。**只有會用到 LLM 的步驟才檢查**：`summarization`（章節／全書摘要）、
 `knowledge-graph`（實體／關係／事件抽取）、`symbol-discovery`（意象抽取）。`feature-extraction`（embedding＋關鍵字）不呼叫 LLM，
 不檢查；唯一例外是 `KEYWORD_EXTRACTOR_TYPE` 設為 `llm` 或 `composite`（關鍵字抽取器本身走 LLM）時也檢查。422／404 優先於 503。
@@ -1121,7 +1123,9 @@ interface InferredRelationsResponse {
 
 非同步（回 task id 輪詢），與 #10a 不同——#10a 是圖演算法、直接回結果。
 
-**Response 503**：未設定 LLM provider（見「通用規則」）；404（書不存在）優先於 503
+**Response 409 `batch_running`**（2026-10-15 起）：同一本書已有 #8d 重跑或另一次概念推論在執行（共用一把鎖，見 #19c）。body 為 `{ detail, code: "batch_running" }`，不建立 task。
+
+**Response 503**：未設定 LLM provider（見「通用規則」）；404（書不存在）優先於 409，409 優先於 503
 
 **UI 使用頁面**：建構概覽頁 `kg_concept_inferred` 節點的 CTA
 
@@ -2503,6 +2507,22 @@ interface ChapterDistribution {
 
 ---
 
+### #19c GET /books/:bookId/unraveling/running
+
+同一本書正在執行的建構任務：#8d 的四個重跑步驟與 #10e 概念推論共用一把鎖，同時最多一個（KG 重跑會改寫概念推論讀的事件與段落；同一步重跑兩次則付兩次 LLM）。唯讀，供頁面重掛載（換頁回來、另一個分頁）時接手進行中的 task，而不是提供一顆按了會被 409 的按鈕。
+
+**Response 200**（camelCase）
+```ts
+{
+  op: 'summarization' | 'feature-extraction' | 'knowledge-graph' | 'symbol-discovery' | 'concepts' | null;
+  taskId: string | null;   // 無進行中任務時兩者皆 null
+}
+```
+
+不驗書是否存在（未知書回兩者皆 null，同 #14k）。記錄與 #7k／#14k／#21m 同一套進程內 registry：單一 worker 有效，後端重啟後為 null。角色／事件批次（#7h／#7g）有各自的鎖，不在這把鎖內。
+
+---
+
 ## 深度分析（通用非同步路由）
 
 > **URL 前綴**：`/analysis/`，不帶 bookId。bookId 由 request body 的 `document_id` 傳入。
@@ -3222,6 +3242,8 @@ response schema 與測試檔。
 - [x] **#14 張力分析系列**：專用 polling pattern 已實作（非走 #8）
   - 2026-10-15：#14d-3／#14f／#14j 加 `response_model`（domain `TensionLine`／`TensionTheme`），回傳型別進 `generated.ts`；JSON 形狀不變。前端 `types.ts` 手寫的 `TensionLine`／`TensionTheme`／`StaleReason` 已刪。
   - 2026-10-14：#14a／#14c／#14g 同書共用一把鎖，執行中回 409 `batch_running`，書不存在回 404；新增 #14k `GET /tension/running`；#14b／#14d／#14h 只回張力類 task；#14d-2／#14e／#14i 書不存在回 404。文件更正：`language` 省略時為 `'en'`、#14i `stale_reason` 補 `pipeline_rerun`、#14e `chapter_range` 為 `[min, max]`、query key、元件名 TensionThemeHero。
+- [x] **#19 建構概覽**
+  - 2026-10-15：#8d 與 #10e 同書共用一把鎖，執行中回 409 `batch_running`；新增 #19c `GET /books/:bookId/unraveling/running`。
 - [x] **#15d-#15h 象徵意象進階分析**：SEP + LLM 詮釋 + HITL 審核已實作（`backend/storysphere/api/routers/symbols.py`）
 - [x] **#16a VoiceProfile**：GET lazy 生成（無 404 表示未生成），DELETE 清快取；無另外的 POST trigger
 - [x] **#18c KG 遷移**：直接回傳 TaskStatus，polling 走 #18d（非走 #8）
