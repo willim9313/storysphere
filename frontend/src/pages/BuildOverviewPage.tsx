@@ -51,6 +51,7 @@ import {
   nodeBox,
   scorePct,
   sharedTriggerPeers,
+  staledNodes,
   triggerKeyOf,
   upstreamChain,
   type DagGeometry,
@@ -839,13 +840,21 @@ function InferredConceptReview({ bookId }: Readonly<{ bookId: string }>) {
     void queryClient.invalidateQueries({ queryKey: qk.buildOverview.manifest(bookId) });
   };
 
+  // Dismissing is permanent, so it is confirmed first; either ruling that
+  // fails says so on its card instead of silently doing nothing.
+  const [toDismiss, setToDismiss] = useState<{ id: string; name: string } | null>(null);
+  const [failedId, setFailedId] = useState<string | null>(null);
   const adopt = useMutation({
     mutationFn: (conceptId: string) => confirmInferredConcept(bookId, conceptId),
+    onMutate: () => setFailedId(null),
     onSuccess: settle,
+    onError: (_e, conceptId) => setFailedId(conceptId),
   });
   const dismiss = useMutation({
     mutationFn: (conceptId: string) => rejectInferredConcept(bookId, conceptId),
+    onMutate: () => setFailedId(null),
     onSuccess: settle,
+    onError: (_e, conceptId) => setFailedId(conceptId),
   });
 
   const items = data?.items ?? [];
@@ -902,16 +911,33 @@ function InferredConceptReview({ bookId }: Readonly<{ bookId: string }>) {
                     type="button"
                     className="ss-btn ss-btn-sm ss-btn-danger"
                     disabled={busy}
-                    onClick={() => dismiss.mutate(c.id)}
+                    onClick={() => setToDismiss({ id: c.id, name: c.name })}
                   >
                     {t('unraveling.concepts.dismiss')}
                   </button>
                 </div>
+                {failedId === c.id && (
+                  <span className="bo-concept-error" role="alert">
+                    {t('unraveling.concepts.actionFailed')}
+                  </span>
+                )}
               </div>
             ))}
           </div>
         </>
       )}
+      <ConfirmDialog
+        open={toDismiss !== null}
+        title={t('unraveling.concepts.dismissTitle')}
+        message={t('unraveling.concepts.dismissBody', { name: toDismiss?.name ?? '' })}
+        confirmLabel={t('unraveling.concepts.dismiss')}
+        danger
+        onConfirm={() => {
+          if (toDismiss) dismiss.mutate(toDismiss.id);
+          setToDismiss(null);
+        }}
+        onCancel={() => setToDismiss(null)}
+      />
     </div>
   );
 }
@@ -958,6 +984,7 @@ function NodeDetail({
   const triggerKey = triggerKeyOf(node.nodeId);
   const danger = dropsDerived(node.nodeId);
   const dropped = droppedNodes(node.nodeId, manifest.nodes);
+  const staled = staledNodes(node.nodeId, manifest.nodes);
   const peers = sharedTriggerPeers(node.nodeId);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
@@ -989,7 +1016,7 @@ function NodeDetail({
   // Node-specific copy ("補齊剩餘章節摘要"), falling back to a generic phrasing
   // for nodes whose CTA has no dedicated line yet. A complete node keeps the
   // "continue" wording: it can still be rerun.
-  const ctaState = ctaStateFor(node.status);
+  const ctaState = ctaStateFor(node.nodeId, node.status);
   const ctaLabel = t(`unraveling.cta.node.${node.nodeId}.${ctaState}`, {
     defaultValue: t(`unraveling.cta.generic.${ctaState}`),
   });
@@ -1020,6 +1047,22 @@ function NodeDetail({
   );
 
   const metaEntries = Object.entries(node.meta);
+
+  let confirmMessage: string;
+  if (dropped.length > 0) confirmMessage = t('unraveling.cta.confirm.affectsDownstream');
+  else if (staled.length > 0) confirmMessage = t('unraveling.cta.confirm.staleOnly');
+  else if (node.status === 'empty') confirmMessage = t('unraveling.cta.confirm.firstBuild');
+  else if (danger) confirmMessage = t('unraveling.cta.confirm.overwrites');
+  else confirmMessage = t('unraveling.cta.confirm.keepsDownstream');
+  const listed = (ns: BuildOverviewNode[]) => ns.map((d) => `${nodeLabel(t, d)} · ${nodeSubLabel(t, d)}`);
+  const confirmSections = [
+    ...(dropped.length > 0
+      ? [{ title: t('unraveling.cta.confirm.dropsDownstream', { n: dropped.length }), items: listed(dropped) }]
+      : []),
+    ...(staled.length > 0
+      ? [{ title: t('unraveling.cta.confirm.staleDownstream', { n: staled.length }), items: listed(staled) }]
+      : []),
+  ];
 
   let action: ReactNode = null;
   if (running) {
@@ -1063,6 +1106,8 @@ function NodeDetail({
         </button>
       </div>
     );
+  } else if (mode === 'done') {
+    action = <Note>{t('unraveling.detail.allBuilt')}</Note>;
   } else if (mode === 'soon') {
     action = (
       <button type="button" className="ss-btn ss-btn-md ss-btn-secondary bo-wide" disabled>
@@ -1166,33 +1211,18 @@ function NodeDetail({
         </div>
       )}
 
-      {/* The three dialogs differ in what they promise about downstream output:
-          fill-a-gap says nothing is touched; a rerun that drops derived data
-          lists what goes (the same table the canvas draws); a dangerous rerun
-          with nothing to list says it overwrites. */}
+      {/* What the dialog promises about downstream output follows the backend:
+          a rerun that deletes built outputs lists them; one that only ages
+          them (cache_invalidation._STALED_CACHES — content and reviews kept)
+          lists those; a first build says nothing is overwritten. */}
       {triggerKey && (
         <ConfirmDialog
           open={confirmOpen}
           title={ctaLabel}
-          message={
-            !danger
-              ? t('unraveling.cta.confirm.keepsDownstream')
-              : dropped.length > 0
-                ? t('unraveling.cta.confirm.affectsDownstream')
-                : t('unraveling.cta.confirm.overwrites')
-          }
+          message={confirmMessage}
           confirmLabel={ctaLabel}
           costHint={t('tension.state.tokenHintShort')}
-          sections={
-            danger
-              ? [
-                  {
-                    title: t('unraveling.cta.confirm.dropsDownstream', { n: dropped.length }),
-                    items: dropped.map((d) => `${nodeLabel(t, d)} · ${nodeSubLabel(t, d)}`),
-                  },
-                ]
-              : undefined
-          }
+          sections={confirmSections.length > 0 ? confirmSections : undefined}
           danger={danger}
           spendsTokens
           onConfirm={handleConfirm}

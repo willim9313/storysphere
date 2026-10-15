@@ -1023,7 +1023,7 @@
   },
   "unraveling": {
     "status": {
-      "complete": "完整",
+      "complete": "已建立",
       "partial": "部分",
       "empty": "未建立"
     },
@@ -1055,7 +1055,8 @@
       "sharedTrigger": "與 {{names}} 是同一次執行的不同檢視",
       "missingPrereq": "還缺 {{n}} 項前置",
       "blockedByHazard": "這一層刻意不提供重跑：對已失去 EEP 快取的書重新分類，會洗掉知識圖譜既有的 kernel 權重，且無法還原。",
-      "nameJoin": "、"
+      "nameJoin": "、",
+      "allBuilt": "已全部建立，沒有可補的部分。"
     },
     "run": {
       "banner": "建構中：{{names}}",
@@ -1067,7 +1068,9 @@
       "failed": "觸發失敗",
       "generic": {
         "partial": "補齊剩餘部分",
-        "empty": "開始建構"
+        "empty": "開始建構",
+        "rerun": "重新建構",
+        "again": "再執行一次"
       },
       "node": {
         "summaries": {
@@ -1076,31 +1079,38 @@
         },
         "keywords": {
           "partial": "補齊剩餘關鍵字",
-          "empty": "萃取關鍵字"
+          "empty": "萃取關鍵字",
+          "rerun": "重新萃取關鍵字"
         },
         "symbols": {
           "partial": "繼續探索象徵",
-          "empty": "探索象徵"
+          "empty": "探索象徵",
+          "rerun": "重新探索象徵"
         },
         "kg_entity": {
           "partial": "補齊圖譜實體",
-          "empty": "建立知識圖譜"
+          "empty": "建立知識圖譜",
+          "rerun": "重跑知識圖譜"
         },
         "kg_concept": {
           "partial": "補齊圖譜概念",
-          "empty": "建立知識圖譜"
+          "empty": "建立知識圖譜",
+          "rerun": "重跑知識圖譜"
         },
         "kg_concept_inferred": {
           "partial": "補齊推斷概念",
-          "empty": "推斷主題命題"
+          "empty": "推斷主題命題",
+          "again": "再推斷一次"
         },
         "kg_relation": {
           "partial": "補齊圖譜關係",
-          "empty": "建立知識圖譜"
+          "empty": "建立知識圖譜",
+          "rerun": "重跑知識圖譜"
         },
         "kg_event": {
           "partial": "補齊圖譜事件",
-          "empty": "建立知識圖譜"
+          "empty": "建立知識圖譜",
+          "rerun": "重跑知識圖譜"
         },
         "cep": {
           "partial": "分析剩餘角色",
@@ -1127,7 +1137,10 @@
         "dropsDownstream": "重跑這個節點會丟掉 {{n}} 個已建立的下游產物",
         "keepsDownstream": "只補沒有的部分，不影響任何下游產物",
         "affectsDownstream": "重跑後，下列已建立的下游產物會受影響。",
-        "overwrites": "此操作會覆蓋既有的分析結果。"
+        "overwrites": "此操作會覆蓋既有的分析結果。",
+        "staleDownstream": "會標為過時 {{n}} 個（內容與審核都保留）",
+        "staleOnly": "重跑後，下列已建立的產物會標為過時：內容與人工審核都保留，需要時再各自重跑。",
+        "firstBuild": "這是首次建立，不會覆蓋任何既有結果。"
       }
     },
     "layer": {
@@ -1214,11 +1227,14 @@
       "rejectPermanent": "永久否決：被否決的命題即使重跑也不會再出現",
       "pendingCount": "{{n}} 待審",
       "expand": "展開審查 ↓",
-      "collapse": "收合審查 ↑"
+      "collapse": "收合審查 ↑",
+      "dismissTitle": "否決這個命題？",
+      "dismissBody": "「{{name}}」否決後不會再出現，即使重跑也一樣，無法復原。",
+      "actionFailed": "操作沒有完成，請再試一次。"
     },
     "guide": {
       "prefix": "研究者導覽：",
-      "body": "本頁是這本書的<strong>產出清單</strong>，分 L0 文本層到 L4 五層，<strong>下層是上層的輸入</strong>。節點顏色表示已建立／部分／未建立。從這裡可以重跑任一層——<strong>但重跑會丟掉依賴它的下游產物</strong>，執行前的確認框會列出會被影響的東西。"
+      "body": "本頁是這本書的<strong>產出清單</strong>，由左到右分 L0 文本層到 L4 五層，<strong>左邊是右邊的輸入</strong>。節點右上的記號表示已建立（實心）／部分（半實）／未建立（空心）。可以從這裡觸發建構——<strong>有些重跑會刪掉或讓下游產物過時</strong>，執行前的確認框會列出受影響的東西。"
     },
     "selection": {
       "hint": "點選節點，看它的上游依賴與重跑影響",
@@ -1232,7 +1248,7 @@
       "backEdge": "回頭邊 · 時序關係要等 EEP（L2 → L1）"
     },
     "layerList": {
-      "counts": "{{n}} · 已析 {{done}}"
+      "counts": "{{n}} · 已建立 {{done}}"
     }
   },
   "symbol": {
