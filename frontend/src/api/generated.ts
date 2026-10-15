@@ -104,6 +104,9 @@ export interface paths {
         /**
          * Rerun Pipeline Step
          * @description Trigger a rerun of a single failed pipeline step for a book.
+         *
+         *     409 (``code: batch_running``) while another rerun or concept inference is
+         *     going for the book — they share one lock (#19c).
          */
         post: operations["rerun_pipeline_step_api_v1_books__book_id__rerun__step__post"];
         delete?: never;
@@ -460,6 +463,9 @@ export interface paths {
          *
          *     Asynchronous because it makes an LLM call — unlike the graph-algorithm
          *     inference above, which returns its results inline.
+         *
+         *     409 (``code: batch_running``) while a pipeline rerun or another inference
+         *     is going for the book — they share one lock (#19c).
          */
         post: operations["run_concept_inference_api_v1_books__book_id__inferred_concepts_run_post"];
         delete?: never;
@@ -1106,6 +1112,29 @@ export interface paths {
          *     ``kg_event``, ``symbols``. Other nodes are omitted from the response.
          */
         get: operations["get_chapter_distribution_api_v1_books__book_id__unraveling_chapter_distribution_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/unraveling/running": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The rerun / concept-inference run going for a book
+         * @description The pipeline rerun or concept inference going for this book (#19c).
+         *
+         *     Read-only: lets the page pick a run back up after a remount (or from
+         *     another tab) instead of offering to start one the POSTs would refuse with 409.
+         */
+        get: operations["get_running_unraveling_api_v1_books__book_id__unraveling_running_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -4090,6 +4119,16 @@ export interface components {
             computeTaskId?: string | null;
             /** Temporaltaskid */
             temporalTaskId?: string | null;
+        };
+        /**
+         * RunningUnravelingResponse
+         * @description The build-overview run going for a book (#19c), or both fields null.
+         */
+        RunningUnravelingResponse: {
+            /** Op */
+            op?: ("summarization" | "feature-extraction" | "knowledge-graph" | "symbol-discovery" | "concepts") | null;
+            /** Taskid */
+            taskId?: string | null;
         };
         /**
          * SEP
@@ -7089,6 +7128,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChapterDistribution"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_running_unraveling_api_v1_books__book_id__unraveling_running_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunningUnravelingResponse"];
                 };
             };
             /** @description Validation Error */
