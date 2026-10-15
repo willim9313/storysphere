@@ -1779,7 +1779,7 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 
 | 態 | 條件 | 呈現 |
 |----|------|------|
-| 建構中 | 本節點的任務在跑 | **只留 spinner＋「建構中…」**（不顯示 stage／%／TASK id） |
+| 建構中 | 本節點的觸發器有任務在跑（任務狀態在頁面層，換節點不丟；進頁面以 #19c／#7j／#7k 接手，觸發被 409 `batch_running` 時改為接手該任務） | **只留 spinner＋「建構中…」**（不顯示 stage／%／TASK id）。同一觸發器的兄弟節點都顯示建構中 |
 | 來源（L0） | `layer === 0` | 沒有觸發鈕、沒有原始計數；說明條 `sourceHint`；「前往對應頁面瀏覽 · 尚未實作」；只有附加資訊 |
 | 刻意擋掉 | `narrative_structure`（優先於 blocker，完整時也是） | warning 底盒＋ `unraveling.detail.blockedByHazard` |
 | 被上游擋住 | 非完整且有未完成的一階上游 | 「尚未就緒」＋「需先完成上游 N 個依賴」＋ **blocker chips（可點，跳去該節點）**＋ disabled 鈕「還缺 N 項前置」 |
@@ -1823,6 +1823,14 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 
 錯誤分支是同一元件內的條件渲染，不會 mount／unmount 本頁，沒有 react-query 掛載迴圈。
 
+#### 本頁同時最多一個建構（2026-10-15）
+
+- 任一建構在跑（含觸發請求送出中）時，其他節點的觸發鈕停用，鈕下一行 `unraveling.run.waitFor`（`aria-describedby` 指向它）。角色／事件批次與重跑各有後端鎖，但 KG 重跑會改寫批次讀的資料，所以本頁一律一次一個。
+- 完成度總覽下方一條執行中提示（`.bo-box.is-running`，`role=status`）：`unraveling.run.banner`＋「查看」鈕（`unraveling.run.view`，選到該觸發器表上第一顆節點）。
+- 任務結束（完成、失敗、取消）都刷新 `qk.book(bookId)`（books 樹：圖譜、分析、時間軸、張力、概念推斷、象徵清單）、`qk.buildOverview.manifest`、`['narrative', bookId]`、`qk.symbols.overview`。失敗也刷新：摘要會保留已完成的章、批次會保留已分析的項目。
+- 使用者取消（`isCancelled`）回到閒置，不顯示失敗盒；輪詢 404（任務已不存在）回到閒置。
+- 實作：`components/buildOverview/useBuildRun.ts`（測試 `useBuildRun.test.tsx`）；見 DS_V3_DESIGN_FEEDBACK 4-UN-15。
+
 #### 字串來源與草稿
 
 既有字串一字不改（「全部」不是改字，是改用既有的 `clearSelection`）。README §5「已裁決」的新字串（i18n `unraveling.*`，zh-TW 與 en 皆已補）：`cta.confirm.dropsDownstream／keepsDownstream／affectsDownstream／overwrites`、`detail.sharedTrigger／missingPrereq／blockedByHazard`、`layer.sourceHint`、`concepts.rejectPermanent`、`summary.completionRule`。`detail.triggerFailedDetail` 已裁決但**本批不渲染（無資料），未進 i18n**。
@@ -1840,6 +1848,8 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 | `concepts.expand` | 展開審查 ↓ |
 | `concepts.collapse` | 收合審查 ↑ |
 | `detail.nameJoin` | 、（`sharedTrigger` 的 `{names}` 分隔符） |
+
+**另 3 句草稿・待設計定案**（2026-10-15，4-UN-15）：`run.banner`「建構中：{{names}}」、`run.view`「查看」、`run.waitFor`「「{{names}}」建構完成後才能啟動其他建構」。`{{names}}` 是該觸發器建出的節點名，以 `detail.nameJoin` 串接。
 
 **已刪的孤兒 i18n key**（2026-10-04 刪除，B-129）：`toolbar.showAll`、`cta.confirm.title／intro／start／token／dropsDerived`、`inspector.layerLabel`、`unravelingLoadError`（analysis 頂層）。
 

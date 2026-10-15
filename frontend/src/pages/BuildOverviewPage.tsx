@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Trans, useTranslation } from 'react-i18next';
@@ -9,7 +9,6 @@ import { GuidanceRibbon } from '@/components/ui/GuidanceRibbon';
 import { LlmUnconfiguredNotice } from '@/components/ui/LlmUnconfiguredNotice';
 import { PageFailure } from '@/components/ui/PageFailure';
 import { Tooltip } from '@/components/ui/Tooltip';
-import { useTaskPolling } from '@/hooks/useTaskPolling';
 import { rerunStep } from '@/api/ingest';
 import { failureKind, isLlmUnconfigured, techDetailOf } from '@/api/failureKind';
 import { triggerBatchEntityAnalysis, triggerBatchEventAnalysis } from '@/api/analysis';
@@ -34,6 +33,7 @@ import {
   KG_CHILD_IDS,
   KG_GROUP_BOX,
   LAYERS,
+  NODE_TRIGGER_KEY,
   NODE_H,
   NODE_W,
   SVG_H,
@@ -56,6 +56,7 @@ import {
   upstreamChain,
   type TriggerKey,
 } from '@/components/buildOverview/buildOverviewModel';
+import { useBuildRun, type BuildRun } from '@/components/buildOverview/useBuildRun';
 import '@/styles/build-overview.css';
 
 // ── Node → in-book page / trigger ─────────────────────────────────────────────
@@ -116,6 +117,18 @@ function nodeLabel(t: TFunction, n: BuildOverviewNode): string {
   // Strip API \n line breaks and prefer i18n; fall back to the raw API label.
   const apiLabel = (n.label || '').replace(/\n/g, ' ');
   return t(`unraveling.node.${n.nodeId}`, { defaultValue: apiLabel });
+}
+
+/** The nodes one trigger builds, in table order — the CTA, the run banner and
+ *  the busy note all name a run by what it builds. */
+function triggerNodeIds(key: TriggerKey): string[] {
+  return Object.keys(NODE_TRIGGER_KEY).filter((id) => NODE_TRIGGER_KEY[id] === key);
+}
+
+function triggerNames(t: TFunction, key: TriggerKey): string {
+  return triggerNodeIds(key)
+    .map((id) => t(`unraveling.node.${id}`))
+    .join(t('unraveling.detail.nameJoin'));
 }
 
 function nodeSubLabel(t: TFunction, n: BuildOverviewNode, pendingConcepts?: number): string {
@@ -682,7 +695,7 @@ function InferredConceptReview({ bookId }: Readonly<{ bookId: string }>) {
   const settle = () => {
     void queryClient.invalidateQueries({ queryKey: qk.inferredConcepts.all(bookId) });
     // Adopting writes a Concept node, so the node's own counts move too.
-    void queryClient.invalidateQueries({ queryKey: ['buildOverview', bookId] });
+    void queryClient.invalidateQueries({ queryKey: qk.buildOverview.manifest(bookId) });
   };
 
   const adopt = useMutation({
@@ -769,6 +782,7 @@ interface NodeDetailProps {
   bookId: string;
   manifest: BuildOverviewManifest;
   chapterDist?: number[];
+  run: BuildRun;
   onSelectNode: (nodeId: string) => void;
 }
 
@@ -782,10 +796,9 @@ function Note({ children }: Readonly<{ children: ReactNode }>) {
 }
 
 function NodeDetail({
-  node, bookId, manifest, chapterDist, onSelectNode,
+  node, bookId, manifest, chapterDist, run, onSelectNode,
 }: Readonly<NodeDetailProps>) {
   const { t } = useTranslation('analysis');
-  const queryClient = useQueryClient();
   const statusLabel = t(`unraveling.status.${node.status}`);
   const blockers = blockersOf(node.nodeId, manifest.nodes, manifest.edges);
   const mode = actionModeFor(node, blockers.length);
@@ -797,43 +810,29 @@ function NodeDetail({
   const peers = sharedTriggerPeers(node.nodeId);
 
   const [confirmOpen, setConfirmOpen] = useState(false);
-  const [taskId, setTaskId] = useState<string | null>(null);
-  const [triggerFailure, setTriggerFailure] = useState<unknown>(null);
-  const { data: task } = useTaskPolling(taskId);
 
-  // Derived rather than stored: the task's own status already says whether the
-  // run is over, so clearing taskId on completion would only duplicate it (and
-  // stop the polling query from reporting how it ended). Polling halts on its
-  // own once the status is terminal.
-  const taskStatus = task?.status;
-  const running = taskId !== null && taskStatus !== 'done' && taskStatus !== 'error';
+  // The run lives on the page (useBuildRun), not here: this panel is keyed by
+  // node, and a run held in it vanished the moment another node was picked.
+  // Every node a trigger builds shows that trigger's run and failure.
+  const running = triggerKey !== null && run.runningKey === triggerKey;
+  // Another run is going (or a trigger request is in flight): at most one at a
+  // time from this page, so this node's trigger waits.
+  const waiting = run.busy && !running;
+  const ownFailure = triggerKey !== null && run.failure?.key === triggerKey ? run.failure : null;
+  const triggerFailure = ownFailure?.error ?? null;
   // The app's own 503 (no LLM provider) is a state of the feature, not a failed
   // run: it gets its own in-place notice and the rest of the panel stays put.
   const llmBlocked = isLlmUnconfigured(triggerFailure);
-  const failed = !llmBlocked && (triggerFailure !== null || taskStatus === 'error');
+  const failed = !llmBlocked && ownFailure !== null;
   // The task's error is a free string with no status or reason, so the
   // 「供應商回傳 {status}」 line cannot be built (4-UN-7); keep the raw text as
   // technical detail rather than dropping what the old panel showed.
-  const failTech = triggerFailure !== null ? techDetailOf(triggerFailure) : task?.error ?? undefined;
+  const failTech = triggerFailure !== null ? techDetailOf(triggerFailure) : ownFailure?.message;
 
-  useEffect(() => {
-    if (taskStatus !== 'done') return;
-    // The manifest is where the whole page reads node status from, so refetch
-    // it rather than patching the one node we know changed.
-    void queryClient.invalidateQueries({ queryKey: ['buildOverview', bookId] });
-  }, [taskStatus, queryClient, bookId]);
-
-  const handleConfirm = async () => {
+  const handleConfirm = () => {
     if (!triggerKey) return;
     setConfirmOpen(false);
-    setTriggerFailure(null);
-    setTaskId(null);
-    try {
-      const { taskId: id } = await TRIGGER_RUN[triggerKey](bookId);
-      setTaskId(id);
-    } catch (e) {
-      setTriggerFailure(e);
-    }
+    void run.start(triggerKey);
   };
 
   // Node-specific copy ("補齊剩餘章節摘要"), falling back to a generic phrasing
@@ -844,10 +843,13 @@ function NodeDetail({
     defaultValue: t(`unraveling.cta.generic.${ctaState}`),
   });
 
+  const waitNoteId = `bo-wait-${node.nodeId}`;
   const triggerButton = (variant: 'primary' | 'secondary') => (
     <button
       type="button"
       className={`ss-btn ss-btn-md ${danger ? 'ss-btn-danger' : `ss-btn-${variant}`} ss-btn-llm bo-wide`}
+      disabled={waiting}
+      aria-describedby={waiting && run.runningKey ? waitNoteId : undefined}
       onClick={() => setConfirmOpen(true)}
     >
       {ctaLabel}
@@ -931,6 +933,11 @@ function NodeDetail({
           </div>
         ) : (
           triggerButton('primary')
+        )}
+        {waiting && run.runningKey && (
+          <span id={waitNoteId} className="bo-cost">
+            {t('unraveling.run.waitFor', { names: triggerNames(t, run.runningKey) })}
+          </span>
         )}
         <span className="bo-cost">{t('tension.state.tokenHintShort')}</span>
       </div>
@@ -1037,9 +1044,27 @@ function NodeDetail({
           }
           danger={danger}
           spendsTokens
-          onConfirm={() => void handleConfirm()}
+          onConfirm={handleConfirm}
           onCancel={() => setConfirmOpen(false)}
         />
+      )}
+    </div>
+  );
+}
+
+// ── Run banner：本頁有建構在跑時，在總覽下方說是哪個 ─────────────────────────────
+
+function RunBanner({ runningKey, onView }: Readonly<{ runningKey: TriggerKey; onView: (nodeId: string) => void }>) {
+  const { t } = useTranslation('analysis');
+  const first = triggerNodeIds(runningKey)[0];
+  return (
+    <div className="bo-box is-running" role="status">
+      <Loader2 size={14} className="animate-spin bo-box-spin" aria-hidden="true" />
+      <span className="bo-box-title">{t('unraveling.run.banner', { names: triggerNames(t, runningKey) })}</span>
+      {first && (
+        <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary bo-run-view" onClick={() => onView(first)}>
+          {t('unraveling.run.view')}
+        </button>
       )}
     </div>
   );
@@ -1103,15 +1128,18 @@ export default function BuildOverviewPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const sideBodyRef = useRef<HTMLDivElement>(null);
 
+  const triggerRun = useCallback((key: TriggerKey) => TRIGGER_RUN[key](bookId!), [bookId]);
+  const run = useBuildRun(bookId ?? '', triggerRun);
+
   const { data: manifest, isLoading, error, refetch } = useQuery({
-    queryKey: ['buildOverview', bookId],
+    queryKey: qk.buildOverview.manifest(bookId),
     queryFn: () => fetchBuildOverview(bookId!),
     enabled: !!bookId,
     staleTime: 60_000,
   });
 
   const { data: chapterDist } = useQuery<ChapterDistribution>({
-    queryKey: ['buildOverview', bookId, 'chapter-distribution'],
+    queryKey: qk.buildOverview.chapterDistribution(bookId),
     queryFn: () => fetchChapterDistribution(bookId!),
     enabled: !!bookId,
     staleTime: 60_000,
@@ -1180,6 +1208,8 @@ export default function BuildOverviewPage() {
 
         <SummaryStrip manifest={manifest} />
 
+        {run.runningKey && <RunBanner runningKey={run.runningKey} onView={setSelectedId} />}
+
         <div className="bo-main">
           <div className="bo-dagpane">
             <div className="bo-dagscroll">
@@ -1217,13 +1247,14 @@ export default function BuildOverviewPage() {
             <div className="bo-side-body" ref={sideBodyRef}>
               {selectedNode ? (
                 <NodeDetail
-                  // Keyed so switching nodes resets the CTA state — otherwise a
-                  // run started on one node reads as running on the next.
+                  // Keyed so switching nodes resets the panel (an open confirm
+                  // dialog, the scroll). The run itself is held above it.
                   key={selectedNode.nodeId}
                   node={selectedNode}
                   bookId={bookId}
                   manifest={manifest}
                   chapterDist={chapterDist?.distributions[selectedNode.nodeId]}
+                  run={run}
                   onSelectNode={setSelectedId}
                 />
               ) : (

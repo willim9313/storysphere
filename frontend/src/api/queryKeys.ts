@@ -25,7 +25,8 @@ type Id = string | null | undefined;
  * Not covered yet: the `narrative`, `buildOverview` and `symbols` roots sit
  * outside the books tree, so `invalidate(qk.book(id))` does not reach them.
  * That is pre-existing and left alone here; moving them would change what a
- * book-level invalidation refetches.
+ * book-level invalidation refetches. (`buildOverview` now has factories, still
+ * on its own root for the same reason.)
  */
 export const qk = {
   books: ['books'] as const,
@@ -115,6 +116,13 @@ export const qk = {
       ['books', bookId, 'symbols', imageryId, 'interpretation'] as const,
     /** Pre-existing outlier: rooted at `symbols`, not under `books`. */
     overview: (bookId: Id) => ['symbols', bookId, 'overview'] as const,
+  },
+
+  /** Pre-existing outlier: rooted at `buildOverview`, not under `books`. */
+  buildOverview: {
+    manifest: (bookId: Id) => ['buildOverview', bookId] as const,
+    chapterDistribution: (bookId: Id) =>
+      ['buildOverview', bookId, 'chapter-distribution'] as const,
   },
 
   tension: {

@@ -203,7 +203,7 @@ export default function TensionPage() {
   // in the graph), and the build overview already derives it. Two sources for
   // one fact is how they drift.
   const { data: manifest } = useQuery({
-    queryKey: ['buildOverview', bookId],
+    queryKey: qk.buildOverview.manifest(bookId),
     queryFn: () => fetchBuildOverview(bookId!),
     enabled: !!bookId,
   });

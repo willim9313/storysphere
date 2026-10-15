@@ -1056,6 +1056,11 @@
       "blockedByHazard": "這一層刻意不提供重跑：對已失去 EEP 快取的書重新分類，會洗掉知識圖譜既有的 kernel 權重，且無法還原。",
       "nameJoin": "、"
     },
+    "run": {
+      "banner": "建構中：{{names}}",
+      "view": "查看",
+      "waitFor": "「{{names}}」建構完成後才能啟動其他建構"
+    },
     "cta": {
       "running": "建構中…",
       "failed": "觸發失敗",
