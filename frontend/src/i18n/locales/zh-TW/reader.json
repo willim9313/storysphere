@@ -122,6 +122,7 @@
     "rerun": "重新執行",
     "running": "執行中",
     "failed": "執行失敗",
+    "busy": "此書已有建構任務在執行，完成後再試。",
     "hint": "會呼叫 LLM，消耗 token；覆蓋該步驟的產物。",
     "confirmBody": "會覆蓋「{{step}}」的產物。下游會受哪些影響，見建構概覽。",
     "costHint": "會呼叫 LLM，消耗 token",

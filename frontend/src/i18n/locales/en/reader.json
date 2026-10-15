@@ -122,6 +122,7 @@
     "rerun": "Re-run",
     "running": "Running",
     "failed": "Run failed",
+    "busy": "A build is already running for this book; try again once it finishes.",
     "hint": "Calls the LLM and uses tokens; overwrites this step's output.",
     "confirmBody": "This overwrites the output of “{{step}}”. See Build overview for what it affects downstream.",
     "costHint": "Calls the LLM and spends tokens",
