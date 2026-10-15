@@ -8,9 +8,10 @@ import { TriggerNote } from './TensionStateCards';
 
 type TensionTheme = components['schemas']['TensionThemeResponse'];
 
-function formatTimestamp(iso: string): string | null {
+/** In the UI language's format, not the browser's. */
+function formatTimestamp(iso: string, locale: string): string | null {
   try {
-    return new Date(iso).toLocaleString();
+    return new Date(iso).toLocaleString(locale);
   } catch {
     return null;
   }
@@ -48,11 +49,11 @@ export function TensionThemeHero({
   pending = false,
   busyReason = null,
 }: Readonly<Props>) {
-  const { t } = useTranslation('analysis');
+  const { t, i18n } = useTranslation('analysis');
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(theme.proposition);
 
-  const assembledAt = formatTimestamp(theme.assembled_at);
+  const assembledAt = formatTimestamp(theme.assembled_at, i18n.language);
   const meta = [theme.assembled_by, assembledAt].filter(Boolean).join(' · ');
 
   if (theme.is_stale) {

@@ -314,6 +314,9 @@
 /* ── 模式切換 ───────────────────────────────────────────────────── */
 
 .tn-mode-row { display: flex; align-items: center; gap: var(--space-6); flex-wrap: wrap; }
+/* These carry information — how to read the view, what a control row does —
+   so they are secondary, not muted (muted is for counts and asides). */
+.tn-mode-row > .tn-hint, .tn-card-bar > .tn-hint { color: var(--fg-secondary); }
 .tn-mode-seg .ss-seg-item { padding: var(--space-3) var(--space-6); }
 
 /* ── 章節格點 ───────────────────────────────────────────────────── */
