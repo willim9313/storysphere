@@ -17,6 +17,7 @@ import {
   layoutEdges,
   metaValueText,
   neighborIds,
+  neighborNode,
   nodeBox,
   scorePct,
   sharedTriggerPeers,
@@ -306,6 +307,35 @@ describe('dagGeometry', () => {
     const narrow = layoutEdges(EDGES, dagGeometry(DAG_MIN_W));
     expect(wide).toHaveLength(43);
     expect(wide[0].d).not.toBe(narrow[0].d);
+  });
+});
+
+describe('neighborNode', () => {
+  const ALL = new Set(Object.keys(NODE_SLOT));
+
+  it('moves up and down within the column, stopping at its ends', () => {
+    expect(neighborNode('chapters', 'up', ALL)).toBe('book_meta');
+    expect(neighborNode('chapters', 'down', ALL)).toBe('paragraphs');
+    expect(neighborNode('book_meta', 'up', ALL)).toBeNull();
+  });
+
+  it('moves sideways to the nearest row of the adjacent column', () => {
+    // paragraphs sits on row 2 of L0; L1 has a node on row 2.
+    const right = neighborNode('paragraphs', 'right', ALL)!;
+    expect(NODE_SLOT[right]).toEqual({ layer: 1, row: 2 });
+    expect(neighborNode(right, 'left', ALL)).toBe('paragraphs');
+    expect(neighborNode('book_meta', 'left', ALL)).toBeNull();
+  });
+
+  it('skips nodes the manifest did not draw', () => {
+    const without = new Set([...ALL].filter((id) => id !== 'chapters'));
+    expect(neighborNode('book_meta', 'down', without)).toBe('paragraphs');
+  });
+
+  it('jumps to the first and last node', () => {
+    expect(neighborNode('kg_event', 'first', ALL)).toBe('book_meta');
+    const last = neighborNode('kg_event', 'last', ALL)!;
+    expect(NODE_SLOT[last].layer).toBe(4);
   });
 });
 

@@ -1045,6 +1045,7 @@
     },
     "detail": {
       "chapterDist": "Per-chapter distribution",
+      "chapterDistItem": "Ch.{{n}} {{v}}",
       "blockedTitle": "Not ready",
       "blockedHint": "Requires {{n}} upstream dependencies",
       "openPage": "Open the matching page",
@@ -1225,6 +1226,8 @@
       "willDelete": "Will be deleted"
     },
     "dag": {
+      "label": "Data-layer dependency graph",
+      "roleUpstream": "upstream dependency",
       "kgGroup": "KG features · one rerun",
       "backEdge": "Back edge · temporal relations wait on EEP (L2 → L1)"
     },

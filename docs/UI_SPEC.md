@@ -1827,6 +1827,18 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 
 錯誤分支是同一元件內的條件渲染，不會 mount／unmount 本頁，沒有 react-query 掛載迴圈。
 
+#### 鍵盤與讀屏（2026-10-15）
+
+- **DAG roving tabindex**：整張圖一個 tab 停點（預設在選取節點或第一顆），↑↓ 同欄上下、←→ 相鄰欄最接近的列（同距取上方）、Home／End 第一／最後一顆；方向鍵只移焦點，Enter／Space 才選取（`neighborNode`）。外層 SVG `role="group"`＋`dag.label`。
+- **節點 aria-label**：名稱 · 狀態 · 計數（與狀態相同時省略）· 選取角色（`selection.willDelete`／`dag.roleUpstream`）；`aria-pressed` 表示已選取。
+- **焦點框**：`--focus-ring-color` 點線框、離節點 6px（選取環是實線 4px），焦點節點即使被淡出也恢復不透明。
+- **焦點去向**：從層次清單／上游依賴 chip／執行中提示「查看」選節點 → 焦點到詳情節點名（h3，`tabIndex=-1`）；從畫布選 → 焦點留在節點。「返回層次清單」→ 回到清單中該節點那列；「清除選取」→ 回到畫布上該節點。
+- **Esc** 清除選取（焦點在畫布上時留在原節點；在右欄時回到清單列）；確認框開著、焦點在輸入框或組字中不處理。
+- **標題階層**：h1 頁名（`.bo-sr-only`）、h2 右欄標題、h3 層次清單各層名與節點名、h4 詳情小節（章節分佈／原始計數／附加資訊）。
+- **章節分佈** `role="img"`，aria-label 逐章讀出（`detail.chapterDistItem` 以 `detail.nameJoin` 串接）；長條 Tooltip 只給滑鼠。L0 菱形點擊區 `aria-hidden`（同一句 `layer.sourceHint` 在詳情首行）。
+- 執行中 spinner 與節點淡出 transition 尊重 `prefers-reduced-motion`。
+- 實測（ageoffire）：頁面 tab 停點 29（含 DAG 1 個）。
+
 #### 本頁同時最多一個建構（2026-10-15）
 
 - 任一建構在跑（含觸發請求送出中）時，其他節點的觸發鈕停用，鈕下一行 `unraveling.run.waitFor`（`aria-describedby` 指向它）。角色／事件批次與重跑各有後端鎖，但 KG 重跑會改寫批次讀的資料，所以本頁一律一次一個。
@@ -1845,6 +1857,9 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 |-----|-------|
 | `selection.upstreamCount` | 上游依賴鏈 {{n}} 個 |
 | `selection.hint` | 點選節點，看它的上游依賴與重跑影響（2026-10-15 新增） |
+| `dag.label` | 資料層依賴圖（2026-10-15 新增，SVG 的讀屏名稱） |
+| `dag.roleUpstream` | 上游依賴（2026-10-15 新增，節點 aria-label） |
+| `detail.chapterDistItem` | 第 {{n}} 章 {{v}}（2026-10-15 新增，章節分佈 aria-label） |
 | `selection.willDelete` | 會被刪除 |
 | `dag.kgGroup` | KG 特徵 · 同一次重跑 |
 | `dag.backEdge` | 回頭邊 · 時序關係要等 EEP（L2 → L1） |

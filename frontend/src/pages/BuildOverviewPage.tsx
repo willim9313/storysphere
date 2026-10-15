@@ -47,12 +47,14 @@ import {
   layoutEdges,
   metaValueText,
   neighborIds,
+  neighborNode,
   nodeBox,
   scorePct,
   sharedTriggerPeers,
   triggerKeyOf,
   upstreamChain,
   type DagGeometry,
+  type NavDirection,
   type TriggerKey,
 } from '@/components/buildOverview/buildOverviewModel';
 import { useElementWidth } from '@/hooks/useElementWidth';
@@ -259,11 +261,25 @@ interface DagNodeProps {
   sub: string;
   label: string;
   selection: Selection | null;
+  /** The canvas's one tab stop (roving tabindex). */
+  isTabStop: boolean;
   onSelect: (id: string) => void;
+  onNavigate: (from: string, direction: NavDirection) => void;
   t: TFunction;
 }
 
-function DagNode({ node, geometry, sub, label, selection, onSelect, t }: Readonly<DagNodeProps>) {
+const NAV_KEYS: Readonly<Record<string, NavDirection>> = {
+  ArrowUp: 'up',
+  ArrowDown: 'down',
+  ArrowLeft: 'left',
+  ArrowRight: 'right',
+  Home: 'first',
+  End: 'last',
+};
+
+function DagNode({
+  node, geometry, sub, label, selection, isTabStop, onSelect, onNavigate, t,
+}: Readonly<DagNodeProps>) {
   const box = nodeBox(node.nodeId, geometry);
   const NODE_W = geometry.nodeW;
   if (!box) return null;
@@ -283,22 +299,52 @@ function DagNode({ node, geometry, sub, label, selection, onSelect, t }: Readonl
   if (isDrop) stroke = 'var(--color-error)';
   else if (isUp) stroke = 'var(--accent)';
 
+  // Read what the canvas shows: name, status, count, and the node's part in
+  // the current selection. The count is left out when it only repeats the status.
+  const statusText = t(`unraveling.status.${node.status}`);
+  let roleText: string | null = null;
+  if (isDrop) roleText = t('unraveling.selection.willDelete');
+  else if (isUp) roleText = t('unraveling.dag.roleUpstream');
+  const ariaLabel = [label, statusText, sub !== statusText ? sub : null, roleText]
+    .filter(Boolean)
+    .join(' · ');
+
   return (
     <g
       className="bo-node"
+      data-node-id={id}
       opacity={lit ? 1 : 0.3}
       role="button"
-      tabIndex={0}
-      aria-label={`${label} · ${t(`unraveling.status.${node.status}`)}`}
+      tabIndex={isTabStop ? 0 : -1}
+      aria-label={ariaLabel}
       aria-pressed={isSelected}
       onClick={() => onSelect(id)}
       onKeyDown={(e) => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           onSelect(id);
+          return;
+        }
+        const direction = NAV_KEYS[e.key];
+        if (direction) {
+          e.preventDefault();
+          onNavigate(id, direction);
         }
       }}
     >
+      {/* Keyboard focus: dotted and further out than the solid selection ring,
+          so the two read apart — in Ink both are black. Shown by CSS only on
+          :focus-visible. */}
+      <rect
+        className="bo-node-focus"
+        x={x - 6}
+        y={y - 6}
+        width={NODE_W + 12}
+        height={NODE_H + 12}
+        rx={9}
+        fill="none"
+        strokeDasharray="2 3"
+      />
       {isSelected && (
         <rect
           x={x - 4}
@@ -363,6 +409,11 @@ interface DagCanvasProps {
   onSelect: (id: string | null) => void;
 }
 
+/** Moves keyboard focus to a canvas node (the roving tab stop follows focus). */
+function focusDagNode(root: Element | null, nodeId: string) {
+  root?.querySelector<SVGGElement>(`g.bo-node[data-node-id="${nodeId}"]`)?.focus();
+}
+
 function DagCanvas({ manifest, geometry, selection, pendingConcepts, onSelect }: Readonly<DagCanvasProps>) {
   const { t } = useTranslation('analysis');
   const laid = useMemo(() => layoutEdges(manifest.edges, geometry), [manifest.edges, geometry]);
@@ -375,10 +426,31 @@ function DagCanvas({ manifest, geometry, selection, pendingConcepts, onSelect }:
   const backBox = nodeBox('kg_temporal_relation', geometry);
   const sourceNodes = manifest.nodes.filter((n) => n.layer === 0 && nodeBox(n.nodeId, geometry));
 
+  // Roving tabindex: the canvas is one tab stop, arrows move between nodes.
+  // The stop follows focus, and starts on the selected node (or the first).
+  const svgRef = useRef<SVGSVGElement>(null);
+  const present = useMemo(() => new Set(manifest.nodes.map((n) => n.nodeId)), [manifest.nodes]);
+  const [focusedId, setFocusedId] = useState<string | null>(null);
+  const tabStop =
+    (focusedId && present.has(focusedId) ? focusedId : null) ??
+    (selection?.nodeId && present.has(selection.nodeId) ? selection.nodeId : null) ??
+    neighborNode('', 'first', present);
+  const navigate = (from: string, direction: NavDirection) => {
+    const to = neighborNode(from, direction, present);
+    if (to) focusDagNode(svgRef.current, to);
+  };
+
   return (
     <div className="bo-svgbox">
       <svg
+        ref={svgRef}
         className="bo-svg"
+        role="group"
+        aria-label={t('unraveling.dag.label')}
+        onFocus={(e) => {
+          const id = (e.target as Element).getAttribute?.('data-node-id');
+          if (id) setFocusedId(id);
+        }}
         viewBox={`0 0 ${SVG_W} ${SVG_H}`}
         width={SVG_W}
         height={SVG_H}
@@ -454,7 +526,9 @@ function DagCanvas({ manifest, geometry, selection, pendingConcepts, onSelect }:
             label={nodeLabel(t, n)}
             sub={nodeSubLabel(t, n, pendingConcepts)}
             selection={selection}
+            isTabStop={n.nodeId === tabStop}
             onSelect={onSelect}
+            onNavigate={navigate}
             t={t}
           />
         ))}
@@ -468,6 +542,9 @@ function DagCanvas({ manifest, geometry, selection, pendingConcepts, onSelect }:
           <span
             key={n.nodeId}
             className="bo-diahit"
+            // Mouse-only: the same hint is the first line of the node's
+            // detail panel, which keyboard and screen-reader users get.
+            aria-hidden="true"
             style={{ left: box.x + 4, top: box.y + 4 }}
           >
             <Tooltip label={t('unraveling.layer.sourceHint')}>
@@ -617,9 +694,9 @@ function LayerList({ manifest, pendingConcepts, onSelect }: Readonly<LayerListPr
         return (
           <div key={layer} className="bo-lgroup">
             <div className="bo-lgroup-head">
-              <span className="bo-lgroup-name">
+              <h3 className="bo-lgroup-name">
                 L{layer} · {t(`unraveling.layer.${layer}`)}
-              </span>
+              </h3>
               <span className="bo-num">
                 {t('unraveling.layerList.counts', { n: nodes.length, done: analyzed })}
               </span>
@@ -630,6 +707,7 @@ function LayerList({ manifest, pendingConcepts, onSelect }: Readonly<LayerListPr
                   key={n.nodeId}
                   type="button"
                   className="bo-row"
+                  data-node-id={n.nodeId}
                   onClick={() => onSelect(n.nodeId)}
                 >
                   <span className="bo-row-lead" aria-hidden="true">
@@ -659,11 +737,16 @@ function LayerList({ manifest, pendingConcepts, onSelect }: Readonly<LayerListPr
 // ── Inspector — chapter distribution ──────────────────────────────────────────
 
 function ChapterDistMini({ values }: Readonly<{ values: number[] }>) {
+  const { t } = useTranslation('analysis');
   if (values.length === 0) return null;
   const max = Math.max(1, ...values);
+  // The bars' tooltips are mouse-only; the chart as a whole reads every value.
+  const spoken = values
+    .map((v, i) => t('unraveling.detail.chapterDistItem', { n: i + 1, v }))
+    .join(t('unraveling.detail.nameJoin'));
   return (
-    <div className="bo-distbox">
-      <div className="bo-dist">
+    <div className="bo-distbox" role="img" aria-label={spoken}>
+      <div className="bo-dist" aria-hidden="true">
         {values.map((v, i) => (
           <Tooltip key={i} label={`Ch.${i + 1}: ${v}`}>
             <span
@@ -673,7 +756,7 @@ function ChapterDistMini({ values }: Readonly<{ values: number[] }>) {
           </Tooltip>
         ))}
       </div>
-      <div className="bo-dist-axis">
+      <div className="bo-dist-axis" aria-hidden="true">
         <span>Ch.1</span>
         <span>Ch.{values.length}</span>
       </div>
@@ -793,6 +876,8 @@ interface NodeDetailProps {
   manifest: BuildOverviewManifest;
   chapterDist?: number[];
   run: BuildRun;
+  /** Take focus on mount — the node was picked from outside the canvas. */
+  focusOnMount: boolean;
   onSelectNode: (nodeId: string) => void;
 }
 
@@ -806,9 +891,17 @@ function Note({ children }: Readonly<{ children: ReactNode }>) {
 }
 
 function NodeDetail({
-  node, bookId, manifest, chapterDist, run, onSelectNode,
+  node, bookId, manifest, chapterDist, run, focusOnMount, onSelectNode,
 }: Readonly<NodeDetailProps>) {
   const { t } = useTranslation('analysis');
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  // Picked from the layer list or a blocker chip, the panel's content changes
+  // under the focused control (or removes it): land on the new node's name.
+  useEffect(() => {
+    if (focusOnMount) titleRef.current?.focus();
+    // Mount only: the panel is keyed by node.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
   const statusLabel = t(`unraveling.status.${node.status}`);
   const blockers = blockersOf(node.nodeId, manifest.nodes, manifest.edges);
   const mode = actionModeFor(node, blockers.length);
@@ -958,7 +1051,7 @@ function NodeDetail({
     <div className="bo-detail">
       <div className="bo-detail-head">
         <div className="bo-title-row">
-          <span className="bo-title">{nodeLabel(t, node)}</span>
+          <h3 className="bo-title" ref={titleRef} tabIndex={-1}>{nodeLabel(t, node)}</h3>
           <StatusBadge status={node.status} label={statusLabel} />
         </div>
         <span className="bo-detail-id">L{node.layer} · {node.nodeId}</span>
@@ -968,7 +1061,7 @@ function NodeDetail({
 
       {chapterDist && chapterDist.length > 0 && (
         <div className="bo-section">
-          <span className="bo-section-h">{t('unraveling.detail.chapterDist')}</span>
+          <h4 className="bo-section-h">{t('unraveling.detail.chapterDist')}</h4>
           <ChapterDistMini values={chapterDist} />
         </div>
       )}
@@ -993,7 +1086,7 @@ function NodeDetail({
 
       {mode !== 'source' && Object.keys(node.counts).length > 0 && (
         <div className="bo-section">
-          <span className="bo-section-h">{t('unraveling.detail.rawCounts')}</span>
+          <h4 className="bo-section-h">{t('unraveling.detail.rawCounts')}</h4>
           <div className="bo-kv">
             {Object.entries(node.counts).map(([k, v]) => (
               <div key={k} className="bo-kv-row">
@@ -1007,7 +1100,7 @@ function NodeDetail({
 
       {(metaEntries.length > 0 || mode === 'source') && (
         <div className="bo-section">
-          <span className="bo-section-h">{t('unraveling.detail.meta')}</span>
+          <h4 className="bo-section-h">{t('unraveling.detail.meta')}</h4>
           <div className="bo-kv">
             {metaEntries.length === 0 ? (
               <div className="bo-kv-row">
@@ -1136,8 +1229,30 @@ export default function BuildOverviewPage() {
   const { t } = useTranslation('analysis');
   const { t: tn } = useTranslation('nav');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  // Picked from outside the canvas (layer list, blocker chip, run banner): the
+  // detail panel takes focus. From the canvas, focus stays on the node.
+  const [focusDetail, setFocusDetail] = useState(false);
+  // Where focus goes once a selection is cleared — the control that cleared it
+  // is gone (the back button, the clear button) or about to be.
+  const returnFocusRef = useRef<{ to: 'list' | 'canvas'; id: string } | null>(null);
   const sideBodyRef = useRef<HTMLDivElement>(null);
   const sideRef = useRef<HTMLElement>(null);
+  const dagRef = useRef<HTMLDivElement>(null);
+
+  const selectFromCanvas = useCallback((id: string | null) => {
+    setFocusDetail(false);
+    setSelectedId(id);
+  }, []);
+  const selectFromOutside = useCallback((id: string) => {
+    setFocusDetail(true);
+    setSelectedId(id);
+  }, []);
+  const clearSelection = useCallback((returnTo: 'list' | 'canvas' | null) => {
+    setSelectedId((current) => {
+      if (current && returnTo) returnFocusRef.current = { to: returnTo, id: current };
+      return null;
+    });
+  }, []);
   // The canvas is drawn at the scroll area's real width, so its text keeps its
   // CSS size; below DAG_MIN_W it stops shrinking and scrolls.
   const [dagScrollRef, dagWidth] = useElementWidth<HTMLDivElement>();
@@ -1177,6 +1292,33 @@ export default function BuildOverviewPage() {
   // Picking another node (a blocker chip jumps to one) should show its top.
   // When the inspector sits below the canvas (narrow layout) and is off
   // screen, bring it into view — otherwise a click on the canvas shows nothing.
+  useEffect(() => {
+    const back = returnFocusRef.current;
+    returnFocusRef.current = null;
+    if (back?.to === 'list') {
+      sideRef.current?.querySelector<HTMLElement>(`.bo-row[data-node-id="${back.id}"]`)?.focus();
+    } else if (back?.to === 'canvas') {
+      focusDagNode(dagRef.current, back.id);
+    }
+  }, [selectedId]);
+
+  // Esc clears the selection — but not while a confirm dialog is open (the
+  // native <dialog> closes itself on that key) or while typing / composing.
+  useEffect(() => {
+    if (!selectedId) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape' || e.isComposing) return;
+      if (document.querySelector('dialog[open]')) return;
+      const el = document.activeElement as HTMLElement | null;
+      if (el && (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el.isContentEditable)) return;
+      const onCanvas = !!el?.closest?.('.bo-svg');
+      const inSide = !el || el === document.body || !!sideRef.current?.contains(el);
+      clearSelection(onCanvas ? null : inSide ? 'list' : 'canvas');
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [selectedId, clearSelection]);
+
   useEffect(() => {
     sideBodyRef.current?.scrollTo?.({ top: 0 });
     const side = sideRef.current;
@@ -1222,6 +1364,8 @@ export default function BuildOverviewPage() {
   return (
     <div className="bo-page">
       <div className="bo-inner">
+        <h1 className="bo-sr-only">{tn('tabs.unraveling')}</h1>
+
         <GuidanceRibbon surface="build-overview">
           <strong>{t('unraveling.guide.prefix')}</strong>{' '}
           <Trans i18nKey="unraveling.guide.body" ns="analysis" components={{ strong: <strong /> }} />
@@ -1229,13 +1373,13 @@ export default function BuildOverviewPage() {
 
         <SummaryStrip manifest={manifest} />
 
-        {run.runningKey && <RunBanner runningKey={run.runningKey} onView={setSelectedId} />}
+        {run.runningKey && <RunBanner runningKey={run.runningKey} onView={selectFromOutside} />}
 
         <div className="bo-main">
-          <div className="bo-dagpane">
+          <div className="bo-dagpane" ref={dagRef}>
             {/* Outside the scroll area so「清除選取」is always reachable, and
                 always one row tall so selecting does not push the canvas down. */}
-            <SelectionBar selection={selection} onClear={() => setSelectedId(null)} />
+            <SelectionBar selection={selection} onClear={() => clearSelection('canvas')} />
             <div className="bo-dagscroll" ref={dagScrollRef}>
               <div className="bo-dagwrap" style={{ width: geometry.width }}>
                 <LayerHeads manifest={manifest} />
@@ -1244,7 +1388,7 @@ export default function BuildOverviewPage() {
                   geometry={geometry}
                   selection={selection}
                   pendingConcepts={pendingCount}
-                  onSelect={setSelectedId}
+                  onSelect={selectFromCanvas}
                 />
               </div>
             </div>
@@ -1252,11 +1396,11 @@ export default function BuildOverviewPage() {
 
           <aside className="bo-side" ref={sideRef}>
             <div className="bo-side-head">
-              <span className="bo-side-title">
+              <h2 className="bo-side-title">
                 {selectedNode ? t('unraveling.inspector.nodeDetail') : t('unraveling.inspector.layerList')}
-              </span>
+              </h2>
               {selectedNode ? (
-                <button type="button" className="bo-back" onClick={() => setSelectedId(null)}>
+                <button type="button" className="bo-back" onClick={() => clearSelection('list')}>
                   <ArrowLeft size={12} aria-hidden="true" />
                   {t('unraveling.inspector.backToList')}
                 </button>
@@ -1277,10 +1421,11 @@ export default function BuildOverviewPage() {
                   manifest={manifest}
                   chapterDist={chapterDist?.distributions[selectedNode.nodeId]}
                   run={run}
-                  onSelectNode={setSelectedId}
+                  focusOnMount={focusDetail}
+                  onSelectNode={selectFromOutside}
                 />
               ) : (
-                <LayerList manifest={manifest} pendingConcepts={pendingCount} onSelect={setSelectedId} />
+                <LayerList manifest={manifest} pendingConcepts={pendingCount} onSelect={selectFromOutside} />
               )}
             </div>
           </aside>
