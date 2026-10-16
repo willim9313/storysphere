@@ -251,6 +251,9 @@ hover 底 `--bg-secondary`；標籤 `settings:guidance.title`「研究者導覽�
   event→event、symbol→concept，`uploadModel.murmurPillVariant`）＋serif 角色說明；topic serif sm 散文；raw mono muted。
   delta 累積、長度無上限；新事件只在使用者已在底部時貼底，往上捲閱讀時不強制拉回。空態「等待系統開始處理…」置中。
   右下吉祥物槽（44px 虛線方框、Sprout、上下浮動，reduced-motion 停），內容右側讓出槽的車道。
+- **輪詢失敗不等於任務失敗**：只有 `status: "error"` 才換成失敗卡。`GET /tasks/:id/status` 非 404 的失敗（5xx、斷線）
+  時卡片保留最後狀態、繼續輪詢，進度條下方整列 `.up-notice-warning`＋Unplug「暫時連不上伺服器，正在重新連線；
+  這本書可能仍在背景處理，不需要重新上傳。」（`upload.pollDisconnected`），連上即消失。閘門卡（D）不顯示（DS_V3 回饋 1-AB）。
 
 #### D · 等待審閱（唯一人工閘門）
 

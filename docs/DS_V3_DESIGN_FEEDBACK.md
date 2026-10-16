@@ -203,6 +203,7 @@ Handoff `redesign_v3_handoff_batch_1.zip`（`design_handoff_01_entry/`）。下�
 | 1-Y | 遺漏 · 錯誤態與 409 是否保留麵包屑 | 待同步 |
 | 1-Z | 矛盾 · 收合導軌缺口只在 Ink，還是兩個主題都畫 | 待同步 |
 | 1-AA | 矛盾 · 「已處理 mm:ss」計時起點 `startedAt` 不存在於資料卡 | 待同步 |
+| 1-AB | 遺漏 · 處理中卡「輪詢連不上」沒畫 | 待同步 |
 
 ### 1-A 投件拒絕文案其實已存在
 
@@ -412,6 +413,15 @@ Handoff `redesign_v3_handoff_batch_1.zip`（`design_handoff_01_entry/`）。下�
 - **問題**：`specs/spec-data-cards.md` 的 TaskStatus 只有 `createdAt`，沒有 `startedAt`。
 - **目前處置**：維持以 `createdAt` 回推（`ProcessingCard.tsx`，decision Q2），含排隊（pending）時間。
 - **請設計端**：把 README 的 `task.startedAt` 改成 `task.createdAt`（或確認要的是「開始跑」起算，那就需要後端另提供欄位）。
+
+### 1-AB 處理中卡「輪詢連不上」沒畫
+
+- **出處**：03 C 區只畫了處理中、F 區只畫了失敗卡；沒有「狀態查詢失敗、但任務未必失敗」這一態。
+- **問題**：舊實作把輪詢重試 3 次仍失敗當成任務失敗——換成失敗卡、清 murmur，使用者按「重試」等於重新上傳、付第二次 token，而後端任務可能還在跑。
+- **目前處置**（2026-10-16，使用者裁決）：只有 `status: "error"` 才算失敗；輪詢失敗時卡片保留最後狀態並持續輪詢，
+  進度條下方整列 `.up-notice-warning`＋`unplug`「暫時連不上伺服器，正在重新連線；這本書可能仍在背景處理，不需要重新上傳。」
+  （i18n `upload.pollDisconnected`），連上即消失。等待審閱的閘門卡不顯示（不影響使用者的下一步）。
+- **請設計端**：03 C 區補這一態的位置與文案。
 
 ---
 

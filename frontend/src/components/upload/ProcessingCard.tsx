@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, CircleCheck, Clock, Loader2, ShieldAlert } from 'lucide-react';
+import { AlertTriangle, CircleCheck, Clock, Loader2, ShieldAlert, Unplug } from 'lucide-react';
 import type { TimelineDetectionResponse } from '@/api/graph';
 import { deleteBook } from '@/api/books';
 import { acceptReview, cancelTask, fetchTaskStatus, rerunStep, type RerunStep } from '@/api/ingest';
@@ -185,6 +185,7 @@ export function ProcessingCard({ task, onDone, onError, onGone }: Readonly<Proce
   const bookId           = status?.result?.bookId ? String(status.result.bookId) : null;
   const isDone           = !!status && status.status === 'done' && !!bookId && (!failedSteps || failedSteps.length === 0);
   const isAwaitingReview = status?.status === 'awaiting_review' && !!bookId;
+  const pollDisconnected = isError && !isGone(pollError);
 
   useEffect(() => {
     if (doneRef.current) return;
@@ -205,11 +206,11 @@ export function ProcessingCard({ task, onDone, onError, onGone }: Readonly<Proce
         const detection = status.result.timelineDetection as TimelineDetectionResponse | undefined;
         onDone(task.taskId, String(status.result.bookId), task.fileName, detection);
       }
-    } else if (status.status === 'error' || isError) {
+    } else if (status.status === 'error') {
       doneRef.current = true;
       onError(task.taskId, task.fileName, status.error ?? undefined);
     }
-  }, [status, isError, pollError, failedSteps, task, onDone, onError, onGone]);
+  }, [status, pollError, failedSteps, task, onDone, onError, onGone]);
 
   const handleAcceptChapters = useCallback(async () => {
     if (!bookId) return;
@@ -355,6 +356,15 @@ export function ProcessingCard({ task, onDone, onError, onGone }: Readonly<Proce
       <div className="up-task-bar">
         <div className="up-task-bar-fill" style={{ width: `${progress}%` }} />
       </div>
+      {/* A failed poll is not a failed task: the backend may still be running
+          it, and treating it as failed invites a re-upload that pays twice.
+          Polling carries on with the last status; the line goes once it answers. */}
+      {pollDisconnected && (
+        <div className="up-notice up-notice-warning" role="status">
+          <span className="up-notice-icon"><Unplug size={16} /></span>
+          <span>{t('pollDisconnected')}</span>
+        </div>
+      )}
       {status && (
         <div className="up-task-body">
           <ProcessingTimeline task={status} />

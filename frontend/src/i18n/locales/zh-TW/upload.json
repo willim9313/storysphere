@@ -19,6 +19,7 @@
   "confirmUpload": "確認上傳",
   "processingSection": "處理中",
   "duplicateTitleWarning": "已有同名書籍《{{title}}》，本次上傳仍會繼續進行。",
+  "pollDisconnected": "暫時連不上伺服器，正在重新連線；這本書可能仍在背景處理，不需要重新上傳。",
   "dropzone": {
     "dragText": "拖曳檔案至此，或點擊選擇檔案",
     "supportText": "支援 .pdf、.docx、.txt、.epub 格式，可多選 · 檔案大小上限 50 MB",
