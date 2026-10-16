@@ -425,7 +425,14 @@ export function ProcessingCard({ task, onDone, onError, onGone }: Readonly<Proce
         <span className="up-spacer" />
         {terminateButton('sm')}
       </div>
-      <div className="up-task-bar">
+      <div
+        className="up-task-bar"
+        role="progressbar"
+        aria-label={task.title}
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={progress}
+      >
         <div className="up-task-bar-fill" style={{ width: `${progress}%` }} />
       </div>
       {/* A failed poll is not a failed task: the backend may still be running

@@ -54,17 +54,18 @@ function stepState(stepIdx: number, task: TaskStatus): StepState {
   return 'running';
 }
 
+// Shape only; the state is spoken by the label's sr-only text instead.
 function Marker({ state, n }: Readonly<{ state: StepState; n: number }>) {
-  if (state === 'done') return <span className="up-marker up-marker-done"><Check size={12} strokeWidth={2} /></span>;
-  if (state === 'error') return <span className="up-marker up-marker-error"><X size={12} strokeWidth={2} /></span>;
+  if (state === 'done') return <span className="up-marker up-marker-done" aria-hidden="true"><Check size={12} strokeWidth={2} /></span>;
+  if (state === 'error') return <span className="up-marker up-marker-error" aria-hidden="true"><X size={12} strokeWidth={2} /></span>;
   if (state === 'running') {
     return (
-      <span className="up-marker up-marker-running">
+      <span className="up-marker up-marker-running" aria-hidden="true">
         <Loader size={14} strokeWidth={1.5} className="up-spin" />
       </span>
     );
   }
-  return <span className="up-marker up-marker-pending">{n}</span>;
+  return <span className="up-marker up-marker-pending" aria-hidden="true">{n}</span>;
 }
 
 export function ProcessingTimeline({ task }: Readonly<ProcessingTimelineProps>) {
@@ -75,11 +76,16 @@ export function ProcessingTimeline({ task }: Readonly<ProcessingTimelineProps>) 
       {STEPS.map((step, idx) => {
         const state = stepState(idx, task);
         return (
-          <div key={step.key} className="up-step" data-state={state}>
+          <div key={step.key} className="up-step" data-state={state} aria-current={state === 'running' ? 'step' : undefined}>
             <div className="up-step-row">
               <Marker state={state} n={idx + 1} />
-              <span className="up-step-label">{t(`steps.${step.key}`)}</span>
-              <span className="up-step-pct">{step.pct}%</span>
+              <span className="up-step-label">
+                {t(`steps.${step.key}`)}
+                <span className="up-sr-only">{t(`stepState.${state}`)}</span>
+              </span>
+              {/* An anchor on the overall bar, not this step's completion —
+                  read aloud it would be heard as the latter. */}
+              <span className="up-step-pct" aria-hidden="true">{step.pct}%</span>
             </div>
             {/* Real sub-progress only: without subTotal the spinner already says
                 "still running" — a fake bar would be read as progress. */}
