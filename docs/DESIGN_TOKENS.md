@@ -324,6 +324,8 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 | `--tl-outlier-link-width` | `1px` | `2px` | 時間軸譜面偏離連線的線重。Warm 靠 accent 色相；Ink 的 accent 與 border `#1a1a1a` 同色，改由線重承載 |
 | `--dag-chain-halo-display` | `none` | `inline` | 建構概覽 DAG 上游依賴鏈節點的外圈（外 3px、1.5px accent）。Warm 靠節點 accent 描邊；Ink 完整節點黑底黑框，描邊看不見，改由外圈承載 |
 | `--dag-chain-edge-width` | `1.5px` | `2.5px` | 建構概覽 DAG 上游依賴邊的線重。Warm 靠 accent 色相；Ink 上游邊與直接相連邊同為深色實線，改由線重承載 |
+| `--dag-edge-rest-opacity` | `1` | `0.3` | 建構概覽 DAG 無選取時相鄰欄邊的不透明度（邊色 `--border`）。Warm 的 `#ddceb2` 太淡不再減；Ink 的 `#1a1a1a` 43 條交錯成網，壓淡 |
+| `--dag-edge-span-opacity` | `0.6` | `0.15` | 同上，跨一欄以上的邊 |
 | `--dag-link-edge-dash` | `none` | `4 3` | 建構概覽 DAG 與選取節點直接相連（非上游）的邊。Warm 實線靠 fg-secondary 色相；Ink 改虛線，與上游實線分開（回頭邊本身已是虛線，不套） |
 | `--density-peak-inset` | `0` | `2px` | 時間軸密度矩陣「4 以上」格與圖例色票的紙色內框（inset box-shadow）。Ink 的 3（`#151515`）與 4+（`#000`）同為黑，4+ 加內框區分 |
 | `--badge-radius` | `20px` | `4px` | status badge |

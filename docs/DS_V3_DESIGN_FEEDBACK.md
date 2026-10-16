@@ -1235,8 +1235,8 @@ Handoff `redesign_v3_handoff_batch_4.zip`（`design_handoff_04_views/`）。下�
 
 - **出處**：13 C 區第三張「無觸發器 · 刻意擋掉（≠ 規劃中）」只講了 narrative_structure 與 TEU／敘事聲音／故事時序排名。
 - **問題**：`tension_lines`、`tension_theme`、`hero_journey_stage`、`temporal_analysis`、`kg_temporal_relation` 也沒有觸發器，稿沒定。
-- **目前處置**：沿用既有「觸發建構功能規劃中」。
-- **請設計端**：確認。
+- **目前處置**：~~沿用既有「觸發建構功能規劃中」~~（2026-10-15 改，使用者裁決：上游 chip 點過來是死路）→ 這些層都在別頁建立，改為次要鈕連結「這一層在「{頁名}」頁建立 →」（`detail.buildOnPage`，頁名用 nav `tabs.*`）；沒有對應頁面的才保留「規劃中」。同時修正頁面對應：`narrative_structure`／`hero_journey_stage` → 敘事結構頁（原指事件／角色頁），`teu` → 張力分析頁（原指時間軸）；L0／L1 文本節點「前往對應頁面」連到閱讀頁（原誤判為未實作）。
+- **請設計端**：確認改成連結的文案與樣式。
 
 #### 4-UN-6 「全站一律用象徵」與既有計數名
 

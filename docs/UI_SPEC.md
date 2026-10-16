@@ -1784,17 +1784,22 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 | 態 | 條件 | 呈現 |
 |----|------|------|
 | 建構中 | 本節點的觸發器有任務在跑（任務狀態在頁面層，換節點不丟；進頁面以 #19c／#7j／#7k 接手，觸發被 409 `batch_running` 時改為接手該任務） | **只留 spinner＋「建構中…」**（不顯示 stage／%／TASK id）。同一觸發器的兄弟節點都顯示建構中 |
-| 來源（L0） | `layer === 0` | 沒有觸發鈕、沒有原始計數；說明條 `sourceHint`；「前往對應頁面瀏覽 · 尚未實作」；只有附加資訊 |
+| 來源（L0） | `layer === 0` | 沒有觸發鈕、沒有原始計數；說明條 `sourceHint`；「前往對應頁面瀏覽」連到閱讀頁（`NODE_TO_ROUTE` 的 `''`＝閱讀頁；2026-10-15 前誤判為「尚未實作」）；只有附加資訊 |
 | 刻意擋掉 | `narrative_structure`（優先於 blocker，完整時也是） | warning 底盒＋ `unraveling.detail.blockedByHazard` |
 | 被上游擋住 | 非完整且有未完成的一階上游 | 「尚未就緒」＋「需先完成上游 N 個依賴」＋ **blocker chips（可點，跳去該節點）**＋ disabled 鈕「還缺 N 項前置」 |
 | 已全部建立 | 完整、觸發器只會補洞（summarization、角色批次、事件批次——重跑會跳過已有的，按了什麼都不做卻花 token） | 不給鈕，說明條 `detail.allBuilt`「已全部建立，沒有可補的部分。」（2026-10-15） |
 | 觸發 | 有觸發器 | 觸發鈕（`.ss-btn-llm`；dropsDerived 觸發器用 `.ss-btn-danger`）＋鈕下「會呼叫 LLM，消耗 token」。鈕名依 `ctaStateFor(nodeId, status)`：未建立＝`empty`；dropsDerived 三步（特徵、象徵、KG）建過後是整個重做＝`rerun`「重跑知識圖譜／重新萃取關鍵字／重新探索象徵」（2026-10-15 起，原沿用「補齊」）；推斷概念完整＝`again`「再推斷一次」；其餘部分建立＝`partial`「補齊／剩餘」 |
-| 規劃中 | 無觸發器、非完整 | disabled「觸發建構功能規劃中」（其餘 8 顆無觸發器節點，回饋 4-UN-5） |
+| 在別頁建立 | 無觸發器、非完整、有對應頁面 | 次要鈕連結 `detail.buildOnPage`「這一層在「{頁名}」頁建立 →」（2026-10-15，原為 disabled「規劃中」，上游 chip 點過來是死路；回饋 4-UN-5）。沒有對應頁面的才保留 disabled「觸發建構功能規劃中」 |
 
 - **同一次執行**：觸發鈕上方說明條 `與 {names} 是同一次執行的不同檢視`，`names` 由觸發器共用關係推（CEP＋角色分析；EEP＋因果＋影響力；實體＋概念＋關係＋事件）。
 - **觸發失敗**：既有「觸發失敗」盒（error 底）＋重試鈕；`triggerFailedDetail` **不渲染**（任務錯誤只有自由字串，沒有 status／reason，回饋 4-UN-7），後端回的原文收成技術細節一行。
 - **應用層 503**（未設定 LLM provider）：就地 `LlmUnconfiguredNotice`，面板其餘照常、觸發鈕仍在（原本直接顯示英文 detail）。
 - 原始計數只顯示 API 有的鍵（稿上的 `chapters_covered`、`last_run`、`links` 等 API 沒有，回饋 4-UN-2）。
+- **頁面對應**（`NODE_TO_ROUTE`，2026-10-15 修正）：`narrative_structure`／`hero_journey_stage` → 敘事結構、`teu` → 張力分析。
+- **觸發失敗文案**（2026-10-15）：任務錯誤含 429／quota／rate limit／ResourceExhausted／too many requests → 標題 `cta.rateLimitedTitle`＋`cta.rateLimitedBody`；其餘任務失敗 → `cta.taskFailed`「建構沒有完成」；觸發請求本身被拒 → 既有 `cta.failed`。原文一律收技術細節。
+- **同一次執行的兄弟節點**選取時保持點亮（不再淡出）；**待審**（推斷概念有 pending）時節點狀態記號左側加 7px 實心方塊（`--color-warning`），「N 待審」改 `--fg-primary`，節點狀態仍照 manifest。
+- **靜止邊**不透明度走 `--dag-edge-rest-opacity`／`--dag-edge-span-opacity`（Warm 1／0.6、Ink 0.3／0.15）。
+- 原始計數／附加資訊補 `counts.title／author／language／total_imagery` 翻譯（原直接露出鍵名）；中文標籤拿掉 0.06–0.08em 字距。
 - 章節分佈長條用 `--symbol-density-mid`，Tooltip 顯示 `Ch.N: 值`（原生 `title` 已換掉），軸兩端標 `Ch.1`、`Ch.N`。
 
 #### LLM 字符與三條軸
@@ -1880,6 +1885,8 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 | `cta.node.*.rerun`／`*.again`、`cta.generic.rerun／again` | 重跑知識圖譜／重新萃取關鍵字／重新探索象徵／再推斷一次（2026-10-15） |
 | `cta.confirm.staleDownstream／staleOnly／firstBuild` | 見確認框表（2026-10-15） |
 | `detail.allBuilt` | 已全部建立，沒有可補的部分。（2026-10-15） |
+| `detail.buildOnPage` | 這一層在「{{page}}」頁建立 →（2026-10-15） |
+| `cta.taskFailed／rateLimitedTitle／rateLimitedBody` | 建構沒有完成／供應商額度或頻率上限／稍後再試；已完成的部分會保留。（2026-10-15） |
 | `concepts.dismissTitle／dismissBody／actionFailed` | 否決這個命題？／「{{name}}」否決後不會再出現，即使重跑也一樣，無法復原。／操作沒有完成，請再試一次。（2026-10-15） |
 | `concepts.pendingCount` | {{n}} 待審 |
 | `concepts.expand` | 展開審查 ↓ |

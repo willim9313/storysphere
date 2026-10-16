@@ -1052,6 +1052,7 @@
       "rawCounts": "Raw counts",
       "meta": "Metadata",
       "triggerSoon": "Build trigger coming soon",
+      "buildOnPage": "This layer is built on the {{page}} page →",
       "sharedTrigger": "Runs together with {{names}} — different views of one run",
       "missingPrereq": "Missing {{n}} prerequisites",
       "blockedByHazard": "Rerun is deliberately unavailable for this layer: reclassifying a book whose EEP cache is gone wipes the knowledge graph's existing kernel weights, and it cannot be undone.",
@@ -1066,6 +1067,9 @@
     "cta": {
       "running": "Building…",
       "failed": "Could not start the run",
+      "taskFailed": "The build did not finish",
+      "rateLimitedTitle": "Provider quota or rate limit reached",
+      "rateLimitedBody": "Try again later; whatever finished is kept.",
       "generic": {
         "partial": "Fill in what's missing",
         "empty": "Start building",
@@ -1194,6 +1198,10 @@
     "openPageNotImplemented": "Not yet wired",
     "counts": {
       "chapters": "chapters",
+      "title": "Title",
+      "author": "Author",
+      "language": "Language",
+      "total_imagery": "Total imagery",
       "paragraphs": "paragraphs",
       "chaptersN": "{{n}} ch.",
       "paragraphsN": "{{n}} paras",
