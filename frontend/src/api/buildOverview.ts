@@ -1,28 +1,11 @@
 import { apiFetch } from './client';
 import type { components } from './generated';
 
-export type NodeStatus = 'complete' | 'partial' | 'empty';
-
-export interface BuildOverviewNode {
-  nodeId: string;
-  layer: number;
-  label: string;
-  status: NodeStatus;
-  counts: Record<string, number>;
-  meta: Record<string, string | number | boolean>;
-  parentId?: string;
-}
-
-export interface BuildOverviewEdge {
-  source: string;
-  target: string;
-}
-
-export interface BuildOverviewManifest {
-  bookId: string;
-  nodes: BuildOverviewNode[];
-  edges: BuildOverviewEdge[];
-}
+// #19 — generated from the backend models; the page's names are aliases.
+export type BuildOverviewNode = components['schemas']['NodeData'];
+export type BuildOverviewEdge = components['schemas']['EdgeData'];
+export type BuildOverviewManifest = components['schemas']['UnravelingManifest'];
+export type NodeStatus = BuildOverviewNode['status'];
 
 export type ChapterDistribution = components['schemas']['ChapterDistribution'];
 export type RunningUnraveling = components['schemas']['RunningUnravelingResponse'];

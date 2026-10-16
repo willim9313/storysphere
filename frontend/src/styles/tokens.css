@@ -298,6 +298,7 @@
   --dag-link-edge-dash: none; /* 建構概覽直接相連邊：Warm 靠 fg-secondary 與 accent 色相區分，實線 */
   --dag-edge-rest-opacity: 1; /* 建構概覽 DAG 靜止邊（相鄰欄）：Warm 的 --border 很淡，不再減 */
   --dag-edge-span-opacity: 0.6; /* 同上，跨欄邊再淡一階 */
+  --dag-node-radius: 4px; /* 建構概覽 DAG 節點框圓角；選取環／焦點框／外圈／群組框依倍數推算 */
   --density-peak-inset: 0; /* 密度矩陣「4 以上」格的紙色內框：Warm 四階色相可分，不畫 */
   --cross-tension-pattern: none; /* 敘事頁交叉證據「張力峰值」列：Warm 靠色相，不加紋 */
   --badge-radius:      20px;
@@ -472,6 +473,7 @@
   --dag-link-edge-dash: 4 3; /* 近單色：相連邊改虛線，與上游實線分開 */
   --dag-edge-rest-opacity: 0.3; /* 近單色：--border 近黑，43 條邊交錯成網，靜止時壓淡 */
   --dag-edge-span-opacity: 0.15;
+  --dag-node-radius: 0; /* 線稿語彙：直角，與 Ink 卡片／按鈕一致 */
   --density-peak-inset: 2px; /* 近單色：3（#151515）與 4+（#000）同為黑，4+ 加紙色內框 */
   /* 近單色：張力列與階段覆蓋列同為 accent 黑，張力改畫斜紋 */
   --cross-tension-pattern: repeating-linear-gradient(-45deg, transparent 0 2px, var(--bg-primary) 2px 3.5px);

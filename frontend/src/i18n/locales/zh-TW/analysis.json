@@ -1062,6 +1062,8 @@
     "run": {
       "banner": "建構中：{{names}}",
       "view": "查看",
+      "done": "「{{names}}」建構完成",
+      "dismiss": "關閉",
       "waitFor": "「{{names}}」建構完成後才能啟動其他建構"
     },
     "cta": {

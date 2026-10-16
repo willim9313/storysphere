@@ -63,6 +63,9 @@ export interface BuildRun {
   /** A run is going or a trigger request is in flight: every trigger waits. */
   busy: boolean;
   failure: BuildRunFailure | null;
+  /** The trigger whose run last finished cleanly, until dismissed or another starts. */
+  doneKey: TriggerKey | null;
+  dismissDone: () => void;
   start: (key: TriggerKey) => Promise<void>;
 }
 
@@ -87,6 +90,7 @@ export function useBuildRun(
   const [key, setKey] = useState<TriggerKey | null>(null);
   const [failure, setFailure] = useState<BuildRunFailure | null>(null);
   const [starting, setStarting] = useState(false);
+  const [doneKey, setDoneKey] = useState<TriggerKey | null>(null);
 
   // Read inside the task callbacks, which useAsyncTask calls through refs.
   const keyRef = useRef(key);
@@ -111,6 +115,7 @@ export function useBuildRun(
     onDone: (_task, ctl) => {
       ctl.reset();
       refresh();
+      setDoneKey(keyRef.current);
     },
     onError: (message, ctl) => {
       ctl.reset();
@@ -134,6 +139,7 @@ export function useBuildRun(
     if (!found || taskIdRef.current) return false;
     setKey(found.key);
     setFailure(null);
+    setDoneKey(null);
     adopt(found.taskId);
     return true;
   }, [bookId, adopt]);
@@ -145,6 +151,7 @@ export function useBuildRun(
   const start = useCallback(
     async (k: TriggerKey) => {
       setFailure(null);
+      setDoneKey(null);
       setStarting(true);
       try {
         const { taskId: id } = await trigger(k);
@@ -163,5 +170,6 @@ export function useBuildRun(
   );
 
   const runningKey = taskId ? key : null;
-  return { runningKey, busy: starting || runningKey !== null, failure, start };
+  const dismissDone = useCallback(() => setDoneKey(null), []);
+  return { runningKey, busy: starting || runningKey !== null, failure, doneKey, dismissDone, start };
 }

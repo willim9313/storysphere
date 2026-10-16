@@ -1799,6 +1799,8 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 - **觸發失敗文案**（2026-10-15）：任務錯誤含 429／quota／rate limit／ResourceExhausted／too many requests → 標題 `cta.rateLimitedTitle`＋`cta.rateLimitedBody`；其餘任務失敗 → `cta.taskFailed`「建構沒有完成」；觸發請求本身被拒 → 既有 `cta.failed`。原文一律收技術細節。
 - **同一次執行的兄弟節點**選取時保持點亮（不再淡出）；**待審**（推斷概念有 pending）時節點狀態記號左側加 7px 實心方塊（`--color-warning`），「N 待審」改 `--fg-primary`，節點狀態仍照 manifest。
 - **靜止邊**不透明度走 `--dag-edge-rest-opacity`／`--dag-edge-span-opacity`（Warm 1／0.6、Ink 0.3／0.15）。
+- **建構完成**（2026-10-16）：執行中提示那條在任務乾淨完成後換成 `.bo-box.is-done`「✓ `run.done`」＋「查看」＋「關閉」（`run.dismiss`），同一個 `role=status`；關閉或下一個建構開始時消失。失敗不在這裡（在節點細節）。
+- **P3**（2026-10-16）：總覽分段條「已建立」段實心（`--status-complete-border`）；KG 群組標籤墊紙色描邊、上移 1px；右欄並排時 `contain: size` 與 DAG 面板等高（取代寫死 699px），下沉時不限高；載入骨架 DAG 區至少 586px（畫布高）；節點與各外框圓角走 `--dag-node-radius`。
 - 原始計數／附加資訊補 `counts.title／author／language／total_imagery` 翻譯（原直接露出鍵名）；中文標籤拿掉 0.06–0.08em 字距。
 - 章節分佈長條用 `--symbol-density-mid`，Tooltip 顯示 `Ch.N: 值`（原生 `title` 已換掉），軸兩端標 `Ch.1`、`Ch.N`。
 
@@ -1886,6 +1888,7 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 | `cta.confirm.staleDownstream／staleOnly／firstBuild` | 見確認框表（2026-10-15） |
 | `detail.allBuilt` | 已全部建立，沒有可補的部分。（2026-10-15） |
 | `detail.buildOnPage` | 這一層在「{{page}}」頁建立 →（2026-10-15） |
+| `run.done`／`run.dismiss` | 「{{names}}」建構完成／關閉（2026-10-16） |
 | `cta.taskFailed／rateLimitedTitle／rateLimitedBody` | 建構沒有完成／供應商額度或頻率上限／稍後再試；已完成的部分會保留。（2026-10-15） |
 | `concepts.dismissTitle／dismissBody／actionFailed` | 否決這個命題？／「{{name}}」否決後不會再出現，即使重跑也一樣，無法復原。／操作沒有完成，請再試一次。（2026-10-15） |
 | `concepts.pendingCount` | {{n}} 待審 |

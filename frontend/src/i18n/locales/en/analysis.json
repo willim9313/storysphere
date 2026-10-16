@@ -1062,6 +1062,8 @@
     "run": {
       "banner": "Building: {{names}}",
       "view": "View",
+      "done": "“{{names}}” finished building",
+      "dismiss": "Dismiss",
       "waitFor": "Other builds can start once “{{names}}” finishes"
     },
     "cta": {

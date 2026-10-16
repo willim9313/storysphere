@@ -3006,6 +3006,14 @@ export interface components {
             /** Imagery Type */
             imagery_type: string;
         };
+        /**
+         * ConfirmInferredConceptResponse
+         * @description The Concept entity an adopted proposition became (#10g).
+         */
+        ConfirmInferredConceptResponse: {
+            /** Entityid */
+            entityId: string;
+        };
         /** ConfirmInferredRequest */
         ConfirmInferredRequest: {
             /** Relationtype */
@@ -6190,9 +6198,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ConfirmInferredConceptResponse"];
                 };
             };
             /** @description Validation Error */
