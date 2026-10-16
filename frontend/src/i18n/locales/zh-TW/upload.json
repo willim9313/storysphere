@@ -137,6 +137,12 @@
     "symbolExploration": "符號探索",
     "dataStorage": "資料儲存"
   },
+  "stepState": {
+    "done": "（已完成）",
+    "running": "（進行中）",
+    "pending": "（尚未開始）",
+    "error": "（失敗）"
+  },
   "notify": {
     "doneTitle": "《{{title}}》分析完成",
     "doneBody": "角色、事件、知識圖譜皆已建立。",
