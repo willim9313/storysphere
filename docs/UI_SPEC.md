@@ -279,7 +279,12 @@ sessionStorage 記著、但 `GET /tasks/:id/status` 回 404 的任務（記憶�
 「書籍已儲存，但以下步驟未能完成 · 可直接重跑」（1-F），再逐步驟列：步驟名 xs 600、後端細節 mono 細節框
 （`--bg-tertiary`）、右側 `ss-btn-sm ss-btn-secondary ss-btn-llm`「重跑」（失敗後「再試」，進行中「重跑中…」）。
 對映不到 rerun endpoint 的前綴只列出、不給鈕、不寫說明（符號探索有 endpoint，保留鈕，1-M）。全部補齊換成
-CircleCheck success「所有步驟皆已補齊。」。底部分隔線下固定「前往書庫查看 →」。重跑 toast 不變。
+CircleCheck success「所有步驟皆已補齊。」。
+步驟清單是 ingestion 任務當時的 `failedSteps` 快照，再以書的 `pipelineStatus`（`GET /books/:id`）濾掉之後已補成 `done` 的步驟，
+重掛載不再對同一步給第二次重跑鈕。進頁查 #19c：正在跑的就是某一步時接手輪詢（「重跑中…」）；重跑輪詢走 `useTaskPolling`，離頁即停。
+觸發回 409 `batch_running`：同一步在跑就接手，別步（或概念推論）在跑就在該列就地顯示「此書已有建構任務在執行，完成後再試。
+前往建構概覽 →」（`reader:rerun.busy`、`reader:unanalyzed.cta`）；回 503（未設定 LLM）就地顯示 `LlmUnconfiguredNotice`。
+兩者都不推失敗 toast、按鈕不變「再試」；「重跑已排入任務中心」toast 只在後端接受後才推（DS_V3 回饋 1-AC）。底部分隔線下固定「前往書庫查看 →」。重跑 toast 不變。
 部分完成 toast（全域）的行動鈕「前往書庫查看」導向書庫 `/`，不是書籍頁。
 
 #### F · 已完成 · 失敗

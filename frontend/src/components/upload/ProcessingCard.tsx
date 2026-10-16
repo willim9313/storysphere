@@ -4,33 +4,41 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, CircleCheck, Clock, Loader2, ShieldAlert, Unplug } from 'lucide-react';
 import type { TimelineDetectionResponse } from '@/api/graph';
+import type { PipelineStatus } from '@/api/types';
+import { ApiError } from '@/api/client';
+import { fetchRunningUnraveling, type RunningUnraveling } from '@/api/buildOverview';
+import { isLlmUnconfigured } from '@/api/failureKind';
 import { deleteBook } from '@/api/books';
-import { acceptReview, cancelTask, fetchTaskStatus, rerunStep, type RerunStep } from '@/api/ingest';
+import { acceptReview, cancelTask, rerunStep, type RerunStep } from '@/api/ingest';
 import { isCancelled } from '@/api/tasks';
 import { useToast } from '@/contexts/ToastContext';
+import { useBook } from '@/hooks/useBook';
 import { isGone, useTaskPolling } from '@/hooks/useTaskPolling';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { LlmUnconfiguredNotice } from '@/components/ui/LlmUnconfiguredNotice';
 import { ProcessingTimeline } from './ProcessingTimeline';
 import { MurmurWindow } from './MurmurWindow';
 import { formatElapsed } from './uploadModel';
 import { qk } from '@/api/queryKeys';
 
-// Backend failedSteps prefix (underscore) → rerun endpoint step + label.
+// Backend failedSteps prefix (underscore) → rerun endpoint step + label, and
+// the book's pipelineStatus key that says whether it has been made good since.
 // A prefix missing here is listed without a button (no disabled button, no
 // "unsupported" copy — 03 E 區).
-const RERUN_META: Record<string, { step: RerunStep; label: string }> = {
-  summarization: { step: 'summarization', label: '章節摘要' },
-  feature_extraction: { step: 'feature-extraction', label: '特徵擷取' },
-  kg_extraction: { step: 'knowledge-graph', label: '知識圖譜建構' },
-  symbol_discovery: { step: 'symbol-discovery', label: '符號探索' },
+const RERUN_META: Record<string, { step: RerunStep; status: keyof PipelineStatus; label: string }> = {
+  summarization: { step: 'summarization', status: 'summarization', label: '章節摘要' },
+  feature_extraction: { step: 'feature-extraction', status: 'featureExtraction', label: '特徵擷取' },
+  kg_extraction: { step: 'knowledge-graph', status: 'knowledgeGraph', label: '知識圖譜建構' },
+  symbol_discovery: { step: 'symbol-discovery', status: 'symbolDiscovery', label: '符號探索' },
 };
 
-type RerunState = 'idle' | 'loading' | 'done' | 'failed';
+type RerunState = 'idle' | 'loading' | 'failed';
 
 interface FailedStep {
   id: string;
   label: string;
   step: RerunStep | null;
+  status: keyof PipelineStatus | null;
   detail: string;
 }
 
@@ -40,7 +48,7 @@ function parseFailedSteps(failed: string[]): FailedStep[] {
     const id = (idx === -1 ? raw : raw.slice(0, idx)).trim();
     const detail = idx === -1 ? '' : raw.slice(idx + 1).trim();
     const meta = RERUN_META[id];
-    return { id, label: meta?.label ?? id, step: meta?.step ?? null, detail };
+    return { id, label: meta?.label ?? id, step: meta?.step ?? null, status: meta?.status ?? null, detail };
   });
 }
 
@@ -61,50 +69,115 @@ function RerunButton({ st, canRerun, onRerun }: Readonly<{ st: RerunState; canRe
   );
 }
 
-function PartialRerunCard({ bookId, title, failedSteps }: Readonly<{ bookId: string; title: string; failedSteps: string[] }>) {
+/**
+ * One failed step. Its rerun is polled through useTaskPolling, so leaving the
+ * page stops the polling; a rerun already going for this step (another tab, or
+ * started before a remount) is adopted rather than offered again — the backend
+ * would refuse a second one with 409 (#8d / #19c).
+ */
+function RerunRow({ bookId, fs, adoptTaskId }: Readonly<{ bookId: string; fs: FailedStep; adoptTaskId: string | null }>) {
+  const { t } = useTranslation('reader');
   const { push } = useToast();
   const queryClient = useQueryClient();
-  const [state, setState] = useState<Record<string, RerunState>>({});
-  const steps = parseFailedSteps(failedSteps);
-  const pending = steps.filter((s) => state[s.id] !== 'done');
-  const allResolved = pending.length === 0;
+  // Started here; until then, the rerun found running for this step (if any).
+  const [ownTaskId, setOwnTaskId] = useState<string | null>(null);
+  const taskId = ownTaskId ?? adoptTaskId;
+  // Another rerun (or concept inference) holds the book's lock: not a failure.
+  const [busy, setBusy] = useState(false);
+  // The app's own 503 (no LLM provider): a feature state, shown in place.
+  const [unconfigured, setUnconfigured] = useState(false);
+  const [requestFailed, setRequestFailed] = useState(false);
+  const { data: status, error: pollError } = useTaskPolling(taskId);
 
-  const handleRerun = useCallback(
-    async (fs: FailedStep) => {
-      if (!fs.step) return;
-      setState((s) => ({ ...s, [fs.id]: 'loading' }));
+  // 404 = the rerun task is gone (store restarted / cleaned up): no outcome to
+  // report, the step is offered again. A cancelled rerun is the user's choice.
+  const gone = isGone(pollError);
+  const done = status?.status === 'done';
+  const failed = status?.status === 'error' && !isCancelled(status);
+  const settled = gone || done || status?.status === 'error';
+
+  // Side effects only, once per rerun task: toast and refetch the book (its
+  // pipelineStatus drops the row) and the task list.
+  const notifiedRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!taskId || !settled || notifiedRef.current === taskId) return;
+    notifiedRef.current = taskId;
+    if (done) push({ type: 'success', title: `${fs.label} 重跑完成`, body: '結果已補齊，可前往書庫查看。' });
+    else if (failed) push({ type: 'error', title: `${fs.label} 重跑失敗`, body: status?.error ?? '請再試一次。' });
+    void queryClient.invalidateQueries({ queryKey: qk.book(bookId) });
+    void queryClient.invalidateQueries({ queryKey: qk.tasks.list() });
+  }, [taskId, settled, done, failed, status, bookId, fs.label, push, queryClient]);
+
+  const handleRerun = useCallback(async () => {
+    if (!fs.step) return;
+    setBusy(false);
+    setUnconfigured(false);
+    setRequestFailed(false);
+    try {
+      const res = await rerunStep(bookId, fs.step);
+      // Only once the backend took it: a 409 / 503 queues nothing.
       push({
         type: 'info',
         title: '重跑已排入任務中心',
         body: '重跑本身也是一個任務，可於任務中心追蹤。',
       });
-      try {
-        const { taskId } = await rerunStep(bookId, fs.step);
-        const poll = async (): Promise<void> => {
-          const s = await fetchTaskStatus(taskId);
-          if (s.status === 'done') {
-            setState((prev) => ({ ...prev, [fs.id]: 'done' }));
-            push({ type: 'success', title: `${fs.label} 重跑完成`, body: '結果已補齊，可前往書庫查看。' });
-            void queryClient.invalidateQueries({ queryKey: qk.book(bookId) });
-            void queryClient.invalidateQueries({ queryKey: qk.tasks.list() });
-            return;
-          }
-          if (s.status === 'error') {
-            setState((prev) => ({ ...prev, [fs.id]: 'failed' }));
-            push({ type: 'error', title: `${fs.label} 重跑失敗`, body: s.error ?? '請再試一次。' });
-            return;
-          }
-          await new Promise((r) => setTimeout(r, 2000));
-          return poll();
-        };
-        await poll();
-      } catch (e) {
-        setState((prev) => ({ ...prev, [fs.id]: 'failed' }));
+      setOwnTaskId(res.taskId);
+    } catch (e) {
+      if (isLlmUnconfigured(e)) {
+        setUnconfigured(true);
+      } else if (e instanceof ApiError && e.status === 409 && e.code === 'batch_running') {
+        const running = await fetchRunningUnraveling(bookId).catch(() => null);
+        if (running?.op === fs.step && running.taskId) setOwnTaskId(running.taskId);
+        else setBusy(true);
+      } else {
+        setRequestFailed(true);
         push({ type: 'error', title: `${fs.label} 重跑失敗`, body: e instanceof Error ? e.message : '請再試一次。' });
       }
-    },
-    [bookId, push, queryClient],
+    }
+  }, [bookId, fs, push]);
+
+  if (done) return null;
+  const st: RerunState = taskId && !settled ? 'loading' : failed || requestFailed ? 'failed' : 'idle';
+
+  return (
+    <div className="up-rerun-row">
+      <div className="up-rerun-main">
+        <span className="up-rerun-name">{fs.label}</span>
+        {fs.detail && <code className="up-code">{fs.detail}</code>}
+        {busy && (
+          <div className="up-notice up-notice-warning up-notice-inset" role="status">
+            <span>
+              {t('rerun.busy')}{' '}
+              <Link to={`/books/${bookId}/unraveling`} className="up-link">{t('unanalyzed.cta')}</Link>
+            </span>
+          </div>
+        )}
+        {unconfigured && <LlmUnconfiguredNotice />}
+      </div>
+      <RerunButton st={st} canRerun={fs.step !== null} onRerun={() => void handleRerun()} />
+    </div>
   );
+}
+
+function PartialRerunCard({ bookId, title, failedSteps }: Readonly<{ bookId: string; title: string; failedSteps: string[] }>) {
+  // failedSteps is the ingestion task's snapshot and never changes; the book's
+  // pipelineStatus says which steps a rerun has made good since, so a remount
+  // does not offer (and charge for) the same rerun twice. Until the book loads
+  // every snapshot step is listed, as before.
+  const { data: book } = useBook(bookId);
+  const [running, setRunning] = useState<RunningUnraveling | null>(null);
+  useEffect(() => {
+    let live = true;
+    fetchRunningUnraveling(bookId)
+      .then((r) => { if (live) setRunning(r); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, [bookId]);
+
+  const pending = parseFailedSteps(failedSteps).filter(
+    (s) => !(s.status && book?.pipelineStatus?.[s.status] === 'done'),
+  );
+  const allResolved = pending.length === 0;
 
   return (
     <div className="up-card up-task">
@@ -124,13 +197,12 @@ function PartialRerunCard({ bookId, title, failedSteps }: Readonly<{ bookId: str
           </div>
         ) : (
           pending.map((fs) => (
-            <div key={fs.id} className="up-rerun-row">
-              <div className="up-rerun-main">
-                <span className="up-rerun-name">{fs.label}</span>
-                {fs.detail && <code className="up-code">{fs.detail}</code>}
-              </div>
-              <RerunButton st={state[fs.id] ?? 'idle'} canRerun={fs.step !== null} onRerun={() => handleRerun(fs)} />
-            </div>
+            <RerunRow
+              key={fs.id}
+              bookId={bookId}
+              fs={fs}
+              adoptTaskId={running?.op && running.op === fs.step ? (running.taskId ?? null) : null}
+            />
           ))
         )}
         <div className="up-partial-foot">
