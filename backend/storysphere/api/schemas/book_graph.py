@@ -117,6 +117,14 @@ class InferredRelationsResponse(BaseModel):
     total: int = 0
 
 
+class ConfirmInferredConceptResponse(BaseModel):
+    """The Concept entity an adopted proposition became (#10g)."""
+
+    model_config = _CAMEL
+
+    entity_id: str
+
+
 class InferredConceptResponse(BaseModel):
     """A thematic proposition awaiting review (B-092)."""
 

@@ -215,6 +215,8 @@
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
 }
+/* 群組標籤：邊線穿過這裡，文字後墊一層紙色描邊 */
+.bo-svg-note-halo { paint-order: stroke; stroke: var(--bg-primary); stroke-width: 4px; stroke-linejoin: round; }
 /* L0 菱形記號的 Tooltip 載體：SVG 形狀裝不了 DOM Tooltip，疊一塊透明點擊區 */
 .bo-diahit { position: absolute; width: 16px; height: 16px; }
 .bo-diahit .ss-tooltip-anchor { width: 100%; height: 100%; }
@@ -225,7 +227,9 @@
 .bo-side {
   flex-shrink: 0;
   width: 340px;
-  max-height: 699px;
+  /* 並排時與 DAG 面板等高：contain:size 讓右欄不撐高這一列，由 DAG 決定列高，
+     右欄內容自己捲動（原寫死 max-height 699px） */
+  contain: size;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -384,7 +388,9 @@
 .bo-box-icon { flex-shrink: 0; margin-top: var(--space-1); }
 .bo-box.is-running { flex-direction: row; align-items: center; background: var(--color-info-bg); }
 .bo-box-spin { flex-shrink: 0; color: var(--color-info); }
-.bo-run-view { margin-left: auto; }
+.bo-run-actions { margin-left: auto; display: inline-flex; gap: var(--space-3); }
+.bo-box.is-done { flex-direction: row; align-items: center; background: var(--status-complete-bg); }
+.bo-box-done-icon { flex-shrink: 0; color: var(--status-complete-fg); }
 .bo-box.is-fail { background: var(--color-error-bg); border-color: var(--color-error); }
 
 /* blocker chips：可點，跳去該節點 */
@@ -492,11 +498,11 @@
 .bo-skel { display: block; border-radius: 3px; background: var(--bg-tertiary); }
 .bo-skel-node { width: 100%; height: 26px; border-radius: 4px; }
 .bo-skel-cols {
+  min-height: 586px; /* 畫布高（SVG_H），載入完成時版面不跳 */
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: var(--space-5);
   align-content: start;
-  min-height: 260px;
   margin-top: var(--space-5);
 }
 .bo-skel-col { display: flex; flex-direction: column; gap: var(--space-4); }
@@ -508,7 +514,7 @@
    右欄移到 DAG 下方、全寬、不限高 */
 @container (max-width: 1121px) {
   .bo-main { flex-direction: column; }
-  .bo-side { width: auto; max-height: none; }
+  .bo-side { width: auto; contain: none; max-height: none; }
 }
 
 /* 頁名 h1 只給輔助技術（同張力、時間軸頁） */

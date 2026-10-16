@@ -506,8 +506,11 @@ export function ctaStateFor(nodeId: string, status: NodeStatus): 'empty' | 'part
 }
 
 /** 附加資訊的空值顯示「—」（2026-09-26 裁決）。 */
-export function metaValueText(value: string | number | boolean | undefined | null): string {
+export function metaValueText(value: unknown): string {
   if (value === undefined || value === null) return '—';
-  const text = String(value);
+  // `meta` is `Record<string, unknown>` on the wire; the backend only puts
+  // scalars there today, but anything else is shown as JSON rather than
+  // "[object Object]".
+  const text = typeof value === 'object' ? JSON.stringify(value) : String(value);
   return text.trim() === '' ? '—' : text;
 }

@@ -99,8 +99,8 @@ export function fetchInferredConcepts(
 export function confirmInferredConcept(
   bookId: string,
   conceptId: string,
-): Promise<{ entityId: string }> {
-  return apiFetch<{ entityId: string }>(
+): Promise<components['schemas']['ConfirmInferredConceptResponse']> {
+  return apiFetch<components['schemas']['ConfirmInferredConceptResponse']>(
     `/books/${bookId}/inferred-concepts/${conceptId}/confirm`,
     { method: 'POST' },
   );

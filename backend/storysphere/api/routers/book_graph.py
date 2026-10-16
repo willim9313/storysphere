@@ -30,6 +30,7 @@ from storysphere.api.llm_guard import require_llm_provider
 from storysphere.api.routers.unraveling import UNRAVELING_GUARD_KIND
 from storysphere.api.schemas.book_graph import (
     ClassifyVisibilityResponse,
+    ConfirmInferredConceptResponse,
     ConfirmInferredRequest,
     EpistemicStateResponse,
     GraphDataResponse,
@@ -365,7 +366,11 @@ async def list_inferred_concepts(
     )
 
 
-@router.post("/{book_id}/inferred-concepts/{concept_id}/confirm", status_code=201)
+@router.post(
+    "/{book_id}/inferred-concepts/{concept_id}/confirm",
+    response_model=ConfirmInferredConceptResponse,
+    status_code=201,
+)
 async def confirm_inferred_concept(
     book_id: str,
     concept_id: str,
@@ -388,7 +393,7 @@ async def confirm_inferred_concept(
         raise HTTPException(
             status_code=404, detail=f"InferredConcept '{concept_id}' not found"
         )
-    return {"entityId": entity.id}
+    return ConfirmInferredConceptResponse(entity_id=entity.id).model_dump(by_alias=True)
 
 
 @router.post("/{book_id}/inferred-concepts/{concept_id}/reject", status_code=204)

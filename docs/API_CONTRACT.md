@@ -1152,7 +1152,7 @@ interface InferredConceptsResponse {
 
 採用命題，寫入圖譜成為 Concept 節點。
 
-**Response 201**：`{ entityId: string }`
+**Response 201**：`ConfirmInferredConceptResponse` — `{ entityId: string }`（2026-10-16 起有 `response_model`，型別進 `generated.ts`；JSON 形狀不變）
 
 重複確認回傳既有 entity，不寫第二個節點。`conceptId` 不屬於該書時回 404。
 
@@ -2458,12 +2458,12 @@ interface UnravelingManifest {
 
 interface UnravelingNode {
   nodeId: string;
-  layer: number;             // 0 = Text / 1 = KG / 2 = Analysis
-  label: string;
+  layer: number;             // 0 = 文本 / 1 = 知識圖譜 / 2 = 分析中間產物 / 3 = 衍生分析 / 4 = 全書合成
+  label: string;             // 後端英文標籤（可含 \n）；前端以 i18n `unraveling.node.*` 顯示
   status: 'complete' | 'partial' | 'empty';
   counts: Record<string, number>;
-  meta: Record<string, string | number | boolean>;
-  parentId?: string;
+  meta: Record<string, unknown>;   // 目前只放純量（書名、作者、語言等）
+  parentId?: string | null;
 }
 
 interface UnravelingEdge {
@@ -2485,7 +2485,7 @@ interface UnravelingEdge {
 interface ChapterDistribution {
   bookId: string;
   totalChapters: number;   // 只計 body 章
-  // nodeId → 12-cell（依書籍實際 body 章節數）counts；
+  // nodeId → 每章一格的 counts，長度＝body 章節數（＝totalChapters）；
   // 不在此 map 中的 nodeId 表示該節點無 chapter-aware 資料
   distributions: Record<string, number[]>;
 }
@@ -3246,6 +3246,7 @@ response schema 與測試檔。
   - 2026-10-14：#14a／#14c／#14g 同書共用一把鎖，執行中回 409 `batch_running`，書不存在回 404；新增 #14k `GET /tension/running`；#14b／#14d／#14h 只回張力類 task；#14d-2／#14e／#14i 書不存在回 404。文件更正：`language` 省略時為 `'en'`、#14i `stale_reason` 補 `pipeline_rerun`、#14e `chapter_range` 為 `[min, max]`、query key、元件名 TensionThemeHero。
 - [x] **#19 建構概覽**
   - 2026-10-15：#8d 與 #10e 同書共用一把鎖，執行中回 409 `batch_running`；新增 #19c `GET /books/:bookId/unraveling/running`。
+  - 2026-10-16：文件更正——#19 `layer` 為 0–4 五層、`meta` 為 `Record<string, unknown>`、`parentId` 可為 null（與 `generated.ts` 一致，前端 `api/buildOverview.ts` 改用 generated 型別）；#19b `distributions` 每格一章、長度＝body 章數。#10g 加 `response_model`（`ConfirmInferredConceptResponse`），JSON 不變。
   - 2026-10-15：建構概覽頁接上 #19c；#8d 說明的 query key 更正（原寫單數 `['book', bookId]`，實際為 `['books', bookId]`）。
 - [x] **#15d-#15h 象徵意象進階分析**：SEP + LLM 詮釋 + HITL 審核已實作（`backend/storysphere/api/routers/symbols.py`）
 - [x] **#16a VoiceProfile**：GET lazy 生成（無 404 表示未生成），DELETE 清快取；無另外的 POST trigger

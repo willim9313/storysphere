@@ -85,6 +85,9 @@ describe('useBuildRun', () => {
 
     await waitFor(() => expect(result.current.runningKey).toBeNull());
     expect(result.current.failure).toBeNull();
+    expect(result.current.doneKey).toBe('summarization');
+    act(() => result.current.dismissDone());
+    expect(result.current.doneKey).toBeNull();
     expect(spy).toHaveBeenCalledWith({ queryKey: qk.book('b1') });
     expect(spy).toHaveBeenCalledWith({ queryKey: qk.buildOverview.manifest('b1') });
     expect(spy).toHaveBeenCalledWith({ queryKey: ['narrative', 'b1'] });

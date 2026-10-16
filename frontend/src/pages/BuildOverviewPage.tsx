@@ -3,7 +3,7 @@ import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Trans, useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { AlertTriangle, ArrowLeft, Info, Loader2, ArrowUpRight } from 'lucide-react';
+import { AlertTriangle, ArrowLeft, CheckCircle2, Info, Loader2, ArrowUpRight } from 'lucide-react';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { GuidanceRibbon } from '@/components/ui/GuidanceRibbon';
 import { LlmUnconfiguredNotice } from '@/components/ui/LlmUnconfiguredNotice';
@@ -371,6 +371,7 @@ function DagNode({
         width={NODE_W + 12}
         height={NODE_H + 12}
         rx={9}
+        style={{ rx: 'calc(var(--dag-node-radius) * 2.25)' } as CSSProperties}
         fill="none"
         strokeDasharray="2 3"
       />
@@ -385,6 +386,7 @@ function DagNode({
           width={NODE_W + 6}
           height={NODE_H + 6}
           rx={6}
+          style={{ rx: 'calc(var(--dag-node-radius) * 1.5)' } as CSSProperties}
           fill="none"
           stroke="var(--accent)"
           strokeWidth={1.5}
@@ -397,6 +399,7 @@ function DagNode({
           width={NODE_W + 8}
           height={NODE_H + 8}
           rx={8}
+          style={{ rx: 'calc(var(--dag-node-radius) * 2)' } as CSSProperties}
           fill="none"
           stroke="var(--accent)"
           strokeWidth={2}
@@ -409,6 +412,7 @@ function DagNode({
         width={NODE_W}
         height={NODE_H}
         rx={4}
+        style={{ rx: 'var(--dag-node-radius)' } as CSSProperties}
         fill={`var(--status-${node.status}-bg)`}
         stroke={stroke}
         strokeWidth={isDrop || isUp ? 1.5 : 1}
@@ -542,12 +546,16 @@ function DagCanvas({
             width={KG_GROUP_BOX.w}
             height={KG_GROUP_BOX.h}
             rx={6}
+            // Radii scale off one shape token (Warm 4px, Ink square); the
+            // attribute stays as the fallback where CSS `rx` is unsupported.
+            style={{ rx: 'calc(var(--dag-node-radius) * 1.5)' } as CSSProperties}
             fill="none"
             stroke="var(--border)"
             strokeWidth={1}
             strokeDasharray="3 3"
           />
-          <text className="bo-svg-note" x={KG_GROUP_BOX.x + 4} y={KG_GROUP_BOX.y - 2}>
+          {/* Paper-coloured halo behind the text: edges into L1 cross here. */}
+          <text className="bo-svg-note bo-svg-note-halo" x={KG_GROUP_BOX.x + 4} y={KG_GROUP_BOX.y - 3}>
             {t('unraveling.dag.kgGroup')}
           </text>
         </g>
@@ -676,7 +684,8 @@ function SummaryStrip({ manifest }: Readonly<{ manifest: BuildOverviewManifest }
                 className="bo-bar-seg"
                 style={{
                   flex: s.count,
-                  background: `var(--status-${s.status}-bg)`,
+                  // Built reads as filled; partial / not built keep tint + frame.
+                  background: s.status === 'complete' ? 'var(--status-complete-border)' : `var(--status-${s.status}-bg)`,
                   borderColor: `var(--status-${s.status}-border)`,
                 }}
               />
@@ -1288,18 +1297,43 @@ function NodeDetail({
 
 // ── Run banner：本頁有建構在跑時，在總覽下方說是哪個 ─────────────────────────────
 
-function RunBanner({ runningKey, onView }: Readonly<{ runningKey: TriggerKey; onView: (nodeId: string) => void }>) {
+function RunBanner({
+  runningKey, doneKey, onView, onDismiss,
+}: Readonly<{
+  runningKey: TriggerKey | null;
+  doneKey: TriggerKey | null;
+  onView: (nodeId: string) => void;
+  onDismiss: () => void;
+}>) {
   const { t } = useTranslation('analysis');
-  const first = triggerNodeIds(runningKey)[0];
+  const key = runningKey ?? doneKey;
+  if (!key) return null;
+  const first = triggerNodeIds(key)[0];
+  const names = triggerNames(t, key);
+  // One live region for both states, so the change from running to done is
+  // announced. Done stays until dismissed or the next build starts.
   return (
-    <div className="bo-box is-running" role="status">
-      <Loader2 size={14} className="animate-spin bo-box-spin" aria-hidden="true" />
-      <span className="bo-box-title">{t('unraveling.run.banner', { names: triggerNames(t, runningKey) })}</span>
-      {first && (
-        <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary bo-run-view" onClick={() => onView(first)}>
-          {t('unraveling.run.view')}
-        </button>
+    <div className={`bo-box ${runningKey ? 'is-running' : 'is-done'}`} role="status">
+      {runningKey ? (
+        <Loader2 size={14} className="animate-spin bo-box-spin" aria-hidden="true" />
+      ) : (
+        <CheckCircle2 size={14} className="bo-box-done-icon" aria-hidden="true" />
       )}
+      <span className="bo-box-title">
+        {runningKey ? t('unraveling.run.banner', { names }) : t('unraveling.run.done', { names })}
+      </span>
+      <span className="bo-run-actions">
+        {first && (
+          <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary" onClick={() => onView(first)}>
+            {t('unraveling.run.view')}
+          </button>
+        )}
+        {!runningKey && (
+          <button type="button" className="ss-btn ss-btn-sm ss-btn-ghost" onClick={onDismiss}>
+            {t('unraveling.run.dismiss')}
+          </button>
+        )}
+      </span>
     </div>
   );
 }
@@ -1504,7 +1538,12 @@ export default function BuildOverviewPage() {
 
         <SummaryStrip manifest={manifest} />
 
-        {run.runningKey && <RunBanner runningKey={run.runningKey} onView={selectFromOutside} />}
+        <RunBanner
+          runningKey={run.runningKey}
+          doneKey={run.doneKey}
+          onView={selectFromOutside}
+          onDismiss={run.dismissDone}
+        />
 
         <div className="bo-main">
           <div className="bo-dagpane" ref={dagRef}>
