@@ -1052,6 +1052,7 @@
       "rawCounts": "原始計數",
       "meta": "附加資訊",
       "triggerSoon": "觸發建構功能規劃中",
+      "buildOnPage": "這一層在「{{page}}」頁建立 →",
       "sharedTrigger": "與 {{names}} 是同一次執行的不同檢視",
       "missingPrereq": "還缺 {{n}} 項前置",
       "blockedByHazard": "這一層刻意不提供重跑：對已失去 EEP 快取的書重新分類，會洗掉知識圖譜既有的 kernel 權重，且無法還原。",
@@ -1066,6 +1067,9 @@
     "cta": {
       "running": "建構中…",
       "failed": "觸發失敗",
+      "taskFailed": "建構沒有完成",
+      "rateLimitedTitle": "供應商額度或頻率上限",
+      "rateLimitedBody": "稍後再試；已完成的部分會保留。",
       "generic": {
         "partial": "補齊剩餘部分",
         "empty": "開始建構",
@@ -1194,6 +1198,10 @@
     "openPageNotImplemented": "尚未實作",
     "counts": {
       "chapters": "章節",
+      "title": "書名",
+      "author": "作者",
+      "language": "語言",
+      "total_imagery": "意象總數",
       "paragraphs": "段落",
       "chaptersN": "{{n}} 章",
       "paragraphsN": "{{n}} 段",

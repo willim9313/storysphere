@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Trans, useTranslation } from 'react-i18next';
@@ -65,6 +65,8 @@ import '@/styles/build-overview.css';
 // ── Node → in-book page / trigger ─────────────────────────────────────────────
 
 // Map node → corresponding in-book page (empty when no useful destination).
+/** Route under `/books/:id` where each node's data is read (and, for nodes
+ *  this page cannot trigger, built). '' is the reader itself. */
 const NODE_TO_ROUTE: Record<string, string> = {
   book_meta: '',
   chapters: '',
@@ -82,17 +84,30 @@ const NODE_TO_ROUTE: Record<string, string> = {
   symbol_analysis_result: 'symbols',
   cep: 'characters',
   character_analysis_result: 'characters',
-  hero_journey_stage: 'characters',
+  hero_journey_stage: 'narrative',
   voice_profile: 'characters',
   eep: 'events',
   causality_analysis: 'events',
   impact_analysis: 'events',
-  narrative_structure: 'events',
-  teu: 'timeline',
+  narrative_structure: 'narrative',
+  // TEUs are assembled on the tension page (Step 1), not the timeline.
+  teu: 'tension',
   temporal_analysis: 'timeline',
   chronological_rank: 'timeline',
   tension_lines: 'tension',
   tension_theme: 'tension',
+};
+
+/** The book-nav tab name of each route, for「在「{page}」頁建立」. */
+const ROUTE_TAB: Readonly<Record<string, string>> = {
+  '': 'read',
+  graph: 'knowledgeGraph',
+  timeline: 'timeline',
+  symbols: 'symbolImagery',
+  characters: 'characterAnalysis',
+  events: 'eventAnalysis',
+  narrative: 'narrativeStructure',
+  tension: 'tensionAnalysis',
 };
 
 // What each trigger calls. Which nodes share a trigger, and which of those drop
@@ -115,6 +130,9 @@ const TRIGGER_RUN: Record<TriggerKey, (bookId: string) => Promise<{ taskId: stri
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
+
+/** Provider quota / rate-limit wording seen in task errors (Gemini, OpenAI, HTTP). */
+const RATE_LIMIT_RE = /\b429\b|quota|rate.?limit|ResourceExhausted|too many requests/i;
 
 function nodeLabel(t: TFunction, n: BuildOverviewNode): string {
   // Strip API \n line breaks and prefer i18n; fall back to the raw API label.
@@ -240,6 +258,8 @@ interface Selection {
   chain: Set<string>;
   /** Direct neighbours, both directions. */
   neighbors: Set<string>;
+  /** Built by the same run as the selected node. */
+  peers: Set<string>;
   /** What a rerun of the selected node deletes (built nodes only). */
   dropped: BuildOverviewNode[];
 }
@@ -250,6 +270,7 @@ function selectionOf(manifest: BuildOverviewManifest, nodeId: string | null): Se
     nodeId,
     chain: new Set(upstreamChain(manifest.edges, nodeId)),
     neighbors: new Set(neighborIds(manifest.edges, nodeId)),
+    peers: new Set(sharedTriggerPeers(nodeId)),
     dropped: droppedNodes(nodeId, manifest.nodes),
   };
 }
@@ -266,6 +287,8 @@ interface DagNodeProps {
   isTabStop: boolean;
   /** The trigger that builds this node has a run going. */
   running: boolean;
+  /** Proposals wait for a human ruling on this node (inferred concepts). */
+  needsReview: boolean;
   onSelect: (id: string) => void;
   onNavigate: (from: string, direction: NavDirection) => void;
   t: TFunction;
@@ -281,7 +304,7 @@ const NAV_KEYS: Readonly<Record<string, NavDirection>> = {
 };
 
 function DagNode({
-  node, geometry, sub, label, selection, isTabStop, running, onSelect, onNavigate, t,
+  node, geometry, sub, label, selection, isTabStop, running, needsReview, onSelect, onNavigate, t,
 }: Readonly<DagNodeProps>) {
   const box = nodeBox(node.nodeId, geometry);
   const NODE_W = geometry.nodeW;
@@ -292,8 +315,10 @@ function DagNode({
   const isSelected = selection?.nodeId === id;
   const isDrop = !!selection && selection.dropped.some((d) => d.nodeId === id);
   const isUp = !!selection && !isSelected && selection.chain.has(id);
+  // Nodes built by the same run as the selected one stay lit: the detail
+  // panel says they are「同一次執行」, and fading them read as unrelated.
   const lit =
-    !selection || isSelected || isDrop || isUp || selection.neighbors.has(id);
+    !selection || isSelected || isDrop || isUp || selection.neighbors.has(id) || selection.peers.has(id);
 
   const fg = `var(--status-${node.status}-fg)`;
   const isSource = node.layer === 0;
@@ -415,10 +440,22 @@ function DagNode({
         className={`bo-node-count${isDrop ? ' is-struck' : ''}`}
         x={textX}
         y={y + 29}
-        fill={fg}
+        fill={needsReview ? 'var(--fg-primary)' : fg}
       >
         {sub}
       </text>
+      {needsReview && (
+        // The page's one human gate: a square (not a status circle, not a
+        // hue) beside the status mark. The node's status stays the manifest's.
+        <rect
+          className="bo-node-review"
+          x={x + NODE_W - 24}
+          y={y + 6.5}
+          width={7}
+          height={7}
+          fill="var(--color-warning)"
+        />
+      )}
       {isDrop && (
         <text
           className="bo-node-drop"
@@ -523,10 +560,17 @@ function DagCanvas({
           let stroke = 'var(--border)';
           if (role === 'up') stroke = 'var(--accent)';
           else if (role === 'link') stroke = 'var(--fg-secondary)';
-          let opacity: number;
+          // At rest the edge colour is --border, which is pale in Warm and
+          // near-black in Ink: the opacities are shape tokens so each theme
+          // lands on a readable weight.
+          // (var() only resolves in a style, not in an SVG presentation attribute.)
+          let opacity: number | string;
           if (selection) opacity = role === 'rest' ? 0.14 : 1;
           else if (e.kind === 'back') opacity = 0.7;
-          else opacity = e.spansColumns ? 0.3 : 0.55;
+          else opacity = e.spansColumns ? 'var(--dag-edge-span-opacity)' : 'var(--dag-edge-rest-opacity)';
+          let edgeStyle: CSSProperties = { opacity };
+          if (role === 'up') edgeStyle = { ...edgeStyle, strokeWidth: 'var(--dag-chain-edge-width)' };
+          else if (role === 'link' && e.kind !== 'back') edgeStyle = { ...edgeStyle, strokeDasharray: 'var(--dag-link-edge-dash)' };
           return (
             <path
               key={`${e.source}-${e.target}-${e.index}`}
@@ -536,17 +580,10 @@ function DagCanvas({
               strokeWidth={role === 'rest' ? 1 : 1.5}
               strokeDasharray={e.kind === 'back' ? '5 3' : undefined}
               strokeLinejoin="round"
-              opacity={opacity}
               // Ink: upstream and direct links are both dark solid lines, so
               // the chain carries weight and the links a dash (shape tokens;
               // Warm keeps 1.5 solid for both and tells them apart by hue).
-              style={
-                role === 'up'
-                  ? { strokeWidth: 'var(--dag-chain-edge-width)' }
-                  : role === 'link' && e.kind !== 'back'
-                    ? { strokeDasharray: 'var(--dag-link-edge-dash)' }
-                    : undefined
-              }
+              style={edgeStyle}
             />
           );
         })}
@@ -576,6 +613,7 @@ function DagCanvas({
             selection={selection}
             isTabStop={n.nodeId === tabStop}
             running={runningKey !== null && NODE_TRIGGER_KEY[n.nodeId] === runningKey}
+            needsReview={n.nodeId === 'kg_concept_inferred' && !!pendingConcepts}
             onSelect={onSelect}
             onNavigate={navigate}
             t={t}
@@ -968,6 +1006,7 @@ function NodeDetail({
   node, bookId, manifest, chapterDist, run, focusOnMount, onSelectNode,
 }: Readonly<NodeDetailProps>) {
   const { t } = useTranslation('analysis');
+  const { t: tn } = useTranslation('nav');
   const titleRef = useRef<HTMLHeadingElement>(null);
   // Picked from the layer list or a blocker chip, the panel's content changes
   // under the focused control (or removes it): land on the new node's name.
@@ -1006,6 +1045,12 @@ function NodeDetail({
   // 「供應商回傳 {status}」 line cannot be built (4-UN-7); keep the raw text as
   // technical detail rather than dropping what the old panel showed.
   const failTech = triggerFailure !== null ? techDetailOf(triggerFailure) : ownFailure?.message;
+  // A provider quota / rate limit is the common failure and retrying at once
+  // only pays again; say so in words. The raw text stays as technical detail.
+  const rateLimited = !!failTech && RATE_LIMIT_RE.test(failTech);
+  let failTitle = t('unraveling.cta.failed');
+  if (rateLimited) failTitle = t('unraveling.cta.rateLimitedTitle');
+  else if (triggerFailure === null) failTitle = t('unraveling.cta.taskFailed');
 
   const handleConfirm = () => {
     if (!triggerKey) return;
@@ -1034,8 +1079,8 @@ function NodeDetail({
     </button>
   );
 
-  const goTo = route ? (
-    <Link to={`/books/${bookId}/${route}`} className="bo-goto">
+  const goTo = route !== undefined ? (
+    <Link to={route ? `/books/${bookId}/${route}` : `/books/${bookId}`} className="bo-goto">
       <ArrowUpRight size={12} aria-hidden="true" />
       {t('unraveling.detail.openPage')}
     </Link>
@@ -1109,11 +1154,18 @@ function NodeDetail({
   } else if (mode === 'done') {
     action = <Note>{t('unraveling.detail.allBuilt')}</Note>;
   } else if (mode === 'soon') {
-    action = (
-      <button type="button" className="ss-btn ss-btn-md ss-btn-secondary bo-wide" disabled>
-        {t('unraveling.detail.triggerSoon')}
-      </button>
-    );
+    // No trigger here, but every such layer is built on another page: point
+    // there rather than at a dead「規劃中」button (a blocker chip lands here).
+    action =
+      route !== undefined ? (
+        <Link to={route ? `/books/${bookId}/${route}` : `/books/${bookId}`} className="ss-btn ss-btn-md ss-btn-secondary bo-wide">
+          {t('unraveling.detail.buildOnPage', { page: tn(`tabs.${ROUTE_TAB[route]}`) })}
+        </Link>
+      ) : (
+        <button type="button" className="ss-btn ss-btn-md ss-btn-secondary bo-wide" disabled>
+          {t('unraveling.detail.triggerSoon')}
+        </button>
+      );
   } else if (mode === 'trigger') {
     action = (
       <div className="bo-action">
@@ -1122,8 +1174,9 @@ function NodeDetail({
           <div className="bo-box is-fail" role="alert">
             <span className="bo-box-title is-error">
               <AlertTriangle size={13} aria-hidden="true" />
-              {t('unraveling.cta.failed')}
+              {failTitle}
             </span>
+            {rateLimited && <span className="bo-box-text">{t('unraveling.cta.rateLimitedBody')}</span>}
             {failTech && <code className="bo-box-tech">{failTech}</code>}
             {triggerButton('secondary')}
           </div>
