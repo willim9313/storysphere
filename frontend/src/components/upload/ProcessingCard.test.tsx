@@ -67,4 +67,17 @@ describe('ProcessingCard terminal states', () => {
     await waitFor(() => expect(h.onError).toHaveBeenCalledWith('t1', '雪線之下.pdf', 'PdfParseError: encrypted'));
     expect(h.onGone).not.toHaveBeenCalled();
   });
+
+  it('a failed poll (5xx) is not a failed task: the card stays and says so', async () => {
+    queryClient = new QueryClient({ defaultOptions: { queries: { gcTime: 0, retryDelay: 0 } } });
+    fetchTaskStatus
+      .mockImplementationOnce(() => Promise.resolve(status({ progress: 40 })))
+      .mockImplementation(() => Promise.reject(new ApiError(500, 'boom')));
+    const h = renderCard();
+    await waitFor(() => expect(fetchTaskStatus).toHaveBeenCalledTimes(1));
+    await queryClient.refetchQueries();
+    await waitFor(() => expect(document.querySelector('[role="status"]')).not.toBeNull());
+    expect(h.onError).not.toHaveBeenCalled();
+    expect(h.onGone).not.toHaveBeenCalled();
+  });
 });
