@@ -140,9 +140,11 @@ export default function UploadPage() {
   // original title/author/language (only the file needs re-picking).
   const uploadMetaRef = useRef<Map<string, RetryMeta & { fileName: string }>>(new Map());
   // Hidden input the error-card "retry" button drives; retryMetaRef carries the
-  // metadata to reuse for the re-picked file.
+  // metadata to reuse for the re-picked file, retryTaskIdRef the card to drop
+  // once a file is actually picked (a cancelled picker keeps the card).
   const retryInputRef = useRef<HTMLInputElement>(null);
   const retryMetaRef = useRef<RetryMeta | null>(null);
+  const retryTaskIdRef = useRef<string | null>(null);
   const detectTriedRef = useRef<Set<string>>(new Set());
 
   useEffect(() => {
@@ -218,11 +220,14 @@ export default function UploadPage() {
   }, [active, activeId]);
 
   const abortRef = useRef<AbortController | null>(null);
+  // Set synchronously on send: two quick Enters land before `upload.isPending`
+  // re-renders, and the disabled button does not guard the Enter path.
+  const submittingRef = useRef(false);
 
   const upload = useMutation({
-    mutationFn: ({ file, title, author, language, signal }: { file: File; title: string; author?: string; language?: string; signal: AbortSignal }) =>
+    mutationFn: ({ file, title, author, language, signal }: { pendingId: string; file: File; title: string; author?: string; language?: string; signal: AbortSignal }) =>
       uploadBook(file, title, author, language, signal),
-    onSuccess: (data, { file, title, author, language }) => {
+    onSuccess: (data, { pendingId, file, title, author, language }) => {
       uploadMetaRef.current.set(data.taskId, {
         title,
         author: author ?? '',
@@ -237,12 +242,17 @@ export default function UploadPage() {
       // when idle, so a freshly started ingestion must invalidate the shared
       // list query to resume polling and eventually fire its completion toast.
       void queryClient.invalidateQueries({ queryKey: qk.tasks.list() });
-      // Advance to the next queued file; the last drop's rejections are moot now.
-      setQueue((q) => q.slice(1));
+      // Advance past the file that was sent (by id, not position: the queue
+      // may have changed while the request was in flight); the last drop's
+      // rejections are moot now.
+      setQueue((q) => q.filter((p) => p.id !== pendingId));
       setRejections([]);
     },
     onError: (err: Error) => {
       if (err.name === 'AbortError') return;
+    },
+    onSettled: () => {
+      submittingRef.current = false;
     },
   });
 
@@ -262,10 +272,12 @@ export default function UploadPage() {
   );
 
   const handleConfirmUpload = useCallback(() => {
-    if (!active || !active.title.trim()) return;
+    if (!active || !active.title.trim() || submittingRef.current) return;
+    submittingRef.current = true;
     const controller = new AbortController();
     abortRef.current = controller;
     upload.mutate({
+      pendingId: active.id,
       file: active.file,
       title: active.title.trim(),
       author: active.author.trim() || undefined,
@@ -277,6 +289,7 @@ export default function UploadPage() {
   const handleCancelActive = useCallback(() => {
     abortRef.current?.abort();
     abortRef.current = null;
+    submittingRef.current = false;
     upload.reset();
     setQueue((q) => q.slice(1));
     setRejections([]);
@@ -332,18 +345,20 @@ export default function UploadPage() {
 
   const handleRetry = useCallback((et: ErroredTask) => {
     retryMetaRef.current = et.meta ?? null;
-    dismissErroredTask(et.taskId);
+    retryTaskIdRef.current = et.taskId;
     retryInputRef.current?.click();
-  }, [dismissErroredTask]);
+  }, []);
 
   const handleRetryFilePicked = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
+    if (retryTaskIdRef.current) dismissErroredTask(retryTaskIdRef.current);
     upload.reset();
     setQueue((q) => [toPending(file, retryMetaRef.current ?? undefined), ...q]);
     retryMetaRef.current = null;
-  }, [upload]);
+    retryTaskIdRef.current = null;
+  }, [upload, dismissErroredTask]);
 
 
   const titleDup = active ? libraryTitles.has(active.title.trim()) : false;
