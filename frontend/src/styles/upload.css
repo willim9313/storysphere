@@ -313,6 +313,7 @@ select.up-input { cursor: pointer; }
 }
 .up-failed-icon { display: inline-flex; flex-shrink: 0; margin-top: var(--space-1); color: var(--color-error); }
 .up-failed-main { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-3); }
+.up-failed-reason { font-family: var(--font-sans); font-size: var(--font-size-xs); line-height: 1.6; color: var(--fg-primary); }
 .up-failed-name { font-family: var(--font-sans); font-size: var(--font-size-xs); font-weight: 600; color: var(--color-error); overflow-wrap: anywhere; }
 .up-failed .up-icon-btn { margin-top: var(--space-1); }
 

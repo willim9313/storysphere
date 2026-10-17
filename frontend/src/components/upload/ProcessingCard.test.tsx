@@ -71,9 +71,11 @@ describe('ProcessingCard terminal states', () => {
   });
 
   it('a real failure still becomes an error card', async () => {
-    fetchTaskStatus.mockImplementation(() => Promise.resolve(status({ status: 'error', error: 'PdfParseError: encrypted' })));
+    fetchTaskStatus.mockImplementation(() =>
+      Promise.resolve(status({ status: 'error', error: 'File has not been decrypted', errorKind: 'encrypted' })));
     const h = renderCard();
-    await waitFor(() => expect(h.onError).toHaveBeenCalledWith('t1', '雪線之下.pdf', 'PdfParseError: encrypted'));
+    await waitFor(() =>
+      expect(h.onError).toHaveBeenCalledWith('t1', '雪線之下.pdf', 'File has not been decrypted', 'encrypted'));
     expect(h.onGone).not.toHaveBeenCalled();
   });
 

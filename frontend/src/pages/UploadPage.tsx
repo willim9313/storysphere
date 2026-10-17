@@ -4,6 +4,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, FileText, Loader2, X } from 'lucide-react';
 import type { TimelineDetectionResponse } from '@/api/graph';
+import type { TaskStatus } from '@/api/types';
 import { detectLanguage, uploadBook } from '@/api/ingest';
 import { fetchTasks } from '@/api/tasks';
 import { failureKind, techDetailOf } from '@/api/failureKind';
@@ -34,6 +35,8 @@ interface ErroredTask {
   taskId: string;
   fileName: string;
   message?: string;
+  /** Why it failed (#8 errorKind) — worded above the raw message. */
+  errorKind?: TaskStatus['errorKind'];
   meta?: RetryMeta;
 }
 
@@ -321,18 +324,18 @@ export default function UploadPage() {
     [],
   );
 
-  const handleTaskError = useCallback((taskId: string, fileName: string, message?: string) => {
+  const handleTaskError = useCallback((taskId: string, fileName: string, message?: string, errorKind?: TaskStatus['errorKind']) => {
     const meta = uploadMetaRef.current.get(taskId);
     setTasks((prev) => prev.filter((t) => t.taskId !== taskId));
     // Only removal point for a task, and the errored entry below keeps just
-    // {taskId, fileName, message, meta} — so the murmur buffer becomes
+    // {taskId, fileName, message, errorKind, meta} — so the murmur buffer becomes
     // unreachable here. The store is module-level by design (it has to survive
     // remount and navigation), which also means nothing reclaims it unless
     // someone says so.
     clearMurmur(taskId);
     setErroredTasks((prev) => [
       ...prev,
-      { taskId, fileName, message, meta: meta ? { title: meta.title, author: meta.author, language: meta.language } : undefined },
+      { taskId, fileName, message, errorKind, meta: meta ? { title: meta.title, author: meta.author, language: meta.language } : undefined },
     ]);
   }, []);
 
@@ -563,6 +566,9 @@ export default function UploadPage() {
                   <span className="up-failed-icon"><AlertTriangle size={18} /></span>
                   <div className="up-failed-main">
                     <span className="up-failed-name">{et.fileName}</span>
+                    {/* The kind in words (and whether retrying this file can
+                        help); the backend's text stays below as detail. */}
+                    {et.errorKind && <span className="up-failed-reason">{t(`failedKind.${et.errorKind}`)}</span>}
                     {et.message && <code className="up-code">{et.message}</code>}
                   </div>
                   <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary" onClick={() => handleRetry(et)}>

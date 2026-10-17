@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { AlertTriangle, CircleCheck, Clock, Loader2, ShieldAlert, Unplug } from 'lucide-react';
 import type { TimelineDetectionResponse } from '@/api/graph';
-import type { PipelineStatus } from '@/api/types';
+import type { PipelineStatus, TaskStatus } from '@/api/types';
 import { ApiError } from '@/api/client';
 import { fetchRunningUnraveling, type RunningUnraveling } from '@/api/buildOverview';
 import { isLlmUnconfigured } from '@/api/failureKind';
@@ -228,7 +228,7 @@ interface UploadTask {
 interface ProcessingCardProps {
   task: UploadTask;
   onDone: (taskId: string, bookId: string, fileName: string, detection?: TimelineDetectionResponse) => void;
-  onError: (taskId: string, fileName: string, message?: string) => void;
+  onError: (taskId: string, fileName: string, message?: string, errorKind?: TaskStatus['errorKind']) => void;
   /** The task is over without a failure: the user terminated it, or it no
    *  longer exists on the server. The card just leaves — no retry card. */
   onGone: (taskId: string) => void;
@@ -284,7 +284,7 @@ export function ProcessingCard({ task, onDone, onError, onGone }: Readonly<Proce
       }
     } else if (status.status === 'error') {
       doneRef.current = true;
-      onError(task.taskId, task.fileName, status.error ?? undefined);
+      onError(task.taskId, task.fileName, status.error ?? undefined, status.errorKind ?? undefined);
     }
   }, [status, pollError, failedSteps, task, onDone, onError, onGone]);
 
