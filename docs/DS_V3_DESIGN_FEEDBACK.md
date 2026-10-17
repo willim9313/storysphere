@@ -205,6 +205,7 @@ Handoff `redesign_v3_handoff_batch_1.zip`（`design_handoff_01_entry/`）。下�
 | 1-AA | 矛盾 · 「已處理 mm:ss」計時起點 `startedAt` 不存在於資料卡 | 待同步 |
 | 1-AB | 遺漏 · 處理中卡「輪詢連不上」沒畫 | 待同步 |
 | 1-AC | 遺漏 · 部分完成卡的重跑遇到 409／503、重掛載 | 待同步 |
+| 1-AD | 矛盾 · 同一步驟三種叫法、murmur 小標露出 camelCase | 待同步 |
 
 ### 1-A 投件拒絕文案其實已存在
 
@@ -433,6 +434,15 @@ Handoff `redesign_v3_handoff_batch_1.zip`（`design_handoff_01_entry/`）。下�
   409 同一步→接手、別步→該列就地 warning 列沿用閱讀頁字串「此書已有建構任務在執行，完成後再試。前往建構概覽 →」；
   503→就地 `LlmUnconfiguredNotice`（同閱讀頁）。兩者按鈕維持「重跑」、不推失敗 toast。排入 toast 改在後端接受後才推。
 - **請設計端**：03 E 區補 409／503 兩態。
+
+### 1-AD 同一步驟三種叫法、murmur 小標露出 camelCase
+
+- **出處**：03 C 區 timeline 步驟名（摘要生成／特徵提取／知識圖譜／符號探索）；E 區部分完成卡（章節摘要／特徵擷取／知識圖譜建構）；
+  README §2 C murmur eyebrow「`stepKey · ch.NN`」。
+- **問題**：同一頁同一步驟有三種名字，murmur 小標在中英文介面都露出 `featureExtraction` 這種程式 key。
+- **目前處置**（2026-10-17，使用者裁決）：部分完成卡與 murmur 小標都改用 timeline 的 `upload:steps.*`（例：「特徵提取 · ch.03」）；
+  未知 key 原樣顯示。
+- **請設計端**：03 E 區步驟名、README eyebrow 字面改為步驟名。
 
 ---
 

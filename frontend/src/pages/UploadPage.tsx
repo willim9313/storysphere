@@ -171,7 +171,7 @@ export default function UploadPage() {
           const recovered = activeServer
             .filter((task) => !known.has(task.taskId))
             .map((task) => {
-              const title = (task.title ?? '').replace(/ 解析$/, '') || '書籍處理中';
+              const title = (task.title ?? '').replace(/ 解析$/, '') || t('card.processingBook');
               return { taskId: task.taskId, fileName: title, title };
             });
           return recovered.length > 0 ? [...prev, ...recovered] : prev;
@@ -185,7 +185,9 @@ export default function UploadPage() {
     return () => {
       cancelled = true;
     };
-  }, [recoverySeq]);
+    // `t` only names a title-less recovered task; a language switch re-runs a
+    // read-only list fetch that adds nothing already known.
+  }, [recoverySeq, t]);
 
   useEffect(() => {
     if (!location.hash) return;

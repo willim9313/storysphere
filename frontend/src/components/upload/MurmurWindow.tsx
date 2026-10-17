@@ -1,12 +1,16 @@
 import { useRef, useEffect, useLayoutEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import type { MurmurEvent } from '@/api/types';
 import { CharacterSlot } from './CharacterSlot';
 import { murmurPillVariant } from './uploadModel';
 
-function eyebrowOf(event: MurmurEvent): string {
+// The step's own name (as in the timeline), not the camelCase key; an
+// unknown key still shows as itself rather than vanishing.
+function eyebrowOf(event: MurmurEvent, t: TFunction<'upload'>): string {
   const chap = event.meta?.chapter;
   const chapText = typeof chap === 'number' ? ` · ch.${String(chap).padStart(2, '0')}` : '';
-  return event.stepKey + chapText;
+  return t(`steps.${event.stepKey}`, { defaultValue: event.stepKey }) + chapText;
 }
 
 function roleOf(event: MurmurEvent): string {
@@ -43,6 +47,7 @@ interface MurmurWindowProps {
 }
 
 export function MurmurWindow({ events, characterSrc }: Readonly<MurmurWindowProps>) {
+  const { t } = useTranslation('upload');
   const containerRef = useRef<HTMLDivElement>(null);
   const isAtBottomRef = useRef(true);
   const prevLengthRef = useRef(events.length);
@@ -81,11 +86,11 @@ export function MurmurWindow({ events, characterSrc }: Readonly<MurmurWindowProp
         className={events.length === 0 ? 'up-murmur up-murmur-empty' : 'up-murmur'}
       >
         {events.length === 0 ? (
-          <span className="up-murmur-empty-text">等待系統開始處理…</span>
+          <span className="up-murmur-empty-text">{t('murmurEmpty')}</span>
         ) : (
           events.map((event, idx) => (
             <div key={event.seq} className="up-murmur-item" data-new={idx === events.length - 1}>
-              <span className="up-murmur-eyebrow">{eyebrowOf(event)}</span>
+              <span className="up-murmur-eyebrow">{eyebrowOf(event, t)}</span>
               <MurmurContent event={event} />
             </div>
           ))

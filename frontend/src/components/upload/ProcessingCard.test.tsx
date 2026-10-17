@@ -111,38 +111,38 @@ describe('PartialRerunCard', () => {
 
   it('steps the book has made good since are not offered again', async () => {
     setup({ pipelineStatus: pipeline({ summarization: 'done', symbolDiscovery: 'done' }) });
-    await screen.findByText('所有步驟皆已補齊。');
-    expect(screen.queryByRole('button', { name: '重跑' })).toBeNull();
+    await screen.findByText('card.allResolved');
+    expect(screen.queryByRole('button', { name: 'card.rerun' })).toBeNull();
   });
 
   it('a rerun already going for a step is adopted, not offered', async () => {
     setup({ running: { op: 'summarization', taskId: 'r9' } });
-    await screen.findByText('重跑中…');
-    expect(screen.getAllByRole('button', { name: '重跑' })).toHaveLength(1);
+    await screen.findByText('card.rerunning');
+    expect(screen.getAllByRole('button', { name: 'card.rerun' })).toHaveLength(1);
     await waitFor(() => expect(fetchTaskStatus).toHaveBeenCalledWith('r9', expect.anything()));
   });
 
   it('409 for another step shows the busy line instead of a failure', async () => {
     setup({});
     rerunStep.mockImplementation(() => Promise.reject(new ApiError(409, 'busy', true, 'batch_running')));
-    fireEvent.click((await screen.findAllByRole('button', { name: '重跑' }))[0]);
+    fireEvent.click((await screen.findAllByRole('button', { name: 'card.rerun' }))[0]);
     await waitFor(() => expect(screen.getByRole('status')).toBeTruthy());
-    expect(screen.queryByRole('button', { name: '再試' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'card.rerunRetry' })).toBeNull();
   });
 
   it('409 for this very step adopts the running rerun', async () => {
     setup({});
     rerunStep.mockImplementation(() => Promise.reject(new ApiError(409, 'busy', true, 'batch_running')));
-    fireEvent.click((await screen.findAllByRole('button', { name: '重跑' }))[0]);
+    fireEvent.click((await screen.findAllByRole('button', { name: 'card.rerun' }))[0]);
     fetchRunningUnraveling.mockImplementation(() => Promise.resolve({ op: 'summarization', taskId: 'r7' }));
-    await screen.findByText('重跑中…');
+    await screen.findByText('card.rerunning');
   });
 
   it('503 (no LLM provider) is shown in place, not as a failure', async () => {
     setup({});
     rerunStep.mockImplementation(() => Promise.reject(new ApiError(503, 'no provider', true)));
-    fireEvent.click((await screen.findAllByRole('button', { name: '重跑' }))[0]);
+    fireEvent.click((await screen.findAllByRole('button', { name: 'card.rerun' }))[0]);
     await waitFor(() => expect(screen.getByRole('status')).toBeTruthy());
-    expect(screen.queryByRole('button', { name: '再試' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'card.rerunRetry' })).toBeNull();
   });
 });
