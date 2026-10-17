@@ -26,7 +26,11 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
 
-from storysphere.core.error_handling import classify_step_failure, describe_exception
+from storysphere.core.error_handling import (
+    NoExtractableText,
+    classify_step_failure,
+    describe_exception,
+)
 from storysphere.core.token_callback import set_llm_service_context
 from storysphere.core.tracing import observe as _lf_observe
 from storysphere.core.tracing import update_span as _lf_update_span
@@ -569,6 +573,10 @@ class IngestionWorkflow:
         _progress(5, "文件解析", step_key="pdfParsing")
         self._log_step("doc_processing", file=str(file_path))
         doc: Document = await self._doc_pipeline(file_path)
+        # Nothing to analyse (a scanned PDF has no text layer): stop before the
+        # book is saved, rather than finish as an empty book with no error.
+        if doc.total_paragraphs == 0:
+            raise NoExtractableText("No text could be extracted from the file")
         # From here on every LLM call belongs to this book. The book id rides a
         # contextvar read by TokenTrackingHandler, so the services underneath
         # keep setting only their own name and still get attributed.
