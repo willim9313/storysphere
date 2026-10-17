@@ -1,7 +1,10 @@
 {
   "title": "Cross-book Search",
   "subtitle": "Start with a concept, emotion, or question — find relevant passages across all books in your library.",
-  "placeholder": "Describe an emotion or scene, e.g. the protagonist's moment of doubt…",
+  "placeholder": {
+    "fulltext": "Enter words separated by spaces — all must appear, e.g. sea name",
+    "semantic": "Describe an emotion or scene, e.g. the protagonist's moment of doubt…"
+  },
   "submit": "Search",
   "scopeAll": "All books",
   "scopeLabel": "Scope:",
@@ -21,7 +24,9 @@
     "noResultsHint": "Try rephrasing your query or describing the emotion or scene differently.",
     "noBooks": "No books in library",
     "noBooksHint": "Upload a novel to start cross-book search.",
-    "uploadNow": "Upload now"
+    "uploadNow": "Upload now",
+    "noResultsHintFulltext": "Every word must appear in the same passage. Try fewer words, or switch to semantic search to find passages with a similar meaning.",
+    "trySemantic": "Try semantic search"
   },
   "summary": "Found <strong>{{count}}</strong> passages across <strong>{{books}}</strong> books",
   "score": {
@@ -48,5 +53,11 @@
   "mode": {
     "fulltext": "Keyword",
     "semantic": "Semantic"
+  },
+  "group": {
+    "countCapped": "{{count}}+ passages",
+    "countMax": "Top {{count}} only",
+    "showMore": "Show more",
+    "showMoreFailed": "Couldn't load more. Try again."
   }
 }

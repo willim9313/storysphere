@@ -12,9 +12,14 @@ import {
   formatScore,
   groupResults,
   hitOffsets,
+  booksWithHits,
+  groupCap,
+  MORE_LIMIT,
   mergeBookSearches,
   padPosition,
   parseSearchParams,
+  PER_BOOK_LIMIT,
+  replaceBookResults,
   splitHighlight,
   toSearchParams,
   type BookGroup,
@@ -89,16 +94,23 @@ function BookGroupSection({
   mode,
   onNavigateBook,
   onNavigatePassage,
+  expanded,
+  moreState,
+  onShowMore,
 }: Readonly<{
   group: BookGroup;
   query: string;
   mode: SearchMode;
   onNavigateBook: (bookId: string) => void;
   onNavigatePassage: (bookId: string, result: SearchResult) => void;
+  expanded: boolean;
+  moreState: 'idle' | 'loading' | 'error';
+  onShowMore: (bookId: string) => void;
 }>) {
   const { t } = useTranslation('search');
   const [collapsed, setCollapsed] = useState(false);
   const scoreHeading = mode === 'fulltext' ? t('score.hits') : t('score.relevance');
+  const cap = groupCap(group.results.length, expanded);
 
   return (
     <div className="srch-group">
@@ -116,7 +128,11 @@ function BookGroupSection({
         <h2 className="srch-group-title">{group.title}</h2>
 
         <span className="srch-group-count">
-          {group.results.length} {t('tabs.paragraph')}
+          {cap === 'more'
+            ? t('group.countCapped', { count: group.results.length })
+            : cap === 'max'
+              ? t('group.countMax', { count: group.results.length })
+              : `${group.results.length} ${t('tabs.paragraph')}`}
         </span>
 
         <span className="srch-group-rule" />
@@ -154,6 +170,23 @@ function BookGroupSection({
               </span>
             </button>
           ))}
+          {cap === 'more' && (
+            <div className="srch-group-more">
+              <button
+                type="button"
+                className="ss-btn ss-btn-sm ss-btn-secondary"
+                onClick={() => onShowMore(group.documentId)}
+                disabled={moreState === 'loading'}
+              >
+                {moreState === 'loading' ? t('loading') : t('group.showMore')}
+              </button>
+              {moreState === 'error' && (
+                <span className="srch-group-more-error" role="alert">
+                  {t('group.showMoreFailed')}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -181,12 +214,13 @@ export default function SearchPage() {
     setQuery(submittedQuery);
   }
   const [results, setResults] = useState<SearchResult[] | null>(null);
-  const [activeBookIds, setActiveBookIds] = useState<string[] | null>(urlState.books);
   const [loading, setLoading] = useState(false);
   const [searchError, setSearchError] = useState<unknown>(null);
   const [failedBooks, setFailedBooks] = useState(0);
+  // 「顯示更多」 per book: which books were re-fetched up to MORE_LIMIT, and in-flight/failed ones.
+  const [expandedBooks, setExpandedBooks] = useState<ReadonlySet<string>>(new Set());
+  const [moreStates, setMoreStates] = useState<Record<string, 'loading' | 'error'>>({});
 
-  const chipsSeededRef = useRef(false);
   const searchGenRef = useRef(0);
 
   const { data: books, isLoading: booksLoading, error: booksError, refetch } = useBooks();
@@ -197,73 +231,64 @@ export default function SearchPage() {
   );
 
   const hasBooks = (books ?? []).length > 0;
+  // Stable across refetches that return the same library, so they don't re-run the search.
+  const libraryKey = books === undefined ? null : books.map((b) => b.id).join(',');
   // GET /books failed and there is nothing cached: we cannot claim the library is empty.
   const booksFailed = books === undefined && booksError !== null;
 
   // ── Search execution ─────────────────────────────────────────────────────────
-  const runSearch = useCallback(
-    async (q: string, filterBookIds: string[] | null, searchMode: SearchMode) => {
-      if (!q.trim()) return;
-      const gen = ++searchGenRef.current;
-      setLoading(true);
-      setSearchError(null);
-      setFailedBooks(0);
+  // Each library book is queried on its own (topK PER_BOOK_LIMIT), so every book with a hit
+  // gets a group and a chip; chips then only filter locally.
+  const runSearch = useCallback(async (q: string, searchMode: SearchMode, bookIds: string[]) => {
+    if (!q.trim()) return;
+    const gen = ++searchGenRef.current;
+    setLoading(true);
+    setSearchError(null);
+    setFailedBooks(0);
+    setExpandedBooks(new Set());
+    setMoreStates({});
 
-      try {
-        let merged: SearchResult[];
-        let failed = 0;
-
-        if (filterBookIds === null || filterBookIds.length === 0) {
-          merged = await searchPassages({ query: q, topK: 20, mode: searchMode });
-          if (gen !== searchGenRef.current) return;
-
-          if (!chipsSeededRef.current) {
-            chipsSeededRef.current = true;
-            setActiveBookIds([...new Set(merged.map((r) => r.metadata.documentId))]);
-          }
-        } else {
-          const settled = await Promise.allSettled(
-            filterBookIds.map((id) =>
-              searchPassages({ query: q, bookId: id, topK: 10, mode: searchMode }),
-            ),
-          );
-          if (gen !== searchGenRef.current) return;
-          const outcome = mergeBookSearches(filterBookIds, settled);
-          // Every book failed → this is a failed search, not an incomplete one.
-          if (outcome.failedBookIds.length === filterBookIds.length) throw outcome.firstError;
-          merged = outcome.results;
-          failed = outcome.failedBookIds.length;
-        }
-
-        setResults(merged);
-        setFailedBooks(failed);
-      } catch (err) {
-        if (gen !== searchGenRef.current) return;
-        console.error('[SearchPage] search failed', err);
-        setSearchError(err ?? new Error('search failed'));
-      } finally {
-        if (gen === searchGenRef.current) setLoading(false);
+    try {
+      const settled = await Promise.allSettled(
+        bookIds.map((id) =>
+          searchPassages({ query: q, bookId: id, topK: PER_BOOK_LIMIT, mode: searchMode }),
+        ),
+      );
+      if (gen !== searchGenRef.current) return;
+      const outcome = mergeBookSearches(bookIds, settled);
+      // Every book failed → this is a failed search, not an incomplete one.
+      if (bookIds.length > 0 && outcome.failedBookIds.length === bookIds.length) {
+        throw outcome.firstError;
       }
-    },
-    [],
-  );
+      setResults(outcome.results);
+      setFailedBooks(outcome.failedBookIds.length);
+    } catch (err) {
+      if (gen !== searchGenRef.current) return;
+      console.error('[SearchPage] search failed', err);
+      setSearchError(err ?? new Error('search failed'));
+    } finally {
+      if (gen === searchGenRef.current) setLoading(false);
+    }
+  }, []);
 
-  // Every URL change (submit, chip removal, mode switch, back/forward) re-runs the search.
+  // Query or mode change in the URL (submit, mode switch, back/forward) re-runs the search;
+  // `books` only filters, so removing a chip does not.
   useEffect(() => {
-    if (!urlState.q) {
+    if (!submittedQuery) {
       searchGenRef.current += 1; // drop any in-flight response
       setResults(null);
-      setActiveBookIds(null);
       setSearchError(null);
       setFailedBooks(0);
       setLoading(false);
       return;
     }
-    // books=null → first cross-book search seeds the chips; otherwise the chips are the URL's.
-    chipsSeededRef.current = urlState.books !== null;
-    setActiveBookIds(urlState.books);
-    void runSearch(urlState.q, urlState.books, urlState.mode);
-  }, [urlState, runSearch]);
+    if (libraryKey === null) return; // book list not loaded yet
+    void runSearch(submittedQuery, mode, libraryKey ? libraryKey.split(',') : []);
+  }, [submittedQuery, mode, libraryKey, runSearch]);
+
+  const rerun = useCallback(() => {
+    if (libraryKey !== null) void runSearch(submittedQuery, mode, libraryKey ? libraryKey.split(',') : []);
+  }, [submittedQuery, mode, libraryKey, runSearch]);
 
   // New query → new history entry; mode, chips and clear replace the current one.
   const commitSearch = useCallback(
@@ -271,15 +296,19 @@ export default function SearchPage() {
       const nextKey = toSearchParams(next).toString();
       if (nextKey === urlKey) {
         // Same URL (re-submitting the same query): no navigation, so search directly.
-        if (!next.q) return;
-        chipsSeededRef.current = next.books !== null;
-        setActiveBookIds(next.books);
-        void runSearch(next.q, next.books, next.mode);
+        if (next.q) rerun();
         return;
       }
       setSearchParams(new URLSearchParams(nextKey), { replace });
     },
-    [urlKey, setSearchParams, runSearch],
+    [urlKey, setSearchParams, rerun],
+  );
+
+  // ── Derived scope ────────────────────────────────────────────────────────────
+  // books=null → every book with a hit; books=[] → every chip removed; else the URL's chips.
+  const scopeIds = useMemo(
+    () => urlState.books ?? (results ? booksWithHits(results) : []),
+    [urlState.books, results],
   );
 
   const handleSubmit = useCallback(
@@ -298,17 +327,13 @@ export default function SearchPage() {
 
   const handleRemoveChip = useCallback(
     (bookId: string) => {
-      const next = (activeBookIds ?? []).filter((id) => id !== bookId);
-      commitSearch({ q: submittedQuery, mode, books: next }, true);
+      commitSearch({ q: submittedQuery, mode, books: scopeIds.filter((id) => id !== bookId) }, true);
     },
-    [activeBookIds, submittedQuery, mode, commitSearch],
+    [scopeIds, submittedQuery, mode, commitSearch],
   );
 
-  // 重試／重新搜尋: re-send the same query against the current scope.
-  const handleRetry = useCallback(() => {
-    const scope = activeBookIds !== null && activeBookIds.length > 0 ? activeBookIds : null;
-    void runSearch(submittedQuery, scope, mode);
-  }, [activeBookIds, submittedQuery, mode, runSearch]);
+  // 重試／重新搜尋: re-send the same query; the chips keep filtering.
+  const handleRetry = rerun;
 
   const handleModeChange = useCallback(
     (newMode: SearchMode) => {
@@ -316,6 +341,25 @@ export default function SearchPage() {
       commitSearch({ q: submittedQuery, mode: newMode, books: null }, true);
     },
     [mode, submittedQuery, commitSearch],
+  );
+
+  const handleShowMore = useCallback(
+    async (bookId: string) => {
+      const gen = searchGenRef.current;
+      setMoreStates((s) => ({ ...s, [bookId]: 'loading' }));
+      try {
+        const more = await searchPassages({ query: submittedQuery, bookId, topK: MORE_LIMIT, mode });
+        if (gen !== searchGenRef.current) return;
+        setResults((prev) => (prev ? replaceBookResults(prev, bookId, more) : prev));
+        setExpandedBooks((prev) => new Set(prev).add(bookId));
+        setMoreStates(({ [bookId]: _done, ...rest }) => rest);
+      } catch (err) {
+        if (gen !== searchGenRef.current) return;
+        console.error('[SearchPage] show more failed', err);
+        setMoreStates((s) => ({ ...s, [bookId]: 'error' }));
+      }
+    },
+    [submittedQuery, mode],
   );
 
   // Before leaving for the reader, remember the clicked row on this history entry;
@@ -344,15 +388,15 @@ export default function SearchPage() {
 
   // ── Derived groups ───────────────────────────────────────────────────────────
   const groups = useMemo<BookGroup[]>(
-    () => (results ? groupResults(results, activeBookIds, (id) => bookTitleMap[id]) : []),
-    [results, activeBookIds, bookTitleMap],
+    () => (results ? groupResults(results, urlState.books, (id) => bookTitleMap[id]) : []),
+    [results, urlState.books, bookTitleMap],
   );
 
   const totalCount = groups.reduce((s, g) => s + g.results.length, 0);
 
   // ── Content renderer ─────────────────────────────────────────────────────────
   const hasSearched = submittedQuery !== '';
-  const showChips = activeBookIds !== null && activeBookIds.length > 0;
+  const showChips = scopeIds.length > 0;
 
   function renderContent() {
     if (!hasSearched) {
@@ -399,12 +443,26 @@ export default function SearchPage() {
       );
     }
 
+    // Restored from the URL while the book list is still loading: nothing fetched yet.
+    if (results === null) return <SkeletonLoader />;
+
     if (groups.length === 0) {
       return (
         <EmptyState
           weight="prerequisite"
           title={t('empty.noResults')}
-          description={t('empty.noResultsHint')}
+          description={mode === 'fulltext' ? t('empty.noResultsHintFulltext') : t('empty.noResultsHint')}
+          action={
+            mode === 'fulltext' ? (
+              <button
+                type="button"
+                className="ss-btn ss-btn-sm ss-btn-secondary"
+                onClick={() => handleModeChange('semantic')}
+              >
+                {t('empty.trySemantic')}
+              </button>
+            ) : undefined
+          }
         />
       );
     }
@@ -445,7 +503,7 @@ export default function SearchPage() {
         {showChips && (
           <div className="srch-chips">
             <span className="srch-chips-label">{t('scopeLabel')}</span>
-            {activeBookIds.map((id) => (
+            {scopeIds.map((id) => (
               <span key={id} className="srch-chip">
                 {bookTitleMap[id] ?? id}
                 <button
@@ -470,6 +528,9 @@ export default function SearchPage() {
               mode={mode}
               onNavigateBook={(id) => navigate(`/books/${id}`)}
               onNavigatePassage={handleNavigatePassage}
+              expanded={expandedBooks.has(group.documentId)}
+              moreState={moreStates[group.documentId] ?? 'idle'}
+              onShowMore={(id) => void handleShowMore(id)}
             />
           ))}
         </div>
@@ -531,7 +592,7 @@ export default function SearchPage() {
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder={t('placeholder')}
+              placeholder={t(`placeholder.${mode}`)}
               autoFocus
               autoComplete="off"
             />

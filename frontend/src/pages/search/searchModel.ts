@@ -97,12 +97,17 @@ export interface SettledSearch {
   firstError: unknown;
 }
 
+/** Every search queries each library book separately (#23a with `bookId`), so every
+ *  book with a hit shows up — no global top-N decides which books get a chip. */
+export const PER_BOOK_LIMIT = 10;
+/** 「顯示更多」 re-fetches one book up to the backend's `topK` maximum. */
+export const MORE_LIMIT = 50;
+
 /** Merges per-book search outcomes (`settled` is index-aligned with `bookIds`):
- *  successes sorted by score and capped at `limit`, failures counted rather than dropped. */
+ *  successes sorted by score, failures counted rather than dropped. */
 export function mergeBookSearches(
   bookIds: string[],
   settled: PromiseSettledResult<SearchResult[]>[],
-  limit = 30,
 ): SettledSearch {
   const failedBookIds: string[] = [];
   let firstError: unknown;
@@ -116,7 +121,30 @@ export function mergeBookSearches(
     }
   });
   ok.sort((a, b) => b.score - a.score);
-  return { results: ok.slice(0, limit), failedBookIds, firstError };
+  return { results: ok, failedBookIds, firstError };
+}
+
+/** Swaps one book's results for a longer fetch (「顯示更多」), keeping the score order. */
+export function replaceBookResults(
+  results: SearchResult[],
+  bookId: string,
+  bookResults: SearchResult[],
+): SearchResult[] {
+  return [...results.filter((r) => r.metadata.documentId !== bookId), ...bookResults].sort(
+    (a, b) => b.score - a.score,
+  );
+}
+
+/** Books that have at least one result, in result (score) order — the default chips. */
+export function booksWithHits(results: SearchResult[]): string[] {
+  return [...new Set(results.map((r) => r.metadata.documentId))];
+}
+
+/** Whether a book's group may hold more than it shows:
+ *  'more' = hit the per-book limit, 「顯示更多」 available; 'max' = hit the backend maximum. */
+export function groupCap(count: number, expanded: boolean): 'none' | 'more' | 'max' {
+  if (expanded) return count >= MORE_LIMIT ? 'max' : 'none';
+  return count >= PER_BOOK_LIMIT ? 'more' : 'none';
 }
 
 /** The submitted search as it lives in the URL (`/search?q=&mode=&books=`), so
@@ -124,8 +152,8 @@ export function mergeBookSearches(
 export interface SearchUrlState {
   q: string;
   mode: SearchMode;
-  /** null = scope untouched (cross-book, chips seeded from the results);
-   *  [] = every chip removed (cross-book, no chips); otherwise the remaining chips. */
+  /** null = scope untouched (chips = every book with a hit);
+   *  [] = every chip removed (all books shown, no chips); otherwise the remaining chips. */
   books: string[] | null;
 }
 

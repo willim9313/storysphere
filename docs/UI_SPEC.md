@@ -2363,7 +2363,7 @@ DS v3 第 2 批（`docs/plans/20261002-ds-v3-batch2-system.md`、決議紀錄 05
 #### 搜尋列（`form`，Enter 送出）
 
 - **輸入框容器**（`--input-bg`／`--input-radius`／`--input-border-width`，padding `--space-3 --space-5`）：accent 放大鏡 + 輸入框（`autoFocus`）+ 清除鈕（`X`，已搜尋後才出現）+ 右側「所有書籍 ⌄」。
-  placeholder 逐字沿用。「所有書籍 ⌄」是 `<span>`：純標示、無 hover、無邊框，chevron 為 Lucide `chevron-down`。
+  placeholder **依模式切換**（2-SR-9）：關鍵字「輸入詞語，以空格分隔、須同時出現，例如：海 名字」、語意沿用稿上描述句（i18n `placeholder.{fulltext,semantic}`）。「所有書籍 ⌄」是 `<span>`：純標示、無 hover、無邊框，chevron 為 Lucide `chevron-down`。
 - **「關鍵字／語意」`.ss-seg`** 在搜尋列內、緊鄰搜尋鈕（不在分頁列右端）；選中升到 `bg-primary`。
 - **搜尋鈕**：`.ss-btn-primary` 帶 search 圖示，兩種模式同為「搜尋」、不附成本提示；`loading` 或查詢為空時 disabled（`srch-submit:disabled` 降到 0.5 透明度，kit 沒有 disabled 樣式）。
 
@@ -2371,7 +2371,7 @@ DS v3 第 2 批（`docs/plans/20261002-ds-v3-batch2-system.md`、決議紀錄 05
 
 - **分頁列**（未搜尋、載入中、結果態都在）：`段落`（active，搜尋過後帶計數徽章，`bg-secondary` 中性底）；`人物`、`原型`降階（opacity 0.55）＋虛線「即將推出」。
   後兩者是 `<div>`，**無 onClick、無 hover**（不是 `<button>`）。
-- **模式切換**：`關鍵字` / `語意`，**預設關鍵字**。切換會以同一查詢字串重新搜尋，並重置範圍 chips。
+- **模式切換**：`關鍵字` / `語意`，**預設關鍵字**。切換會以同一查詢字串重新搜尋，並重置範圍 chips（chips 回到「有命中的每一本」）。
 
 > **兩種模式的 `score` 意義不同、不可比**：語意為 0–1 相似度、顯示為「N%」；關鍵字為命中次數、顯示為「N次」（i18n `search.score.hitCount`；英文 `N hit(s)`）。
 > 不做條狀圖、不換算、不做動畫；單位字貼在數字後面，每列另有欄標題（關鍵字「命中次數」、語意「相關度」）。
@@ -2379,10 +2379,14 @@ DS v3 第 2 批（`docs/plans/20261002-ds-v3-batch2-system.md`、決議紀錄 05
 
 #### 搜尋範圍與 chips
 
-首次送出時**不帶 bookId**（跨全書，`topK: 20`），並以回傳結果出現過的書籍**自動種下** chips。
-移除任一 chip 後改為**逐書並行查詢**（每本 `topK: 10`，`Promise.allSettled`），
-合併後依 score 排序取前 30 筆；chips 全部移除則回到跨全書模式。
+每次搜尋都對書庫**每一本**並行查詢（帶 `bookId`、`topK: 10`＝`PER_BOOK_LIMIT`，`Promise.allSettled`），合併後依 score 排序、**不做全域裁切**（2-SR-9）。
+因此每本有命中的書都有自己的分組，不會因全域前 N 筆被擠掉；chips 預設＝有命中的每一本（依最高分排序）。
+**移除 chip 只在本地過濾、不重新查詢**；chips 全部移除則顯示全部分組、不再出現 chips。
 chips 只能移除：沒有全選、重設、加回，也不列未命中的書；chip 為細框、`--pill-radius`。
+
+**單本上限與「顯示更多」**：某本書回滿 10 筆時，分組計數顯示「{n}+ 段落」（i18n `group.countCapped`），分組最後一列下方出現次要小鈕「顯示更多」（`group.showMore`，左緣對齊正文欄）。
+按下只重查該書（`topK: 50`＝`MORE_LIMIT`，後端上限），取代該書的結果；載入中鈕文字為「搜尋中…」並停用，失敗時鈕旁一行 error 色「載入失敗，請再試一次。」（`group.showMoreFailed`）。
+展開後仍回滿 50 筆時計數改為「僅列前 50 段」（`group.countMax`），不再有按鈕。新搜尋會重設所有展開。
 
 > 搜尋以遞增的 generation 序號防競態：舊請求回來時若序號已過期，結果直接丟棄。
 
@@ -2395,8 +2399,8 @@ chips 只能移除：沒有全選、重設、加回，也不列未命中的書�
 - 「重新搜尋」（i18n `partial.retry`）
 
 **這 2 句是草稿・待設計定案**（README §5；i18n `partial.*`，zh-TW 與 en 皆已補）。不列書名。
-「重新搜尋」重送**同一查詢＋目前範圍**。若範圍內**每一本**都失敗，視為搜尋失敗，走下方失敗分類。
-首次跨全書查詢是單一請求，不會出現這一行。
+「重新搜尋」重送**同一查詢**（再查每一本；chips 照舊過濾）。若**每一本**都失敗，視為搜尋失敗，走下方失敗分類。
+語意模式下尚未建立語意索引的書目前會被算成查詢失敗（後端回 500），待後端改回空結果。
 
 #### 書籍分組區塊（`BookGroupSection`）
 
@@ -2415,13 +2419,13 @@ group header 五件：accent chevron（收合鈕，`aria-expanded`）+ 書名（
 
 #### 摘要
 
-「找到 {n} 個段落，來自 {m} 本書籍」（sans sm，數字加粗；i18n `summary`，原本寫死中文）＋「依相關度排序 ⌄」（`<span>`，無行為）。
+「找到 {n} 個段落，來自 {m} 本書籍」（n＝畫面上實際列出的段落數）（sans sm，數字加粗；i18n `summary`，原本寫死中文）＋「依相關度排序 ⌄」（`<span>`，無行為）。
 
 #### 網址狀態
 
 送出的搜尋存在網址：`/search?q=…&mode=semantic&books=id1,id2`（2-SR-8，工程端代定）。上一頁從閱讀頁返回、分享連結、書籤都會照網址重新搜尋；預設值不寫入（關鍵字模式省略 `mode`，未動過範圍省略 `books`，沒有 `q` 時也不寫 `books`）。
 
-- `books` 缺省＝範圍未動過：跨全書查詢並自動種 chips；`books=`（空值）＝chips 全部移除：跨全書、不種 chips；有值＝逐書查詢，chips 即這幾本。
+- `books` 只決定 chips 與過濾、不影響查詢：缺省＝範圍未動過，chips 為有命中的每一本；`books=`（空值）＝chips 全部移除，顯示全部、不出 chips；有值＝chips 即這幾本。
 - **送出新查詢新增一筆歷史紀錄**；換模式、移除 chip、清除**取代**目前這筆。重送相同查詢（網址不變）直接重新搜尋。
 - 點結果列前，把該列段落 id 記進目前這筆歷史紀錄的 state；返回時捲到該列（置中）並聚焦。
 - 書籍分組的收合狀態不記，返回時全部展開。
@@ -2445,7 +2449,8 @@ group header 五件：accent chevron（收合鈕，`aria-expanded`）+ 書名（
 | 搜尋中 | `SkeletonLoader`，不用 spinner：3 組骨架，每組 22px 標題條 + 2 條結果列（欄寬 96／彈性／76） |
 | 搜尋失敗 · 功能層（`failureKind` = page） | 「搜尋失敗，請稍後再試。」（i18n `error.searchFailed`，原寫死）＋手動「重試」（重送同一查詢＋目前範圍） |
 | 搜尋失敗 · 後端層（`failureKind` = backend） | `PageFailure variant="backend"`（「伺服器沒有回應」定案三句）＋重試 |
-| 無結果 | `empty.noResults` + `empty.noResultsHint`（最輕，無圖示） |
+| 無結果 | `empty.noResults` + 說明（最輕，無圖示）。關鍵字模式說明為 `empty.noResultsHintFulltext`（每個詞都須出現在同一段落…）＋次要小鈕「改用語意搜尋」（`empty.trySemantic`，切到語意並重搜）；語意模式為 `empty.noResultsHint` |
+| 書單載入中、網址已帶查詢 | `SkeletonLoader`（書單回來才開始逐書查詢） |
 | 部分失敗 | 結果照常，摘要下加警示行（見上，草稿） |
 
 各失敗都不倒數、不自動重送。
