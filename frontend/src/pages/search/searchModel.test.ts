@@ -7,7 +7,9 @@ import {
   groupResults,
   hitOffsets,
   mergeBookSearches,
+  parseSearchParams,
   splitHighlight,
+  toSearchParams,
 } from './searchModel';
 
 const res = (id: string, doc: string, score: number): SearchResult => ({
@@ -123,5 +125,29 @@ describe('mergeBookSearches', () => {
     expect(m.failedBookIds).toEqual(['d1', 'd2']);
     expect(m.results).toEqual([]);
     expect(m.firstError).toBe('e1');
+  });
+});
+
+describe('search URL state', () => {
+  const parse = (s: string) => parseSearchParams(new URLSearchParams(s));
+
+  it('defaults to an empty keyword search with untouched scope', () => {
+    expect(parse('')).toEqual({ q: '', mode: 'fulltext', books: null });
+    expect(toSearchParams({ q: '', mode: 'fulltext', books: null }).toString()).toBe('');
+  });
+
+  it('keeps an empty books param apart from an absent one', () => {
+    expect(parse('q=海&books=').books).toEqual([]);
+    expect(parse('q=海&books=a,b').books).toEqual(['a', 'b']);
+  });
+
+  it('round-trips query, mode and scope, omitting defaults', () => {
+    const state = { q: '名 名字', mode: 'semantic' as const, books: ['a', 'b'] };
+    expect(parse(toSearchParams(state).toString())).toEqual(state);
+    expect(toSearchParams({ q: '海', mode: 'fulltext', books: null }).toString()).toBe('q=%E6%B5%B7');
+  });
+
+  it('drops scope when there is no query', () => {
+    expect(toSearchParams({ q: '', mode: 'semantic', books: ['a'] }).toString()).toBe('mode=semantic');
   });
 });

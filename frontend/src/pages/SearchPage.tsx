@@ -1,5 +1,5 @@
-import { useState, useRef, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
 import { Trans, useTranslation } from 'react-i18next';
 import { Search, ChevronDown, ArrowUpRight, X, Upload, AlertTriangle } from 'lucide-react';
 
@@ -14,8 +14,11 @@ import {
   hitOffsets,
   mergeBookSearches,
   padPosition,
+  parseSearchParams,
   splitHighlight,
+  toSearchParams,
   type BookGroup,
+  type SearchUrlState,
 } from '@/pages/search/searchModel';
 
 import '@/styles/search.css';
@@ -135,6 +138,7 @@ function BookGroupSection({
               key={result.id}
               type="button"
               className="srch-row"
+              data-result-id={result.id}
               onClick={() => onNavigatePassage(group.documentId, result)}
             >
               <code className="srch-row-pos">
@@ -161,12 +165,23 @@ export default function SearchPage() {
   const { t } = useTranslation('search');
   const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [query, setQuery] = useState('');
-  const [submittedQuery, setSubmittedQuery] = useState('');
+  // The submitted search lives in the URL so 上一頁 from the reader and shared links restore it.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlKey = searchParams.toString();
+  const urlState = useMemo(() => parseSearchParams(new URLSearchParams(urlKey)), [urlKey]);
+  const { q: submittedQuery, mode } = urlState;
+
+  const [query, setQuery] = useState(submittedQuery);
+  // Back/forward between searches: the input follows the URL (adjust-during-render).
+  const [inputUrlKey, setInputUrlKey] = useState(urlKey);
+  if (inputUrlKey !== urlKey) {
+    setInputUrlKey(urlKey);
+    setQuery(submittedQuery);
+  }
   const [results, setResults] = useState<SearchResult[] | null>(null);
-  const [activeBookIds, setActiveBookIds] = useState<string[] | null>(null);
-  const [mode, setMode] = useState<SearchMode>('fulltext');
+  const [activeBookIds, setActiveBookIds] = useState<string[] | null>(urlState.books);
   const [loading, setLoading] = useState(false);
   const [searchError, setSearchError] = useState<unknown>(null);
   const [failedBooks, setFailedBooks] = useState(0);
@@ -233,37 +248,60 @@ export default function SearchPage() {
     [],
   );
 
+  // Every URL change (submit, chip removal, mode switch, back/forward) re-runs the search.
+  useEffect(() => {
+    if (!urlState.q) {
+      searchGenRef.current += 1; // drop any in-flight response
+      setResults(null);
+      setActiveBookIds(null);
+      setSearchError(null);
+      setFailedBooks(0);
+      setLoading(false);
+      return;
+    }
+    // books=null → first cross-book search seeds the chips; otherwise the chips are the URL's.
+    chipsSeededRef.current = urlState.books !== null;
+    setActiveBookIds(urlState.books);
+    void runSearch(urlState.q, urlState.books, urlState.mode);
+  }, [urlState, runSearch]);
+
+  // New query → new history entry; mode, chips and clear replace the current one.
+  const commitSearch = useCallback(
+    (next: SearchUrlState, replace: boolean) => {
+      const nextKey = toSearchParams(next).toString();
+      if (nextKey === urlKey) {
+        // Same URL (re-submitting the same query): no navigation, so search directly.
+        if (!next.q) return;
+        chipsSeededRef.current = next.books !== null;
+        setActiveBookIds(next.books);
+        void runSearch(next.q, next.books, next.mode);
+        return;
+      }
+      setSearchParams(new URLSearchParams(nextKey), { replace });
+    },
+    [urlKey, setSearchParams, runSearch],
+  );
+
   const handleSubmit = useCallback(
     (e?: React.SyntheticEvent) => {
       e?.preventDefault();
       if (!query.trim()) return;
-      chipsSeededRef.current = false;
-      setSubmittedQuery(query);
-      setActiveBookIds(null);
-      void runSearch(query, null, mode);
+      commitSearch({ q: query, mode, books: null }, false);
     },
-    [query, mode, runSearch],
+    [query, mode, commitSearch],
   );
 
   const handleClear = useCallback(() => {
-    searchGenRef.current += 1; // drop any in-flight response
     setQuery('');
-    setSubmittedQuery('');
-    setResults(null);
-    setActiveBookIds(null);
-    setSearchError(null);
-    setFailedBooks(0);
-    setLoading(false);
-    chipsSeededRef.current = false;
-  }, []);
+    commitSearch({ q: '', mode, books: null }, true);
+  }, [mode, commitSearch]);
 
   const handleRemoveChip = useCallback(
     (bookId: string) => {
       const next = (activeBookIds ?? []).filter((id) => id !== bookId);
-      setActiveBookIds(next);
-      void runSearch(submittedQuery, next.length > 0 ? next : null, mode);
+      commitSearch({ q: submittedQuery, mode, books: next }, true);
     },
-    [activeBookIds, submittedQuery, mode, runSearch],
+    [activeBookIds, submittedQuery, mode, commitSearch],
   );
 
   // 重試／重新搜尋: re-send the same query against the current scope.
@@ -275,15 +313,34 @@ export default function SearchPage() {
   const handleModeChange = useCallback(
     (newMode: SearchMode) => {
       if (newMode === mode) return;
-      setMode(newMode);
-      if (submittedQuery) {
-        chipsSeededRef.current = false;
-        setActiveBookIds(null);
-        void runSearch(submittedQuery, null, newMode);
-      }
+      commitSearch({ q: submittedQuery, mode: newMode, books: null }, true);
     },
-    [mode, submittedQuery, runSearch],
+    [mode, submittedQuery, commitSearch],
   );
+
+  // Before leaving for the reader, remember the clicked row on this history entry;
+  // 上一頁 then scrolls back to it and focuses it instead of landing at the top.
+  const handleNavigatePassage = useCallback(
+    (bookId: string, result: SearchResult) => {
+      navigate({ search: location.search }, { replace: true, state: { lastResultId: result.id } });
+      navigate(`/books/${bookId}`, {
+        state: { paragraphId: result.id, chapterNumber: result.metadata.chapterNumber },
+      });
+    },
+    [navigate, location.search],
+  );
+
+  const lastResultId = (location.state as { lastResultId?: string } | null)?.lastResultId;
+  const restoredKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!lastResultId || loading || results === null) return;
+    if (restoredKeyRef.current === location.key) return;
+    const row = document.querySelector<HTMLElement>(`[data-result-id="${CSS.escape(lastResultId)}"]`);
+    if (!row) return;
+    restoredKeyRef.current = location.key;
+    row.scrollIntoView({ block: 'center' });
+    row.focus({ preventScroll: true });
+  }, [lastResultId, loading, results, location.key]);
 
   // ── Derived groups ───────────────────────────────────────────────────────────
   const groups = useMemo<BookGroup[]>(
@@ -412,14 +469,7 @@ export default function SearchPage() {
               query={submittedQuery}
               mode={mode}
               onNavigateBook={(id) => navigate(`/books/${id}`)}
-              onNavigatePassage={(id, result) =>
-                navigate(`/books/${id}`, {
-                  state: {
-                    paragraphId: result.id,
-                    chapterNumber: result.metadata.chapterNumber,
-                  },
-                })
-              }
+              onNavigatePassage={handleNavigatePassage}
             />
           ))}
         </div>
