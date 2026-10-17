@@ -239,14 +239,14 @@ hover 底 `--bg-secondary`；標籤 `settings:guidance.title`「研究者導覽�
 
 #### C · 處理中（`ProcessingCard`）
 
-- 卡頭：書名 serif base 600、「{stage} · {progress}%」（2xs muted）、分隔線、Clock＋mono「已處理 mm:ss」（每秒跳；
+- 卡頭：書名 serif base 600、「{步驟} · {progress}%」（2xs muted；有 `stepKey` 時步驟名取 `upload:steps.*`，否則退回後端 `stage`，合約 #8）、分隔線、Clock＋mono「已處理 mm:ss」（每秒跳；
   由 `createdAt` 回推，Q2）、右側 `ss-btn-sm ss-btn-danger`「終止處理」。卡頭下 2px 進度條，與 timeline 並存。
 - **7 步 timeline**（左欄 200px，`ProcessingTimeline`）：PDF 解析 5／語言偵測 10／摘要生成 20／特徵提取 40／知識圖譜 60／
   符號探索 80／資料儲存 90，每列右側 mono 錨點百分比。marker 18px 四態：done success 實心＋check、running Loader 旋轉＋
   accent 標籤 600、pending 描邊圓＋序號、error error 實心＋x 並在下方就地展開 `task.error` 原文（mono 細節框）。
   步驟狀態由 `TaskStatus.stepKey` 驅動，缺時 fallback 百分比區間。running 只有後端給 `subTotal` 時才顯示
   mono「{subStage} {subProgress} / {subTotal}」，**沒有就不畫任何條**（不再有假的脈動條）。
-- **MurmurWindow**：固定 260px、自有捲動、`--bg-primary` 框。每筆 mono eyebrow `stepKey · ch.NN`（章號補零）＋內容三型：
+- **MurmurWindow**：固定 260px、自有捲動、`--bg-primary` 框。每筆 mono eyebrow「{步驟名} · ch.NN」（步驟名取 `upload:steps.*`，與 timeline 同名；未知 key 原樣顯示；章號補零；1-AD）＋內容三型：
   實體 pill `.ss-pill .ss-pill-<type> .ss-pill-dot`（character→character、location→location、org→organization、
   event→event、symbol→concept，`uploadModel.murmurPillVariant`）＋serif 角色說明；topic serif sm 散文；raw mono muted。
   delta 累積、長度無上限；新事件只在使用者已在底部時貼底，往上捲閱讀時不強制拉回。空態「等待系統開始處理…」置中。
@@ -276,7 +276,7 @@ sessionStorage 記著、但 `GET /tasks/:id/status` 回 404 的任務（記憶�
 #### E · 部分完成（`PartialRerunCard`）
 
 與「已完成」是兩種版型。卡頭書名＋`ss-badge-warning`「部分完成」（AlertTriangle），卡頭下分隔線；內文先保留既有句
-「書籍已儲存，但以下步驟未能完成 · 可直接重跑」（1-F），再逐步驟列：步驟名 xs 600、後端細節 mono 細節框
+「書籍已儲存，但以下步驟未能完成 · 可直接重跑」（1-F），再逐步驟列：步驟名 xs 600（取 `upload:steps.*`，與 timeline 同名，1-AD）、後端細節 mono 細節框
 （`--bg-tertiary`）、右側 `ss-btn-sm ss-btn-secondary ss-btn-llm`「重跑」（失敗後「再試」，進行中「重跑中…」）。
 對映不到 rerun endpoint 的前綴只列出、不給鈕、不寫說明（符號探索有 endpoint，保留鈕，1-M）。全部補齊換成
 CircleCheck success「所有步驟皆已補齊。」。

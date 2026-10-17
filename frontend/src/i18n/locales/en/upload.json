@@ -167,5 +167,29 @@
     "itemTask": "The current processing task",
     "itemBook": "This book in the library (if already created)",
     "confirm": "Stop processing"
+  },
+  "murmurEmpty": "Waiting for processing to start…",
+  "card": {
+    "rerun": "Rerun",
+    "rerunning": "Rerunning…",
+    "rerunRetry": "Try again",
+    "rerunDoneTitle": "{{step}} rerun complete",
+    "rerunDoneBody": "The results are filled in — see them in the library.",
+    "rerunFailedTitle": "{{step}} rerun failed",
+    "tryAgain": "Please try again.",
+    "rerunQueuedTitle": "Rerun queued in the Task Center",
+    "rerunQueuedBody": "The rerun is a task of its own; track it in the Task Center.",
+    "partialBadge": "Partially complete",
+    "partialLead": "The book is saved, but these steps didn't finish · rerun them here",
+    "allResolved": "All steps are now complete.",
+    "reviewSubmitFailed": "Couldn't submit the chapter review. The pipeline may have stopped — delete this book and upload it again.",
+    "gotoBook": "Open \"{{title}}\" →",
+    "awaitingReview": "Awaiting review",
+    "gateTitle": "Chapter structure detected — please check it's right",
+    "gateSub": "This is the last human check before processing continues",
+    "acceptDetected": "Accept as detected",
+    "startReview": "Start review →",
+    "elapsed": "Elapsed {{time}}",
+    "processingBook": "Processing book"
   }
 }

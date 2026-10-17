@@ -167,5 +167,29 @@
     "itemTask": "目前的處理任務",
     "itemBook": "已寫入書庫的這本書（若已建立）",
     "confirm": "終止處理"
+  },
+  "murmurEmpty": "等待系統開始處理…",
+  "card": {
+    "rerun": "重跑",
+    "rerunning": "重跑中…",
+    "rerunRetry": "再試",
+    "rerunDoneTitle": "{{step}} 重跑完成",
+    "rerunDoneBody": "結果已補齊，可前往書庫查看。",
+    "rerunFailedTitle": "{{step}} 重跑失敗",
+    "tryAgain": "請再試一次。",
+    "rerunQueuedTitle": "重跑已排入任務中心",
+    "rerunQueuedBody": "重跑本身也是一個任務，可於任務中心追蹤。",
+    "partialBadge": "部分完成",
+    "partialLead": "書籍已儲存，但以下步驟未能完成 · 可直接重跑",
+    "allResolved": "所有步驟皆已補齊。",
+    "reviewSubmitFailed": "章節審閱提交失敗，pipeline 可能已中斷，請刪除此書並重新上傳。",
+    "gotoBook": "前往《{{title}}》→",
+    "awaitingReview": "等待審閱",
+    "gateTitle": "系統偵測到章節結構，請確認是否正確",
+    "gateSub": "這是送出前最後一道人工閘門",
+    "acceptDetected": "接受系統判斷",
+    "startReview": "開始審閱 →",
+    "elapsed": "已處理 {{time}}",
+    "processingBook": "書籍處理中"
   }
 }

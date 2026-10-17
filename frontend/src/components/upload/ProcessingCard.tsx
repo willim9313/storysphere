@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { AlertTriangle, CircleCheck, Clock, Loader2, ShieldAlert, Unplug } from 'lucide-react';
 import type { TimelineDetectionResponse } from '@/api/graph';
 import type { PipelineStatus } from '@/api/types';
@@ -21,15 +22,16 @@ import { MurmurWindow } from './MurmurWindow';
 import { formatElapsed } from './uploadModel';
 import { qk } from '@/api/queryKeys';
 
-// Backend failedSteps prefix (underscore) → rerun endpoint step + label, and
-// the book's pipelineStatus key that says whether it has been made good since.
+// Backend failedSteps prefix (underscore) → rerun endpoint step, the book's
+// pipelineStatus key that says whether it has been made good since, and the
+// `upload:steps.*` label — the same name the timeline gives the step.
 // A prefix missing here is listed without a button (no disabled button, no
 // "unsupported" copy — 03 E 區).
 const RERUN_META: Record<string, { step: RerunStep; status: keyof PipelineStatus; label: string }> = {
-  summarization: { step: 'summarization', status: 'summarization', label: '章節摘要' },
-  feature_extraction: { step: 'feature-extraction', status: 'featureExtraction', label: '特徵擷取' },
-  kg_extraction: { step: 'knowledge-graph', status: 'knowledgeGraph', label: '知識圖譜建構' },
-  symbol_discovery: { step: 'symbol-discovery', status: 'symbolDiscovery', label: '符號探索' },
+  summarization: { step: 'summarization', status: 'summarization', label: 'summarization' },
+  feature_extraction: { step: 'feature-extraction', status: 'featureExtraction', label: 'featureExtraction' },
+  kg_extraction: { step: 'knowledge-graph', status: 'knowledgeGraph', label: 'knowledgeGraph' },
+  symbol_discovery: { step: 'symbol-discovery', status: 'symbolDiscovery', label: 'symbolExploration' },
 };
 
 type RerunState = 'idle' | 'loading' | 'failed';
@@ -42,29 +44,30 @@ interface FailedStep {
   detail: string;
 }
 
-function parseFailedSteps(failed: string[]): FailedStep[] {
+function parseFailedSteps(failed: string[], t: TFunction<'upload'>): FailedStep[] {
   return failed.map((raw) => {
     const idx = raw.indexOf(':');
     const id = (idx === -1 ? raw : raw.slice(0, idx)).trim();
     const detail = idx === -1 ? '' : raw.slice(idx + 1).trim();
     const meta = RERUN_META[id];
-    return { id, label: meta?.label ?? id, step: meta?.step ?? null, status: meta?.status ?? null, detail };
+    return { id, label: meta ? t(`steps.${meta.label}`) : id, step: meta?.step ?? null, status: meta?.status ?? null, detail };
   });
 }
 
 function RerunButton({ st, canRerun, onRerun }: Readonly<{ st: RerunState; canRerun: boolean; onRerun: () => void }>) {
+  const { t } = useTranslation('upload');
   if (st === 'loading') {
     return (
       <span className="up-rerun-busy">
         <Loader2 size={12} className="up-spin" />
-        重跑中…
+        {t('card.rerunning')}
       </span>
     );
   }
   if (!canRerun) return null;
   return (
     <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm" onClick={onRerun}>
-      {st === 'failed' ? '再試' : '重跑'}
+      {st === 'failed' ? t('card.rerunRetry') : t('card.rerun')}
     </button>
   );
 }
@@ -76,7 +79,7 @@ function RerunButton({ st, canRerun, onRerun }: Readonly<{ st: RerunState; canRe
  * would refuse a second one with 409 (#8d / #19c).
  */
 function RerunRow({ bookId, fs, adoptTaskId }: Readonly<{ bookId: string; fs: FailedStep; adoptTaskId: string | null }>) {
-  const { t } = useTranslation('reader');
+  const { t } = useTranslation('upload');
   const { push } = useToast();
   const queryClient = useQueryClient();
   // Started here; until then, the rerun found running for this step (if any).
@@ -102,11 +105,11 @@ function RerunRow({ bookId, fs, adoptTaskId }: Readonly<{ bookId: string; fs: Fa
   useEffect(() => {
     if (!taskId || !settled || notifiedRef.current === taskId) return;
     notifiedRef.current = taskId;
-    if (done) push({ type: 'success', title: `${fs.label} 重跑完成`, body: '結果已補齊，可前往書庫查看。' });
-    else if (failed) push({ type: 'error', title: `${fs.label} 重跑失敗`, body: status?.error ?? '請再試一次。' });
+    if (done) push({ type: 'success', title: t('card.rerunDoneTitle', { step: fs.label }), body: t('card.rerunDoneBody') });
+    else if (failed) push({ type: 'error', title: t('card.rerunFailedTitle', { step: fs.label }), body: status?.error ?? t('card.tryAgain') });
     void queryClient.invalidateQueries({ queryKey: qk.book(bookId) });
     void queryClient.invalidateQueries({ queryKey: qk.tasks.list() });
-  }, [taskId, settled, done, failed, status, bookId, fs.label, push, queryClient]);
+  }, [taskId, settled, done, failed, status, bookId, fs.label, push, queryClient, t]);
 
   const handleRerun = useCallback(async () => {
     if (!fs.step) return;
@@ -118,8 +121,8 @@ function RerunRow({ bookId, fs, adoptTaskId }: Readonly<{ bookId: string; fs: Fa
       // Only once the backend took it: a 409 / 503 queues nothing.
       push({
         type: 'info',
-        title: '重跑已排入任務中心',
-        body: '重跑本身也是一個任務，可於任務中心追蹤。',
+        title: t('card.rerunQueuedTitle'),
+        body: t('card.rerunQueuedBody'),
       });
       setOwnTaskId(res.taskId);
     } catch (e) {
@@ -131,10 +134,10 @@ function RerunRow({ bookId, fs, adoptTaskId }: Readonly<{ bookId: string; fs: Fa
         else setBusy(true);
       } else {
         setRequestFailed(true);
-        push({ type: 'error', title: `${fs.label} 重跑失敗`, body: e instanceof Error ? e.message : '請再試一次。' });
+        push({ type: 'error', title: t('card.rerunFailedTitle', { step: fs.label }), body: e instanceof Error ? e.message : t('card.tryAgain') });
       }
     }
-  }, [bookId, fs, push]);
+  }, [bookId, fs, push, t]);
 
   if (done) return null;
   const st: RerunState = taskId && !settled ? 'loading' : failed || requestFailed ? 'failed' : 'idle';
@@ -147,8 +150,8 @@ function RerunRow({ bookId, fs, adoptTaskId }: Readonly<{ bookId: string; fs: Fa
         {busy && (
           <div className="up-notice up-notice-warning up-notice-inset" role="status">
             <span>
-              {t('rerun.busy')}{' '}
-              <Link to={`/books/${bookId}/unraveling`} className="up-link">{t('unanalyzed.cta')}</Link>
+              {t('reader:rerun.busy')}{' '}
+              <Link to={`/books/${bookId}/unraveling`} className="up-link">{t('reader:unanalyzed.cta')}</Link>
             </span>
           </div>
         )}
@@ -164,6 +167,7 @@ function PartialRerunCard({ bookId, title, failedSteps }: Readonly<{ bookId: str
   // pipelineStatus says which steps a rerun has made good since, so a remount
   // does not offer (and charge for) the same rerun twice. Until the book loads
   // every snapshot step is listed, as before.
+  const { t } = useTranslation('upload');
   const { data: book } = useBook(bookId);
   const [running, setRunning] = useState<RunningUnraveling | null>(null);
   useEffect(() => {
@@ -174,7 +178,7 @@ function PartialRerunCard({ bookId, title, failedSteps }: Readonly<{ bookId: str
     return () => { live = false; };
   }, [bookId]);
 
-  const pending = parseFailedSteps(failedSteps).filter(
+  const pending = parseFailedSteps(failedSteps, t).filter(
     (s) => !(s.status && book?.pipelineStatus?.[s.status] === 'done'),
   );
   const allResolved = pending.length === 0;
@@ -185,15 +189,15 @@ function PartialRerunCard({ bookId, title, failedSteps }: Readonly<{ bookId: str
         <span className="up-task-title">{title}</span>
         <span className="ss-badge ss-badge-warning">
           <span className="up-badge-icon"><AlertTriangle size={12} /></span>
-          部分完成
+          {t('card.partialBadge')}
         </span>
       </div>
       <div className="up-partial">
-        <p className="up-partial-lead">書籍已儲存，但以下步驟未能完成 · 可直接重跑</p>
+        <p className="up-partial-lead">{t('card.partialLead')}</p>
         {allResolved ? (
           <div className="up-resolved">
             <span className="up-resolved-icon"><CircleCheck size={18} strokeWidth={1.5} /></span>
-            所有步驟皆已補齊。
+            {t('card.allResolved')}
           </div>
         ) : (
           pending.map((fs) => (
@@ -207,7 +211,7 @@ function PartialRerunCard({ bookId, title, failedSteps }: Readonly<{ bookId: str
         )}
         <div className="up-partial-foot">
           <Link to={`/books/${bookId}`} className="up-link">
-            前往書庫查看 →
+            {t('notify.gotoLibrary')} →
           </Link>
         </div>
       </div>
@@ -231,7 +235,7 @@ interface ProcessingCardProps {
 }
 
 export function ProcessingCard({ task, onDone, onError, onGone }: Readonly<ProcessingCardProps>) {
-  const { t } = useTranslation('upload');
+  const { t, i18n } = useTranslation('upload');
   const { data: status, isError, error: pollError, murmurEvents } = useTaskPolling(task.taskId);
   const queryClient = useQueryClient();
   const doneRef = useRef(false);
@@ -292,12 +296,12 @@ export function ProcessingCard({ task, onDone, onError, onGone }: Readonly<Proce
       setReviewError(null);
       queryClient.invalidateQueries({ queryKey: qk.tasks.one(task.taskId) });
     } catch {
-      setReviewError('章節審閱提交失敗，pipeline 可能已中斷，請刪除此書並重新上傳。');
+      setReviewError(t('card.reviewSubmitFailed'));
       queryClient.invalidateQueries({ queryKey: qk.tasks.one(task.taskId) });
     } finally {
       setAcceptingChapters(false);
     }
-  }, [bookId, queryClient, task.taskId]);
+  }, [bookId, queryClient, task.taskId, t]);
 
   const handleTerminate = useCallback(async () => {
     setConfirmTerminate(false);
@@ -323,7 +327,7 @@ export function ProcessingCard({ task, onDone, onError, onGone }: Readonly<Proce
         <span className="up-done-title">{task.title}</span>
         <span className="up-spacer" />
         <Link to={`/books/${bookId}`} className="up-link">
-          前往《{task.title}》→
+          {t('card.gotoBook', { title: task.title })}
         </Link>
       </div>
     );
@@ -343,7 +347,7 @@ export function ProcessingCard({ task, onDone, onError, onGone }: Readonly<Proce
       onClick={() => setConfirmTerminate(true)}
     >
       {terminating && <Loader2 size={12} className="up-spin" />}
-      終止處理
+      {t('terminate.confirm')}
     </button>
   );
   const terminateDialog = (
@@ -369,12 +373,12 @@ export function ProcessingCard({ task, onDone, onError, onGone }: Readonly<Proce
             <div className="up-gate-meta">
               <span className="ss-badge ss-badge-warning">
                 <span className="up-badge-icon"><AlertTriangle size={12} /></span>
-                等待審閱
+                {t('card.awaitingReview')}
               </span>
               <span className="up-gate-book">{task.title}</span>
             </div>
-            <h3 className="up-gate-title">系統偵測到章節結構，請確認是否正確</h3>
-            <p className="up-gate-sub">這是送出前最後一道人工閘門</p>
+            <h3 className="up-gate-title">{t('card.gateTitle')}</h3>
+            <p className="up-gate-sub">{t('card.gateSub')}</p>
           </div>
           <div className="up-gate-actions">
             <button
@@ -384,10 +388,10 @@ export function ProcessingCard({ task, onDone, onError, onGone }: Readonly<Proce
               onClick={handleAcceptChapters}
             >
               {acceptingChapters && <Loader2 size={12} className="up-spin" />}
-              接受系統判斷
+              {t('card.acceptDetected')}
             </button>
             <Link to={`/upload/review/${bookId}?taskId=${task.taskId}`} className="ss-btn ss-btn-md ss-btn-secondary">
-              開始審閱 →
+              {t('card.startReview')}
             </Link>
             {terminateButton('md')}
           </div>
@@ -405,13 +409,18 @@ export function ProcessingCard({ task, onDone, onError, onGone }: Readonly<Proce
 
   /* ── Processing ── */
   const progress = status?.progress ?? 0;
+  // #8: with a stepKey the label is the front end's (i18n); the backend's
+  // Chinese `stage` stays only as the fallback for tasks without one.
+  const stageText = status?.stepKey && i18n.exists(`upload:steps.${status.stepKey}`)
+    ? t(`steps.${status.stepKey}`)
+    : status?.stage;
   return (
     <div className="up-card up-task">
       <div className="up-task-head">
         <span className="up-task-title">{task.title}</span>
         {status && (
           <span className="up-task-stage">
-            {status.stage ? `${status.stage} · ` : ''}
+            {stageText ? `${stageText} · ` : ''}
             {progress}%
           </span>
         )}
@@ -419,7 +428,7 @@ export function ProcessingCard({ task, onDone, onError, onGone }: Readonly<Proce
           <>
             <span className="up-task-sep" />
             <span className="up-task-clock"><Clock size={13} strokeWidth={1.5} /></span>
-            <span className="up-task-elapsed">已處理 {elapsedText}</span>
+            <span className="up-task-elapsed">{t('card.elapsed', { time: elapsedText })}</span>
           </>
         )}
         <span className="up-spacer" />
