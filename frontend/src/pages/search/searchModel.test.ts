@@ -6,8 +6,11 @@ import {
   padPosition,
   groupResults,
   hitOffsets,
+  booksWithHits,
+  groupCap,
   mergeBookSearches,
   parseSearchParams,
+  replaceBookResults,
   splitHighlight,
   toSearchParams,
 } from './searchModel';
@@ -115,9 +118,9 @@ describe('mergeBookSearches', () => {
     expect(m.results.map((r) => r.id)).toEqual(['b', 'a']);
   });
 
-  it('caps the merged list', () => {
-    const many = Array.from({ length: 5 }, (_, i) => res(`r${i}`, 'd1', i));
-    expect(mergeBookSearches(['d1'], [ok(many)], 3).results).toHaveLength(3);
+  it('keeps every book\'s results — no global cap', () => {
+    const many = Array.from({ length: 12 }, (_, i) => res(`r${i}`, `d${i % 3}`, i));
+    expect(mergeBookSearches(['d0', 'd1', 'd2'], [ok(many.slice(0, 4)), ok(many.slice(4, 8)), ok(many.slice(8))]).results).toHaveLength(12);
   });
 
   it('reports every book failed when all reject', () => {
@@ -149,5 +152,27 @@ describe('search URL state', () => {
 
   it('drops scope when there is no query', () => {
     expect(toSearchParams({ q: '', mode: 'semantic', books: ['a'] }).toString()).toBe('mode=semantic');
+  });
+});
+
+describe('per-book scope', () => {
+  it('lists books with hits in score order', () => {
+    expect(booksWithHits([res('a', 'd2', 9), res('b', 'd1', 5), res('c', 'd2', 3)])).toEqual(['d2', 'd1']);
+  });
+
+  it('replaces one book\'s results and keeps the score order', () => {
+    const merged = replaceBookResults(
+      [res('a', 'd1', 9), res('b', 'd2', 5)],
+      'd2',
+      [res('b', 'd2', 5), res('c', 'd2', 10)],
+    );
+    expect(merged.map((r) => r.id)).toEqual(['c', 'a', 'b']);
+  });
+
+  it('flags a group that hit the per-book limit, then the backend maximum', () => {
+    expect(groupCap(9, false)).toBe('none');
+    expect(groupCap(10, false)).toBe('more');
+    expect(groupCap(30, true)).toBe('none');
+    expect(groupCap(50, true)).toBe('max');
   });
 });
