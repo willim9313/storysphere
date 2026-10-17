@@ -30,7 +30,8 @@
   flex: 1; min-height: 0; display: flex; flex-direction: column;
   padding: var(--space-7); gap: var(--space-6);
 }
-.cr-head { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-6); }
+/* 窄寬或英文時按鈕列換到第二行，不擠扁標題 */
+.cr-head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--space-6); }
 .cr-head-text { display: flex; flex-direction: column; gap: var(--space-2); min-width: 0; }
 .cr-title { margin: 0; font-family: var(--font-serif); font-size: var(--font-size-2xl); font-weight: 700; }
 .cr-sub { font-size: var(--font-size-2xs); color: var(--fg-muted); }
@@ -70,9 +71,9 @@
   display: flex; flex-direction: column; gap: var(--space-4);
 }
 .cr-spine.is-collapsed { width: 40px; align-items: center; }
-.cr-spine-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+.cr-spine-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-4); }
 .cr-spine-name { font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 600; white-space: nowrap; }
-.cr-spine-tools { display: flex; align-items: center; gap: var(--space-4); }
+.cr-spine-tools { display: flex; align-items: center; gap: var(--space-4); margin-left: auto; }
 .cr-spine-toggle {
   display: inline-flex; padding: 0; border: none; background: transparent; cursor: pointer;
   color: var(--fg-secondary); transition: color var(--transition-fast);
@@ -152,18 +153,20 @@
   border-left: var(--line-weight) var(--border-style) var(--border); padding-left: var(--space-6);
 }
 .cr-inforow {
-  position: relative; flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: var(--space-5);
+  flex-shrink: 0; display: flex; align-items: center; justify-content: space-between; gap: var(--space-5);
   padding-bottom: var(--space-4);
   border-bottom: var(--line-weight) var(--border-style) var(--border);
 }
 .cr-info-text { margin: 0; font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-secondary); }
+.cr-read-wrap { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; }
 .cr-read {
   flex: 1; min-height: 0; overflow-y: auto; position: relative;
   display: flex; flex-direction: column; gap: var(--space-5); padding-bottom: var(--space-8);
 }
 .cr-chapter { display: flex; flex-direction: column; gap: var(--space-4); scroll-margin-top: var(--space-4); }
+/* 標題框保底 16em；放不下時角色下拉與併上／併下折到第二行 */
 .cr-divider {
-  display: flex; align-items: center; gap: var(--space-4);
+  display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4);
   padding: var(--space-4) var(--space-5); border-radius: var(--radius-sm);
   background: var(--bg-secondary);
   transition: background-color 500ms ease;
@@ -176,7 +179,7 @@
 .cr-ch-no { flex-shrink: 0; font-size: var(--font-size-2xs); font-weight: 600; color: var(--fg-primary); }
 .cr-divider.is-nonbody .cr-ch-no { color: var(--fg-muted); }
 .cr-ch-title {
-  flex: 1; min-width: 0; padding: var(--space-3) var(--space-4);
+  flex: 1 1 16em; min-width: 0; padding: var(--space-3) var(--space-4);
   border: var(--input-border-width) var(--border-style) var(--border); border-radius: var(--control-radius);
   background: var(--bg-primary); color: var(--fg-primary);
   font-family: var(--font-serif); font-size: var(--font-size-xs);
@@ -189,6 +192,7 @@
   font-family: var(--font-sans); font-size: var(--font-size-2xs);
 }
 .cr-ch-role { padding: var(--space-3) var(--space-4); }
+.cr-ch-tools { display: flex; align-items: center; gap: var(--space-4); flex-shrink: 0; }
 .cr-divider .ss-btn { flex-shrink: 0; }
 .cr-divider .ss-btn:disabled { opacity: 0.4; }
 
@@ -216,8 +220,10 @@
 
 /* ── 角色對照表 overlay（D）：不推擠正文流 ── */
 .cr-guide {
-  position: absolute; top: calc(100% + var(--space-4)); right: 0; z-index: 6;
+  /* 位置同前（說明列下 --space-4）；高度以正文流為上限，超出內捲 */
+  position: absolute; top: calc(var(--space-4) - var(--space-5)); right: 0; z-index: 6;
   width: min(1000px, 100%); box-sizing: border-box;
+  max-height: calc(100% + var(--space-5) - var(--space-4)); overflow-y: auto;
   display: flex; flex-direction: column; gap: var(--space-6);
   padding: var(--space-7);
   background: var(--bg-primary);
