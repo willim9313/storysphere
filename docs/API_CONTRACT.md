@@ -170,6 +170,7 @@ language  (ISO 639-1 語言代碼，選填；省略時由後端自動偵測，�
 **Response 422**：非 .pdf / .docx / .txt / .epub 格式
 
 **說明**：取得 taskId 後，前端 polling `GET /tasks/:taskId/status`（見 #8）追蹤處理進度。流程中可能出現 `awaiting_review` 狀態（章節審閱暫停），見 #8「特殊狀態」說明。
+解析後抽不到任何段落（例如沒有文字層的掃描 PDF）時，任務於章節審閱前即 `status: error`、`errorKind: no_text`，**書不入庫**（2026-10-17 起；之前會完成成一本 0 章的空書）。
 
 **UI 使用頁面**：上傳頁 `/upload`
 

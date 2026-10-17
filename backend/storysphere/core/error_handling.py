@@ -109,6 +109,15 @@ def is_rate_limit_error(exc: Exception) -> bool:
 
 TaskErrorKind = Literal["encrypted", "unreadable", "no_text", "interrupted", "internal"]
 
+
+class NoExtractableText(Exception):
+    """The file parsed, but not one paragraph of text came out of it.
+
+    A scanned PDF has no text layer: pypdf returns "" for every page without
+    raising, and the run would otherwise finish as an empty book with zero
+    chapters and no error at all.
+    """
+
 # Raised by the EPUB loader around whatever ebooklib threw; the prefix is the
 # only marker that survives (the original is its __cause__).
 _EPUB_PARSE_PREFIX = "Could not parse EPUB:"
@@ -145,6 +154,8 @@ def classify_task_failure(exc: BaseException) -> TaskErrorKind:
         PackageNotFoundError = ()  # type: ignore[assignment,misc]
 
     chain = _exception_chain(exc)
+    if any(isinstance(e, NoExtractableText) for e in chain):
+        return "no_text"
     if any(isinstance(e, FileNotDecryptedError) for e in chain):
         return "encrypted"
     for e in chain:
