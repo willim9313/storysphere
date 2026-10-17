@@ -36,6 +36,12 @@ const RERUN_META: Record<string, { step: RerunStep; status: keyof PipelineStatus
 
 type RerunState = 'idle' | 'loading' | 'failed';
 
+// result.failedStepKinds / a rerun task's errorKind (#8, #8d). Anything else —
+// an older backend, a whole-task kind — gets no line; the raw detail stays.
+const STEP_KINDS = new Set(['rate_limited', 'llm_unconfigured', 'blocked', 'timeout', 'other']);
+const stepKindOf = (kind: unknown): string | null =>
+  typeof kind === 'string' && STEP_KINDS.has(kind) ? kind : null;
+
 interface FailedStep {
   id: string;
   label: string;
@@ -78,7 +84,13 @@ function RerunButton({ st, canRerun, onRerun }: Readonly<{ st: RerunState; canRe
  * started before a remount) is adopted rather than offered again — the backend
  * would refuse a second one with 409 (#8d / #19c).
  */
-function RerunRow({ bookId, fs, adoptTaskId }: Readonly<{ bookId: string; fs: FailedStep; adoptTaskId: string | null }>) {
+function RerunRow({ bookId, fs, adoptTaskId, ingestKind }: Readonly<{
+  bookId: string;
+  fs: FailedStep;
+  adoptTaskId: string | null;
+  /** Why the step failed during ingestion (result.failedStepKinds). */
+  ingestKind: string | null;
+}>) {
   const { t } = useTranslation('upload');
   const { push } = useToast();
   const queryClient = useQueryClient();
@@ -141,11 +153,18 @@ function RerunRow({ bookId, fs, adoptTaskId }: Readonly<{ bookId: string; fs: Fa
 
   if (done) return null;
   const st: RerunState = taskId && !settled ? 'loading' : failed || requestFailed ? 'failed' : 'idle';
+  // Why it failed, in words: the latest rerun's kind once one has failed,
+  // otherwise the ingestion's. Nothing while a rerun is running.
+  let kind: string | null = null;
+  if (st !== 'loading') kind = failed ? stepKindOf(status?.errorKind) : taskId ? null : ingestKind;
 
   return (
     <div className="up-rerun-row">
       <div className="up-rerun-main">
         <span className="up-rerun-name">{fs.label}</span>
+        {kind && kind !== 'llm_unconfigured' && (
+          <span className="up-failed-reason">{t(`stepFailedKind.${kind}`)}</span>
+        )}
         {fs.detail && <code className="up-code">{fs.detail}</code>}
         {busy && (
           <div className="up-notice up-notice-warning up-notice-inset" role="status">
@@ -155,14 +174,19 @@ function RerunRow({ bookId, fs, adoptTaskId }: Readonly<{ bookId: string; fs: Fa
             </span>
           </div>
         )}
-        {unconfigured && <LlmUnconfiguredNotice />}
+        {(unconfigured || kind === 'llm_unconfigured') && <LlmUnconfiguredNotice />}
       </div>
       <RerunButton st={st} canRerun={fs.step !== null} onRerun={() => void handleRerun()} />
     </div>
   );
 }
 
-function PartialRerunCard({ bookId, title, failedSteps }: Readonly<{ bookId: string; title: string; failedSteps: string[] }>) {
+function PartialRerunCard({ bookId, title, failedSteps, failedStepKinds }: Readonly<{
+  bookId: string;
+  title: string;
+  failedSteps: string[];
+  failedStepKinds?: Record<string, unknown>;
+}>) {
   // failedSteps is the ingestion task's snapshot and never changes; the book's
   // pipelineStatus says which steps a rerun has made good since, so a remount
   // does not offer (and charge for) the same rerun twice. Until the book loads
@@ -206,6 +230,7 @@ function PartialRerunCard({ bookId, title, failedSteps }: Readonly<{ bookId: str
               bookId={bookId}
               fs={fs}
               adoptTaskId={running?.op && running.op === fs.step ? (running.taskId ?? null) : null}
+              ingestKind={stepKindOf(failedStepKinds?.[fs.id])}
             />
           ))
         )}
@@ -335,7 +360,14 @@ export function ProcessingCard({ task, onDone, onError, onGone }: Readonly<Proce
 
   /* ── Partial ── */
   if (isPartialSuccess && bookId && failedSteps) {
-    return <PartialRerunCard bookId={bookId} title={task.title} failedSteps={failedSteps} />;
+    return (
+      <PartialRerunCard
+        bookId={bookId}
+        title={task.title}
+        failedSteps={failedSteps}
+        failedStepKinds={status?.result?.failedStepKinds as Record<string, unknown> | undefined}
+      />
+    );
   }
 
   // Shared by the running and awaiting-review cards: the loss-list confirm.

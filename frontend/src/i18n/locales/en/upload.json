@@ -198,5 +198,11 @@
     "no_text": "No text could be extracted — this may be a scan (images only, no text layer). Run OCR or use a text version first; retrying the same file won't work.",
     "interrupted": "The server restarted and processing was interrupted. You can simply retry.",
     "internal": "Something unexpected went wrong while processing. You can retry once; if it fails again, please report the technical details to us."
+  },
+  "stepFailedKind": {
+    "rate_limited": "The LLM provider's quota or rate limit was reached. Rerun later — rerunning right away will likely fail again.",
+    "blocked": "The LLM provider refused part of the content (content filtering). Rerunning will likely give the same result.",
+    "timeout": "The LLM timed out. You can rerun right away.",
+    "other": "Something unexpected went wrong. You can rerun once."
   }
 }

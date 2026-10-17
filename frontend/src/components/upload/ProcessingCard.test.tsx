@@ -140,6 +140,30 @@ describe('PartialRerunCard', () => {
     await screen.findByText('card.rerunning');
   });
 
+  it('the ingestion failure kind is worded on its row', async () => {
+    fetchBook.mockImplementation(() => Promise.resolve({ id: 'b1', pipelineStatus: pipeline({}) }));
+    fetchRunningUnraveling.mockImplementation(() => Promise.resolve({ op: null, taskId: null }));
+    fetchTaskStatus.mockImplementation(() =>
+      Promise.resolve({
+        ...PARTIAL,
+        result: { ...PARTIAL.result, failedStepKinds: { summarization: 'rate_limited', symbol_discovery: 'llm_unconfigured' } },
+      }));
+    renderCard();
+    await screen.findByText('stepFailedKind.rate_limited');
+    // No provider: the existing in-place notice, not a new line.
+    expect(screen.queryByText('stepFailedKind.llm_unconfigured')).toBeNull();
+    expect(screen.getAllByRole('status')).toHaveLength(1);
+  });
+
+  it('a failed rerun shows its own kind', async () => {
+    setup({});
+    rerunStep.mockImplementation(() => Promise.resolve({ taskId: 'r5' }));
+    fetchTaskStatus.mockImplementation((id: string) =>
+      Promise.resolve(id === 't1' ? PARTIAL : status({ taskId: id, status: 'error', error: 'timed out', errorKind: 'timeout' })));
+    fireEvent.click((await screen.findAllByRole('button', { name: 'card.rerun' }))[0]);
+    await screen.findByText('stepFailedKind.timeout');
+  });
+
   it('503 (no LLM provider) is shown in place, not as a failure', async () => {
     setup({});
     rerunStep.mockImplementation(() => Promise.reject(new ApiError(503, 'no provider', true)));
