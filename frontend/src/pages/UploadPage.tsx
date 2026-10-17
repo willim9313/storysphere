@@ -7,6 +7,7 @@ import type { TimelineDetectionResponse } from '@/api/graph';
 import type { TaskStatus } from '@/api/types';
 import { detectLanguage, uploadBook } from '@/api/ingest';
 import { fetchTasks } from '@/api/tasks';
+import { ApiError } from '@/api/client';
 import { failureKind, techDetailOf } from '@/api/failureKind';
 import { useBooks } from '@/hooks/useBooks';
 import { DropZone } from '@/components/upload/DropZone';
@@ -145,6 +146,17 @@ export default function UploadPage() {
   // Metadata that survives past upload, so a failed task can be retried with the
   // original title/author/language (only the file needs re-picking).
   const uploadMetaRef = useRef<Map<string, RetryMeta & { fileName: string }>>(new Map());
+  // A task this tab did not upload — restored from sessionStorage after a
+  // reload, or picked up from the server — has no upload-time metadata. Its
+  // title is still known, so a later "retry" reuses it instead of the file
+  // name; author / language are unknown and stay blank. Real metadata wins.
+  useEffect(() => {
+    for (const task of tasks) {
+      if (task.title && !uploadMetaRef.current.has(task.taskId)) {
+        uploadMetaRef.current.set(task.taskId, { title: task.title, author: '', language: '', fileName: task.fileName });
+      }
+    }
+  }, [tasks]);
   // Hidden input the error-card "retry" button drives; retryMetaRef carries the
   // metadata to reuse for the re-picked file, retryTaskIdRef the card to drop
   // once a file is actually picked (a cancelled picker keeps the card).
@@ -279,6 +291,16 @@ export default function UploadPage() {
     [upload],
   );
 
+  // The request failed before any task existed. Say it in words where the
+  // page can (#2's 413 / 422 mirror the drop zone's own checks; no answer at
+  // all is the backend's); any other answer keeps its own detail.
+  const uploadErrorText = (err: Error): string => {
+    if (failureKind(err) === 'backend') return tc('failure.backendTitle');
+    if (err instanceof ApiError && err.status === 413) return t('dropzone.errorTooLarge', { max: MAX_FILE_MB });
+    if (err instanceof ApiError && err.status === 422) return t('dropzone.errorInvalidFormat');
+    return err.message;
+  };
+
   const handleConfirmUpload = useCallback(() => {
     if (!active || !active.title.trim() || submittingRef.current) return;
     submittingRef.current = true;
@@ -363,7 +385,9 @@ export default function UploadPage() {
     if (!file) return;
     if (retryTaskIdRef.current) dismissErroredTask(retryTaskIdRef.current);
     upload.reset();
-    setQueue((q) => [toPending(file, retryMetaRef.current ?? undefined), ...q]);
+    // Read the ref now: the updater runs later, after the reset below.
+    const meta = retryMetaRef.current ?? undefined;
+    setQueue((q) => [toPending(file, meta), ...q]);
     retryMetaRef.current = null;
     retryTaskIdRef.current = null;
   }, [upload, dismissErroredTask]);
@@ -498,7 +522,7 @@ export default function UploadPage() {
                     {upload.error && upload.error.name !== 'AbortError' && (
                       <div className="up-notice up-notice-error up-notice-inset" role="alert">
                         <span className="up-notice-icon"><AlertTriangle size={16} /></span>
-                        <span>{upload.error.message}</span>
+                        <span>{uploadErrorText(upload.error)}</span>
                       </div>
                     )}
 
