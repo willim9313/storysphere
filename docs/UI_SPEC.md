@@ -233,7 +233,7 @@ hover 底 `--bg-secondary`；標籤 `settings:guidance.title`「研究者導覽�
   **語言偵測徽章**「已自動偵測：{語言} · 可修改」緊貼在語系下拉下方，`--bg-secondary` 圓角徽章＋kit `.ss-llm-glyph`
   （機器判斷標記，不是 `.ss-btn-llm`）；手動改下拉即清掉。>15 MB 不打預偵測、沒有徽章、不另寫說明。
 - **同名書警告**「已有同名書籍《…》，本次上傳仍會繼續進行。」為 `--color-warning-bg` 列，放在送出鈕之上。
-- 「確認上傳」primary、**不帶 sparkles**，書名空白時 disabled（頁內 `.up-page .ss-btn:disabled` 0.5，1-S）；「取消」ghost。
+- 「確認上傳」primary、**不帶 sparkles**，書名空白時 disabled（kit `.ss-btn:disabled` 0.5，`ss-kit.css`；1-S 原為頁內規則，已收進 kit）；「取消」ghost。
   按鈕旁的成本說明是稿上註解，不做（1-E）。
 - 佇列「待上傳佇列 · 逐本填寫」（serif base 600）：每列 mono 序號（02、03…）、檔名、「等待上傳」、X 移除。
 
@@ -277,7 +277,7 @@ sessionStorage 記著、但 `GET /tasks/:id/status` 回 404 的任務（記憶�
 
 與「已完成」是兩種版型。卡頭書名＋`ss-badge-warning`「部分完成」（AlertTriangle），卡頭下分隔線；內文先保留既有句
 「書籍已儲存，但以下步驟未能完成 · 可直接重跑」（1-F），再逐步驟列：步驟名 xs 600（取 `upload:steps.*`，與 timeline 同名，1-AD）、後端細節 mono 細節框
-（`--bg-tertiary`）、右側 `ss-btn-sm ss-btn-secondary ss-btn-llm`「重跑」（失敗後「再試」，進行中「重跑中…」）。
+（無底色，`.up-code`）、右側 `ss-btn-sm ss-btn-secondary ss-btn-llm`「重跑」（失敗後「再試」，進行中「重跑中…」）。
 對映不到 rerun endpoint 的前綴只列出、不給鈕、不寫說明（符號探索有 endpoint，保留鈕，1-M）。全部補齊換成
 CircleCheck success「所有步驟皆已補齊。」。
 步驟清單是 ingestion 任務當時的 `failedSteps` 快照，再以書的 `pipelineStatus`（`GET /books/:id`）濾掉之後已補成 `done` 的步驟，

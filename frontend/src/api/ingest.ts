@@ -5,6 +5,9 @@ import type { TaskStatus } from './types';
 export type SuggestRolesResponse = components['schemas']['SuggestRolesResponse'];
 export type ParseTocResponse = components['schemas']['ParseTocResponse'];
 export type TocEntry = components['schemas']['TocEntry'];
+type UploadResponse = components['schemas']['UploadResponse'];
+type DetectLanguageResponse = components['schemas']['DetectLanguageResponse'];
+type TaskIdResponse = components['schemas']['TaskIdResponse'];
 
 // #2 — Upload book (PDF)
 export function uploadBook(
@@ -13,20 +16,20 @@ export function uploadBook(
   author?: string,
   language?: string,
   signal?: AbortSignal,
-): Promise<{ taskId: string; duplicateTitle: boolean }> {
+): Promise<UploadResponse> {
   const form = new FormData();
   form.append('file', file);
   form.append('title', title);
   if (author) form.append('author', author);
   if (language) form.append('language', language);
-  return apiUpload<{ taskId: string; duplicateTitle: boolean }>('/books/upload', form, signal);
+  return apiUpload<UploadResponse>('/books/upload', form, signal);
 }
 
 // #2b — Detect a file's language before upload is confirmed
-export function detectLanguage(file: File): Promise<{ language: string }> {
+export function detectLanguage(file: File): Promise<DetectLanguageResponse> {
   const form = new FormData();
   form.append('file', file);
-  return apiUpload<{ language: string }>('/books/detect-language', form);
+  return apiUpload<DetectLanguageResponse>('/books/detect-language', form);
 }
 
 // #8 — Poll task status
@@ -88,6 +91,6 @@ export function cancelTask(taskId: string): Promise<void> {
 
 // Rerun a single failed pipeline step
 export type RerunStep = 'summarization' | 'feature-extraction' | 'knowledge-graph' | 'symbol-discovery';
-export function rerunStep(bookId: string, step: RerunStep): Promise<{ taskId: string }> {
-  return apiFetch<{ taskId: string }>(`/books/${bookId}/rerun/${step}`, { method: 'POST' });
+export function rerunStep(bookId: string, step: RerunStep): Promise<TaskIdResponse> {
+  return apiFetch<TaskIdResponse>(`/books/${bookId}/rerun/${step}`, { method: 'POST' });
 }
