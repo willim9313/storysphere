@@ -46,6 +46,16 @@ describe('splitHighlight', () => {
     expect(segs.map((s) => s.text).join('')).toBe('Salt and sea, salt');
   });
 
+  it('prefers the longest word when words overlap, so the mark count equals the backend score', () => {
+    const segs = splitHighlight('名字與名', '名 名字');
+    expect(segs.filter((s) => s.hit).map((s) => s.text)).toEqual(['名字', '名']);
+  });
+
+  it('marks repeated words once per occurrence', () => {
+    const segs = splitHighlight('a A a', 'A a');
+    expect(segs.filter((s) => s.hit)).toHaveLength(3);
+  });
+
   it('escapes regex metacharacters', () => {
     const segs = splitHighlight('a.b axb', 'a.b');
     expect(segs.filter((s) => s.hit)).toHaveLength(1);
