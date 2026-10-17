@@ -1,4 +1,4 @@
-import { useRef, useEffect, useLayoutEffect, useCallback } from 'react';
+import { memo, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import type { MurmurEvent } from '@/api/types';
@@ -20,7 +20,8 @@ function roleOf(event: MurmurEvent): string {
 
 // Three content shapes share one stream: entity pill (+ serif role), serif
 // prose for topic, mono for raw.
-function MurmurContent({ event }: Readonly<{ event: MurmurEvent }>) {
+// memo: an event never changes once received, so a row renders once.
+const MurmurContent = memo(function MurmurContent({ event }: Readonly<{ event: MurmurEvent }>) {
   const variant = murmurPillVariant(event.type);
   if (variant) {
     const role = roleOf(event);
@@ -38,7 +39,7 @@ function MurmurContent({ event }: Readonly<{ event: MurmurEvent }>) {
     return <code className="up-murmur-raw">{event.rawContent ?? event.content}</code>;
   }
   return <p className="up-murmur-topic">{event.content}</p>;
-}
+});
 
 interface MurmurWindowProps {
   events: MurmurEvent[];
@@ -46,7 +47,9 @@ interface MurmurWindowProps {
   characterSrc?: string;
 }
 
-export function MurmurWindow({ events, characterSrc }: Readonly<MurmurWindowProps>) {
+// memo: the store hands out a new array only when events arrive, so the card's
+// other re-renders (polls, state) skip the list.
+export const MurmurWindow = memo(function MurmurWindow({ events, characterSrc }: Readonly<MurmurWindowProps>) {
   const { t } = useTranslation('upload');
   const containerRef = useRef<HTMLDivElement>(null);
   const isAtBottomRef = useRef(true);
@@ -101,4 +104,4 @@ export function MurmurWindow({ events, characterSrc }: Readonly<MurmurWindowProp
       </div>
     </div>
   );
-}
+});

@@ -244,6 +244,32 @@ function PartialRerunCard({ bookId, title, failedSteps, failedStepKinds }: Reado
   );
 }
 
+/**
+ * "已處理 mm:ss", ticking every second. Its own component so the tick
+ * re-renders this span only — not the whole card and its murmur list.
+ * Counted from the task's createdAt (decision Q2), so a task picked up from
+ * another tab shows its real age rather than a fresh "just started".
+ */
+function ElapsedClock({ createdAt }: Readonly<{ createdAt: string }>) {
+  const { t } = useTranslation('upload');
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(id);
+  }, []);
+  return (
+    // One unit, so a narrow head wraps it whole instead of leaving the clock
+    // on one line and its time on the next.
+    <span className="up-task-timer">
+      <span className="up-task-sep" />
+      <span className="up-task-clock"><Clock size={13} strokeWidth={1.5} /></span>
+      <span className="up-task-elapsed">
+        {t('card.elapsed', { time: formatElapsed((now - Date.parse(createdAt)) / 1000) })}
+      </span>
+    </span>
+  );
+}
+
 interface UploadTask {
   taskId: string;
   fileName: string;
@@ -268,18 +294,7 @@ export function ProcessingCard({ task, onDone, onError, onGone }: Readonly<Proce
   const [terminating, setTerminating] = useState(false);
   const [confirmTerminate, setConfirmTerminate] = useState(false);
   const [reviewError, setReviewError] = useState<string | null>(null);
-  // Tick every second so the "已處理 mm:ss" clock advances live while running.
-  const [nowTick, setNowTick] = useState(() => Date.now());
   const isActive = status?.status === 'running' || status?.status === 'pending';
-  useEffect(() => {
-    if (!isActive) return;
-    const id = setInterval(() => setNowTick(Date.now()), 1000);
-    return () => clearInterval(id);
-  }, [isActive]);
-  // Counted from the task's createdAt (decision Q2), so a task picked up from
-  // another tab shows its real age rather than a fresh "just started".
-  const elapsedText =
-    status?.createdAt != null ? formatElapsed((nowTick - Date.parse(status.createdAt)) / 1000) : null;
 
   const failedSteps     = status?.result?.failedSteps as string[] | undefined;
   const isPartialSuccess = status?.status === 'done' && !!status.result?.bookId && failedSteps && failedSteps.length > 0;
@@ -456,15 +471,7 @@ export function ProcessingCard({ task, onDone, onError, onGone }: Readonly<Proce
             {progress}%
           </span>
         )}
-        {isActive && elapsedText && (
-          // One unit, so a narrow head wraps it whole instead of leaving the
-          // clock on one line and its time on the next.
-          <span className="up-task-timer">
-            <span className="up-task-sep" />
-            <span className="up-task-clock"><Clock size={13} strokeWidth={1.5} /></span>
-            <span className="up-task-elapsed">{t('card.elapsed', { time: elapsedText })}</span>
-          </span>
-        )}
+        {isActive && status?.createdAt != null && <ElapsedClock createdAt={status.createdAt} />}
         <span className="up-spacer" />
         {terminateButton('sm')}
       </div>
