@@ -32,7 +32,7 @@
     "chapterLabel": "第 {{n}} 章",
     "chapterBadge": "章",
     "chapterTitlePlaceholder": "（章標題）",
-    "paraCount": "{{n}} 段",
+    "paraCount": "{{count}} 段",
     "splitHere": "在此分章",
     "splitSelection": "✂ 切分為新段落",
     "splitBanner": "已於選取處切出新段落，可用段落間的「＋」在此分章",

@@ -67,6 +67,8 @@ function Banner({ kind, children, action, top = false }: Readonly<{ kind: NoteKi
   );
 }
 
+const NARROW_QUERY = '(max-width: 768px)';
+
 export default function ChapterReviewPage() {
   const { bookId } = useParams<{ bookId: string }>();
   const [searchParams] = useSearchParams();
@@ -84,7 +86,18 @@ export default function ChapterReviewPage() {
   const [chapters, setChapters] = useState<ReviewChapter[]>([]);
   const [selCi, setSelCi] = useState(0);
   const [flashCi, setFlashCi] = useState<number | null>(null);
-  const [spineOpen, setSpineOpen] = useState(true);
+  // DESIGN.md: at ≤768px the spine (secondary column) folds to the rail so the
+  // reading flow stays usable. Only crossing the threshold overrides the toggle.
+  const [spineOpen, setSpineOpen] = useState(
+    () => !(typeof window.matchMedia === 'function' && window.matchMedia(NARROW_QUERY).matches),
+  );
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia(NARROW_QUERY);
+    const onChange = () => setSpineOpen(!mq.matches);
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
   // 逐章 is the default and the spine never switches on its own (B′).
   const [spineMode, setSpineMode] = useState<SpineMode>('chapter');
   const [ovAvail, setOvAvail] = useState(0);
@@ -734,7 +747,7 @@ export default function ChapterReviewPage() {
                           )}
                         </span>
                         {ch.title && <span className="cr-block-title">{ch.title}</span>}
-                        <span className="cr-block-count">{t('review.paraCount', { n: paraCount })}</span>
+                        <span className="cr-block-count">{t('review.paraCount', { count: paraCount })}</span>
                       </button>
                     ))}
                   </div>
@@ -742,7 +755,7 @@ export default function ChapterReviewPage() {
                   <div className="cr-ov" ref={ovRef}>
                     {view.rows.map(({ ch, ci, isBody, flagged, headLabel, shortLabel, paraCount }) => {
                       const h = ovHeights[ci] ?? 2;
-                      const tip = [headLabel, ch.title, t('review.paraCount', { n: paraCount })]
+                      const tip = [headLabel, ch.title, t('review.paraCount', { count: paraCount })]
                         .filter(Boolean)
                         .join(' · ');
                       return (
@@ -818,7 +831,10 @@ export default function ChapterReviewPage() {
               >
                 {t('review.glossaryTag')}
               </button>
+            </div>
 
+            {/* Wrapper gives the guide a height to cap at (it scrolls inside) */}
+            <div className="cr-read-wrap">
               {glossaryOpen && (
                 <div className="cr-guide" role="dialog" aria-label={t('review.glossaryToggle')}>
                   <div className="cr-guide-head">
@@ -861,101 +877,103 @@ export default function ChapterReviewPage() {
                   </div>
                 </div>
               )}
-            </div>
 
-            <div className="cr-read" ref={readRef} onScroll={() => setSelSplit((s) => (s ? null : s))}>
-              {view.rows.map(({ ch, ci, isBody, headLabel }) => (
-                <div key={ci} className="cr-chapter" data-chapter-anchor={ci}>
-                  <div
-                    className={[
-                      'cr-divider',
-                      isBody ? '' : 'is-nonbody',
-                      selCi === ci ? 'is-selected' : '',
-                      ci === flashCi ? 'is-flash' : '',
-                    ].filter(Boolean).join(' ')}
-                  >
-                    <span className="ss-badge cr-ch-badge">{t('review.chapterBadge')}</span>
-                    <span className="cr-ch-no">{headLabel}</span>
-                    <input
-                      className="cr-ch-title"
-                      value={ch.title ?? ''}
-                      placeholder={t('review.chapterTitlePlaceholder')}
-                      onChange={(e) => setChapterTitle(ci, e.target.value)}
-                    />
-                    <select
-                      className="cr-select cr-ch-role"
-                      value={ch.role ?? 'body'}
-                      onChange={(e) => setChapterRole(ci, e.target.value)}
+              <div className="cr-read" ref={readRef} onScroll={() => setSelSplit((s) => (s ? null : s))}>
+                {view.rows.map(({ ch, ci, isBody, headLabel }) => (
+                  <div key={ci} className="cr-chapter" data-chapter-anchor={ci}>
+                    <div
+                      className={[
+                        'cr-divider',
+                        isBody ? '' : 'is-nonbody',
+                        selCi === ci ? 'is-selected' : '',
+                        ci === flashCi ? 'is-flash' : '',
+                      ].filter(Boolean).join(' ')}
                     >
-                      {CHAPTER_ROLES.map((r) => (
-                        <option key={r} value={r}>
-                          {t(`review.chapterType.${r}`)}
-                        </option>
-                      ))}
-                    </select>
-                    <Tooltip label={t('review.mergePrevTitle')}>
-                      <button
-                        type="button"
-                        className="ss-btn ss-btn-sm ss-btn-ghost"
-                        disabled={ci === 0}
-                        onClick={() => mergeIntoPrev(ci)}
-                      >
-                        {t('review.mergePrev')}
-                      </button>
-                    </Tooltip>
-                    <Tooltip label={t('review.mergeNextTitle')}>
-                      <button
-                        type="button"
-                        className="ss-btn ss-btn-sm ss-btn-ghost"
-                        disabled={ci === chapters.length - 1}
-                        onClick={() => mergeIntoNext(ci)}
-                      >
-                        {t('review.mergeNext')}
-                      </button>
-                    </Tooltip>
-                  </div>
-
-                  {ch.paragraphs.map((p, pi) => {
-                    // A non-body chapter is excluded wholesale, so its paragraphs
-                    // dim too (02 B), not only paragraphs tagged non-body.
-                    const pIsBody = isBody && (p.role ?? 'body') === 'body';
-                    const titlePart = p.titleSpan ? p.text.slice(p.titleSpan[0], p.titleSpan[1]) : null;
-                    const bodyPart = p.titleSpan ? p.text.slice(p.titleSpan[1]) : p.text;
-                    return (
-                      <div className={pIsBody ? 'cr-para' : 'cr-para is-nonbody'} key={pieceKey(p)}>
-                        <Tooltip label={t('review.splitHere')}>
-                          <button
-                            type="button"
-                            className={pi > 0 ? 'cr-split' : 'cr-split is-first'}
-                            aria-label={t('review.splitHere')}
-                            tabIndex={pi > 0 ? undefined : -1}
-                            disabled={pi === 0}
-                            onClick={() => splitAt(ci, pi)}
-                          >
-                            ＋
-                          </button>
-                        </Tooltip>
-                        <p className="cr-para-text" data-para-ci={ci} data-para-pi={pi}>
-                          {titlePart && <span className="cr-para-lead">{titlePart}</span>}
-                          {bodyPart}
-                        </p>
+                      <span className="ss-badge cr-ch-badge">{t('review.chapterBadge')}</span>
+                      <span className="cr-ch-no">{headLabel}</span>
+                      <input
+                        className="cr-ch-title"
+                        value={ch.title ?? ''}
+                        placeholder={t('review.chapterTitlePlaceholder')}
+                        onChange={(e) => setChapterTitle(ci, e.target.value)}
+                      />
+                      <div className="cr-ch-tools">
                         <select
-                          className="cr-select cr-para-role"
-                          value={p.role ?? 'body'}
-                          onChange={(e) => setParaRole(ci, pi, e.target.value)}
+                          className="cr-select cr-ch-role"
+                          value={ch.role ?? 'body'}
+                          onChange={(e) => setChapterRole(ci, e.target.value)}
                         >
-                          {PARA_ROLES.map((r) => (
+                          {CHAPTER_ROLES.map((r) => (
                             <option key={r} value={r}>
-                              {t('review.paraTag')}
-                              {t(`review.paraType.${r}`)}
+                              {t(`review.chapterType.${r}`)}
                             </option>
                           ))}
                         </select>
+                        <Tooltip label={t('review.mergePrevTitle')}>
+                          <button
+                            type="button"
+                            className="ss-btn ss-btn-sm ss-btn-ghost"
+                            disabled={ci === 0}
+                            onClick={() => mergeIntoPrev(ci)}
+                          >
+                            {t('review.mergePrev')}
+                          </button>
+                        </Tooltip>
+                        <Tooltip label={t('review.mergeNextTitle')}>
+                          <button
+                            type="button"
+                            className="ss-btn ss-btn-sm ss-btn-ghost"
+                            disabled={ci === chapters.length - 1}
+                            onClick={() => mergeIntoNext(ci)}
+                          >
+                            {t('review.mergeNext')}
+                          </button>
+                        </Tooltip>
                       </div>
-                    );
-                  })}
-                </div>
-              ))}
+                    </div>
+
+                    {ch.paragraphs.map((p, pi) => {
+                      // A non-body chapter is excluded wholesale, so its paragraphs
+                      // dim too (02 B), not only paragraphs tagged non-body.
+                      const pIsBody = isBody && (p.role ?? 'body') === 'body';
+                      const titlePart = p.titleSpan ? p.text.slice(p.titleSpan[0], p.titleSpan[1]) : null;
+                      const bodyPart = p.titleSpan ? p.text.slice(p.titleSpan[1]) : p.text;
+                      return (
+                        <div className={pIsBody ? 'cr-para' : 'cr-para is-nonbody'} key={pieceKey(p)}>
+                          <Tooltip label={t('review.splitHere')}>
+                            <button
+                              type="button"
+                              className={pi > 0 ? 'cr-split' : 'cr-split is-first'}
+                              aria-label={t('review.splitHere')}
+                              tabIndex={pi > 0 ? undefined : -1}
+                              disabled={pi === 0}
+                              onClick={() => splitAt(ci, pi)}
+                            >
+                              ＋
+                            </button>
+                          </Tooltip>
+                          <p className="cr-para-text" data-para-ci={ci} data-para-pi={pi}>
+                            {titlePart && <span className="cr-para-lead">{titlePart}</span>}
+                            {bodyPart}
+                          </p>
+                          <select
+                            className="cr-select cr-para-role"
+                            value={p.role ?? 'body'}
+                            onChange={(e) => setParaRole(ci, pi, e.target.value)}
+                          >
+                            {PARA_ROLES.map((r) => (
+                              <option key={r} value={r}>
+                                {t('review.paraTag')}
+                                {t(`review.paraType.${r}`)}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
 
