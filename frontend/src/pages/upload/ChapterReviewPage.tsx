@@ -178,7 +178,7 @@ export default function ChapterReviewPage() {
     setUndoChapters(null);
     setChapters((prev) => {
       if (ci < 0 || ci >= prev.length - 1) return prev;
-      const merged = { ...prev[ci + 1], paragraphs: [...prev[ci].paragraphs, ...prev[ci + 1].paragraphs] };
+      const merged = { ...prev[ci], paragraphs: [...prev[ci].paragraphs, ...prev[ci + 1].paragraphs] };
       return reindex([...prev.slice(0, ci), merged, ...prev.slice(ci + 2)]);
     });
     setSelCi(ci);
