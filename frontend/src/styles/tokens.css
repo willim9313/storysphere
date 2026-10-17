@@ -280,6 +280,8 @@
   --card-selected-border-width: var(--card-border-width); /* 選中卡（如閱讀頁目前章）的框重 */
   --card-attention-border-width: var(--card-border-width); /* 要人處理的卡（如書庫人工閘門）的框重 */
   --row-open-marker-width: 0px; /* 開著詳情的列（如張力頁抽屜對應列）左側標記；Warm 靠底色即可 */
+  --drop-active-border-style: dashed; /* 投件框拖曳中：Warm 靠 accent 框色＋底色即可 */
+  --notice-error-border-width: 0; /* 錯誤提示列／失敗卡外框：Warm 靠 error 色相，不畫框 */
   --btn-radius:        var(--radius-md);
   --btn-border-width:  var(--border-width);
   --btn-danger-border-width: var(--btn-border-width); /* 危險鈕框重：Warm 靠 error 色相，同一般鈕 */
@@ -454,6 +456,10 @@
   --card-attention-border-width: 3px;
   /* Ink 的 bg-secondary 與白底太近，開著的列要靠左側粗線 */
   --row-open-marker-width: 3px;
+  /* 近單色：拖曳中 accent 框與一般框同色、底色貼近白紙，改由虛線轉實線承載 */
+  --drop-active-border-style: solid;
+  /* 近單色：錯誤與警告同為 #ececea 底，錯誤改由墨線框承載 */
+  --notice-error-border-width: 1.5px;
   --btn-radius:        var(--radius-sm);
   --btn-border-width:  1.5px;
   /* 近單色：危險鈕與次要鈕同為墨色外框，改由雙線框承載 */
