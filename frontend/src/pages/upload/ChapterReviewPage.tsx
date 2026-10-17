@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, ArrowLeft, CircleCheck, Info, Loader2, PanelLeft, X } from 'lucide-react';
@@ -69,6 +69,24 @@ function Banner({ kind, children, action, top = false }: Readonly<{ kind: NoteKi
 
 const NARROW_QUERY = '(max-width: 768px)';
 
+/** Overlay keyboard contract: Esc closes; focus moves to `initialRef` on open
+ *  and returns to whatever opened it on close. `onClose` must be stable. */
+function useOverlayFocus(open: boolean, onClose: () => void, initialRef: RefObject<HTMLElement | null>) {
+  useEffect(() => {
+    if (!open) return;
+    const opener = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    initialRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('keydown', onKey);
+      if (opener?.isConnected) opener.focus();
+    };
+  }, [open, onClose, initialRef]);
+}
+
 export default function ChapterReviewPage() {
   const { bookId } = useParams<{ bookId: string }>();
   const [searchParams] = useSearchParams();
@@ -121,6 +139,16 @@ export default function ChapterReviewPage() {
   // sparse roleOverrides map (paragraphIndex → role) for changed paragraphs.
   const originalRolesRef = useRef<Record<number, string>>({});
   const readRef = useRef<HTMLDivElement>(null);
+  const guideCloseRef = useRef<HTMLButtonElement>(null);
+  const tocCloseRef = useRef<HTMLButtonElement>(null);
+  const discardCancelRef = useRef<HTMLButtonElement>(null);
+  const closeGuide = useCallback(() => setGlossaryOpen(false), []);
+  const closeToc = useCallback(() => setTocOpen(false), []);
+  const cancelDiscard = useCallback(() => setConfirmDiscard(false), []);
+  useOverlayFocus(glossaryOpen, closeGuide, guideCloseRef);
+  useOverlayFocus(tocOpen, closeToc, tocCloseRef);
+  // Destructive confirm lands on 取消, so a stray Enter never deletes the book.
+  useOverlayFocus(confirmDiscard, cancelDiscard, discardCancelRef);
   const ovObserver = useRef<ResizeObserver | null>(null);
 
   useEffect(() => {
@@ -372,9 +400,32 @@ export default function ChapterReviewPage() {
 
   // Listen on document, not the reading column: a drag that ends outside the
   // column (spine, toolbar, beyond the window edge) still finalizes there.
+  // selectionchange covers non-mouse selection (touch long-press, caret
+  // browsing); it is ignored mid-drag so the button doesn't chase the mouse.
   useEffect(() => {
-    document.addEventListener('mouseup', handleSelectionEnd);
-    return () => document.removeEventListener('mouseup', handleSelectionEnd);
+    let dragging = false;
+    let timer = 0;
+    const onDown = () => {
+      dragging = true;
+    };
+    const onUp = () => {
+      dragging = false;
+      handleSelectionEnd();
+    };
+    const onChange = () => {
+      if (dragging) return;
+      window.clearTimeout(timer);
+      timer = window.setTimeout(handleSelectionEnd, 150);
+    };
+    document.addEventListener('mousedown', onDown);
+    document.addEventListener('mouseup', onUp);
+    document.addEventListener('selectionchange', onChange);
+    return () => {
+      window.clearTimeout(timer);
+      document.removeEventListener('mousedown', onDown);
+      document.removeEventListener('mouseup', onUp);
+      document.removeEventListener('selectionchange', onChange);
+    };
   }, [handleSelectionEnd]);
 
   const handleSplitSelection = useCallback(() => {
@@ -391,6 +442,8 @@ export default function ChapterReviewPage() {
     if (!undoChapters) return;
     setChapters(undoChapters);
     setUndoChapters(null);
+    // The banner (and its button) unmounts; keep focus in the reading flow.
+    readRef.current?.focus({ preventScroll: true });
   }, [undoChapters]);
 
   // ── Submit / discard ─────────────────────────────────────────────────────
@@ -672,10 +725,11 @@ export default function ChapterReviewPage() {
               {t('review.discardConfirmBtn')}
             </button>
             <button
+              ref={discardCancelRef}
               type="button"
               className="ss-btn ss-btn-sm ss-btn-ghost"
               disabled={busy}
-              onClick={() => setConfirmDiscard(false)}
+              onClick={cancelDiscard}
             >
               {tc('cancel')}
             </button>
@@ -690,7 +744,7 @@ export default function ChapterReviewPage() {
                 <div className="cr-spine-head">
                   <span className="cr-spine-name">{t('review.spineTitle')}</span>
                   <div className="cr-spine-tools">
-                    <div className="ss-seg" role="group">
+                    <div className="ss-seg" role="group" aria-label={t('review.a11y.spineMode')}>
                       {(['chapter', 'overview'] as const).map((m) => (
                         <button
                           key={m}
@@ -734,6 +788,7 @@ export default function ChapterReviewPage() {
                           isBody ? '' : 'is-nonbody',
                           selCi === ci ? 'is-selected' : '',
                         ].filter(Boolean).join(' ')}
+                        aria-current={selCi === ci || undefined}
                         style={{ minHeight: spineBlockHeight(paraCount) }}
                         onClick={() => jumpTo(ci)}
                       >
@@ -744,6 +799,9 @@ export default function ChapterReviewPage() {
                             <Tooltip label={t('review.flagMisSplit')} anchorClassName="cr-flag-anchor">
                               <span className="cr-flag" />
                             </Tooltip>
+                          )}
+                          {flagged && (
+                            <span className="cr-sr-only">{t('review.flagMisSplit')}</span>
                           )}
                         </span>
                         {ch.title && <span className="cr-block-title">{ch.title}</span>}
@@ -758,12 +816,14 @@ export default function ChapterReviewPage() {
                       const tip = [headLabel, ch.title, t('review.paraCount', { count: paraCount })]
                         .filter(Boolean)
                         .join(' · ');
+                      const name = flagged ? `${tip} · ${t('review.flagMisSplit')}` : tip;
                       return (
                         <Tooltip key={ci} label={tip} anchorClassName="cr-ov-anchor" anchorStyle={{ height: h }}>
                         <button
                           type="button"
                           className="cr-ov-row"
-                          aria-label={tip}
+                          aria-label={name}
+                          aria-current={selCi === ci || undefined}
                           onClick={() => jumpTo(ci)}
                         >
                           <span className="cr-ov-label">{h >= OVERVIEW_LABEL_MIN ? shortLabel : ''}</span>
@@ -800,7 +860,10 @@ export default function ChapterReviewPage() {
                     <button
                       key={ci}
                       type="button"
-                      aria-label={view.rows[ci].headLabel}
+                      aria-label={
+                        flagged ? `${view.rows[ci].headLabel} · ${t('review.flagMisSplit')}` : view.rows[ci].headLabel
+                      }
+                      aria-current={selCi === ci || undefined}
                       className={[
                         'cr-rail-bar',
                         isBody ? '' : 'is-nonbody',
@@ -842,9 +905,10 @@ export default function ChapterReviewPage() {
                     <Tooltip label={t('review.toc.close')}>
                       <button
                         type="button"
+                        ref={guideCloseRef}
                         className="cr-icon-btn"
                         aria-label={t('review.toc.close')}
-                        onClick={() => setGlossaryOpen(false)}
+                        onClick={closeGuide}
                       >
                         <X size={16} />
                       </button>
@@ -878,7 +942,7 @@ export default function ChapterReviewPage() {
                 </div>
               )}
 
-              <div className="cr-read" ref={readRef} onScroll={() => setSelSplit((s) => (s ? null : s))}>
+              <div className="cr-read" ref={readRef} tabIndex={-1} onScroll={() => setSelSplit((s) => (s ? null : s))}>
                 {view.rows.map(({ ch, ci, isBody, headLabel }) => (
                   <div key={ci} className="cr-chapter" data-chapter-anchor={ci}>
                     <div
@@ -893,6 +957,7 @@ export default function ChapterReviewPage() {
                       <span className="cr-ch-no">{headLabel}</span>
                       <input
                         className="cr-ch-title"
+                        aria-label={t('review.a11y.chapterTitle', { ch: headLabel })}
                         value={ch.title ?? ''}
                         placeholder={t('review.chapterTitlePlaceholder')}
                         onChange={(e) => setChapterTitle(ci, e.target.value)}
@@ -900,6 +965,7 @@ export default function ChapterReviewPage() {
                       <div className="cr-ch-tools">
                         <select
                           className="cr-select cr-ch-role"
+                        aria-label={t('review.a11y.chapterRole', { ch: headLabel })}
                           value={ch.role ?? 'body'}
                           onChange={(e) => setChapterRole(ci, e.target.value)}
                         >
@@ -958,6 +1024,7 @@ export default function ChapterReviewPage() {
                           </p>
                           <select
                             className="cr-select cr-para-role"
+                            aria-label={t('review.a11y.paraRole', { ch: headLabel, n: pi + 1 })}
                             value={p.role ?? 'body'}
                             onChange={(e) => setParaRole(ci, pi, e.target.value)}
                           >
@@ -981,7 +1048,7 @@ export default function ChapterReviewPage() {
               It overlays the right edge without reflowing the reading flow; the
               two lists (this + the spine) are deliberately never paired. */}
           {tocOpen && (
-            <aside className="cr-toc">
+            <aside className="cr-toc" role="dialog" aria-label={t('review.toc.drawerTitle')}>
               <div className="cr-toc-head">
                 <div className="cr-toc-head-title">
                   <span className="cr-toc-title">{t('review.toc.drawerTitle')}</span>
@@ -1002,8 +1069,9 @@ export default function ChapterReviewPage() {
                     <button
                       type="button"
                       className="cr-icon-btn"
+                      ref={tocCloseRef}
                       aria-label={t('review.toc.close')}
-                      onClick={() => setTocOpen(false)}
+                      onClick={closeToc}
                     >
                       <X size={15} />
                     </button>

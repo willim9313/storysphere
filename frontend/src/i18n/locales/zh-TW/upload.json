@@ -126,6 +126,12 @@
       "notBody": "非正文",
       "empty": "這段文字解析不出章節清單，可能不是標準目錄格式。這不影響你繼續審核。",
       "error": "AI 解析暫時無法使用，請稍後再試。"
+    },
+    "a11y": {
+      "spineMode": "結構脊檢視方式",
+      "chapterTitle": "{{ch}}標題",
+      "chapterRole": "{{ch}}角色",
+      "paraRole": "{{ch}}第 {{n}} 段角色"
     }
   },
   "steps": {

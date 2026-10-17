@@ -127,6 +127,12 @@
       "notBody": "non-body",
       "empty": "No chapter list could be parsed from this text — it may not be a standard contents page. This doesn't affect your review.",
       "error": "AI parsing is temporarily unavailable. Please try again later."
+    },
+    "a11y": {
+      "spineMode": "Spine view",
+      "chapterTitle": "{{ch}} title",
+      "chapterRole": "{{ch}} role",
+      "paraRole": "{{ch}}, paragraph {{n}} role"
     }
   },
   "steps": {
