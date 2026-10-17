@@ -13,6 +13,17 @@
   outline-offset: var(--focus-ring-offset);
 }
 .cr-spin { animation: cr-spin 1s linear infinite; }
+.cr-sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
+}
+/* 16px 圖示鈕：命中區隱形外擴到 ≥24px（WCAG 2.5.8），外觀與版面不變 */
+.cr-spine-toggle, .cr-icon-btn, .cr-split { position: relative; }
+.cr-spine-toggle::after, .cr-icon-btn::after, .cr-split::after {
+  content: ''; position: absolute; inset: calc(-1 * var(--space-2));
+}
+/* 「＋」貼著捲動欄左緣，往左擴會被裁：只往右擴進段落間距（--space-5） */
+.cr-split::after { inset: calc(-1 * var(--space-2)) calc(-1 * var(--space-4)) calc(-1 * var(--space-2)) 0; }
 @keyframes cr-spin { to { transform: rotate(360deg); } }
 
 /* ── 麵包屑（kit .ss-booknav 沿用，分隔符改 /）── */
@@ -159,6 +170,8 @@
 }
 .cr-info-text { margin: 0; font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-secondary); }
 .cr-read-wrap { flex: 1; min-height: 0; position: relative; display: flex; flex-direction: column; }
+/* tabIndex=-1：只作程式化焦點落點（復原切分後），不畫整欄焦點框 */
+.cr-root .cr-read:focus-visible { outline: none; }
 .cr-read {
   flex: 1; min-height: 0; overflow-y: auto; position: relative;
   display: flex; flex-direction: column; gap: var(--space-5); padding-bottom: var(--space-8);
@@ -201,7 +214,8 @@
 .cr-para.is-nonbody { opacity: 0.55; }
 .cr-split {
   flex-shrink: 0; width: var(--space-6); padding: var(--space-2) 0 0; border: none; background: transparent;
-  color: var(--fg-muted); font-size: var(--font-size-sm); line-height: 1.75; cursor: pointer;
+  /* 可操作元件不用 --fg-muted（DESIGN.md：muted 只給註記、計數、placeholder） */
+  color: var(--fg-secondary); font-size: var(--font-size-sm); line-height: 1.75; cursor: pointer;
   transition: color var(--transition-fast);
 }
 .cr-split:hover { color: var(--accent); }

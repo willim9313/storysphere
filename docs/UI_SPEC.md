@@ -382,6 +382,14 @@ DS v3 第 1 批 1-3b。權威稿：02 章節審閱決議紀錄 frame A–H。全
   失敗 error「辨識失敗，請稍後再試。」（回 idle）／**503** warning「尚未設定 LLM provider，無法執行 LLM 分析。」＋
   「前往 LLM 設定 →」（頁內，回 idle，手動審閱照常可送出）。503 判準：`ApiError.status === 503 && hasBody`。
   成功時前端以 `applyBoundaries` 把頭尾段落切成非正文章節。
+- **鍵盤與輔助科技**（FEEDBACK 1-AG）：
+  - 角色對照表、目錄抽屜（`role="dialog"`）、放棄確認列：Esc 關閉；開啟時焦點移到 ✕（確認列為「取消」，破壞性動作不落在確定鈕），
+    關閉後回到觸發鈕。復原切分後焦點落在正文流（`tabIndex=-1`，不畫整欄焦點框）。
+  - 可及名稱：章標題框「{章標}標題」、章角色「{章標}角色」、段角色「{章標}第 N 段角色」、segmented「結構脊檢視方式」；
+    逐章 block／總覽列／導軌條選中帶 `aria-current`，疑似漏切併入名稱。
+  - 段內切分除 `mouseup` 外也聽 `selectionchange`（150ms 穩定、拖曳中忽略），觸控長按與游標瀏覽可用。
+  - 16px 圖示鈕（收合鈕、對照表 ✕、「＋」）以隱形 `::after` 外擴命中區到 ≥24px，外觀不變；「＋」貼捲動欄左緣，只往右擴。
+  - 「＋」改 `--fg-secondary`：可操作元件不用 `--fg-muted`。
 - **「前往 LLM 設定 →」**連到 `/settings#llm`；`SettingsPage` 只在初始狀態讀 hash，`#llm` 時預設開 LLM 面板。
 - **送出／放棄**（G）：送出成功 → success 橫幅「已送出審核，pipeline 繼續執行下游分析。」，0.6s 後導回
   `/upload#{taskId}`（無 taskId 則 `/upload`）。放棄兩段式：標頭「放棄上傳」只開紅色確認列
