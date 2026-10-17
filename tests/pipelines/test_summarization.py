@@ -152,3 +152,18 @@ class TestSummarizationPipeline:
         assert doc.chapters[1].summary is None  # ch2 was skipped
         # book summary still generated from the 1 successful chapter
         assert result.book_summary_generated is True
+        assert result.skip_error_kind == "other"
+
+    @pytest.mark.asyncio
+    async def test_skipped_chapters_keep_why_they_were_skipped(self):
+        """No provider: every chapter is swallowed, but the reason survives."""
+        mock_summarizer = AsyncMock(spec=ChapterSummarizer)
+        mock_summarizer.summarize_chapter = AsyncMock(
+            side_effect=RuntimeError("PRIMARY_LLM_PROVIDER=gemini but GEMINI_API_KEY is not set.")
+        )
+        mock_summarizer.summarize_book = AsyncMock(return_value="Book.")
+
+        result = await SummarizationPipeline(summarizer=mock_summarizer).run(_make_doc())
+
+        assert result.chapters_summarized == 0
+        assert result.skip_error_kind == "llm_unconfigured"

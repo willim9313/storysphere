@@ -39,11 +39,16 @@ class TaskStatus(BaseModel):
     sub_stage: str | None = None
     result: dict[str, Any] | None = None
     error: str | None = None
-    # Why a failed task failed, when that can be told (ingestion): file
+    # Why a failed task failed, when that can be told. Ingestion: file
     # properties (encrypted / unreadable / no_text) fail the same way on every
-    # retry; interrupted / internal may pass. None for older rows and tasks
-    # that never classify. See core.error_handling.classify_task_failure.
-    error_kind: Literal["encrypted", "unreadable", "no_text", "interrupted", "internal"] | None = None
+    # retry; interrupted / internal may pass (classify_task_failure). A step
+    # rerun (#8d) fails like a step does: rate_limited / llm_unconfigured /
+    # blocked / timeout / other (classify_step_failure). None for older rows
+    # and tasks that never classify.
+    error_kind: Literal[
+        "encrypted", "unreadable", "no_text", "interrupted", "internal",
+        "rate_limited", "llm_unconfigured", "blocked", "timeout", "other",
+    ] | None = None
     kind: str | None = None
     title: str | None = None
     created_at: str | None = None

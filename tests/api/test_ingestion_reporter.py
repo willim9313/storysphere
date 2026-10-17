@@ -108,10 +108,21 @@ class TestCompleted:
         task_id = _task()
         payload = TaskStoreReporter(task_id).completed(self._result())
 
-        assert payload == {"bookId": "book-1", "failedSteps": ["summarization"]}
+        assert payload == {"bookId": "book-1", "failedSteps": ["summarization"], "failedStepKinds": {}}
         task = task_store.get(task_id)
         assert task.status == "done"
         assert task.result == payload
+
+    def test_failed_step_kinds_ride_along(self):
+        task_id = _task()
+        result = IngestionResult(
+            document_id="book-1",
+            document_title="Moby Dick",
+            errors=["kg_extraction: 429 quota exceeded"],
+            failed_step_kinds={"kg_extraction": "rate_limited"},
+        )
+        payload = TaskStoreReporter(task_id).completed(result)
+        assert payload["failedStepKinds"] == {"kg_extraction": "rate_limited"}
 
     def test_timeline_detection_is_camel_cased(self):
         task_id = _task()

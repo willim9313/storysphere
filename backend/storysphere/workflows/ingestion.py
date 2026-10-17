@@ -26,6 +26,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Protocol
 
+from storysphere.core.error_handling import classify_step_failure, describe_exception
 from storysphere.core.token_callback import set_llm_service_context
 from storysphere.core.tracing import observe as _lf_observe
 from storysphere.core.tracing import update_span as _lf_update_span
@@ -97,6 +98,8 @@ class StepOutcome:
     step: str
     result: Any = None
     error: str | None = None
+    # classify_step_failure of the exception, when the step raised one.
+    error_kind: str | None = None
 
     @property
     def ok(self) -> bool:
@@ -121,6 +124,8 @@ class IngestionResult:
     events: int = 0
     imagery_extracted: int = 0
     errors: list[str] = field(default_factory=list)
+    # failedSteps id → classify_step_failure kind, one per entry in `errors`.
+    failed_step_kinds: dict[str, str] = field(default_factory=dict)
     timeline_detection: TimelineDetectionResult | None = None
 
     @property
@@ -308,7 +313,8 @@ class IngestionWorkflow:
             doc.pipeline_status.mark_done(spec.status_field)
         except Exception as exc:  # noqa: BLE001
             logger.error("Step '%s' failed: %s", step, exc)
-            outcome.error = str(exc)
+            outcome.error = describe_exception(exc)
+            outcome.error_kind = classify_step_failure(exc)
             setattr(doc.pipeline_status, spec.status_field, StepStatus.failed)
 
         await self._document_service.update_pipeline_status(doc.id, doc.pipeline_status)
@@ -380,7 +386,8 @@ class IngestionWorkflow:
                 await self._kg_service.save()
             except Exception as exc:  # noqa: BLE001
                 logger.error("Rerun knowledge-graph save failed: %s", exc)
-                outcome.error = str(exc)
+                outcome.error = describe_exception(exc)
+                outcome.error_kind = classify_step_failure(exc)
                 doc.pipeline_status.knowledge_graph = StepStatus.failed
                 await self._document_service.update_pipeline_status(
                     doc_id, doc.pipeline_status
@@ -634,6 +641,7 @@ class IngestionWorkflow:
         })
 
         errors: list[str] = []
+        failed_step_kinds: dict[str, str] = {}
 
         def _progress(
             pct: int,
@@ -707,8 +715,10 @@ class IngestionWorkflow:
                     errors.append(
                         f"summarization: {skipped}/{summ_result.chapters_total} chapters skipped"
                     )
+                    failed_step_kinds["summarization"] = summ_result.skip_error_kind or "other"
             else:
                 errors.append(f"summarization: {outcome.error}")
+                failed_step_kinds["summarization"] = outcome.error_kind or "other"
 
         # ── Step 3: feature extraction (embeddings) ───────────────────────
         _progress(45, "特徵擷取", step_key="featureExtraction")
@@ -721,6 +731,7 @@ class IngestionWorkflow:
             feat_result = outcome.result
         else:
             errors.append(f"feature_extraction: {outcome.error}")
+            failed_step_kinds["feature_extraction"] = outcome.error_kind or "other"
             feat_result = FeatureExtractionResult(document_id=doc.id, paragraphs_embedded=0)
 
         # ── Step 4: knowledge graph extraction ───────────────────────────
@@ -742,6 +753,7 @@ class IngestionWorkflow:
                     logger.warning("KG save failed (non-fatal): %s", exc)
             else:
                 errors.append(f"kg_extraction: {outcome.error}")
+                failed_step_kinds["kg_extraction"] = outcome.error_kind or "other"
 
         # ── Step 4b: symbol discovery ─────────────────────────────────────
         _progress(82, "符號探索", step_key="symbolExploration")
@@ -756,6 +768,7 @@ class IngestionWorkflow:
                 symbol_result = outcome.result
             else:
                 errors.append(f"symbol_discovery: {outcome.error}")
+                failed_step_kinds["symbol_discovery"] = outcome.error_kind or "other"
 
         # ── Step 4c: timeline detection ───────────────────────────────────
         timeline_detection: TimelineDetectionResult | None = None
@@ -831,6 +844,7 @@ class IngestionWorkflow:
             events=len(kg_result.events),
             imagery_extracted=symbol_result.imagery_count,
             errors=errors,
+            failed_step_kinds=failed_step_kinds,
             timeline_detection=timeline_detection,
         )
         logger.info(

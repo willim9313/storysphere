@@ -153,3 +153,42 @@ def classify_task_failure(exc: BaseException) -> TaskErrorKind:
         if isinstance(e, ValueError) and str(e).startswith(_EPUB_PARSE_PREFIX):
             return "unreadable"
     return "internal"
+
+
+# ── Step failure kinds (result.failedStepKinds, rerun tasks' errorKind) ──────
+#
+# A step that fails inside an otherwise finished ingestion — or a rerun of one
+# — fails for reasons of the LLM call, not of the file. What the user can do
+# differs per kind: wait (rate_limited), configure a provider
+# (llm_unconfigured), expect the same refusal again (blocked), or just retry.
+
+StepErrorKind = Literal["rate_limited", "llm_unconfigured", "blocked", "timeout", "other"]
+
+# primary_config_error() is the single source of the "no provider" message;
+# _resolve_primary raises it as a plain RuntimeError, so the prefix is the marker.
+_LLM_UNCONFIGURED_PREFIX = "PRIMARY_LLM_PROVIDER="
+
+
+def classify_step_failure(exc: BaseException) -> StepErrorKind:
+    """Kind of a failed pipeline step, for result.failedStepKinds."""
+    import asyncio  # noqa: PLC0415
+
+    chain = _exception_chain(exc)
+    if any(isinstance(e, LLMResponseBlocked) for e in chain):
+        return "blocked"
+    if any(isinstance(e, Exception) and is_rate_limit_error(e) for e in chain):
+        return "rate_limited"
+    if any(isinstance(e, RuntimeError) and str(e).startswith(_LLM_UNCONFIGURED_PREFIX) for e in chain):
+        return "llm_unconfigured"
+    if any(isinstance(e, (TimeoutError, asyncio.TimeoutError)) for e in chain):
+        return "timeout"
+    return "other"
+
+
+def describe_exception(exc: BaseException) -> str:
+    """``str(exc)``, or the type name when that is empty.
+
+    ``asyncio.TimeoutError()`` stringifies to "" — stored as is, a timed-out
+    step showed a failure with no detail at all.
+    """
+    return str(exc) or type(exc).__name__

@@ -79,6 +79,7 @@ class TaskStoreReporter:
         task_result: dict = {
             "bookId": result.document_id,
             "failedSteps": result.errors,
+            "failedStepKinds": result.failed_step_kinds,
         }
         if result.timeline_detection is not None:
             task_result["timelineDetection"] = TimelineDetectionResponse.model_validate(
