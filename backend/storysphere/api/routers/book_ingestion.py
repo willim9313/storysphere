@@ -43,6 +43,7 @@ from storysphere.api.schemas.books import (
 )
 from storysphere.api.schemas.common import ErrorResponse, TaskStatus
 from storysphere.api.store import task_store
+from storysphere.core.error_handling import classify_task_failure
 from storysphere.core.language_detection import detect_language
 from storysphere.pipelines.document_processing import DocumentProcessingPipeline
 
@@ -109,7 +110,7 @@ async def _run_ingestion_graph(
         raise
     except Exception as exc:
         logger.exception("Ingestion task %s failed", task_id)
-        task_store.set_failed(task_id, error=str(exc))
+        task_store.set_failed(task_id, error=str(exc), error_kind=classify_task_failure(exc))
         await cleanup_ingestion_checkpoint(task_id)
     finally:
         task_registry.unregister(task_id)
@@ -134,7 +135,7 @@ async def _resume_ingestion_graph(task_id: str, chapters_data: dict | None) -> N
         raise
     except Exception as exc:
         logger.exception("Resume of ingestion task %s failed", task_id)
-        task_store.set_failed(task_id, error=str(exc))
+        task_store.set_failed(task_id, error=str(exc), error_kind=classify_task_failure(exc))
     finally:
         # Phase 2 always ends terminal (done / error / cancelled): release the
         # registry slot and drop the checkpoint thread so it never accumulates.

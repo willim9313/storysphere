@@ -67,6 +67,13 @@ class TestLifecycle:
         store.set_failed("t1", "boom")
         task = store.get("t1")
         assert (task.status, task.stage, task.error) == ("error", "失敗", "boom")
+        assert task.error_kind is None
+
+    def test_failed_carries_the_error_kind(self, store):
+        store.create("t1")
+        store.set_failed("t1", "File has not been decrypted", "encrypted")
+        task = store.get("t1")
+        assert (task.error, task.error_kind) == ("File has not been decrypted", "encrypted")
 
     def test_setters_on_an_unknown_id_are_no_ops(self, store):
         """不存在的 task 不該炸，也不該被憑空建出來。"""

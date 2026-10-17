@@ -35,6 +35,30 @@ class TestMigration:
         store.set_completed("new", {})
         assert store.get("new").finished_at is not None
 
+    def test_db_without_error_kind_is_migrated_in_place(self, tmp_path):
+        import sqlite3
+
+        from storysphere.api.store import SQLiteTaskStore
+
+        db_path = tmp_path / "tasks.db"
+        with sqlite3.connect(db_path) as db:
+            # 2026-10-17 之前的欄位集合（沒有 error_kind）。
+            db.execute(
+                "CREATE TABLE tasks (task_id TEXT PRIMARY KEY, status TEXT NOT NULL DEFAULT 'pending', "
+                "progress INTEGER NOT NULL DEFAULT 0, stage TEXT NOT NULL DEFAULT '', sub_progress INTEGER, "
+                "sub_total INTEGER, sub_stage TEXT, result TEXT, error TEXT, "
+                "created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%SZ', 'now')), "
+                "kind TEXT, title TEXT, step_key TEXT, finished_at TEXT)"
+            )
+            db.execute("INSERT INTO tasks (task_id, status, error) VALUES ('old', 'error', 'boom')")
+
+        store = SQLiteTaskStore(str(db_path))
+        assert store.get("old").error_kind is None
+
+        store.create("new")
+        store.set_failed("new", "x", "unreadable")
+        assert store.get("new").error_kind == "unreadable"
+
     def test_old_created_at_gains_the_utc_marker(self, tmp_path):
         """舊列的 created_at 本來就是 UTC（SQLite 的 'now'），只缺 Z；補上後不變更時間本身。"""
         import sqlite3

@@ -841,6 +841,12 @@ interface TaskStatus {
     [key: string]: unknown;
   };
   error?: string;
+  errorKind?: 'encrypted' | 'unreadable' | 'no_text' | 'interrupted' | 'internal' | null;
+                           // status=error 時的失敗分類（2026-10-17 起；ingestion 與重啟對帳寫入，其他任務為 null）：
+                           // encrypted＝PDF 有開啟密碼；unreadable＝檔案損毀／空檔（PDF、DOCX、EPUB 解析失敗）；
+                           // no_text＝抽不到任何文字（掃描檔）；前三者是檔案性質，**同一個檔重試必定再失敗**。
+                           // interrupted＝伺服器重啟中斷；internal＝其他（可能重試即過）。
+                           // 使用者終止仍以 error === 'cancelled' 判斷，不設 errorKind。舊列為 null。
   kind?: string;           // 任務種類（如 'tension' / 'symbol' / 'ingestion'），任務中心據此導向；未提供則不可跳轉
   title?: string;          // 顯示標題；未提供時前端 fallback 用 stage
   createdAt?: string;      // 建立時間，UTC ISO-8601 帶尾端 Z（2026-10-01 起；兩個 task store 一致）。排序與上傳卡「已經過」計時用
