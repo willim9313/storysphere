@@ -63,6 +63,7 @@
     "discard": "放棄上傳",
     "discardConfirm": "刪除整本書並放棄上傳？此動作無法復原。",
     "discardConfirmBtn": "確定放棄",
+    "discardFailed": "刪除失敗，這本書還在。請稍後再試。",
     "errorLoad": "無法載入章節資料，請稍後再試。",
     "errorSubmit": "提交失敗，請稍後再試。",
     "spineTitle": "全書結構脊",
