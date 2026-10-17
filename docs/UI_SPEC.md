@@ -342,7 +342,7 @@ DS v3 第 1 批 1-3b。權威稿：02 章節審閱決議紀錄 frame A–H。全
     「第 N 章」、非正文章顯示角色名。章標前 8px 角色方塊：正文實心 `--accent`、非正文空心 `--fg-muted` 描邊。
     疑似漏切（`isMisSplit`：正文章內 >1 個 `titleSpan`）＝章標旁 6px `--color-warning` 圓點，tooltip「疑似漏切一章」。
     選中 block `--bg-tertiary`＋accent 內框（線重 `--card-selected-border-width`，Warm 1px／Ink 2px；FEEDBACK 1-AH）。
-  - **總覽態**（B′）：全書塞進可視高度、不捲動。章高 `max(2, round(paraCount / 總段數 × (可視高 − 章距)))`
+  - **總覽態**（B′）：全書塞進可視高度、不捲動；章數多到每章 2px＋1px 章距仍放不下時才改為可捲動（不靜默丟章，FEEDBACK 1-AI）。章高 `max(2, round(paraCount / 總段數 × (可視高 − 章距)))`
     （`overviewHeights`，ResizeObserver 量高），章距 1px。列＝章號 28px｜條｜6px 旗標點；正文條 `--accent`（實心）、非正文
     空心 1.5px `--fg-muted` 描邊（1-AH）；選中 `outline: 2px solid var(--fg-primary)`、offset 1px；章號（正文流水號／非正文角色名）只在章高 ≥ 12px
     時顯示於條左側；tooltip「第 {n} 章 · {title} · {count} 段」（非正文章以角色名代入、無標題省略，見 FEEDBACK 1-U）。

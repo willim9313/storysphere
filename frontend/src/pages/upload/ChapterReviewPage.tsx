@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
+import { memo, useCallback, useEffect, useMemo, useRef, useState, type ReactNode, type RefObject } from 'react';
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, ArrowLeft, CircleCheck, Info, Loader2, PanelLeft, X } from 'lucide-react';
@@ -44,8 +44,10 @@ const AI_LABEL_KEY: Record<AiStatus, string> = {
 };
 
 /** Re-index chapters so chapterIdx matches array position after a mutation. */
+// Keep the object when the index is unchanged, so memoised chapters that an
+// edit did not touch skip re-rendering.
 function reindex(chapters: ReviewChapter[]): ReviewChapter[] {
-  return chapters.map((c, i) => ({ ...c, chapterIdx: i }));
+  return chapters.map((c, i) => (c.chapterIdx === i ? c : { ...c, chapterIdx: i }));
 }
 
 /** 409 = the review window is not open (any more). `code` comes from sub-task 1-3a. */
@@ -68,6 +70,184 @@ function Banner({ kind, children, action, top = false }: Readonly<{ kind: NoteKi
 }
 
 const NARROW_QUERY = '(max-width: 768px)';
+
+type ReviewParagraph = ReviewChapter['paragraphs'][number];
+
+/** Rough pre-layout height of a chapter (divider + ~4-line paragraphs), used as
+ *  the content-visibility placeholder; `auto` swaps in the real size once seen. */
+function chapterIntrinsicHeight(paraCount: number): number {
+  return 48 + paraCount * 96;
+}
+
+interface ParagraphRowProps {
+  readonly p: ReviewParagraph;
+  readonly ci: number;
+  readonly pi: number;
+  readonly chapterIsBody: boolean;
+  readonly headLabel: string;
+  readonly onSplit: (ci: number, pi: number) => void;
+  readonly onParaRole: (ci: number, pi: number, role: string) => void;
+}
+
+// Memoised so a long book (thousands of paragraphs) re-renders only the row an
+// edit touched, not the whole reading flow.
+const ParagraphRow = memo(function ParagraphRow({
+  p,
+  ci,
+  pi,
+  chapterIsBody,
+  headLabel,
+  onSplit,
+  onParaRole,
+}: ParagraphRowProps) {
+  const { t } = useTranslation('upload');
+  // A non-body chapter is excluded wholesale, so its paragraphs
+  // dim too (02 B), not only paragraphs tagged non-body.
+  const pIsBody = chapterIsBody && (p.role ?? 'body') === 'body';
+  const titlePart = p.titleSpan ? p.text.slice(p.titleSpan[0], p.titleSpan[1]) : null;
+  const bodyPart = p.titleSpan ? p.text.slice(p.titleSpan[1]) : p.text;
+  return (
+    <div className={pIsBody ? 'cr-para' : 'cr-para is-nonbody'}>
+      <Tooltip label={t('review.splitHere')}>
+        <button
+          type="button"
+          className={pi > 0 ? 'cr-split' : 'cr-split is-first'}
+          aria-label={t('review.splitHere')}
+          tabIndex={pi > 0 ? undefined : -1}
+          disabled={pi === 0}
+          onClick={() => onSplit(ci, pi)}
+        >
+          ＋
+        </button>
+      </Tooltip>
+      <p className="cr-para-text" data-para-ci={ci} data-para-pi={pi}>
+        {titlePart && <span className="cr-para-lead">{titlePart}</span>}
+        {bodyPart}
+      </p>
+      <select
+        className="cr-select cr-para-role"
+        aria-label={t('review.a11y.paraRole', { ch: headLabel, n: pi + 1 })}
+        value={p.role ?? 'body'}
+        onChange={(e) => onParaRole(ci, pi, e.target.value)}
+      >
+        {PARA_ROLES.map((r) => (
+          <option key={r} value={r}>
+            {t('review.paraTag')}
+            {t(`review.paraType.${r}`)}
+          </option>
+        ))}
+      </select>
+    </div>
+  );
+});
+
+interface ChapterSectionProps {
+  readonly ch: ReviewChapter;
+  readonly ci: number;
+  readonly isBody: boolean;
+  readonly headLabel: string;
+  readonly selected: boolean;
+  readonly flash: boolean;
+  readonly isLast: boolean;
+  readonly onTitle: (ci: number, title: string) => void;
+  readonly onRole: (ci: number, role: string) => void;
+  readonly onMergePrev: (ci: number) => void;
+  readonly onMergeNext: (ci: number) => void;
+  readonly onSplit: (ci: number, pi: number) => void;
+  readonly onParaRole: (ci: number, pi: number, role: string) => void;
+}
+
+const ChapterSection = memo(function ChapterSection({
+  ch,
+  ci,
+  isBody,
+  headLabel,
+  selected,
+  flash,
+  isLast,
+  onTitle,
+  onRole,
+  onMergePrev,
+  onMergeNext,
+  onSplit,
+  onParaRole,
+}: ChapterSectionProps) {
+  const { t } = useTranslation('upload');
+  return (
+    <div
+      className="cr-chapter"
+      data-chapter-anchor={ci}
+      // content-visibility placeholder height until the browser has laid it out once
+      style={{ containIntrinsicSize: `auto ${chapterIntrinsicHeight(ch.paragraphs.length)}px` }}
+    >
+      <div
+        className={[
+          'cr-divider',
+          isBody ? '' : 'is-nonbody',
+          selected ? 'is-selected' : '',
+          flash ? 'is-flash' : '',
+        ].filter(Boolean).join(' ')}
+      >
+        <span className="ss-badge cr-ch-badge">{t('review.chapterBadge')}</span>
+        <span className="cr-ch-no">{headLabel}</span>
+        <input
+          className="cr-ch-title"
+          aria-label={t('review.a11y.chapterTitle', { ch: headLabel })}
+          value={ch.title ?? ''}
+          placeholder={t('review.chapterTitlePlaceholder')}
+          onChange={(e) => onTitle(ci, e.target.value)}
+        />
+        <div className="cr-ch-tools">
+          <select
+            className="cr-select cr-ch-role"
+            aria-label={t('review.a11y.chapterRole', { ch: headLabel })}
+            value={ch.role ?? 'body'}
+            onChange={(e) => onRole(ci, e.target.value)}
+          >
+            {CHAPTER_ROLES.map((r) => (
+              <option key={r} value={r}>
+                {t(`review.chapterType.${r}`)}
+              </option>
+            ))}
+          </select>
+          <Tooltip label={t('review.mergePrevTitle')}>
+            <button
+              type="button"
+              className="ss-btn ss-btn-sm ss-btn-ghost"
+              disabled={ci === 0}
+              onClick={() => onMergePrev(ci)}
+            >
+              {t('review.mergePrev')}
+            </button>
+          </Tooltip>
+          <Tooltip label={t('review.mergeNextTitle')}>
+            <button
+              type="button"
+              className="ss-btn ss-btn-sm ss-btn-ghost"
+              disabled={isLast}
+              onClick={() => onMergeNext(ci)}
+            >
+              {t('review.mergeNext')}
+            </button>
+          </Tooltip>
+        </div>
+      </div>
+
+      {ch.paragraphs.map((p, pi) => (
+        <ParagraphRow
+          key={pieceKey(p)}
+          p={p}
+          ci={ci}
+          pi={pi}
+          chapterIsBody={isBody}
+          headLabel={headLabel}
+          onSplit={onSplit}
+          onParaRole={onParaRole}
+        />
+      ))}
+    </div>
+  );
+});
 
 /** Overlay keyboard contract: Esc closes; focus moves to `initialRef` on open
  *  and returns to whatever opened it on close. `onClose` must be stable. */
@@ -944,101 +1124,22 @@ export default function ChapterReviewPage() {
 
               <div className="cr-read" ref={readRef} tabIndex={-1} onScroll={() => setSelSplit((s) => (s ? null : s))}>
                 {view.rows.map(({ ch, ci, isBody, headLabel }) => (
-                  <div key={ci} className="cr-chapter" data-chapter-anchor={ci}>
-                    <div
-                      className={[
-                        'cr-divider',
-                        isBody ? '' : 'is-nonbody',
-                        selCi === ci ? 'is-selected' : '',
-                        ci === flashCi ? 'is-flash' : '',
-                      ].filter(Boolean).join(' ')}
-                    >
-                      <span className="ss-badge cr-ch-badge">{t('review.chapterBadge')}</span>
-                      <span className="cr-ch-no">{headLabel}</span>
-                      <input
-                        className="cr-ch-title"
-                        aria-label={t('review.a11y.chapterTitle', { ch: headLabel })}
-                        value={ch.title ?? ''}
-                        placeholder={t('review.chapterTitlePlaceholder')}
-                        onChange={(e) => setChapterTitle(ci, e.target.value)}
-                      />
-                      <div className="cr-ch-tools">
-                        <select
-                          className="cr-select cr-ch-role"
-                        aria-label={t('review.a11y.chapterRole', { ch: headLabel })}
-                          value={ch.role ?? 'body'}
-                          onChange={(e) => setChapterRole(ci, e.target.value)}
-                        >
-                          {CHAPTER_ROLES.map((r) => (
-                            <option key={r} value={r}>
-                              {t(`review.chapterType.${r}`)}
-                            </option>
-                          ))}
-                        </select>
-                        <Tooltip label={t('review.mergePrevTitle')}>
-                          <button
-                            type="button"
-                            className="ss-btn ss-btn-sm ss-btn-ghost"
-                            disabled={ci === 0}
-                            onClick={() => mergeIntoPrev(ci)}
-                          >
-                            {t('review.mergePrev')}
-                          </button>
-                        </Tooltip>
-                        <Tooltip label={t('review.mergeNextTitle')}>
-                          <button
-                            type="button"
-                            className="ss-btn ss-btn-sm ss-btn-ghost"
-                            disabled={ci === chapters.length - 1}
-                            onClick={() => mergeIntoNext(ci)}
-                          >
-                            {t('review.mergeNext')}
-                          </button>
-                        </Tooltip>
-                      </div>
-                    </div>
-
-                    {ch.paragraphs.map((p, pi) => {
-                      // A non-body chapter is excluded wholesale, so its paragraphs
-                      // dim too (02 B), not only paragraphs tagged non-body.
-                      const pIsBody = isBody && (p.role ?? 'body') === 'body';
-                      const titlePart = p.titleSpan ? p.text.slice(p.titleSpan[0], p.titleSpan[1]) : null;
-                      const bodyPart = p.titleSpan ? p.text.slice(p.titleSpan[1]) : p.text;
-                      return (
-                        <div className={pIsBody ? 'cr-para' : 'cr-para is-nonbody'} key={pieceKey(p)}>
-                          <Tooltip label={t('review.splitHere')}>
-                            <button
-                              type="button"
-                              className={pi > 0 ? 'cr-split' : 'cr-split is-first'}
-                              aria-label={t('review.splitHere')}
-                              tabIndex={pi > 0 ? undefined : -1}
-                              disabled={pi === 0}
-                              onClick={() => splitAt(ci, pi)}
-                            >
-                              ＋
-                            </button>
-                          </Tooltip>
-                          <p className="cr-para-text" data-para-ci={ci} data-para-pi={pi}>
-                            {titlePart && <span className="cr-para-lead">{titlePart}</span>}
-                            {bodyPart}
-                          </p>
-                          <select
-                            className="cr-select cr-para-role"
-                            aria-label={t('review.a11y.paraRole', { ch: headLabel, n: pi + 1 })}
-                            value={p.role ?? 'body'}
-                            onChange={(e) => setParaRole(ci, pi, e.target.value)}
-                          >
-                            {PARA_ROLES.map((r) => (
-                              <option key={r} value={r}>
-                                {t('review.paraTag')}
-                                {t(`review.paraType.${r}`)}
-                              </option>
-                            ))}
-                          </select>
-                        </div>
-                      );
-                    })}
-                  </div>
+                  <ChapterSection
+                    key={ci}
+                    ch={ch}
+                    ci={ci}
+                    isBody={isBody}
+                    headLabel={headLabel}
+                    selected={selCi === ci}
+                    flash={flashCi === ci}
+                    isLast={ci === chapters.length - 1}
+                    onTitle={setChapterTitle}
+                    onRole={setChapterRole}
+                    onMergePrev={mergeIntoPrev}
+                    onMergeNext={mergeIntoNext}
+                    onSplit={splitAt}
+                    onParaRole={setParaRole}
+                  />
                 ))}
               </div>
             </div>
