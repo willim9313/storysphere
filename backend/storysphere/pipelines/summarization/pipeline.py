@@ -10,7 +10,7 @@ from __future__ import annotations
 import logging
 from dataclasses import dataclass
 
-from storysphere.core.error_handling import is_rate_limit_error
+from storysphere.core.error_handling import classify_step_failure, is_rate_limit_error
 from storysphere.domain.documents import ChapterRole, Document
 from storysphere.pipelines.base import BasePipeline
 
@@ -27,6 +27,10 @@ class SummarizationResult:
     chapters_summarized: int = 0
     chapters_total: int = 0
     book_summary_generated: bool = False
+    # Kind of the first chapter failure that was skipped, so a "N/M chapters
+    # skipped" step can still say why (e.g. no LLM provider). None when none
+    # were skipped.
+    skip_error_kind: str | None = None
 
 
 class SummarizationPipeline(BasePipeline[Document, SummarizationResult]):
@@ -51,7 +55,7 @@ class SummarizationPipeline(BasePipeline[Document, SummarizationResult]):
         if sub_cb:
             sub_cb(0, total, "章節摘要")
 
-        chapters_summarized = await self._summarize_chapters(
+        chapters_summarized, skip_error_kind = await self._summarize_chapters(
             doc, total=total, sub_cb=sub_cb, murmur_cb=murmur_cb
         )
 
@@ -84,17 +88,19 @@ class SummarizationPipeline(BasePipeline[Document, SummarizationResult]):
             chapters_summarized=chapters_summarized,
             chapters_total=total,
             book_summary_generated=book_summary_generated,
+            skip_error_kind=skip_error_kind,
         )
 
     async def _summarize_chapters(
         self, doc: Document, *, total: int, sub_cb=None, murmur_cb=None
-    ) -> int:
+    ) -> tuple[int, str | None]:
         """Summarize each chapter individually; failed chapters are skipped.
 
         Chapters that already have a summary (from a previous partial run) are
         counted as done and skipped, enabling resume after a rate-limit abort.
         """
         chapters_summarized = 0
+        skip_error_kind: str | None = None
         for chapter in doc.chapters:
             if not chapter.paragraphs:
                 logger.debug("Skipping chapter %d — no paragraphs", chapter.number)
@@ -121,6 +127,8 @@ class SummarizationPipeline(BasePipeline[Document, SummarizationResult]):
                 logger.warning(
                     "Chapter %d summarization failed (skipped): %s", chapter.number, exc
                 )
+                if skip_error_kind is None:
+                    skip_error_kind = classify_step_failure(exc)
 
             if sub_cb:
                 sub_cb(chapters_summarized, total, "章節摘要")
@@ -130,4 +138,4 @@ class SummarizationPipeline(BasePipeline[Document, SummarizationResult]):
                 except Exception:  # noqa: BLE001
                     pass
 
-        return chapters_summarized
+        return chapters_summarized, skip_error_kind

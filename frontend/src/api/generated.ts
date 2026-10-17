@@ -4759,7 +4759,7 @@ export interface components {
             /** Error */
             error?: string | null;
             /** Errorkind */
-            errorKind?: ("encrypted" | "unreadable" | "no_text" | "interrupted" | "internal") | null;
+            errorKind?: ("encrypted" | "unreadable" | "no_text" | "interrupted" | "internal" | "rate_limited" | "llm_unconfigured" | "blocked" | "timeout" | "other") | null;
             /** Kind */
             kind?: string | null;
             /** Title */

@@ -837,12 +837,19 @@ interface TaskStatus {
   subStage?: string;
   result?: {
     bookId?: string;        // 上傳完成 or awaiting_review 時提供，用於導向 /books/:bookId
-    failedSteps?: string[]; // 上傳任務：部分步驟失敗時回傳失敗描述列表
+    failedSteps?: string[]; // 上傳任務：部分步驟失敗時回傳失敗描述列表（"step_id: detail"；detail 空時為例外型別名，如 "TimeoutError"）
+    failedStepKinds?: Record<string, 'rate_limited' | 'llm_unconfigured' | 'blocked' | 'timeout' | 'other'>;
+                            // 2026-10-17 起，與 failedSteps 同一組 step_id（summarization／feature_extraction／kg_extraction／symbol_discovery）→ 失敗分類：
+                            // rate_limited＝供應商額度／頻率上限（稍後再跑）；llm_unconfigured＝未設定 LLM（設定前重跑必定再失敗）；
+                            // blocked＝供應商拒絕內容（重跑多半同樣被拒）；timeout＝逾時；other＝其他。
+                            // summarization 的「N/M chapters skipped」取第一個被略過章節的分類。舊任務無此欄位。
     [key: string]: unknown;
   };
   error?: string;
-  errorKind?: 'encrypted' | 'unreadable' | 'no_text' | 'interrupted' | 'internal' | null;
-                           // status=error 時的失敗分類（2026-10-17 起；ingestion 與重啟對帳寫入，其他任務為 null）：
+  errorKind?: 'encrypted' | 'unreadable' | 'no_text' | 'interrupted' | 'internal'
+             | 'rate_limited' | 'llm_unconfigured' | 'blocked' | 'timeout' | 'other' | null;
+                           // status=error 時的失敗分類（2026-10-17 起；ingestion、重啟對帳、#8d 重跑寫入，其他任務為 null）。
+                           // 整本 ingestion 失敗：前五個。#8d 重跑失敗：後五個，語意同下方 result.failedStepKinds。
                            // encrypted＝PDF 有開啟密碼；unreadable＝檔案損毀／空檔（PDF、DOCX、EPUB 解析失敗）；
                            // no_text＝抽不到任何文字（掃描檔）；前三者是檔案性質，**同一個檔重試必定再失敗**。
                            // interrupted＝伺服器重啟中斷；internal＝其他（可能重試即過）。
@@ -953,6 +960,8 @@ type TaskListResponse = TaskStatus[];  // TaskStatus 定義見 #8；murmurEvents
 **Response 503**：未設定 LLM provider（見「通用規則」）。**只有會用到 LLM 的步驟才檢查**：`summarization`（章節／全書摘要）、
 `knowledge-graph`（實體／關係／事件抽取）、`symbol-discovery`（意象抽取）。`feature-extraction`（embedding＋關鍵字）不呼叫 LLM，
 不檢查；唯一例外是 `KEYWORD_EXTRACTOR_TYPE` 設為 `llm` 或 `composite`（關鍵字抽取器本身走 LLM）時也檢查。422／404 優先於 503。
+
+**失敗**：任務 `status = error`，`error` 為後端細節，`errorKind` 為步驟失敗分類（`rate_limited | llm_unconfigured | blocked | timeout | other`，見 #8；2026-10-17 起）。
 
 **說明**：補跑完成後，對應 `pipelineStatus` 欄位更新為 `done` 或 `failed`。前端完成後需 invalidate `qk.book(bookId)`（`['books', bookId]`）以重整書籍資料；若從建構概覽頁觸發，另 invalidate `qk.buildOverview.manifest(bookId)`、`['narrative', bookId]`、`qk.symbols.overview(bookId)`（這三個 root 不在 books 樹下）。
 

@@ -9,7 +9,12 @@ from __future__ import annotations
 import zipfile
 
 from pypdf.errors import EmptyFileError, FileNotDecryptedError, PdfReadError, PdfStreamError
-from storysphere.core.error_handling import classify_task_failure
+from storysphere.core.error_handling import (
+    LLMResponseBlocked,
+    classify_step_failure,
+    classify_task_failure,
+    describe_exception,
+)
 
 
 class TestClassifyTaskFailure:
@@ -41,3 +46,34 @@ class TestClassifyTaskFailure:
     def test_anything_else_is_internal(self):
         assert classify_task_failure(ValueError("Document 'x' not found")) == "internal"
         assert classify_task_failure(RuntimeError("database is locked")) == "internal"
+
+
+class TestClassifyStepFailure:
+    def test_rate_limit(self):
+        assert classify_step_failure(RuntimeError("429 Resource has been exhausted (check quota)")) == "rate_limited"
+
+    def test_no_provider(self):
+        exc = RuntimeError("PRIMARY_LLM_PROVIDER=gemini but GEMINI_API_KEY is not set. Set it in .env.")
+        assert classify_step_failure(exc) == "llm_unconfigured"
+
+    def test_blocked(self):
+        assert classify_step_failure(LLMResponseBlocked("provider_blocked", "SAFETY")) == "blocked"
+
+    def test_timeout(self):
+        import asyncio
+
+        assert classify_step_failure(asyncio.TimeoutError()) == "timeout"
+        assert classify_step_failure(TimeoutError()) == "timeout"
+
+    def test_anything_else(self):
+        assert classify_step_failure(ValueError("JSON repair also failed: x")) == "other"
+
+
+class TestDescribeException:
+    def test_keeps_the_message(self):
+        assert describe_exception(ValueError("boom")) == "boom"
+
+    def test_empty_message_falls_back_to_the_type(self):
+        import asyncio
+
+        assert describe_exception(asyncio.TimeoutError()) == "TimeoutError"

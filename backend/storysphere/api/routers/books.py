@@ -314,7 +314,7 @@ async def _rerun_step(
     if not outcome.ok:
         # A refused step is a real outcome with a message for the user, not a
         # crash — and not a success either, which a bare return would make it.
-        raise task_runner.TaskAborted(outcome.error)
+        raise task_runner.TaskAborted(outcome.error, error_kind=outcome.error_kind or "other")
 
     return {"bookId": book_id, "step": step}
 
