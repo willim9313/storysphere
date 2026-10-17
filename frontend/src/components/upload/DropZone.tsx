@@ -6,10 +6,11 @@ import { ACCEPT_ATTR } from './uploadModel';
 interface DropZoneProps {
   /** Every picked / dropped file, unfiltered — the page splits valid from rejected. */
   readonly onFiles: (files: File[]) => void;
-  /** The last drop had nothing usable: draw the error border. */
+  /** The last drop had nothing usable: draw the error border (03 A 區). */
+  readonly rejected?: boolean;
 }
 
-export function DropZone({ onFiles }: DropZoneProps) {
+export function DropZone({ onFiles, rejected = false }: DropZoneProps) {
   const [dragging, setDragging] = useState(false);
   const { t } = useTranslation('upload');
 
@@ -29,6 +30,7 @@ export function DropZone({ onFiles }: DropZoneProps) {
       htmlFor="file-input"
       className="up-drop"
       data-dragging={dragging}
+      data-rejected={rejected}
       onDragOver={(e) => {
         e.preventDefault();
         setDragging(true);
