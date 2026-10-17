@@ -2417,6 +2417,16 @@ group header 五件：accent chevron（收合鈕，`aria-expanded`）+ 書名（
 
 「找到 {n} 個段落，來自 {m} 本書籍」（sans sm，數字加粗；i18n `summary`，原本寫死中文）＋「依相關度排序 ⌄」（`<span>`，無行為）。
 
+#### 網址狀態
+
+送出的搜尋存在網址：`/search?q=…&mode=semantic&books=id1,id2`（2-SR-8，工程端代定）。上一頁從閱讀頁返回、分享連結、書籤都會照網址重新搜尋；預設值不寫入（關鍵字模式省略 `mode`，未動過範圍省略 `books`，沒有 `q` 時也不寫 `books`）。
+
+- `books` 缺省＝範圍未動過：跨全書查詢並自動種 chips；`books=`（空值）＝chips 全部移除：跨全書、不種 chips；有值＝逐書查詢，chips 即這幾本。
+- **送出新查詢新增一筆歷史紀錄**；換模式、移除 chip、清除**取代**目前這筆。重送相同查詢（網址不變）直接重新搜尋。
+- 點結果列前，把該列段落 id 記進目前這筆歷史紀錄的 state；返回時捲到該列（置中）並聚焦。
+- 書籍分組的收合狀態不記，返回時全部展開。
+- 純邏輯：`searchModel.ts` 的 `parseSearchParams`／`toSearchParams`。
+
 #### 跳轉行為
 
 | 動作 | 目的地 |

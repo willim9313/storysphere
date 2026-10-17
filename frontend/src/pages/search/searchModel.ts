@@ -118,3 +118,30 @@ export function mergeBookSearches(
   ok.sort((a, b) => b.score - a.score);
   return { results: ok.slice(0, limit), failedBookIds, firstError };
 }
+
+/** The submitted search as it lives in the URL (`/search?q=&mode=&books=`), so
+ *  back-navigation and shared links restore it. Defaults are left out of the URL. */
+export interface SearchUrlState {
+  q: string;
+  mode: SearchMode;
+  /** null = scope untouched (cross-book, chips seeded from the results);
+   *  [] = every chip removed (cross-book, no chips); otherwise the remaining chips. */
+  books: string[] | null;
+}
+
+export function parseSearchParams(params: URLSearchParams): SearchUrlState {
+  const books = params.get('books');
+  return {
+    q: params.get('q') ?? '',
+    mode: params.get('mode') === 'semantic' ? 'semantic' : 'fulltext',
+    books: books === null ? null : books.split(',').filter((id) => id !== ''),
+  };
+}
+
+export function toSearchParams(state: SearchUrlState): URLSearchParams {
+  const params = new URLSearchParams();
+  if (state.q) params.set('q', state.q);
+  if (state.mode !== 'fulltext') params.set('mode', state.mode);
+  if (state.q && state.books !== null) params.set('books', state.books.join(','));
+  return params;
+}
