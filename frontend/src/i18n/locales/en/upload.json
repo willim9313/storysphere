@@ -64,6 +64,7 @@
     "discard": "Discard upload",
     "discardConfirm": "Delete the whole book and discard this upload? This cannot be undone.",
     "discardConfirmBtn": "Discard",
+    "discardFailed": "Couldn't delete the book — it's still here. Please try again later.",
     "errorLoad": "Failed to load chapter data. Please try again later.",
     "errorSubmit": "Submission failed. Please try again later.",
     "spineTitle": "Book structure",

@@ -75,6 +75,10 @@
 
 /* ── 本體：結構脊＋正文流（＋目錄抽屜 overlay）── */
 .cr-body { flex: 1; min-height: 0; display: flex; gap: var(--space-6); position: relative; }
+.cr-body.is-loading { display: none; }
+.cr-loading { flex: 1; }
+/* 送出／放棄進行中（inert）：淡化讓「現在不能改」看得出來 */
+.cr-body[inert] { opacity: 0.6; }
 
 /* 結構脊 206 ↔ 導軌 40 */
 .cr-spine {
@@ -223,8 +227,8 @@
 .cr-divider .ss-btn:disabled { opacity: 0.4; }
 
 .cr-para { display: flex; align-items: flex-start; gap: var(--space-5); }
-/* 非正文段落降階，數值不動，連同段角色下拉一起 */
-.cr-para.is-nonbody { opacity: 0.55; }
+/* 非正文段落只降階文字（0.7，Warm 約 5.3:1）；「＋」與段角色下拉是可操作元件，不降階（1-AJ 修訂 1-X） */
+.cr-para.is-nonbody .cr-para-text { opacity: 0.7; }
 .cr-split {
   flex-shrink: 0; width: var(--space-6); padding: var(--space-2) 0 0; border: none; background: transparent;
   /* 可操作元件不用 --fg-muted（DESIGN.md：muted 只給註記、計數、placeholder） */
@@ -234,7 +238,8 @@
 .cr-split:hover { color: var(--accent); }
 .cr-split.is-first { visibility: hidden; }
 .cr-para-text {
-  flex: 1; min-width: 0; margin: 0;
+  /* DESIGN.md Measure Rule：閱讀正文欄寬上限 760px；段角色下拉緊貼文字右側 */
+  flex: 0 1 760px; min-width: 0; margin: 0;
   font-family: var(--font-serif); font-size: var(--font-size-sm); line-height: 1.75; text-wrap: pretty;
 }
 .cr-para-text::selection,

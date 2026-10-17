@@ -9,6 +9,7 @@ import { ApiError } from '@/api/client';
 import { failureKind, isLlmUnconfigured, LLM_SETTINGS_PATH, techDetailOf } from '@/api/failureKind';
 import type { ReviewChapter } from '@/api/types';
 import { useBook } from '@/hooks/useBook';
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { PageFailure } from '@/components/ui/PageFailure';
 import { Tooltip } from '@/components/ui/Tooltip';
 import { applyBoundaries } from './applyBoundaries';
@@ -304,6 +305,9 @@ export default function ChapterReviewPage() {
   const [aiNote, setAiNote] = useState<Note>(null);
   const [submitted, setSubmitted] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [discardFailed, setDiscardFailed] = useState(false);
+  // Until review-data lands the page would read as an empty book (0 段).
+  const [loaded, setLoaded] = useState(false);
   const [selSplit, setSelSplit] = useState<SelSplit | null>(null);
   // TOC cross-check (#22d): AI-parsed book-declared chapter list, shown read-only
   // in a right drawer for the user to eyeball against the detected spine.
@@ -324,7 +328,10 @@ export default function ChapterReviewPage() {
   const discardCancelRef = useRef<HTMLButtonElement>(null);
   const closeGuide = useCallback(() => setGlossaryOpen(false), []);
   const closeToc = useCallback(() => setTocOpen(false), []);
-  const cancelDiscard = useCallback(() => setConfirmDiscard(false), []);
+  const cancelDiscard = useCallback(() => {
+    setConfirmDiscard(false);
+    setDiscardFailed(false);
+  }, []);
   useOverlayFocus(glossaryOpen, closeGuide, guideCloseRef);
   useOverlayFocus(tocOpen, closeToc, tocCloseRef);
   // Destructive confirm lands on 取消, so a stray Enter never deletes the book.
@@ -343,6 +350,7 @@ export default function ChapterReviewPage() {
         }
         originalRolesRef.current = rec;
         setChapters(reindex(data.chapters));
+        setLoaded(true);
       })
       .catch((err: unknown) => {
         if (!alive) return;
@@ -656,28 +664,34 @@ export default function ChapterReviewPage() {
     setPhase('cancelling');
     try {
       await deleteBook(bookId);
-      if (taskId) {
-        try {
-          const saved = sessionStorage.getItem('upload-tasks');
-          if (saved) {
-            const all = JSON.parse(saved) as { taskId: string }[];
-            const filtered = all.filter((x) => x.taskId !== taskId);
-            if (filtered.length === 0) sessionStorage.removeItem('upload-tasks');
-            else sessionStorage.setItem('upload-tasks', JSON.stringify(filtered));
-          }
-          const completed = sessionStorage.getItem('upload-completed-tasks');
-          if (completed) {
-            const ids = new Set(JSON.parse(completed) as string[]);
-            ids.delete(taskId);
-            sessionStorage.setItem('upload-completed-tasks', JSON.stringify([...ids]));
-          }
-        } catch {
-          // ignore storage errors
-        }
+    } catch (err) {
+      // 404 = the book is already gone, which is what the user asked for.
+      if (!(err instanceof ApiError && err.status === 404)) {
+        setDiscardFailed(true);
+        setPhase('reviewing');
+        return;
       }
-    } finally {
-      navigate('/upload');
     }
+    if (taskId) {
+      try {
+        const saved = sessionStorage.getItem('upload-tasks');
+        if (saved) {
+          const all = JSON.parse(saved) as { taskId: string }[];
+          const filtered = all.filter((x) => x.taskId !== taskId);
+          if (filtered.length === 0) sessionStorage.removeItem('upload-tasks');
+          else sessionStorage.setItem('upload-tasks', JSON.stringify(filtered));
+        }
+        const completed = sessionStorage.getItem('upload-completed-tasks');
+        if (completed) {
+          const ids = new Set(JSON.parse(completed) as string[]);
+          ids.delete(taskId);
+          sessionStorage.setItem('upload-completed-tasks', JSON.stringify([...ids]));
+        }
+      } catch {
+        // ignore storage errors
+      }
+    }
+    navigate('/upload');
   }, [bookId, taskId, navigate]);
 
   const retryFailure = useCallback(() => {
@@ -686,19 +700,24 @@ export default function ChapterReviewPage() {
       return;
     }
     setFailure(null);
+    setLoaded(false);
     setReloadKey((k) => k + 1);
   }, [failure, handleSubmit]);
 
   // ── Derived view ─────────────────────────────────────────────────────────
   const view = useMemo(() => {
+    // Body chapters are renumbered 1…n; non-body chapters get no number.
+    const bodyNos: (number | null)[] = [];
     let bodyCount = 0;
-    const rows = chapters.map((ch, ci) => {
-      const isBody = (ch.role ?? 'body') === 'body';
-      let displayNo: number | null = null;
-      if (isBody) {
+    for (const ch of chapters) {
+      if ((ch.role ?? 'body') === 'body') {
         bodyCount += 1;
-        displayNo = bodyCount;
-      }
+        bodyNos.push(bodyCount);
+      } else bodyNos.push(null);
+    }
+    const rows = chapters.map((ch, ci) => {
+      const displayNo = bodyNos[ci];
+      const isBody = displayNo !== null;
       const flagged = isMisSplit(ch);
       const headLabel = isBody
         ? t('review.chapterLabel', { n: displayNo })
@@ -728,11 +747,13 @@ export default function ChapterReviewPage() {
   // Pre-number the parsed entries: body entries get a running index, non-body
   // (序/跋/…) entries get no number (they carry a "非正文" tag instead).
   const tocRows = useMemo(() => {
+    const rows = [];
     let n = 0;
-    return tocEntries.map((e) => {
+    for (const e of tocEntries) {
       if (e.isBody) n += 1;
-      return { ...e, label: e.isBody ? String(n).padStart(2, '0') : '—' };
-    });
+      rows.push({ ...e, label: e.isBody ? String(n).padStart(2, '0') : '—' });
+    }
+    return rows;
   }, [tocEntries]);
 
   const banner = useMemo((): Note => {
@@ -894,7 +915,7 @@ export default function ChapterReviewPage() {
             <span className="cr-banner-icon">
               <AlertTriangle size={16} />
             </span>
-            <p className="cr-banner-text">{t('review.discardConfirm')}</p>
+            <p className="cr-banner-text">{t(discardFailed ? 'review.discardFailed' : 'review.discardConfirm')}</p>
             <button
               type="button"
               className="ss-btn ss-btn-sm ss-btn-danger"
@@ -917,7 +938,9 @@ export default function ChapterReviewPage() {
         )}
 
         {/* Body: spine + reading flow (+ TOC drawer overlay) */}
-        <div className="cr-body">
+        {!loaded && <LoadingSpinner className="cr-loading" />}
+        {/* inert while submitting/discarding: edits made now would be dropped */}
+        <div className={loaded ? 'cr-body' : 'cr-body is-loading'} inert={busy}>
           <aside className={spineOpen ? 'cr-spine' : 'cr-spine is-collapsed'}>
             {spineOpen ? (
               <>
