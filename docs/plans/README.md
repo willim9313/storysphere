@@ -117,3 +117,4 @@
 | 2026-10-04 | [DS v3 第 5 批：補充包（研究者導覽・敘事結構・批次面板・語氣色／類別色・兩份補稿）—— 實作計畫](./20261004-ds-v3-batch5-supplement.md) |
 | 2026-10-07 | [閱讀頁可讀非正文章節（卷首／卷末）—— 實作計畫](./20261007-reader-non-body-chapters.md) |
 | 2026-10-17 | [上傳流程錯誤分類碼（errorKind／failedStepKinds）—— 實作計畫](./20261017-ingestion-error-kind.md) |
+| 2026-10-17 | [章節審閱頁長書效能（memo 化、content-visibility、總覽捲動）—— 實作計畫](./20261017-chapter-review-long-book-perf.md) |

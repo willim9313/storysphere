@@ -122,7 +122,8 @@
 .cr-block-count { margin-top: auto; font-size: var(--font-size-2xs); color: var(--fg-muted); }
 
 /* 總覽態 B′：等比、不捲動、章距 1px；列＝章號 28 | 條 | 旗標 6 */
-.cr-ov { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; gap: 1px; }
+/* 章數多到每章 2px＋1px 章距仍放不下時才捲動（不再靜默丟章；FEEDBACK 1-AI） */
+.cr-ov { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 1px; }
 /* Tooltip 錨點承接列高；列本身撐滿錨點 */
 .cr-ov-anchor { display: flex; flex-shrink: 0; }
 .cr-ov-row {
@@ -184,7 +185,11 @@
   flex: 1; min-height: 0; overflow-y: auto; position: relative;
   display: flex; flex-direction: column; gap: var(--space-5); padding-bottom: var(--space-8);
 }
-.cr-chapter { display: flex; flex-direction: column; gap: var(--space-4); scroll-margin-top: var(--space-4); }
+.cr-chapter {
+  display: flex; flex-direction: column; gap: var(--space-4); scroll-margin-top: var(--space-4);
+  /* 長書：視窗外的章跳過排版與繪製（佔位高度由元件依段數給） */
+  content-visibility: auto;
+}
 /* 標題框保底 16em；放不下時角色下拉與併上／併下折到第二行 */
 .cr-divider {
   display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4);
