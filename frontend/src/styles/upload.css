@@ -75,6 +75,7 @@
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: var(--focus-ring-offset);
 }
+.up-drop[data-rejected="true"] { border-color: var(--color-error); }
 .up-drop[data-dragging="true"] {
   border-color: var(--accent); border-style: var(--drop-active-border-style); background: var(--bg-secondary);
 }

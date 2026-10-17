@@ -413,7 +413,9 @@ export default function UploadPage() {
               {/* A · Idle — only when nothing is queued */}
               {!active && (
                 <>
-                  <DropZone onFiles={handleFilesSelected} />
+                  {/* Visible only with nothing queued, so any rejection left
+                      here means the whole last drop was turned away. */}
+                  <DropZone onFiles={handleFilesSelected} rejected={rejections.length > 0} />
                   {rejectionBox}
                 </>
               )}
