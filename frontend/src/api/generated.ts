@@ -4758,6 +4758,8 @@ export interface components {
             } | null;
             /** Error */
             error?: string | null;
+            /** Errorkind */
+            errorKind?: ("encrypted" | "unreadable" | "no_text" | "interrupted" | "internal") | null;
             /** Kind */
             kind?: string | null;
             /** Title */

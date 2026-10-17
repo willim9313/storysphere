@@ -127,11 +127,17 @@ class MemoryTaskStore:
                     }
                 )
 
-    def set_failed(self, task_id: str, error: str) -> None:
+    def set_failed(self, task_id: str, error: str, error_kind: str | None = None) -> None:
         with self._lock:
             if task_id in self._store:
                 self._store[task_id] = self._store[task_id].model_copy(
-                    update={"status": "error", "error": error, "stage": "失敗", "finished_at": _utc_now()}
+                    update={
+                        "status": "error",
+                        "error": error,
+                        "error_kind": error_kind,
+                        "stage": "失敗",
+                        "finished_at": _utc_now(),
+                    }
                 )
 
     def set_progress(
@@ -216,6 +222,7 @@ _ADD_KIND = "ALTER TABLE tasks ADD COLUMN kind TEXT"
 _ADD_TITLE = "ALTER TABLE tasks ADD COLUMN title TEXT"
 _ADD_STEP_KEY = "ALTER TABLE tasks ADD COLUMN step_key TEXT"
 _ADD_FINISHED_AT = "ALTER TABLE tasks ADD COLUMN finished_at TEXT"
+_ADD_ERROR_KIND = "ALTER TABLE tasks ADD COLUMN error_kind TEXT"
 
 # SQLite expression for finished_at — same shape as _utc_now() (UTC, "Z").
 _SQL_UTC_NOW = "strftime('%Y-%m-%dT%H:%M:%SZ', 'now')"
@@ -272,6 +279,7 @@ class SQLiteTaskStore:
                     _ADD_TITLE,
                     _ADD_STEP_KEY,
                     _ADD_FINISHED_AT,
+                    _ADD_ERROR_KIND,
                 ):
                     try:
                         db.execute(migration)
@@ -363,7 +371,7 @@ class SQLiteTaskStore:
 
     _SELECT_COLS = (
         "task_id, status, progress, stage, sub_progress, sub_total, "
-        "sub_stage, result, error, kind, title, created_at, step_key, finished_at"
+        "sub_stage, result, error, kind, title, created_at, step_key, finished_at, error_kind"
     )
 
     @staticmethod
@@ -383,6 +391,7 @@ class SQLiteTaskStore:
             created_at=row[11],
             step_key=row[12],
             finished_at=row[13],
+            error_kind=row[14],
         )
 
     async def _async_get(self, task_id: str) -> TaskStatus | None:
@@ -428,11 +437,11 @@ class SQLiteTaskStore:
             (json.dumps(result), task_id),
         )
 
-    def set_failed(self, task_id: str, error: str) -> None:
+    def set_failed(self, task_id: str, error: str, error_kind: str | None = None) -> None:
         self._execute(
-            "UPDATE tasks SET status = 'error', stage = '失敗', error = ?, "
+            "UPDATE tasks SET status = 'error', stage = '失敗', error = ?, error_kind = ?, "
             f"finished_at = {_SQL_UTC_NOW} WHERE task_id = ?",
-            (error, task_id),
+            (error, error_kind, task_id),
         )
 
     def set_progress(
@@ -547,9 +556,9 @@ async def set_task_running(task_id: str) -> None:
     task_store.set_running(task_id)
 
 
-async def set_task_failed(task_id: str, error: str) -> None:
+async def set_task_failed(task_id: str, error: str, error_kind: str | None = None) -> None:
     """Awaitable ``set_failed`` for router handlers. See :func:`set_task_running`."""
-    task_store.set_failed(task_id, error)
+    task_store.set_failed(task_id, error, error_kind)
 
 
 # ── Process-level singleton ───────────────────────────────────────────────────

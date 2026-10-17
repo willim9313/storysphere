@@ -98,3 +98,58 @@ def is_rate_limit_error(exc: Exception) -> bool:
         or "resource exhausted" in err_str
         or "overloaded" in err_str
     )
+
+
+# ── Whole-task failure kinds (TaskStatus.errorKind) ─────────────────────────
+#
+# Classified while the exception is still an object: `task.error` only keeps
+# str(exc), and the type is what tells "this file can never be read" from
+# "something went wrong this time". The front end words each kind and says
+# whether retrying the same file can help.
+
+TaskErrorKind = Literal["encrypted", "unreadable", "no_text", "interrupted", "internal"]
+
+# Raised by the EPUB loader around whatever ebooklib threw; the prefix is the
+# only marker that survives (the original is its __cause__).
+_EPUB_PARSE_PREFIX = "Could not parse EPUB:"
+
+
+def _exception_chain(exc: BaseException) -> list[BaseException]:
+    chain: list[BaseException] = []
+    seen: set[int] = set()
+    cur: BaseException | None = exc
+    while cur is not None and id(cur) not in seen:
+        chain.append(cur)
+        seen.add(id(cur))
+        cur = cur.__cause__ or cur.__context__
+    return chain
+
+
+def classify_task_failure(exc: BaseException) -> TaskErrorKind:
+    """Kind of a whole-task failure, for TaskStatus.errorKind.
+
+    ``encrypted`` / ``unreadable`` are properties of the file — the same file
+    fails the same way every time. Everything else is ``internal``: it may
+    well pass on a retry. (``no_text`` and ``interrupted`` are set where they
+    are detected, not inferred from an exception.)
+    """
+    import zipfile  # noqa: PLC0415
+
+    try:
+        from pypdf.errors import FileNotDecryptedError, PdfReadError  # noqa: PLC0415
+    except ImportError:  # pragma: no cover — pypdf is a dependency
+        FileNotDecryptedError = PdfReadError = ()  # type: ignore[assignment,misc]
+    try:
+        from docx.opc.exceptions import PackageNotFoundError  # noqa: PLC0415
+    except ImportError:  # pragma: no cover — python-docx is a dependency
+        PackageNotFoundError = ()  # type: ignore[assignment,misc]
+
+    chain = _exception_chain(exc)
+    if any(isinstance(e, FileNotDecryptedError) for e in chain):
+        return "encrypted"
+    for e in chain:
+        if isinstance(e, (PdfReadError, PackageNotFoundError, zipfile.BadZipFile)):
+            return "unreadable"
+        if isinstance(e, ValueError) and str(e).startswith(_EPUB_PARSE_PREFIX):
+            return "unreadable"
+    return "internal"
