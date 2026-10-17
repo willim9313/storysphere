@@ -3082,7 +3082,7 @@ HITL 審核 NarrativeStructure（approved / rejected / pending）。
 
 | 欄位 | 說明 |
 |------|------|
-| `score` | **語意隨 `mode` 改變**：`semantic` = Qdrant 相關度 0–1（前端顯示為百分比）；`fulltext` = 關鍵詞命中次數（整數，前端顯示為「N 次」） |
+| `score` | **語意隨 `mode` 改變**：`semantic` = Qdrant 相關度 0–1（前端顯示為百分比）；`fulltext` = 關鍵詞命中次數（整數，前端顯示為「N 次」）：以空白切出的詞不分大小寫去重、長詞優先，數**不重疊**的命中處，與前端 `<mark>` 高亮處數相同；每個詞都須出現（AND），`%`／`_` 依字面比對 |
 | `metadata.documentId` | 所屬書籍 UUID，對應 `GET /api/v1/books/` 的 `id` |
 | `metadata.chapterNumber` | 所在章節（1-based） |
 | `metadata.position` | 段落在章節內的位置（1-based） |

@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from datetime import UTC, datetime
 
 from sqlalchemy import Column, ForeignKey, Integer, String, Text, and_, func, select
@@ -682,10 +683,13 @@ class DocumentService:
     ) -> list[VectorSearchResult]:
         """Full-text search on paragraph text using SQLite LIKE (AND for multiple tokens).
 
-        Each space-separated token must appear in the paragraph (AND semantics).
-        Score = total occurrence count of all tokens; results sorted descending.
+        Each space-separated token must appear in the paragraph (AND semantics);
+        ``%`` / ``_`` in a token match literally.
+        Score = number of non-overlapping hits of the tokens (case-insensitive,
+        deduplicated, longest first) — the same split the frontend highlights,
+        so the「N次」score equals the number of ``<mark>``s.
         """
-        tokens = [t for t in query.strip().split() if t]
+        tokens = list({t.lower(): t for t in query.strip().split() if t}.values())
         if not tokens:
             return []
 
@@ -694,14 +698,21 @@ class DocumentService:
             if document_id:
                 stmt = stmt.where(_ParagraphRow.document_id == document_id)
             for token in tokens:
-                stmt = stmt.where(_ParagraphRow.text.ilike(f"%{token}%"))
+                escaped = (
+                    token.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+                )
+                stmt = stmt.where(_ParagraphRow.text.ilike(f"%{escaped}%", escape="\\"))
 
             result = await session.execute(stmt)
             rows = result.scalars().all()
 
+        hit_re = re.compile(
+            "|".join(re.escape(t) for t in sorted(tokens, key=len, reverse=True)),
+            re.IGNORECASE,
+        )
+
         def _score(text: str) -> float:
-            text_lower = text.lower()
-            return float(sum(text_lower.count(t.lower()) for t in tokens))
+            return float(sum(1 for _ in hit_re.finditer(text)))
 
         return sorted(
             [
