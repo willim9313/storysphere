@@ -210,7 +210,7 @@ function PartialRerunCard({ bookId, title, failedSteps }: Readonly<{ bookId: str
           ))
         )}
         <div className="up-partial-foot">
-          <Link to={`/books/${bookId}`} className="up-link">
+          <Link to="/" className="up-link">
             {t('notify.gotoLibrary')} →
           </Link>
         </div>
@@ -425,11 +425,13 @@ export function ProcessingCard({ task, onDone, onError, onGone }: Readonly<Proce
           </span>
         )}
         {isActive && elapsedText && (
-          <>
+          // One unit, so a narrow head wraps it whole instead of leaving the
+          // clock on one line and its time on the next.
+          <span className="up-task-timer">
             <span className="up-task-sep" />
             <span className="up-task-clock"><Clock size={13} strokeWidth={1.5} /></span>
             <span className="up-task-elapsed">{t('card.elapsed', { time: elapsedText })}</span>
-          </>
+          </span>
         )}
         <span className="up-spacer" />
         {terminateButton('sm')}

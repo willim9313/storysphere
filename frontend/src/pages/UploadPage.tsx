@@ -87,7 +87,10 @@ function toPending(file: File, meta?: RetryMeta): PendingFile {
 }
 
 function sizeLabel(file: File): string {
-  return `${(file.size / 1024 / 1024).toFixed(1)} MB · ${file.name.split('.').pop()?.toUpperCase() ?? ''}`;
+  const mb = file.size / 1024 / 1024;
+  // Under 0.1 MB the one-decimal MB reads "0.0 MB" — as if the file were empty.
+  const size = mb < 0.1 ? `${Math.max(1, Math.round(file.size / 1024))} KB` : `${mb.toFixed(1)} MB`;
+  return `${size} · ${file.name.split('.').pop()?.toUpperCase() ?? ''}`;
 }
 
 export default function UploadPage() {

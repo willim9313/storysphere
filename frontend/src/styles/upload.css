@@ -166,6 +166,7 @@ select.up-input { cursor: pointer; }
 }
 .up-task-stage { font-family: var(--font-sans); font-size: var(--font-size-2xs); color: var(--fg-muted); }
 .up-task-sep { width: var(--line-weight); height: 14px; background: var(--border); }
+.up-task-timer { display: inline-flex; align-items: center; gap: var(--space-5); white-space: nowrap; }
 .up-task-clock { display: inline-flex; color: var(--fg-secondary); }
 .up-task-elapsed { font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-secondary); }
 .up-task-bar { height: 2px; background: var(--bg-tertiary); }
