@@ -341,23 +341,23 @@ DS v3 第 1 批 1-3b。權威稿：02 章節審閱決議紀錄 frame A–H。全
   - **逐章態**：每章一 block，`min-height = 30 + paraCount × 15`（`spineBlockHeight`），可捲動。章標雙軌：正文章重新編號
     「第 N 章」、非正文章顯示角色名。章標前 8px 角色方塊：正文實心 `--accent`、非正文空心 `--fg-muted` 描邊。
     疑似漏切（`isMisSplit`：正文章內 >1 個 `titleSpan`）＝章標旁 6px `--color-warning` 圓點，tooltip「疑似漏切一章」。
-    選中 block `--bg-tertiary`。
+    選中 block `--bg-tertiary`＋accent 內框（線重 `--card-selected-border-width`，Warm 1px／Ink 2px；FEEDBACK 1-AH）。
   - **總覽態**（B′）：全書塞進可視高度、不捲動。章高 `max(2, round(paraCount / 總段數 × (可視高 − 章距)))`
-    （`overviewHeights`，ResizeObserver 量高），章距 1px。列＝章號 28px｜條｜6px 旗標點；正文條 `--accent`、非正文
-    `--fg-muted`；選中 `outline: 2px solid var(--fg-primary)`、offset 1px；章號（正文流水號／非正文角色名）只在章高 ≥ 12px
+    （`overviewHeights`，ResizeObserver 量高），章距 1px。列＝章號 28px｜條｜6px 旗標點；正文條 `--accent`（實心）、非正文
+    空心 1.5px `--fg-muted` 描邊（1-AH）；選中 `outline: 2px solid var(--fg-primary)`、offset 1px；章號（正文流水號／非正文角色名）只在章高 ≥ 12px
     時顯示於條左側；tooltip「第 {n} 章 · {title} · {count} 段」（非正文章以角色名代入、無標題省略，見 FEEDBACK 1-U）。
     點章跳轉並**留在總覽態**。
-  - **收合導軌**（C）：條高 `14 + paraCount × 8`（`railBarHeight`）；正文 `--accent`、非正文 `--fg-muted`；
-    疑似漏切 warning 填色＋條中央 3px `--bg-primary` 缺口（兩主題皆畫）；選中 outline 同上；
+  - **收合導軌**（C）：條高 `14 + paraCount × 8`（`railBarHeight`）；正文 `--accent`（實心）、非正文空心描邊（同總覽）；
+    疑似漏切 warning／紙色 135° 斜線網底＋條中央 3px `--bg-primary` 缺口（兩主題皆畫；1-Z、1-AH）；選中 outline 同上；
     容器 tooltip「各章段落長度比例（點一下跳到該章）」。
-  - 點任一 block／條／列 → 正文流捲到該章，分隔列閃 1.3s `--color-warning-bg`。
+  - 點任一 block／條／列 → 正文流捲到該章，分隔列閃 1.3s `--color-warning-bg`＋2px `--color-warning` 內縮外框（1-AH）。
 - **正文流**：
   - 頂端說明列「左側結構脊可標記章節角色、每段右側選單可標記段落角色 · 角色定義見右側對照表」＋右側
     「章節角色 · 段落角色對照」（secondary sm）。說明列不隨正文捲動。
   - 章分隔列：`ss-badge`「章」＋章標（雙軌）＋標題輸入框（flex 1）＋章角色下拉＋「↑ 併上」「↓ 併下」（ghost，首章／末章 disabled）。
     併章後的章沿用**內容開頭那一章**的標題與角色：併上沿用上一章、併下沿用本章（FEEDBACK 1-AE）。
     標題框保底 16em；放不下時章角色下拉與併上／併下整組折到第二行。
-    正文章 `--bg-secondary`、非正文章 `--bg-tertiary`；選中章內緣 1px accent 描邊（FEEDBACK 1-X）。
+    正文章 `--bg-secondary`、非正文章 `--bg-tertiary`；選中章內緣 accent 描邊，線重 `--card-selected-border-width`（FEEDBACK 1-X、1-AH）。
   - 段落列：左「＋」在此分章（首段隱藏；新章繼承原章角色）、serif sm 1.75 正文（`titleSpan` 片段 700）、右段角色下拉
     （「段·正文」…）。章或段任一為非正文 → 整列 `opacity: 0.55`（含下拉，FEEDBACK 1-X）。
   - **段內切分**：選取文字（夾回起點所在段落）→ 選區以 `--timeline-selected-ring` 標示，浮鈕「✂ 切分為新段落」

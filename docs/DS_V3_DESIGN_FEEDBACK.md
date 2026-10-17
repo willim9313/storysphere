@@ -209,6 +209,7 @@ Handoff `redesign_v3_handoff_batch_1.zip`（`design_handoff_01_entry/`）。下�
 | 1-AE | 遺漏 · 「↓ 併下」後合併章沿用誰的標題與角色 | 待同步 |
 | 1-AF | 遺漏 · 章節審閱窄寬（≤768px）與英文介面版面 | 待同步 |
 | 1-AG | 遺漏 · 章節審閱鍵盤、焦點與可及名稱 | 待同步 |
+| 1-AH | 易誤讀 · 章節審閱的選中／非正文／漏切／跳章閃爍只靠色差 | 待同步 |
 
 ### 1-A 投件拒絕文案其實已存在
 
@@ -479,6 +480,18 @@ Handoff `redesign_v3_handoff_batch_1.zip`（`design_handoff_01_entry/`）。下�
   - 命中區統一以隱形 `::after` 外擴到 ≥24px，外觀不變。
   - 可操作元件一律不用 `--fg-muted`：「＋」改 `--fg-secondary`。
 - **請設計端**：02 補焦點走向註記；確認「可操作元件不用 muted」為全站規則。
+
+### 1-AH 章節審閱的選中／非正文／漏切／跳章閃爍只靠色差
+
+- **出處**：02 A／B′／C 區；README §3「選中 block `--bg-tertiary`」「非正文 `--fg-muted`」「閃 `--color-warning-bg`」；1-Z（缺口）。
+- **問題**（實測對比）：逐章選中 block 對未選 1.10（Ink 1.09），且與 hover 同色；總覽／導軌正文對非正文條 Warm 1.61；
+  漏切條對正文條 1.04（Ink 1.03），只剩 3px 缺口；Ink 跳章閃底與非正文分隔列同色（1.00）、Warm 也只差約 1.03。
+  違反 DESIGN.md Glyph Not Hue。
+- **目前處置**（2026-10-17，使用者裁決）：兩主題共用形狀、線重走既有 shape token——
+  選中 block 與選中章分隔列加 accent 內框（`--card-selected-border-width`，Ink 2px）；總覽／導軌非正文條改空心描邊
+  （與逐章空心方塊同語彙）；漏切條加 warning 斜線網底、保留缺口（修訂 1-Z）；跳章閃爍加 2px warning 內縮外框。
+  未新增 token。
+- **請設計端**：A／B′／C 區與 README 對應字串更新。
 
 ---
 
