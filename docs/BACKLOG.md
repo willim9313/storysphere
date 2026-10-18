@@ -875,6 +875,7 @@ prompt 有寫 `Do not invent patterns not present in the passages`、證據不�
 用於角色頁 PersonaPane、RelationsPane、VoiceProfilingPanel、EpistemicStateSection／EpistemicCompareDrawer；閱讀頁 EpistemicSidePanel 也用同一個 util。
 
 **證據**: 事件頁實測（《名字的潮汐》18 句關鍵引言）9 句跳錯；嵌入模型 all-MiniLM-L6-v2 只支援英文，中文相似度普遍偏低。角色頁本身尚未量。
+2026-10-18 查明根因：該模型把多數中文字切成 `[UNK]`（「孤獨」與「戰鬥」向量相同）；段落向量已改用 `paraphrase-multilingual-MiniLM-L12-v2`（`docs/plans/20261018-multilingual-paragraph-embedding.md`），換完後重測跳錯數再決定是否仍需確定性比對。
 
 **方向**: 比照事件頁 #7m（PR #223）——後端確定性文字比對（去空白與引號、整句再前 12 字、只收唯一命中，對不到回 null、維持純文字）。認知事件只有章號可用時另議。
 

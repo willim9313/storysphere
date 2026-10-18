@@ -35,7 +35,7 @@ StorySphere 讀入小說（PDF / DOCX / EPUB），透過多階段 ETL 管線抽�
 | Backend API | FastAPI · Uvicorn · WebSocket |
 | 知識圖譜 | NetworkX（預設）· Neo4j（選用，僅 standard 模式） |
 | 向量資料庫 | Qdrant（lightweight 模式為本地檔案 / standard 模式為遠端服務） |
-| Embeddings | sentence-transformers `all-MiniLM-L6-v2` |
+| Embeddings | sentence-transformers `paraphrase-multilingual-MiniLM-L12-v2` |
 | 儲存 | SQLite（aiosqlite · SQLAlchemy） |
 | 關鍵字抽取 | YAKE · TF-IDF · LLM · Composite |
 | 追蹤 | Langfuse（選用） |
