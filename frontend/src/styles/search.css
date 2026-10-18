@@ -340,6 +340,19 @@
   opacity: 0.8;
 }
 
+/* 「顯示更多」: under the last row, aligned with the prose column (96px locator + gap). */
+.srch-group-more {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-4) 0 var(--space-2) calc(96px + var(--space-6));
+}
+
+.srch-group-more-error {
+  font-size: var(--font-size-xs);
+  color: var(--color-error);
+}
+
 /* ── Result rows: 96px locator | prose | 76px score ──────────
  * No clamp / expand / fade anywhere: the full paragraph is the whole result. */
 .srch-rows {
