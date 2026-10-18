@@ -53,7 +53,8 @@ function termPattern(terms: readonly string[] | undefined): RegExp | null {
     .map((w) =>
       [...w].map((ch) => ch.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('\\s*'),
     );
-  return new RegExp(`(${alts.join('|')})`, 'g');
+  // Case-insensitive like the search that sent the words (#23a fulltext lower-cases both sides).
+  return new RegExp(`(${alts.join('|')})`, 'gi');
 }
 
 /** Plain text with the asked-for words wrapped in <mark>. */
@@ -95,7 +96,7 @@ export function SegmentRenderer({
         const entity = seg.entity;
         // A symbol can also be a KG entity (海, 門): keep the entity mark and add
         // the term mark to it rather than splitting the entity apart.
-        const isTerm = pattern !== null && new RegExp(`^${pattern.source}$`).test(seg.text);
+        const isTerm = pattern !== null && new RegExp(`^${pattern.source}$`, 'i').test(seg.text);
         return (
           <Tooltip key={i} label={entity.name} anchorClassName="ss-tooltip-anchor-inline">
           <mark

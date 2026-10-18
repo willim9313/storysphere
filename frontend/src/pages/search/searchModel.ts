@@ -26,15 +26,18 @@ export interface TextSegment {
 }
 
 /** Same split as the backend fulltext score (#23a): words deduped case-insensitively,
- *  longest first, so 「名 名字」 marks 「名字」 once and the mark count equals the score. */
-function queryPattern(query: string): RegExp | null {
+ *  longest first, so 「名 名字」 marks 「名字」 once and the mark count equals the score.
+ *  Also the reader's `markTerms` when jumping from a keyword result. */
+export function queryTerms(query: string): string[] {
   const unique = new Map<string, string>();
   for (const w of query.trim().split(/\s+/)) {
     if (w.length >= 1) unique.set(w.toLowerCase(), w);
   }
-  const words = [...unique.values()]
-    .sort((a, b) => b.length - a.length)
-    .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`));
+  return [...unique.values()].sort((a, b) => b.length - a.length);
+}
+
+function queryPattern(query: string): RegExp | null {
+  const words = queryTerms(query).map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`));
   if (words.length === 0) return null;
   // Capturing group: split() puts the matched text at odd indexes.
   return new RegExp(`(${words.join('|')})`, 'gi');

@@ -491,7 +491,9 @@ chevron 有自己的 hover 底（`--bg-tertiary`，展開時也是）。選中�
 
 **只帶章號的跳入**（2026-10-12）：router state 只有 `{ chapterNumber }`（無 `paragraphId`）時打開該章、捲到章首、不閃段落——給只知道章、不知道段落的呼叫端（敘事結構頁「第 N 章原文 →」、張力頁）。先前這種 state 會被靜默忽略。
 
-**從象徵頁跳入時標出該詞**（2026-10-10）：router state 除 `{ paragraphId, chapterNumber }` 外帶 `markTerms`（意象詞＋異體），目標段落內符合的字以 `.rd-term-mark`（accent 18% 底＋粗體，與實體的底線區隔；Ink 下 accent 為黑仍可辨）標出，直到離開該段；比對容許字中空白（PDF 抽出的 CJK 常有字中空白）。詞本身也是 KG 實體時，加在實體 mark 上而不拆開。其他頁的跳段不帶 `markTerms`，行為不變。
+**從象徵頁跳入時標出該詞**（2026-10-10）：router state 除 `{ paragraphId, chapterNumber }` 外帶 `markTerms`（意象詞＋異體），目標段落內符合的字以 `.rd-term-mark`（accent 18% 底＋粗體，與實體的底線區隔；Ink 下 accent 為黑仍可辨）標出，直到離開該段；比對容許字中空白（PDF 抽出的 CJK 常有字中空白）。詞本身也是 KG 實體時，加在實體 mark 上而不拆開。跨書搜尋的**關鍵字**結果也帶 `markTerms`（查詢詞，去重、長詞優先；語意結果不帶，描述句幾乎不會逐字出現，2026-10-19）。比對不分大小寫。其他頁的跳段不帶 `markTerms`。
+
+**跳段的捲動落點**（深連結、實體卡出場段落、象徵頁／搜尋頁跳入，三處共用 `scrollToChunk`，2026-10-19）：段落在章節標題列（`.rd-head`，sticky）以下的可視區內置中；段落比可視區高時改為段首對齊到標題列下方 12px，避免段首被捲出畫面或藏在標題列底下。
 
 **章末導航只放右側「下一章 {章名} →」**（`.ss-btn-sm.ss-btn-secondary`）；最後一章沒有，也沒有「上一章」。
 
@@ -2438,7 +2440,7 @@ group header 五件：accent chevron（收合鈕，`aria-expanded`）+ 書名（
 | 動作 | 目的地 |
 |------|--------|
 | 「前往書籍」 | `/books/:bookId` |
-| 點擊結果列 | `/books/:bookId`，並以 router state 帶 `{ paragraphId, chapterNumber }` 供閱讀頁定位 |
+| 點擊結果列 | `/books/:bookId`，並以 router state 帶 `{ paragraphId, chapterNumber }` 供閱讀頁定位；關鍵字模式另帶 `markTerms`（`queryTerms`），閱讀頁標出查詢詞 |
 
 #### 狀態
 

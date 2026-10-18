@@ -19,6 +19,7 @@ import {
   padPosition,
   parseSearchParams,
   PER_BOOK_LIMIT,
+  queryTerms,
   replaceBookResults,
   splitHighlight,
   toSearchParams,
@@ -368,10 +369,16 @@ export default function SearchPage() {
     (bookId: string, result: SearchResult) => {
       navigate({ search: location.search }, { replace: true, state: { lastResultId: result.id } });
       navigate(`/books/${bookId}`, {
-        state: { paragraphId: result.id, chapterNumber: result.metadata.chapterNumber },
+        state: {
+          paragraphId: result.id,
+          chapterNumber: result.metadata.chapterNumber,
+          // Keyword hits are literal, so the reader marks them; a semantic query is a
+          // description that rarely appears verbatim, so it would mark nothing.
+          markTerms: mode === 'fulltext' ? queryTerms(submittedQuery) : undefined,
+        },
       });
     },
-    [navigate, location.search],
+    [navigate, location.search, mode, submittedQuery],
   );
 
   const lastResultId = (location.state as { lastResultId?: string } | null)?.lastResultId;

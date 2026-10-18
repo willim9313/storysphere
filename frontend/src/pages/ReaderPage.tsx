@@ -51,6 +51,25 @@ const NARROW_QUERY = '(max-width: 768px)';
 const getIsNarrow = () =>
   typeof window !== 'undefined' && window.matchMedia(NARROW_QUERY).matches;
 
+/** Jump targets are centred in the reading column, unless the paragraph is taller
+ *  than it — then centring would push its first lines above the fold, so its top
+ *  is aligned instead. Both are measured below the sticky chapter header (.rd-head),
+ *  which otherwise covers the paragraph's first lines. */
+const JUMP_TOP_GAP = 12;
+function scrollToChunk(el: Element) {
+  const scroller = el.closest<HTMLElement>('.rd-col3-scroll');
+  if (!scroller) {
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    return;
+  }
+  const head = scroller.querySelector('.rd-head')?.getBoundingClientRect().height ?? 0;
+  const visible = scroller.clientHeight - head;
+  const r = el.getBoundingClientRect();
+  const offset = r.top - scroller.getBoundingClientRect().top - head;
+  const delta = r.height > visible - JUMP_TOP_GAP ? offset - JUMP_TOP_GAP : offset - (visible - r.height) / 2;
+  scroller.scrollBy({ top: delta, behavior: 'smooth' });
+}
+
 export default function ReaderPage() {
   const { bookId } = useParams<{ bookId: string }>();
   const { t } = useTranslation('reader');
@@ -190,7 +209,7 @@ export default function ReaderPage() {
     if (!chunks.some((c) => c.id === pid)) return;
     const el = document.querySelector(`[data-chunk-id="${pid}"]`);
     if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      scrollToChunk(el);
       el.classList.add('chunk-jump-flash');
       globalThis.setTimeout(() => el.classList.remove('chunk-jump-flash'), 2000);
       jumpHandledRef.current = pid;
@@ -210,7 +229,7 @@ export default function ReaderPage() {
     }
     const el = document.querySelector(`[data-chunk-id="${chunkId}"]`);
     if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      scrollToChunk(el);
       el.classList.add('chunk-jump-flash');
       globalThis.setTimeout(() => el.classList.remove('chunk-jump-flash'), 2000);
     }
@@ -414,7 +433,7 @@ export default function ReaderPage() {
     }
     const el = document.querySelector(`[data-chunk-id="${chunkId}"]`);
     if (el) {
-      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      scrollToChunk(el);
       el.classList.add('chunk-jump-flash');
       globalThis.setTimeout(() => el.classList.remove('chunk-jump-flash'), 2000);
     }
