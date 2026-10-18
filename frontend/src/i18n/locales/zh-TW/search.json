@@ -29,6 +29,8 @@
     "trySemantic": "改用語意搜尋"
   },
   "summary": "找到 <strong>{{count}}</strong> 個段落，來自 <strong>{{books}}</strong> 本書籍",
+  "summarySemantic": "最相近的 <strong>{{count}}</strong> 個段落，來自 <strong>{{books}}</strong> 本書籍",
+  "semanticNote": "依意思相近程度排序，不代表段落一定含有你要找的內容；相關度只能在同一次搜尋內比較。",
   "score": {
     "hits": "命中次數",
     "relevance": "相關度",

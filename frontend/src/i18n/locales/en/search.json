@@ -29,6 +29,8 @@
     "trySemantic": "Try semantic search"
   },
   "summary": "Found <strong>{{count}}</strong> passages across <strong>{{books}}</strong> books",
+  "summarySemantic": "The <strong>{{count}}</strong> closest passages across <strong>{{books}}</strong> books",
+  "semanticNote": "Ranked by closeness in meaning — a passage is not guaranteed to contain what you are looking for, and relevance is only comparable within one search.",
   "score": {
     "hits": "Hits",
     "relevance": "Relevance",
