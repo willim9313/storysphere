@@ -40,7 +40,7 @@ DocumentProcessingPipeline
 FeatureExtractionPipeline              KnowledgeGraphPipeline
   ├── embedding_generator.py             ├── entity_extractor.py          (Gemini)
   │   HuggingFaceEmbeddings              ├── relation_extractor.py        (Gemini)
-  │   (all-MiniLM-L6-v2, 384 dims)      ├── entity_linker.py             (dedup)
+  │   (multilingual MiniLM, 384 dims)   ├── entity_linker.py             (dedup)
   └── pipeline.py → Qdrant               ├── paragraph_entity_linker.py   (text match)
                                           └── pipeline.py → KGService
     │                                         │
@@ -216,7 +216,7 @@ uv sync
 
 ```python
 # backend/storysphere/config/settings.py (已更新)
-embedding_model_name: str = "all-MiniLM-L6-v2"
+embedding_model_name: str = "paraphrase-multilingual-MiniLM-L12-v2"
 embedding_device: str = "cpu"
 embedding_batch_size: int = 32
 qdrant_vector_size: int = 384
@@ -224,7 +224,7 @@ qdrant_vector_size: int = 384
 
 對應 `.env` 變數（`.env.example` 已更新）：
 ```env
-EMBEDDING_MODEL_NAME=all-MiniLM-L6-v2
+EMBEDDING_MODEL_NAME=paraphrase-multilingual-MiniLM-L12-v2
 EMBEDDING_DEVICE=cpu
 EMBEDDING_BATCH_SIZE=32
 QDRANT_VECTOR_SIZE=384
@@ -279,7 +279,7 @@ A: 每章節需要兩次 LLM 呼叫（entity + relation/event），大型書籍�
 Phase 6 將用 `asyncio.gather` 並行化章節處理。
 
 ### Q: Embedding 模型第一次下載很久？
-A: `all-MiniLM-L6-v2` 約 90MB，第一次 `_get_embeddings()` 會自動從 HuggingFace 下載並快取。
+A: `paraphrase-multilingual-MiniLM-L12-v2` 約 470MB（多語，2026-10-18 起；原 `all-MiniLM-L6-v2` 只認英文，中文會被切成 `[UNK]`），第一次 `_get_embeddings()` 會自動從 HuggingFace 下載並快取。
 後續呼叫透過 `lru_cache` 直接使用已載入的模型。
 
 ### Q: 如何換用更強的 Embedding 模型？

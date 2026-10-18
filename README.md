@@ -35,7 +35,7 @@ StorySphere ingests novels (PDF / DOCX / EPUB), runs a multi-stage ETL pipeline 
 | Backend API | FastAPI · Uvicorn · WebSocket |
 | Knowledge Graph | NetworkX (default) · Neo4j (optional, standard mode only) |
 | Vector DB | Qdrant (local file in lightweight mode / remote in standard mode) |
-| Embeddings | sentence-transformers `all-MiniLM-L6-v2` |
+| Embeddings | sentence-transformers `paraphrase-multilingual-MiniLM-L12-v2` |
 | Storage | SQLite (aiosqlite · SQLAlchemy) |
 | Keyword Extraction | YAKE · TF-IDF · LLM · Composite |
 | Tracing | Langfuse (optional) |

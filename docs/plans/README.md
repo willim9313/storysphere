@@ -118,3 +118,4 @@
 | 2026-10-07 | [閱讀頁可讀非正文章節（卷首／卷末）—— 實作計畫](./20261007-reader-non-body-chapters.md) |
 | 2026-10-17 | [上傳流程錯誤分類碼（errorKind／failedStepKinds）—— 實作計畫](./20261017-ingestion-error-kind.md) |
 | 2026-10-17 | [章節審閱頁長書效能（memo 化、content-visibility、總覽捲動）—— 實作計畫](./20261017-chapter-review-long-book-perf.md) |
+| 2026-10-18 | [段落向量改用多語 embedding 模型 —— 實作計畫](./20261018-multilingual-paragraph-embedding.md) |
