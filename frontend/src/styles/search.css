@@ -185,6 +185,14 @@
   font-weight: 700;
 }
 
+.srch-semantic-note {
+  margin: 0;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  line-height: 1.6;
+  color: var(--fg-secondary);
+}
+
 /* 「依相關度排序 ⌄」: a plain <span>, no behaviour. */
 .srch-sort-label {
   display: inline-flex;

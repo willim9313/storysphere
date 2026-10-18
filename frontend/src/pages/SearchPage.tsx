@@ -474,7 +474,7 @@ export default function SearchPage() {
             <span>
               <Trans
                 t={t}
-                i18nKey="summary"
+                i18nKey={mode === 'semantic' ? 'summarySemantic' : 'summary'}
                 values={{ count: totalCount, books: groups.length }}
                 components={{ strong: <strong /> }}
               />
@@ -484,6 +484,10 @@ export default function SearchPage() {
               <ChevronDown size={12} />
             </span>
           </div>
+
+          {/* Semantic search always returns its closest passages; its scores cannot tell
+              relevant from unrelated (2-SR-10), so say what the ranking means instead of a cutoff. */}
+          {mode === 'semantic' && <p className="srch-semantic-note">{t('semanticNote')}</p>}
 
           {failedBooks > 0 && (
             <div className="srch-partial" role="status">
