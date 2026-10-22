@@ -390,7 +390,7 @@ DS v3 第 1 批 1-3b。權威稿：02 章節審閱決議紀錄 frame A–H。全
   - 段內切分除 `mouseup` 外也聽 `selectionchange`（150ms 穩定、拖曳中忽略），觸控長按與游標瀏覽可用。
   - 16px 圖示鈕（收合鈕、對照表 ✕、「＋」）以隱形 `::after` 外擴命中區到 ≥24px，外觀不變；「＋」貼捲動欄左緣，只往右擴。
   - 「＋」改 `--fg-secondary`：可操作元件不用 `--fg-muted`。
-- **「前往 LLM 設定 →」**連到 `/settings#llm`；`SettingsPage` 只在初始狀態讀 hash，`#llm` 時預設開 LLM 面板。
+- **「前往 LLM 設定 →」**連到 `/settings#llm`；`SettingsPage` 的面板由 hash 決定（見 §3.13），`#llm` 即開 LLM 面板。
 - **送出／放棄**（G）：送出成功 → success 橫幅「已送出審核，pipeline 繼續執行下游分析。」，0.6s 後導回
   `/upload#{taskId}`（無 taskId 則 `/upload`）。放棄兩段式：標頭「放棄上傳」只開紅色確認列
   「刪除整本書並放棄上傳？此動作無法復原。」＋「確定放棄」（`ss-btn-danger`）／「取消」（ghost）；確定後 `DELETE /books/:id`、
@@ -2156,7 +2156,11 @@ byModel 顯示原始 model id。
   面板標題旁同框：語言「整合」、環境「開發者」。
 - 區段小標（accent 圖示＋serif）：介面主題、目前設定、部署模式、目前狀態、資料遷移。其餘小標（Qdrant Service、知識圖譜後端、
   Neo4j 連線、前端／後端套件、資料路徑）是無圖示的 2xs 小字。
-- `/settings#llm` 開 LLM 面板（第 1 批 02 章節審閱 503「前往 LLM 設定 →」的落點）。
+- **面板跟著網址 hash**（FEEDBACK 2-ST-15）：`#appearance`／`#language`／`#guidance`／`#llm`／`#env`／`#shortcuts`／`#experimental`／`#about`，
+  無 hash 或不認得＝外觀與主題。點 nav 以 **replace** 改 hash（不增歷史）：重新整理與深連結留在原面板，上一頁直接離開設定頁。
+  `/settings#llm` 是第 1 批 02 章節審閱 503「前往 LLM 設定 →」的落點。
+- **語意與鍵盤**：nav 頂「設定」是整頁 `h1`，`<nav>` 以 `aria-labelledby` 指向它；面板標題 `h2`（含規劃中面板）；
+  作用中 nav 項 `aria-current="true"`（切面板不是換頁）。
 
 #### 面板
 
@@ -2168,12 +2172,12 @@ byModel 顯示原始 model id。
   維持既有「跟隨介面語言／自訂語言」。兩條 hint 逐字各貼欄位下。
 - **LLM 設定**：唯讀 text row（hairline 分隔；值為 `(none)` 用 muted）；副標與底註兩條唯讀宣告都在、不合併；不加編輯鈕、不加 .env 連結。
 - **環境設定**：
-  - 部署雙卡（`role="radiogroup"`）：radio＋tagline＋Qdrant／KG 規格。「（目前）」跟著實際 `deployMode`，選中框跟著使用者點選；
+  - 部署雙卡（`role="radiogroup"`，roving tabindex：只有選中卡在 Tab 序，←→↑↓ 移焦點並同時選取）：radio＋tagline＋Qdrant／KG 規格。「（目前）」跟著實際 `deployMode`，選中框跟著使用者點選；
     兩者不一致時選中的那張另掛「**預覽中**」（`deployBadges`）。
   - **Lightweight**：目前狀態 text row（Vector 數量 null → 「—」）＋三張 KG 統計磚（kit `StatRow`：tinted 底、sans tabular）。
   - **Standard 預覽**：最上方警告橫幅（**只在預覽中**——選中≠實際 `deployMode`——才出現；實際已是 Standard 時不畫）；Qdrant Service 欄位與 **Neo4j 連線**欄位（常駐，不再只在選 Neo4j 時出現）一律只有
-    placeholder、無 value／onChange，旗標「需重啟」（warning 底）；KG 後端 `.ss-seg`，其下是能力落差層，再往下是 Neo4j 例外註記（在 Neo4j 連線欄位之後）。Neo4j 欄位名為既有 `NEO4J_URL`／`NEO4J_USER`／`NEO4J_PASSWORD`
-    （稿上 `NEO4J_URI`＋「即時生效」與後端不符，見 FEEDBACK 2-ST-2）。輸入框用 `--input-*`、文字 xs。
+    placeholder、無 value／onChange、`readOnly`（可聚焦但打不進字，`aria-describedby` 指向該欄旗標），旗標「需重啟」（warning 底）；KG 後端 `.ss-seg`，其下是能力落差層，再往下是 Neo4j 例外註記（在 Neo4j 連線欄位之後）。Neo4j 欄位名為既有 `NEO4J_URL`／`NEO4J_USER`／`NEO4J_PASSWORD`
+    （稿上 `NEO4J_URI`＋「即時生效」與後端不符，見 FEEDBACK 2-ST-2）。輸入框用 `--input-*`、文字 xs；焦點走全站 2px 焦點環（另加 accent 框色）。
   - **能力落差層**（位置在 segmented 之下、切換之前；`gapLayer`）：措辭一「目前後端無法提供這些功能：」＝error 底、Lucide `circle-x`、
     功能名**實心**；措辭二「切換到 {Neo4j|NetworkX} 會停用這些功能：」＝warning 底、`alert-triangle`、功能名**描邊**。兩者互斥、不合併；
     圖示形狀與填色極性是 Ink 下的非色相載體。功能 id 一律中文（`env.kgFeature.*`）；**不認得的 id 不裸露**，合併成一顆「其他功能」。
@@ -2190,7 +2194,10 @@ byModel 顯示原始 model id。
       達標（**實際** `deployMode` 為 Standard＋KG 後端為 Neo4j，`kgMigrationGate`；預覽中的選卡不算）後門檻說明消失、旗標換「即時生效」、鈕可按；遷移進行中鈕再度 disabled）。
 - **關於 & 版本**：hero（S 方塊、StorySphere、版號＋`appEnv`）、前後端套件兩欄、資料路徑——key 保留原始欄位名（mono），
   `databaseUrl` 照後端遮罩顯示，不可展開、無眼睛圖示。
-- **規劃中面板**（快捷鍵、實驗性功能）：圖示＋徽章＋標題＋一句說明四件，無 CTA、無時程暗示。
+- **規劃中面板**（快捷鍵、實驗性功能）：圖示＋徽章＋標題（`h2`）＋一句說明四件，無 CTA、無時程暗示。
+- **研究者導覽**「重設所有導覽」按下後按鈕自身 disabled，焦點移到右側計數文字（`tabIndex=-1`），鍵盤使用者不掉到 body。
+- **環境設定的宣告**：能力落差層外包 `aria-live="polite"`；KG 切換進行中的 spinner 是 `role="status"`＋「載入中…」；
+  兩顆「執行遷移」以 `aria-describedby` 帶入該列標題、說明與門檻句（同名鈕可區分、停用原因聽得到）。
 
 #### 載入與失敗（面板內，nav 全程可用）
 

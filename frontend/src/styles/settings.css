@@ -32,6 +32,7 @@
   padding: 0 var(--space-4);
 }
 .st-nav-title {
+  margin: 0; line-height: inherit; /* h1 for the page outline; looks like the old span */
   font-family: var(--font-serif);
   font-size: var(--font-size-lg);
   font-weight: 700;
@@ -307,7 +308,7 @@
   border-radius: var(--input-radius);
 }
 .st-input::placeholder { color: var(--fg-muted); }
-.st-input:focus-visible { outline: none; border-color: var(--accent); }
+.st-input:focus-visible { border-color: var(--accent); } /* ring comes from the global :focus-visible rule */
 
 /* 能力落差：措辭一 error／circle-x／實心；措辭二 warning／alert-triangle／描邊 */
 .st-gap {
@@ -424,7 +425,7 @@
   box-shadow: var(--card-shadow);
 }
 .st-planned-ico { display: inline-flex; color: var(--illustration-stroke-soft); }
-.st-planned-title { font-family: var(--font-serif); font-size: var(--font-size-lg); font-weight: 600; color: var(--fg-primary); }
+.st-planned-title { margin: 0; line-height: inherit; font-family: var(--font-serif); font-size: var(--font-size-lg); font-weight: 600; color: var(--fg-primary); }
 .st-planned-sub { font-size: var(--font-size-xs); line-height: 1.7; color: var(--fg-secondary); margin: 0; max-width: 320px; }
 
 /* ── 面板載入／失敗（行內，nav 全程可用）──────────────────── */
