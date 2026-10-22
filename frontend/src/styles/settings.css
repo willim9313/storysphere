@@ -49,7 +49,7 @@
 .st-nav-item {
   width: 100%;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--space-4);
   padding: var(--space-4);
   border-radius: var(--radius-sm);
@@ -64,17 +64,24 @@
   transition: background-color var(--transition-fast), color var(--transition-fast);
 }
 .st-nav-item:hover { background: var(--bg-secondary); }
-.st-nav-ico { display: inline-flex; flex-shrink: 0; color: var(--fg-secondary); }
-/* 暫時修法（feedback 2-ST-13）：172px 放不下「標籤＋徽章」時，徽章換到第二行靠右，不再把標籤截成「Envi…」。
-   標籤本身仍不換行；單獨就超寬時才省略。 */
+/* 圖示高度＝一行字高，換行時留在第一行（feedback 2-ST-13） */
+.st-nav-ico {
+  display: inline-flex; align-items: center; flex-shrink: 0;
+  height: calc(var(--font-size-xs) * 1.6);
+  color: var(--fg-secondary);
+}
+/* 172px 放不下時：英文標籤依字詞自己換行（不再整個被推到第二行、留下孤立圖示）；
+   中文 keep-all 不在字中斷開，放不下徽章時徽章換到下一行靠右。 */
 .st-nav-item { flex-wrap: wrap; row-gap: var(--space-1); }
-.st-nav-label { flex: 1 0 auto; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* min-width 留預設（最長一個字詞）：flex 換行時以它判斷，放不下就換徽章，不把單字切開 */
+.st-nav-label { flex: 1 1 0; line-height: 1.6; word-break: keep-all; }
 .st-nav-item > .st-badge { margin-left: auto; }
-/* 選中：bg-tertiary 底 + accent 字 600，無左緣條 */
-.st-nav-item.active { background: var(--bg-tertiary); color: var(--accent); font-weight: 600; }
+/* 規劃中：字色降階（不用整列 opacity，徽章才不會被乘暗到讀不到） */
+.st-nav-item.is-planned { color: var(--fg-secondary); }
+.st-nav-item.is-planned .st-nav-ico { color: var(--fg-muted); }
+/* 選中：bg-tertiary 底 + 墨色字 600 + accent 圖示，無左緣條（accent 字在 bg-tertiary 上只有 4.17:1） */
+.st-nav-item.active { background: var(--bg-tertiary); color: var(--fg-primary); font-weight: 600; }
 .st-nav-item.active .st-nav-ico { color: var(--accent); }
-/* 規劃中：整列降階 */
-.st-nav-item.is-planned { opacity: 0.55; }
 .st-nav-foot {
   margin-top: auto;
   padding: var(--space-5) var(--space-4) 0;
@@ -94,6 +101,8 @@
   border-radius: var(--badge-radius);
 }
 .st-badge.dev { background: var(--color-warning-bg); color: var(--color-warning); }
+/* 警示類（開發者、需重啟）：Ink 下與成功類同底同字，靠墨線框分開 */
+.st-badge.dev, .st-flag.restart { box-shadow: inset 0 0 0 var(--badge-caution-border-width) currentColor; }
 .st-badge.merged { background: var(--color-success-bg); color: var(--color-success); }
 /* 規劃中／即將推出：虛線描邊 + muted 字 */
 .st-badge.planned { border: var(--line-weight) dashed var(--border); color: var(--fg-muted); }
@@ -171,7 +180,11 @@
   box-shadow: var(--card-shadow);
   cursor: pointer;
 }
-.st-theme-card.active { border: 2px solid var(--accent); }
+/* 選中：框色換 accent＋框外 accent 環（outset，不推擠版面）；合計 Warm 2px、Ink 3px */
+.st-theme-card.active, .st-radio-card.active {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 var(--choice-selected-ring-width) var(--accent);
+}
 .st-theme-swatch {
   position: relative;
   display: flex;
@@ -199,6 +212,8 @@
   border-radius: var(--badge-radius);
   background: var(--accent); color: var(--accent-fg);
   font-size: var(--font-size-2xs); font-weight: 600;
+  /* 紙色光暈：Ink 的 accent #111 疊在 fg-primary #151515 色帶上看不出邊界 */
+  box-shadow: 0 0 0 calc(var(--line-weight) * 2) var(--bg-primary);
 }
 .st-theme-meta { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-5) var(--space-6); }
 .st-theme-name { font-family: var(--font-sans); font-size: var(--font-size-sm); font-weight: 600; color: var(--fg-primary); }
@@ -264,7 +279,6 @@
   box-shadow: var(--card-shadow);
   cursor: pointer;
 }
-.st-radio-card.active { border: 2px solid var(--accent); }
 .st-radio-head { display: flex; align-items: center; gap: var(--space-4); }
 .st-radio-dot {
   width: 14px; height: 14px; border-radius: 50%; flex-shrink: 0;

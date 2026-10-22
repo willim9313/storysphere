@@ -641,6 +641,8 @@ Handoff `redesign_v3_handoff_batch_2.zip`（`design_handoff_02_system/`）。下
 - **出處**：04 A 區設定導覽（172px、標籤與徽章同列）；README §1「左側 nav 172px」。
 - **問題**：稿只畫了中文。英文下標籤加徽章超寬，「Language／Environment／Shortcuts／Experimental」被截成「Langua…」「Envi…」「Short…」「Experi…」。中文也只有「實驗性…」被截（稿上同樣被截）。
 - **目前處置**（2026-10-02，暫時修法）：放不下時徽章換到第二行靠右，標籤不再被截；放得下時仍同列。
+  **2026-10-22 修正**：暫時修法讓標籤不能縮，「Researcher guidance」這類本身超寬的標籤整個被推到第二行、圖示孤立在第一行（英文 8 列有 5 列換行）。
+  改為英文標籤依字詞自己換行、圖示對齊第一行，中文 `keep-all` 不在字中斷開；徽章放不下仍換到下一行。172px 與 nav 徽章維持不變。
 - **請設計端**：給定案——加寬導覽、縮短英文標籤，或明定徽章換行的版型。
 
 #### 2-ST-14 「預覽」框架裡的 KG 後端 segmented 會真的切換
