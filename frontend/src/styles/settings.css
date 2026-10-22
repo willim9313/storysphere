@@ -380,7 +380,8 @@
 /* KG 切換失敗：i18n 前綴（sans）＋後端原文（mono，不翻譯） */
 .st-mig-state-lead { font-family: var(--font-sans); font-size: var(--font-size-xs); font-weight: 600; color: var(--fg-primary); }
 
-.st-refresh { align-self: flex-start; display: inline-flex; align-items: center; gap: var(--space-3); }
+.st-refresh-row { align-self: flex-start; display: flex; align-items: center; gap: var(--space-5); }
+.st-refresh { display: inline-flex; align-items: center; gap: var(--space-3); }
 
 /* ── 關於 ─────────────────────────────────────────────────── */
 .st-about-hero { display: flex; align-items: center; gap: var(--space-6); }
