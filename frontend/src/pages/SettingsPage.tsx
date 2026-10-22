@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {
   Palette, Languages, Compass, Cpu, Server, Info, Keyboard,
   FlaskConical, Check, ArrowRight, ArrowLeft, AlertTriangle,
@@ -52,6 +52,8 @@ const NAV_GROUPS: { labelKey: string; items: { id: PanelId; labelKey: string; ba
   },
 ];
 
+const PANEL_IDS: PanelId[] = NAV_GROUPS.flatMap((g) => g.items.map((it) => it.id));
+
 const BADGE_KEY: Record<BadgeKind, string> = {
   dev: 'nav.badgeDev',
   merged: 'nav.badgeMerged',
@@ -84,15 +86,17 @@ function PanelHead({ title, sub, badge }: { title: string; sub?: string; badge?:
   );
 }
 
-function StSection({ icon, title, children }: {
-  icon: React.ReactNode; title: string; children: React.ReactNode;
+function StSection({ icon, title, hideHead, children }: {
+  icon: React.ReactNode; title: string; hideHead?: boolean; children: React.ReactNode;
 }) {
   return (
     <section className="st-section">
-      <div className="st-section-head">
-        <span className="st-section-ico">{icon}</span>
-        <h3 className="st-section-title">{title}</h3>
-      </div>
+      {!hideHead && (
+        <div className="st-section-head">
+          <span className="st-section-ico">{icon}</span>
+          <h3 className="st-section-title">{title}</h3>
+        </div>
+      )}
       {children}
     </section>
   );
@@ -237,6 +241,8 @@ function AppearancePanel() {
 function GuidancePanel() {
   const { t } = useTranslation('settings');
   const n = useDismissedCount();
+  // The button disables itself on reset; park focus on the count so keyboard users keep their place.
+  const countRef = useRef<HTMLSpanElement>(null);
 
   return (
     <div className="st-panel">
@@ -246,11 +252,14 @@ function GuidancePanel() {
           type="button"
           className="ss-btn ss-btn-md ss-btn-secondary"
           disabled={n === 0}
-          onClick={resetAllGuidance}
+          onClick={() => {
+            resetAllGuidance();
+            countRef.current?.focus();
+          }}
         >
           {t('guidance.reset')}
         </button>
-        <span className="st-guidance-count" aria-live="polite">
+        <span className="st-guidance-count" aria-live="polite" ref={countRef} tabIndex={-1}>
           {n === 0 ? t('guidance.countNone') : t('guidance.count', { n })}
         </span>
       </div>
@@ -362,9 +371,12 @@ function StandardField({ id, name, optional, placeholder, secret, flag }: {
           {optional && <span className="st-fieldrow-opt">{optional}</span>}
         </label>
         {/* Preview-only: placeholder, no value / onChange — nothing typed here is saved or sent. */}
-        <input id={id} className="st-input" type={secret ? 'password' : 'text'} placeholder={placeholder} />
+        <input
+          id={id} className="st-input" type={secret ? 'password' : 'text'} placeholder={placeholder}
+          readOnly aria-describedby={`${id}-flag`}
+        />
       </div>
-      <span className={`st-flag ${flag}`}>{t(flag === 'restart' ? 'env.restartFlag' : 'env.kgLiveFlag')}</span>
+      <span className={`st-flag ${flag}`} id={`${id}-flag`}>{t(flag === 'restart' ? 'env.restartFlag' : 'env.kgLiveFlag')}</span>
     </div>
   );
 }
@@ -414,6 +426,7 @@ function EnvPanel() {
   const liveKgBackend: KgBackend = (kg?.mode as KgBackend | undefined) ?? 'networkx';
   const kgBackend: KgBackend = kgBackendOverride ?? liveKgBackend;
   const [migrationTaskId, setMigrationTaskId] = useState<string | null>(null);
+  const deployCardRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [switchError, setSwitchError] = useState<string | null>(null);
 
   const switchMutation = useMutation({
@@ -484,19 +497,32 @@ function EnvPanel() {
     { key: 'neo', dir: 'neo4j_to_nx', arrow: <ArrowLeft size={15} />, label: t('env.migNeoNx'), sub: t('env.migNeoNxSub') },
   ];
 
+  // Radio-group keyboard (APG): one tab stop on the checked card; arrows move focus and check.
+  const onDeployKey = (e: React.KeyboardEvent<HTMLButtonElement>, i: number) => {
+    const step = ({ ArrowRight: 1, ArrowDown: 1, ArrowLeft: -1, ArrowUp: -1 } as Record<string, number>)[e.key];
+    if (!step) return;
+    e.preventDefault();
+    const next = (i + step + deployCards.length) % deployCards.length;
+    setUiMode(deployCards[next].mode);
+    deployCardRefs.current[next]?.focus();
+  };
+
   const deployGrid = (
       <div className="st-radio-grid" role="radiogroup" aria-label={t('env.deployTitle')}>
-        {deployCards.map((c) => {
+        {deployCards.map((c, i) => {
           const badges = deployBadges(c.mode, uiMode, actualDeployMode);
           const selected = uiMode === c.mode;
           return (
             <button
               key={c.mode}
+              ref={(el) => { deployCardRefs.current[i] = el; }}
               type="button"
               role="radio"
               aria-checked={selected}
+              tabIndex={selected ? 0 : -1}
               className={'st-radio-card' + (selected ? ' active' : '')}
               onClick={() => setUiMode(c.mode)}
+              onKeyDown={(e) => onDeployKey(e, i)}
             >
               <span className="st-radio-head">
                 <span className="st-radio-dot" />
@@ -520,11 +546,11 @@ function EnvPanel() {
       <PanelHead title={t('env.title')} sub={t('env.sub')} badge="dev" />
 
       {/* Deploy mode — radio cards; 「（目前）」 and the selection frame may disagree */}
-      {isStd ? deployGrid : (
-        <StSection icon={<Server size={16} />} title={t('env.deployTitle')}>
-          {deployGrid}
-        </StSection>
-      )}
+      {/* One stable tree for both modes (Standard just drops the heading, per the 04 canvas):
+          swapping wrappers would remount the radio cards and drop keyboard focus. */}
+      <StSection icon={<Server size={16} />} title={t('env.deployTitle')} hideHead={isStd}>
+        {deployGrid}
+      </StSection>
 
       {/* Lightweight: read-only status */}
       {!isStd && kg && (
@@ -625,7 +651,9 @@ function EnvPanel() {
                 </button>
               </div>
               {switchMutation.isPending && (
-                <Loader2 size={14} className="animate-spin" style={{ color: 'var(--accent)' }} />
+                <span role="status" aria-label={t('common.loading')} style={{ display: 'inline-flex', color: 'var(--accent)' }}>
+                  <Loader2 size={14} className="animate-spin" aria-hidden />
+                </span>
               )}
             </div>
             {switchError && (
@@ -635,7 +663,9 @@ function EnvPanel() {
               </MigrationState>
             )}
             {/* Capability gap layer: below the segmented control, before the switch happens. */}
-            <GapNotice layer={layer} />
+            <div aria-live="polite">
+              <GapNotice layer={layer} />
+            </div>
           </div>
 
           <div className="st-fields">
@@ -665,14 +695,16 @@ function EnvPanel() {
             <div className="st-mig-row" key={r.key}>
               <span className="st-mig-dir">{r.arrow}</span>
               <div className="st-mig-body">
-                <span className="st-mig-label">{r.label}</span>
-                <span className="st-mig-sub">{r.sub}</span>
-                {!gate.met && <span className="st-mig-gate">{t('env.gateNote')}</span>}
+                <span className="st-mig-label" id={`st-mig-${r.key}-label`}>{r.label}</span>
+                <span className="st-mig-sub" id={`st-mig-${r.key}-sub`}>{r.sub}</span>
+                {!gate.met && <span className="st-mig-gate" id={`st-mig-${r.key}-gate`}>{t('env.gateNote')}</span>}
               </div>
               {gate.met && <span className="st-flag live">{t('env.kgLiveFlag')}</span>}
               <button
                 type="button"
                 className="ss-btn ss-btn-sm ss-btn-secondary st-mig-run"
+                aria-describedby={[`st-mig-${r.key}-label`, `st-mig-${r.key}-sub`, !gate.met && `st-mig-${r.key}-gate`]
+                  .filter(Boolean).join(' ')}
                 disabled={!gate.canRun}
                 onClick={() => gate.canRun && migrateMutation.mutate(r.dir)}
               >
@@ -790,9 +822,9 @@ function PlannedPanel({ kind }: { kind: 'shortcuts' | 'experimental' }) {
           {isShortcuts ? <Keyboard size={26} /> : <FlaskConical size={26} />}
         </span>
         <span className="st-badge planned">{t('planned.badge')}</span>
-        <span className="st-planned-title">
+        <h2 className="st-planned-title">
           {isShortcuts ? t('planned.shortcutsTitle') : t('planned.experimentalTitle')}
-        </span>
+        </h2>
         <p className="st-planned-sub">
           {isShortcuts ? t('planned.shortcutsSub') : t('planned.experimentalSub')}
         </p>
@@ -805,9 +837,12 @@ function PlannedPanel({ kind }: { kind: 'shortcuts' | 'experimental' }) {
 
 export default function SettingsPage() {
   const { t } = useTranslation('settings');
-  // `/settings#llm` opens the LLM panel — the 503「前往 LLM 設定 →」links land here.
+  // The panel lives in the hash (`/settings#llm` is where the 503「前往 LLM 設定 →」links land).
+  // Switching replaces the entry: reload and deep links work, Back leaves the page.
   const { hash } = useLocation();
-  const [active, setActive] = useState<PanelId>(hash === '#llm' ? 'llm' : 'appearance');
+  const navigate = useNavigate();
+  const active: PanelId = PANEL_IDS.find((id) => `#${id}` === hash) ?? 'appearance';
+  const setActive = (id: PanelId) => navigate({ hash: id }, { replace: true });
 
   const { data: settingsInfo } = useQuery<SettingsInfo>({
     queryKey: ['settings-info'],
@@ -829,9 +864,9 @@ export default function SettingsPage() {
 
   return (
     <div className="st-settings">
-      <nav className="st-nav">
+      <nav className="st-nav" aria-labelledby="st-nav-title">
         <div className="st-nav-head">
-          <span className="st-nav-title">{t('nav.title')}</span>
+          <h1 className="st-nav-title" id="st-nav-title">{t('nav.title')}</h1>
           <div className="st-nav-divider" />
         </div>
         {NAV_GROUPS.map((g) => (
@@ -846,7 +881,7 @@ export default function SettingsPage() {
                   active === it.id ? 'active' : '',
                   it.badge === 'planned' ? 'is-planned' : '',
                 ].filter(Boolean).join(' ')}
-                aria-current={active === it.id ? 'page' : undefined}
+                aria-current={active === it.id ? 'true' : undefined}
                 onClick={() => setActive(it.id)}
               >
                 <span className="st-nav-ico">{NAV_ICONS[it.id]}</span>
