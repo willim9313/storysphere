@@ -116,13 +116,19 @@ function PanelLoading() {
 /** Red one-liner + a manual 重試 — never auto-retries, no countdown. */
 function PanelFailure({ message, onRetry }: { message: string; onRetry: () => void }) {
   const { t } = useTranslation('common');
+  // 重試 puts the query back to pending, so this unmounts for the loading state; when the retry fails too,
+  // give focus back to it instead of leaving keyboard users on <body>.
+  const retryRef = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    if (document.activeElement === document.body) retryRef.current?.focus();
+  }, []);
   return (
     <div className="st-failure" role="alert">
       <div className="st-failure-line">
         <AlertTriangle size={16} />
         <span>{message}</span>
       </div>
-      <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary" onClick={onRetry}>
+      <button ref={retryRef} type="button" className="ss-btn ss-btn-sm ss-btn-secondary" onClick={onRetry}>
         {t('retry')}
       </button>
     </div>
@@ -147,17 +153,25 @@ function MigrationState({ kind, children }: {
   );
 }
 
-function MigrationProgress({ taskId, onDone }: { taskId: string; onDone: () => void }) {
-  const { t } = useTranslation('settings');
-  const { data: task } = useQuery<TaskStatus>({
+/** Polls a migration task every 2s until it ends — or until polling itself fails
+ *  (e.g. 404 after a backend restart), which also ends it instead of spinning forever. */
+function useMigrationTask(taskId: string | null) {
+  return useQuery<TaskStatus>({
     queryKey: ['kg-migration', taskId],
-    queryFn: () => fetchMigrationStatus(taskId),
+    queryFn: () => fetchMigrationStatus(taskId!),
     enabled: !!taskId,
     refetchInterval: (q) => {
+      if (q.state.status === 'error') return false;
       const s = q.state.data?.status;
       return s === 'done' || s === 'error' ? false : 2000;
     },
   });
+}
+
+function MigrationProgress({ task, pollError, onDone }: {
+  task: TaskStatus | undefined; pollError: Error | null; onDone: () => void;
+}) {
+  const { t } = useTranslation('settings');
 
   // The done row collapses itself after 3s and refreshes KG status. No countdown is drawn.
   useEffect(() => {
@@ -177,6 +191,10 @@ function MigrationProgress({ taskId, onDone }: { taskId: string; onDone: () => v
   if (task?.status === 'error') {
     // Backend's own words — not rewritten, not translated.
     return <MigrationState kind="failed">{task.error}</MigrationState>;
+  }
+  if (pollError) {
+    // Polling gave up (e.g. task not found): same failed state, same raw wording.
+    return <MigrationState kind="failed">{pollError.message}</MigrationState>;
   }
   return <MigrationState kind="running">{t('env.migrating')}</MigrationState>;
 }
@@ -409,7 +427,11 @@ function GapNotice({ layer }: { layer: ReturnType<typeof gapLayer> }) {
   );
 }
 
-function EnvPanel() {
+/** The migration task id lives on SettingsPage so leaving the panel mid-migration
+ *  doesn't forget it (and re-enable 執行遷移 for a second run). */
+function EnvPanel({ migrationTaskId, setMigrationTaskId }: {
+  migrationTaskId: string | null; setMigrationTaskId: (id: string | null) => void;
+}) {
   const { t } = useTranslation('settings');
   const queryClient = useQueryClient();
 
@@ -425,7 +447,10 @@ function EnvPanel() {
   const uiMode: DeployMode = uiModeOverride ?? actualDeployMode;
   const liveKgBackend: KgBackend = (kg?.mode as KgBackend | undefined) ?? 'networkx';
   const kgBackend: KgBackend = kgBackendOverride ?? liveKgBackend;
-  const [migrationTaskId, setMigrationTaskId] = useState<string | null>(null);
+  const { data: migrationTask, error: migrationPollError } = useMigrationTask(migrationTaskId);
+  // Manual 重新整理狀態 gets its own feedback; the 15s background refresh stays silent.
+  const [refreshing, setRefreshing] = useState(false);
+  const [refreshFailed, setRefreshFailed] = useState(false);
   const deployCardRefs = useRef<(HTMLButtonElement | null)[]>([]);
   const [switchError, setSwitchError] = useState<string | null>(null);
 
@@ -443,6 +468,7 @@ function EnvPanel() {
 
   const migrateMutation = useMutation({
     mutationFn: (direction: MigrationDirection) => startMigration(direction),
+    onMutate: () => setMigrationTaskId(null),
     onSuccess: (task) => setMigrationTaskId(task.taskId),
     onError: () => setMigrationTaskId(null),
   });
@@ -467,13 +493,22 @@ function EnvPanel() {
   const gate = kgMigrationGate({
     isStandard: actualDeployMode === 'standard',
     backend: kgBackend,
-    busy: migrateMutation.isPending || !!migrationTaskId,
+    // Busy only while the task is live: a failed one must not lock the button forever.
+    busy: migrateMutation.isPending || (!!migrationTaskId && !migrationPollError
+      && migrationTask?.status !== 'done' && migrationTask?.status !== 'error'),
   });
 
   const deployCards: { mode: DeployMode; name: string; desc: string; qdrant: string; kg: string }[] = [
     { mode: 'lightweight', name: t('env.lightweight'), desc: t('env.lwDesc'), qdrant: t('env.qdrantLw'), kg: t('env.kgLw') },
     { mode: 'standard', name: t('env.standard'), desc: t('env.stDesc'), qdrant: t('env.qdrantSt'), kg: t('env.kgSt') },
   ];
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    const r = await refetch();
+    setRefreshFailed(r.isError);
+    setRefreshing(false);
+  };
 
   if (kgLoading) {
     return (
@@ -719,7 +754,8 @@ function EnvPanel() {
         )}
         {migrationTaskId && (
           <MigrationProgress
-            taskId={migrationTaskId}
+            task={migrationTask}
+            pollError={migrationPollError}
             onDone={() => {
               setMigrationTaskId(null);
               queryClient.invalidateQueries({ queryKey: ['kg-status'] });
@@ -730,10 +766,24 @@ function EnvPanel() {
       </StSection>
 
       {kg && (
-        <button type="button" className="ss-btn ss-btn-sm ss-btn-ghost st-refresh" onClick={() => refetch()}>
-          <RefreshCw size={13} />
-          {t('env.refresh')}
-        </button>
+        <div className="st-refresh-row">
+          <button
+            type="button"
+            className="ss-btn ss-btn-sm ss-btn-ghost st-refresh"
+            // aria-disabled, not disabled: a disabled button drops keyboard focus to <body>.
+            onClick={() => { if (!refreshing) handleRefresh(); }}
+            aria-disabled={refreshing}
+          >
+            <RefreshCw size={13} className={refreshing ? 'animate-spin' : undefined} aria-hidden />
+            {t('env.refresh')}
+          </button>
+          {refreshFailed && !refreshing && (
+            <span className="st-failure-line" role="alert">
+              <AlertTriangle size={16} />
+              <span>{t('env.loadError')}</span>
+            </span>
+          )}
+        </div>
       )}
     </div>
   );
@@ -842,6 +892,7 @@ export default function SettingsPage() {
   const { hash } = useLocation();
   const navigate = useNavigate();
   const active: PanelId = PANEL_IDS.find((id) => `#${id}` === hash) ?? 'appearance';
+  const [migrationTaskId, setMigrationTaskId] = useState<string | null>(null);
   const setActive = (id: PanelId) => navigate({ hash: id }, { replace: true });
 
   const { data: settingsInfo } = useQuery<SettingsInfo>({
@@ -855,7 +906,7 @@ export default function SettingsPage() {
       case 'language':     return <LanguagePanel />;
       case 'guidance':     return <GuidancePanel />;
       case 'llm':          return <LlmPanel />;
-      case 'env':          return <EnvPanel />;
+      case 'env':          return <EnvPanel migrationTaskId={migrationTaskId} setMigrationTaskId={setMigrationTaskId} />;
       case 'shortcuts':    return <PlannedPanel kind="shortcuts" />;
       case 'experimental': return <PlannedPanel kind="experimental" />;
       case 'about':        return <AboutPanel />;
