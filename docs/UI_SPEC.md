@@ -2145,14 +2145,17 @@ byModel 顯示原始 model id。
 - 內容區 padding 32、section 24、card 16、面板 `max-width: 960`；左側 nav 172px，一次只顯示一個面板。
 - nav：頁首「設定」serif＋分隔線；三組（偏好設定／系統／其他）、八項 Lucide 圖示（`palette`／`languages`／`compass`／`cpu`／`server`／
   `keyboard`／`flask-conical`／`info`）；底部版本號上方分隔線。列 padding `--space-4`、gap `--space-4`、`--radius-sm`、xs；
-  **選中＝`--bg-tertiary` 底＋accent 字 600，無左緣條**。標籤＋徽章放不下時（英文介面），徽章換到第二行靠右，標籤不截——暫時修法，待設計定案（FEEDBACK 2-ST-13）。
+  **選中＝`--bg-tertiary` 底＋墨色字（`--fg-primary`）600＋accent 圖示，無左緣條**（2026-10-22 改：accent 字在 bg-tertiary 上只有 4.17:1）。
+  172px 放不下時：英文標籤依字詞自己換行、圖示對齊第一行；中文 `keep-all` 不在字中斷開；標籤＋徽章放不下時徽章換到下一行靠右（FEEDBACK 2-ST-13）。
 - **研究者導覽（04 A2）第 5 批 5-1 已落地**：偏好設定群組第三項（外觀與主題、語言之後），圖示 Lucide `compass`；nav 共三組八項。
   面板 `GuidancePanel`：`PanelHead`（標題 `settings.guidance.title`、副標 `settings.guidance.hint`）＋一列
   secondary 小鈕「重設所有導覽」（`guidance.reset`；零成本、可逆、不動分析資料，所以**無字符、無確認框、無 toast**）＋右側計數
   （`guidance.count`「已關閉 {{n}} 條」／`guidance.countNone`「目前沒有已關閉的導覽」；n=0 時按鈕 disabled，這就是回饋）。
   計數由 `localStorage` 的 `storysphere:guidance-dismissed:*` 鍵數即時算出（`guidanceStore.useDismissedCount`），不是估計值。
   四條字串 2026-09-25 裁決通過（**非草稿**；en 依語意翻）。
-- **三種徽章視覺分化**（文字互不相同，Ink 下不另掛圖示）：開發者＝warning 底、整合＝success 底、規劃中＝虛線描邊＋muted 字且整列 opacity 0.55。
+- **三種徽章視覺分化**（文字互不相同，不另掛圖示）：開發者＝warning 底、整合＝success 底、規劃中＝虛線描邊＋muted 字。
+  Ink 下 warning 與 success 同為 `#ececea` 底＋墨字，**警示類（開發者、需重啟）加墨線框**（shape token `--badge-caution-border-width`，Warm 0）——
+  有框／無框／虛線三種形狀分開。規劃中 nav 列字色降為 `--fg-secondary`、圖示 `--fg-muted`（2026-10-22 改：不再整列 opacity 0.55，免得徽章被乘暗到 1.78:1）。
   面板標題旁同框：語言「整合」、環境「開發者」。
 - 區段小標（accent 圖示＋serif）：介面主題、目前設定、部署模式、目前狀態、資料遷移。其餘小標（Qdrant Service、知識圖譜後端、
   Neo4j 連線、前端／後端套件、資料路徑）是無圖示的 2xs 小字。
@@ -2165,7 +2168,8 @@ byModel 顯示原始 model id。
 #### 面板
 
 - **外觀與主題**：副標「點擊即時套用，無需確認。」緊貼標題。兩張主題卡：頂部滿版四色帶（bg-primary／bg-secondary／accent／fg-primary，
-  帶間 hairline，無 1px radius）；「✓ 目前」角標右上（Lucide `check`）；選中卡 2px accent 外框；名稱 sans。
+  帶間 hairline，無 1px radius）；「✓ 目前」角標右上（Lucide `check`，外圈一道 `--bg-primary` 紙色光暈——Ink 的 accent `#111` 疊在 `#151515` 色帶上看不出邊界）；
+  選中卡＝框色 accent＋框外 accent 環（shape token `--choice-selected-ring-width`，outset box-shadow 不推擠版面；合計 Warm 2px、Ink 3px，部署雙卡同）；名稱 sans。
   Ink 色帶包一層 `data-theme="ink"` 讀真實 token；**Warm 色帶保留文件化的 hex 例外**（Warm 是 `:root` 預設，Ink 文件下巢狀
   `data-theme` 讀不回 Warm 值；改 Warm token 時要連動 `settings.css`）。選擇後立即套用，走 ThemeContext，頁面不碰 localStorage。
 - **語言**：介面語言用 `.ss-seg`（選中升到 bg-primary）；分析輸出語言整塊 opacity 0.55、「即將推出」虛線徽章、兩顆 disabled 鈕

@@ -332,6 +332,8 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 | `--dag-link-edge-dash` | `none` | `4 3` | 建構概覽 DAG 與選取節點直接相連（非上游）的邊。Warm 實線靠 fg-secondary 色相；Ink 改虛線，與上游實線分開（回頭邊本身已是虛線，不套） |
 | `--density-peak-inset` | `0` | `2px` | 時間軸密度矩陣「4 以上」格與圖例色票的紙色內框（inset box-shadow）。Ink 的 3（`#151515`）與 4+（`#000`）同為黑，4+ 加內框區分 |
 | `--badge-radius` | `20px` | `4px` | status badge |
+| `--badge-caution-border-width` | `0px` | `1.5px` | 警示類徽章／旗標（設定頁「開發者」「需重啟」）的墨線框，以 inset box-shadow 畫 `currentColor`。Warm 靠 warning 與 success 色相區分；Ink 兩者同為 `#ececea` 底＋墨字，警示類改由框承載（規劃中仍是虛線） |
+| `--choice-selected-ring-width` | `1px` | `1.5px` | 選項卡（設定頁主題卡、部署雙卡）選中時框外的 accent 環（outset box-shadow，不推擠版面）。合計框重 Warm 2px、Ink 3px；Ink 未選卡已是 1.5px，只加粗框看不出選中 |
 | `--control-radius` | `var(--radius-md)` | `var(--radius-sm)` | input、toggle、select |
 | `--input-radius` | `var(--control-radius)` | `var(--control-radius)` | 文字框、搜尋、select 共用的框 |
 | `--input-border-width` | `1px` | `1.5px` | 同上 |

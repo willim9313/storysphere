@@ -304,6 +304,8 @@
   --density-peak-inset: 0; /* 密度矩陣「4 以上」格的紙色內框：Warm 四階色相可分，不畫 */
   --cross-tension-pattern: none; /* 敘事頁交叉證據「張力峰值」列：Warm 靠色相，不加紋 */
   --badge-radius:      20px;
+  --badge-caution-border-width: 0px; /* 警示類徽章（開發者、需重啟）：Warm 靠 warning 色相，不畫框 */
+  --choice-selected-ring-width: 1px; /* 選項卡選中時框外的 accent 環；與 1px 框合計 2px */
   --control-radius:    var(--radius-md);
   --input-radius:       var(--control-radius); /* 文字框、搜尋、select 共用 */
   --input-border-width: 1px;
@@ -484,6 +486,10 @@
   /* 近單色：張力列與階段覆蓋列同為 accent 黑，張力改畫斜紋 */
   --cross-tension-pattern: repeating-linear-gradient(-45deg, transparent 0 2px, var(--bg-primary) 2px 3.5px);
   --badge-radius:      4px;
+  /* 近單色：warning 與 success 徽章同為 #ececea 底＋墨字，警示類改由墨線框承載 */
+  --badge-caution-border-width: 1.5px;
+  /* 未選卡已是 1.5px 框，選中只多 0.5px 看不出來；外環再加 1.5px，合計 3px */
+  --choice-selected-ring-width: 1.5px;
   --control-radius:    var(--radius-sm);
   /* var() 在宣告處解析：:root 的別名會把 Warm 值凍結在這裡，所以 Ink 必須重新宣告 */
   --input-radius:       var(--control-radius);
