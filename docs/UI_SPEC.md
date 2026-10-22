@@ -2408,7 +2408,7 @@ chips 只能移除：沒有全選、重設、加回，也不列未命中的書�
 
 group header 五件：accent chevron（收合鈕，`aria-expanded`）+ 書名（serif base 700 accent）+ 「{n} 段落」+ 延伸細線 + 「前往該書 ↗」。**收合後計數與連結都還在。**
 
-各列為可點按鈕，**三欄 grid `96px / 1fr / 76px`**，列間 hairline、`--space-6 0`，無 hover 填色、無左緣直條、無卡片底：
+各列為 `<div>`、整列可點（結構見下方「無障礙」），**三欄 grid `96px / 1fr / 76px`**，列間 hairline、`--space-6 0`，無 hover 填色、無左緣直條、無卡片底：
 
 1. **定位碼**（96px，mono）：`第N章·§NN`（i18n `search.result.locator`；英文 `Ch. N · §NN`），pos 補零兩位，`position: sticky; top: 0`——長段落滾動時留在視線內。
 2. **正文**：serif sm、行高 1.85、`max-width: 72ch`、靠左。**段落全文完整渲染，不截斷**——沒有 line-clamp、展開全文、顯示更多或漸層遮罩。
@@ -2431,7 +2431,7 @@ group header 五件：accent chevron（收合鈕，`aria-expanded`）+ 書名（
 
 - `books` 只決定 chips 與過濾、不影響查詢：缺省＝範圍未動過，chips 為有命中的每一本；`books=`（空值）＝chips 全部移除，顯示全部、不出 chips；有值＝chips 即這幾本。
 - **送出新查詢新增一筆歷史紀錄**；換模式、移除 chip、清除**取代**目前這筆。重送相同查詢（網址不變）直接重新搜尋。
-- 點結果列前，把該列段落 id 記進目前這筆歷史紀錄的 state；返回時捲到該列（置中）並聚焦。
+- 點結果列前，把該列段落 id 記進目前這筆歷史紀錄的 state；返回時捲到該列（置中）並聚焦該列的定位碼按鈕。
 - 書籍分組的收合狀態不記，返回時全部展開。
 - 純邏輯：`searchModel.ts` 的 `parseSearchParams`／`toSearchParams`。
 
@@ -2441,6 +2441,18 @@ group header 五件：accent chevron（收合鈕，`aria-expanded`）+ 書名（
 |------|--------|
 | 「前往書籍」 | `/books/:bookId` |
 | 點擊結果列 | `/books/:bookId`，並以 router state 帶 `{ paragraphId, chapterNumber }` 供閱讀頁定位；關鍵字模式另帶 `markTerms`（`queryTerms`），閱讀頁標出查詢詞 |
+
+#### 無障礙
+
+- **輸入框** `aria-label`「搜尋段落」（`aria.input`），不靠 placeholder 當名稱。
+  焦點環畫在外層容器（`.srch-field:has(.srch-input:focus-visible)`），沿用全站 `--focus-ring-*`（與閱讀頁 `.rd-search` 同一作法），Ink 下也清楚；不新增 token。
+- **結果列**：外層 `<div>`，只有定位碼是 `<button class="srch-row-open">`，可及名稱「在閱讀頁開啟 第N章·§NN」（`aria.openPassage`）。
+  按鈕撐滿列高（`align-self: stretch`，內容靠上，sticky 定位碼才黏得住），其 `::after` 對 `.srch-row` 絕對定位鋪滿整列——滑鼠點整列行為不變；正文不在按鈕內，讀屏照一般段落朗讀，Tab 只停定位碼。焦點環畫在整列（`.srch-row:has(.srch-row-open:focus-visible)`）。
+- **live region**：頁面常駐一個 `.srch-sr-only` 的 `role="status"`（polite），播報「搜尋中…」／摘要（語意模式用 `summarySemantic`）／「找不到相關段落」；部分失敗時多一句 `partial.message`（警示行本身不再掛 `role="status"`）。搜尋失敗由錯誤區的 `role="alert"` 播報，live region 留空。
+- **標題層級**：已搜尋時有一個只給讀屏的 h1「跨書搜尋」（未搜尋態已有可見 h1，不重複）；分組書名 h2；功能層錯誤標題 h2。
+- **焦點去向**：移除 chip 後移到下一個 chip 的 ✕，沒有下一個移到上一個，全部移除後回到輸入框；按清除後回到輸入框。
+- **點擊目標 ≥ 24×24**（WCAG 2.5.8）：清除鈕、chip ✕、收合鈕、「前往該書」以 `::after` 置中撐到 `max(100%, 24px)`，外觀與版面不變。chip ✕ 用 `fg-secondary`（muted 在 Warm 對比不足 3:1）。
+- **收合鈕名稱帶書名**：「收合 {書名}」／「展開 {書名}」（`aria.collapse`／`aria.expand`），多組時可分辨。
 
 #### 狀態
 

@@ -44,11 +44,13 @@
     "retry": "重新搜尋"
   },
   "aria": {
-    "collapse": "收合",
-    "expand": "展開",
+    "collapse": "收合 {{title}}",
+    "expand": "展開 {{title}}",
     "removeBook": "移除 {{title}}",
     "clear": "清除搜尋",
-    "mode": "搜尋模式"
+    "mode": "搜尋模式",
+    "input": "搜尋段落",
+    "openPassage": "在閱讀頁開啟 {{locator}}"
   },
   "loading": "搜尋中…",
   "mode": {
