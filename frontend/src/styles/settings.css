@@ -240,6 +240,11 @@
 .st-rows-llm .st-row-val.mono { color: var(--fg-primary); }
 .st-rows-llm .st-row-val.mono.muted { color: var(--fg-muted); }
 .st-row-val.muted { color: var(--fg-muted); }
+/* LLM 狀態列：check／x 字形＋文字承載狀態（Ink 下圖示同色，靠形狀與字讀） */
+.st-llm-status-line { display: inline-flex; align-items: center; gap: var(--space-3); font-weight: 600; }
+.st-llm-status.ready .st-llm-status-line svg { color: var(--color-success); }
+.st-llm-status.unset .st-llm-status-line svg { color: var(--color-error); }
+.st-llm-status-hint { flex-basis: 100%; color: var(--fg-secondary); }
 .st-kgbadge {
   font-family: var(--font-mono); font-size: var(--font-size-2xs); font-weight: 600;
   padding: var(--space-2) var(--space-4); border-radius: var(--badge-radius);

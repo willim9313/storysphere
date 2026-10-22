@@ -17,6 +17,16 @@ class LLMProvider(str, Enum):
     LOCAL = "local"  # OpenAI-compat local (llama.cpp / Ollama / LM Studio)
 
 
+# The .env variable that makes each provider usable. Shared by the 503 message
+# (``primary_config_error``) and the settings page (#25a), so the two never disagree.
+CREDENTIAL_ENV: dict[LLMProvider, str] = {
+    LLMProvider.GEMINI: "GEMINI_API_KEY",
+    LLMProvider.OPENAI: "OPENAI_API_KEY",
+    LLMProvider.ANTHROPIC: "ANTHROPIC_API_KEY",
+    LLMProvider.LOCAL: "LOCAL_LLM_MODEL",
+}
+
+
 class UnconfiguredLLM:
     """Stand-in chat model handed to services when no provider is configured.
 
@@ -172,12 +182,7 @@ class LLMClient:
         target = LLMProvider(self._settings.primary_llm_provider)
         if self._has_key(target):
             return None
-        key_hint = {
-            LLMProvider.GEMINI: "GEMINI_API_KEY",
-            LLMProvider.OPENAI: "OPENAI_API_KEY",
-            LLMProvider.ANTHROPIC: "ANTHROPIC_API_KEY",
-            LLMProvider.LOCAL: "LOCAL_LLM_MODEL",
-        }[target]
+        key_hint = CREDENTIAL_ENV[target]
         return (
             f"PRIMARY_LLM_PROVIDER={target.value} but {key_hint} is not set. "
             f"Set {key_hint} in .env or change PRIMARY_LLM_PROVIDER."

@@ -2411,6 +2411,9 @@ id 而非文案：翻譯歸前端，「哪個方法壞哪些功能」的對照�
 來源是各後端類別的 `UNSUPPORTED` 宣告，由
 `tests/services/test_kg_backend_parity.py` 釘住其與原始碼實際會 raise 的成員相符。
 
+`vectorCount`：所有 Qdrant collection 的 `points_count` 加總（每個 point 一個未命名向量，故 points＝vectors）；
+取不到時為 `null` 並記 warning。qdrant-client 1.18 已移除 `vectors_count`，舊實作因此永遠回 `null`。
+
 **UI 使用頁面**：設定頁 `/settings`（KG 後端切換區）
 
 ---
@@ -3151,6 +3154,8 @@ interface SettingsInfoResponse {
   appEnv: string;
   primaryLlmProvider: string;      // 'gemini' | 'openai' | 'anthropic' | 'local'
   primaryModel: string;            // 依 primaryLlmProvider 解析出的實際 model 名
+  primaryProviderReady: boolean;   // 主要 provider 可用＝與 503 pre-flight 同一判準（llm_guard.primary_config_error() is None）
+  primaryCredentialEnv: string;    // 讓主要 provider 可用的 .env 變數：'GEMINI_API_KEY' | 'OPENAI_API_KEY' | 'ANTHROPIC_API_KEY' | 'LOCAL_LLM_MODEL'
   analysisTemperature: number;
   chatAgentTemperature: number;
   localLlmModel: string;           // 未設定時為 '(none)'
@@ -3162,6 +3167,9 @@ interface SettingsInfoResponse {
   backendPackages: string[][];     // 同上；版本由 importlib.metadata 取得，取不到為 '(not installed)'
 }
 ```
+
+`primaryProviderReady`／`primaryCredentialEnv` 讓從 503「前往 LLM 設定 →」過來的人看得出主要 provider 是否可用、
+該設哪個變數；只回布林與變數名，**不回金鑰內容**。變數名對照是 `core/llm_client.py::CREDENTIAL_ENV`，503 訊息用同一份。
 
 **UI 使用頁面**：設定頁 `/settings`（`fetchSettingsInfo`）
 
