@@ -54,6 +54,17 @@ class TestDeleteCollection:
         assert result is False
 
 
+class TestHasCollection:
+    @pytest.mark.asyncio
+    async def test_existing(self, service):
+        await service.ensure_collection("doc1")
+        assert await service.has_collection("doc1") is True
+
+    @pytest.mark.asyncio
+    async def test_missing(self, service):
+        assert await service.has_collection("no-such-doc") is False
+
+
 class TestListBookCollections:
     @pytest.mark.asyncio
     async def test_list_empty(self, service):

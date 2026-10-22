@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from unittest.mock import AsyncMock
 
+import pytest
 from storysphere.services.query_models import VectorSearchResult
 
 
@@ -30,3 +31,40 @@ def test_search_limit(client, mock_vector):
 def test_search_missing_query(client):
     resp = client.post("/api/v1/search/", json={})
     assert resp.status_code == 422  # query is required
+
+
+class TestSearchBookErrors:
+    def test_fulltext_unknown_book_returns_404(self, client, mock_doc):
+        mock_doc.search_paragraphs_by_text = AsyncMock(return_value=[])
+        resp = client.post("/api/v1/search/", json={"query": "海", "bookId": "no-such-book"})
+        assert resp.status_code == 404
+
+    def test_fulltext_known_book_without_hits_returns_empty(self, client, mock_doc):
+        mock_doc.search_paragraphs_by_text = AsyncMock(return_value=[])
+        resp = client.post("/api/v1/search/", json={"query": "海", "bookId": "doc-1"})
+        assert resp.status_code == 200
+        assert resp.json() == []
+
+    def test_semantic_unknown_book_returns_404(self, client, mock_vector):
+        mock_vector.search = AsyncMock(side_effect=ValueError("Collection not found"))
+        resp = client.post(
+            "/api/v1/search/", json={"query": "海", "bookId": "no-such-book", "mode": "semantic"}
+        )
+        assert resp.status_code == 404
+
+    def test_semantic_book_without_index_returns_409(self, client, mock_vector):
+        mock_vector.search = AsyncMock(side_effect=ValueError("Collection not found"))
+        mock_vector.has_collection = AsyncMock(return_value=False)
+        resp = client.post(
+            "/api/v1/search/", json={"query": "海", "bookId": "doc-1", "mode": "semantic"}
+        )
+        assert resp.status_code == 409
+
+    def test_semantic_other_failure_is_reraised(self, client, mock_vector):
+        # Book exists and is indexed: the original error propagates (→ 500), not a 404/409.
+        mock_vector.search = AsyncMock(side_effect=RuntimeError("embedding failed"))
+        mock_vector.has_collection = AsyncMock(return_value=True)
+        with pytest.raises(RuntimeError, match="embedding failed"):
+            client.post(
+                "/api/v1/search/", json={"query": "海", "bookId": "doc-1", "mode": "semantic"}
+            )
