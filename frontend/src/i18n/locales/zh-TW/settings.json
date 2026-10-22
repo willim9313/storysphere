@@ -78,7 +78,8 @@
     "entities": "實體",
     "relations": "關係",
     "events": "事件",
-    "stWarn": "切換至 Standard 需修改 .env 並重啟服務，下方設定為預覽。建議先執行遷移再切換。",
+    "stWarn": "下方為 Standard 的預覽，不會儲存。切換步驟：① 修改 .env 的 DEPLOY_MODE 並重啟服務 ② KG 後端切到 Neo4j ③ 執行資料遷移。",
+    "switchFailed": "切換失敗：",
     "qdrantSvcTitle": "Qdrant Service",
     "qdrantUrl": "QDRANT_URL",
     "qdrantKey": "QDRANT_API_KEY",
@@ -114,7 +115,7 @@
     "refresh": "重新整理狀態",
     "currentTag": "（目前）",
     "previewTag": "預覽中",
-    "gateNote": "門檻未達成：需 Standard 態 · KG 後端為 Neo4j",
+    "gateNote": "門檻未達成：需實際部署為 Standard · KG 後端為 Neo4j",
     "runMigration": "執行遷移",
     "neoSectionTitle": "Neo4j 連線",
     "kgFeatureUnknown": "其他功能"

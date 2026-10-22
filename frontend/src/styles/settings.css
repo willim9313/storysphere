@@ -336,7 +336,6 @@
   background: var(--bg-primary); color: var(--color-warning);
   border: var(--line-weight) solid var(--color-warning);
 }
-.st-switch-error { font-size: var(--font-size-xs); color: var(--color-error); margin: 0; }
 
 /* ── 資料遷移 ─────────────────────────────────────────────── */
 .st-mig { display: flex; flex-direction: column; gap: var(--space-5); }
@@ -377,6 +376,8 @@
   font-family: var(--font-mono); font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-secondary);
   overflow-wrap: anywhere;
 }
+/* KG 切換失敗：i18n 前綴（sans）＋後端原文（mono，不翻譯） */
+.st-mig-state-lead { font-family: var(--font-sans); font-size: var(--font-size-xs); font-weight: 600; color: var(--fg-primary); }
 
 .st-refresh { align-self: flex-start; display: inline-flex; align-items: center; gap: var(--space-3); }
 

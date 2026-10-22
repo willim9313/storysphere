@@ -70,6 +70,17 @@ export function kgMigrationGate(opts: {
 
 export type DeployMode = 'lightweight' | 'standard';
 
+/** KG 後端 segmented 被點下去時該做什麼。只有**實際** DEPLOY_MODE 為 Standard 才真的切換；
+ *  Lightweight 下的 Standard 預覽只換畫面（後端會以 422 拒絕 Neo4j），點已選的那格也不送。 */
+export function kgSwitchAction(opts: {
+  actual: DeployMode;
+  current: KgBackend;
+  next: KgBackend;
+}): 'preview' | 'noop' | 'switch' {
+  if (opts.actual !== 'standard') return 'preview';
+  return opts.next === opts.current ? 'noop' : 'switch';
+}
+
 /** 部署雙卡的角標：「（目前）」跟著實際 DEPLOY_MODE，「預覽中」跟著選中框。
  *  兩者可以不一致——不一致時選中的那張掛「預覽中」自證身分。 */
 export function deployBadges(
