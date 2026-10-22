@@ -2171,6 +2171,9 @@ byModel 顯示原始 model id。
 - **語言**：介面語言用 `.ss-seg`（選中升到 bg-primary）；分析輸出語言整塊 opacity 0.55、「即將推出」虛線徽章、兩顆 disabled 鈕
   維持既有「跟隨介面語言／自訂語言」。兩條 hint 逐字各貼欄位下。
 - **LLM 設定**：唯讀 text row（hairline 分隔；值為 `(none)` 用 muted）；副標與底註兩條唯讀宣告都在、不合併；不加編輯鈕、不加 .env 連結。
+  **首列「狀態」**（FEEDBACK 2-ST-17）：讀 #25a `primaryProviderReady`——與 503「尚未設定 LLM provider」同一判準。
+  可用＝`circle-check`＋「可用」；未設定＝`circle-x`＋「未設定」，其下一行「在 .env 設定 {`primaryCredentialEnv`} 後重啟服務。」
+  （變數名由後端給，例如 `GEMINI_API_KEY`；local provider 是 `LOCAL_LLM_MODEL`）。字形形狀＋文字承載狀態，Ink 下圖示同色仍可讀。
 - **環境設定**：
   - 部署雙卡（`role="radiogroup"`，roving tabindex：只有選中卡在 Tab 序，←→↑↓ 移焦點並同時選取）：radio＋tagline＋Qdrant／KG 規格。「（目前）」跟著實際 `deployMode`，選中框跟著使用者點選；
     兩者不一致時選中的那張另掛「**預覽中**」（`deployBadges`）。
@@ -2218,7 +2221,9 @@ byModel 顯示原始 model id。
 ② KG 後端切到 Neo4j ③ 執行資料遷移。」（原句「建議先執行遷移再切換」在 Lightweight 下做不到）；新增 `env.switchFailed`「切換失敗：」。
 **這 3 句是草稿・待設計定案**（i18n `settings.env.runMigration`、`neoSectionTitle`、`kgFeatureUnknown`；JSON 不能寫註解，故記在此）：
 「執行遷移」（稿上有按鈕、既有 i18n 沒有）、「Neo4j 連線」（稿上有段標、既有 i18n 沒有）、「其他功能」（不認得的功能 id 的泛稱，稿上沒有）。
-en 對應：Previewing／Requirement not met: Standard mode · KG backend set to Neo4j／Run migration／Neo4j connection／Other features。
+en 對應：Previewing／Requirement not met: deployed in Standard mode · KG backend set to Neo4j／Run migration／Neo4j connection／Other features。
+**這 4 句也是草稿・待設計定案**（i18n `settings.llm.status`／`ready`／`unset`／`unsetHint`，FEEDBACK 2-ST-17）：
+「狀態」「可用」「未設定」「在 .env 設定 {{env}} 後重啟服務。」；en：Status／Ready／Not configured／Set {{env}} in .env and restart the service.。
 其餘文案皆為既有字串逐字。
 
 #### API 參考

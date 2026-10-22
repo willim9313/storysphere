@@ -8,6 +8,9 @@ can only answer for the mode it is already on.
 
 from __future__ import annotations
 
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
+
 from storysphere.services.kg_service import KGService
 from storysphere.services.kg_service_base import unsupported_features
 from storysphere.services.kg_service_neo4j import Neo4jKGService
@@ -83,3 +86,26 @@ class TestKgStatusCapabilityWarning:
 
         assert "unsupportedByMode" in body
         assert "unsupported_by_mode" not in body
+
+
+class TestKgStatusVectorCount:
+    def test_sums_points_across_collections(self, client):
+        """qdrant-client 1.18 has no ``vectors_count``; reading it raised and the
+        field was always null. One unnamed vector per point, so points == vectors."""
+        qc = MagicMock()
+        qc.get_collections.return_value = SimpleNamespace(
+            collections=[SimpleNamespace(name="a"), SimpleNamespace(name="b")]
+        )
+        qc.get_collection.side_effect = lambda name: SimpleNamespace(
+            points_count={"a": 120, "b": 7}[name]
+        )
+        with patch("storysphere.api.deps.get_vector_service", return_value=SimpleNamespace(_client=qc)):
+            body = client.get("/api/v1/kg/status").json()
+
+        assert body["vectorCount"] == 127
+
+    def test_unavailable_vector_store_stays_null(self, client):
+        with patch("storysphere.api.deps.get_vector_service", side_effect=RuntimeError("no qdrant")):
+            body = client.get("/api/v1/kg/status").json()
+
+        assert body["vectorCount"] is None

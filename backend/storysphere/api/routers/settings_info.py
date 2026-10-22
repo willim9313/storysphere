@@ -25,7 +25,9 @@ def _v(pkg: str) -> str:
 @router.get("/info")
 async def get_settings_info() -> SettingsInfoResponse:
     """Return read-only snapshot of the current runtime configuration."""
+    from storysphere.api.llm_guard import primary_config_error  # noqa: PLC0415
     from storysphere.config.settings import get_settings  # noqa: PLC0415
+    from storysphere.core.llm_client import CREDENTIAL_ENV, LLMProvider  # noqa: PLC0415
 
     s = get_settings()
 
@@ -70,6 +72,8 @@ async def get_settings_info() -> SettingsInfoResponse:
         app_env=s.app_env,
         primary_llm_provider=s.primary_llm_provider,
         primary_model=primary_model,
+        primary_provider_ready=primary_config_error() is None,
+        primary_credential_env=CREDENTIAL_ENV[LLMProvider(s.primary_llm_provider)],
         analysis_temperature=s.analysis_temperature,
         chat_agent_temperature=s.chat_agent_temperature,
         local_llm_model=s.local_llm_model or "(none)",

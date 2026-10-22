@@ -359,6 +359,19 @@ function LlmPanel() {
         <>
           <StSection icon={<Cpu size={16} />} title={t('llm.sectionTitle')}>
             <div className="st-rows st-rows-llm">
+              {/* Same verdict as the 503 that sent people here (#25a); glyph + word, not colour, carries it. */}
+              <div className="st-row">
+                <span className="st-row-key">{t('llm.status')}</span>
+                <span className={'st-row-val st-llm-status ' + (data.primaryProviderReady ? 'ready' : 'unset')}>
+                  <span className="st-llm-status-line">
+                    {data.primaryProviderReady ? <CircleCheck size={14} aria-hidden /> : <CircleX size={14} aria-hidden />}
+                    {t(data.primaryProviderReady ? 'llm.ready' : 'llm.unset')}
+                  </span>
+                  {!data.primaryProviderReady && (
+                    <span className="st-llm-status-hint">{t('llm.unsetHint', { env: data.primaryCredentialEnv })}</span>
+                  )}
+                </span>
+              </div>
               {rows.map(([k, v]) => (
                 <div className="st-row" key={k}>
                   <span className="st-row-key">{k}</span>

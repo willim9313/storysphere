@@ -4305,6 +4305,10 @@ export interface components {
             primaryLlmProvider: string;
             /** Primarymodel */
             primaryModel: string;
+            /** Primaryproviderready */
+            primaryProviderReady: boolean;
+            /** Primarycredentialenv */
+            primaryCredentialEnv: string;
             /** Analysistemperature */
             analysisTemperature: number;
             /** Chatagenttemperature */

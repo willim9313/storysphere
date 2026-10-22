@@ -13,6 +13,10 @@ class SettingsInfoResponse(BaseModel):
     app_env: str
     primary_llm_provider: str
     primary_model: str
+    # Same verdict as the 503 pre-flight (``primary_config_error() is None``); never the key itself.
+    primary_provider_ready: bool
+    # The .env variable that would make the primary provider usable, e.g. ``GEMINI_API_KEY``.
+    primary_credential_env: str
     analysis_temperature: float
     chat_agent_temperature: float
     local_llm_model: str
