@@ -3,23 +3,15 @@ import type { components } from './generated';
 
 export type SearchResult = components['schemas']['SearchResult'];
 export type SearchResultMetadata = components['schemas']['SearchResultMetadata'];
-export type SearchMode = 'semantic' | 'fulltext';
-
-export interface SearchRequest {
-  query: string;
-  bookId?: string | null;
-  topK?: number;
-  mode?: SearchMode;
-}
+type SearchRequestSchema = components['schemas']['SearchRequest'];
+export type SearchMode = SearchRequestSchema['mode'];
+/** topK / mode have backend defaults (10, fulltext), so callers may omit them. */
+type SearchRequest = Omit<SearchRequestSchema, 'topK' | 'mode'> &
+  Partial<Pick<SearchRequestSchema, 'topK' | 'mode'>>;
 
 export async function searchPassages(req: SearchRequest): Promise<SearchResult[]> {
   return apiFetch<SearchResult[]>('/search/', {
     method: 'POST',
-    body: JSON.stringify({
-      query: req.query,
-      bookId: req.bookId ?? null,
-      topK: req.topK ?? 20,
-      mode: req.mode ?? 'fulltext',
-    }),
+    body: JSON.stringify(req),
   });
 }

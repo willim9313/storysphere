@@ -28,8 +28,8 @@
     "noResultsHintFulltext": "每個詞都須出現在同一段落。試著減少詞數，或改用語意搜尋找意思相近的段落。",
     "trySemantic": "改用語意搜尋"
   },
-  "summary": "找到 <strong>{{count}}</strong> 個段落，來自 <strong>{{books}}</strong> 本書籍",
-  "summarySemantic": "最相近的 <strong>{{count}}</strong> 個段落，來自 <strong>{{books}}</strong> 本書籍",
+  "summary": "找到 <strong>{{count}}</strong> 個段落，來自 <strong>{{books}}</strong> {{bookUnit}}",
+  "summarySemantic": "最相近的 <strong>{{count}}</strong> 個段落，來自 <strong>{{books}}</strong> {{bookUnit}}",
   "semanticNote": "依意思相近程度排序，不代表段落一定含有你要找的內容；相關度只能在同一次搜尋內比較。",
   "score": {
     "hits": "命中次數",
@@ -58,9 +58,13 @@
     "semantic": "語意"
   },
   "group": {
+    "count": "{{count}} 段落",
     "countCapped": "{{count}}+ 段落",
     "countMax": "僅列前 {{count}} 段",
     "showMore": "顯示更多",
     "showMoreFailed": "載入失敗，請再試一次。"
+  },
+  "unit": {
+    "book": "本書籍"
   }
 }

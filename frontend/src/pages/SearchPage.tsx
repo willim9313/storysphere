@@ -133,7 +133,7 @@ function BookGroupSection({
             ? t('group.countCapped', { count: group.results.length })
             : cap === 'max'
               ? t('group.countMax', { count: group.results.length })
-              : `${group.results.length} ${t('tabs.paragraph')}`}
+              : t('group.count', { count: group.results.length })}
         </span>
 
         <span className="srch-group-rule" />
@@ -427,16 +427,21 @@ export default function SearchPage() {
   const hasSearched = submittedQuery !== '';
   const showChips = scopeIds.length > 0;
 
+  // `count` picks the passage plural; the book noun has its own count, so it is passed in.
+  const summaryKey = mode === 'semantic' ? 'summarySemantic' : 'summary';
+  const summaryValues = {
+    count: totalCount,
+    books: groups.length,
+    bookUnit: t('unit.book', { count: groups.length }),
+  };
+
   // One persistent polite region announces what the visible states show (error has role="alert").
   // Summary strings carry <strong> markup for <Trans>; the announcement wants plain text.
   function statusLines(): string[] {
     if (!hasSearched || searchError !== null) return [];
     if (loading || results === null) return [t('loading')];
     if (groups.length === 0) return [t('empty.noResults')];
-    const summary = t(mode === 'semantic' ? 'summarySemantic' : 'summary', {
-      count: totalCount,
-      books: groups.length,
-    }).replace(/<\/?strong>/g, '');
+    const summary = t(summaryKey, summaryValues).replace(/<\/?strong>/g, '');
     return failedBooks > 0 ? [summary, t('partial.message', { count: failedBooks })] : [summary];
   }
 
@@ -516,8 +521,9 @@ export default function SearchPage() {
             <span>
               <Trans
                 t={t}
-                i18nKey={mode === 'semantic' ? 'summarySemantic' : 'summary'}
-                values={{ count: totalCount, books: groups.length }}
+                i18nKey={summaryKey}
+                count={totalCount}
+                values={summaryValues}
                 components={{ strong: <strong /> }}
               />
             </span>
