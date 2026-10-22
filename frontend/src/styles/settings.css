@@ -103,7 +103,6 @@
 .st-badge.dev { background: var(--color-warning-bg); color: var(--color-warning); }
 /* 警示類（開發者、需重啟）：Ink 下與成功類同底同字，靠墨線框分開 */
 .st-badge.dev, .st-flag.restart { box-shadow: inset 0 0 0 var(--badge-caution-border-width) currentColor; }
-.st-badge.merged { background: var(--color-success-bg); color: var(--color-success); }
 /* 規劃中／即將推出：虛線描邊 + muted 字 */
 .st-badge.planned { border: var(--line-weight) dashed var(--border); color: var(--fg-muted); }
 
@@ -160,7 +159,7 @@
   letter-spacing: 0.06em;
   color: var(--fg-muted);
 }
-.st-note { font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-muted); margin: 0; }
+.st-note { font-size: var(--font-size-xs); line-height: 1.7; color: var(--fg-muted); margin: 0; }
 
 /* ── 外觀：兩張主題卡 ─────────────────────────────────────── */
 .st-theme-grid {
@@ -224,7 +223,7 @@
 .st-field.is-soon { opacity: 0.55; }
 .st-field-label-row { display: flex; align-items: center; gap: var(--space-4); }
 .st-field-label { font-size: var(--font-size-xs); font-weight: 600; color: var(--fg-primary); }
-.st-field-hint { font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-muted); margin: 0; }
+.st-field-hint { font-size: var(--font-size-xs); line-height: 1.6; color: var(--fg-muted); margin: 0; }
 .st-seg { align-self: flex-start; align-items: center; }
 .st-seg .ss-seg-item { padding: var(--space-3) var(--space-6); }
 /* KG 後端 segmented（04 稿 D 區）：較寬內距、選中格文字 accent */
@@ -372,7 +371,9 @@
 .st-mig-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
 .st-mig-label { font-size: var(--font-size-xs); font-weight: 600; color: var(--fg-primary); }
 .st-mig-sub { font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-secondary); }
-.st-mig-gate { font-size: var(--font-size-2xs); line-height: 1.6; color: var(--color-warning); }
+.st-mig-gate { font-size: var(--font-size-xs); line-height: 1.6; color: var(--color-warning); margin: 0; }
+.st-fieldrow-grow { flex: 1; }
+.st-seg-busy { display: inline-flex; color: var(--accent); }
 /* 條件性 disabled：鈕在場但半透明 */
 .st-mig-run { flex-shrink: 0; }
 .st-mig-run:disabled { opacity: 0.5; cursor: not-allowed; }

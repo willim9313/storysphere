@@ -13,7 +13,6 @@
     "experimental": "實驗性功能",
     "about": "關於 & 版本",
     "badgeDev": "開發者",
-    "badgeMerged": "整合",
     "badgePlanned": "規劃中"
   },
   "appearance": {
@@ -28,7 +27,6 @@
   },
   "language": {
     "title": "語言",
-    "sub": "介面語言與分析輸出語言設定",
     "uiLanguage": "介面語言",
     "uiLanguageHint": "影響所有 UI 文字，不影響書籍內容或分析結果",
     "outputLanguage": "分析輸出語言",
@@ -52,7 +50,6 @@
     "analysisTemp": "分析 temperature",
     "chatTemp": "對話 temperature",
     "localModel": "Local LLM",
-    "note": "完整的 LLM 設定 UI 留待獨立設計票。首版僅顯示狀態。",
     "loadError": "無法載入 LLM 設定"
   },
   "common": {
@@ -95,7 +92,7 @@
     "neoUrl": "NEO4J_URL",
     "neoUser": "NEO4J_USER",
     "neoPass": "NEO4J_PASSWORD",
-    "neoNote": "Neo4j 切換為 runtime 生效的例外（POST /api/v1/kg/switch），不需重啟。",
+    "neoNote": "實際部署為 Standard 時，切換知識圖譜後端即時生效，不需重啟。",
     "kgGapsNow": "目前後端無法提供這些功能：",
     "kgGapsIfSwitch": "切換到 {{mode}} 會停用這些功能：",
     "kgFeature": {
@@ -122,11 +119,11 @@
     "gateNote": "門檻未達成：需實際部署為 Standard · KG 後端為 Neo4j",
     "runMigration": "執行遷移",
     "neoSectionTitle": "Neo4j 連線",
-    "kgFeatureUnknown": "其他功能"
+    "kgFeatureUnknown": "其他功能",
+    "migDone": "遷移完成 · 實體 {{entities}}、關係 {{relations}}、事件 {{events}}"
   },
   "about": {
     "title": "關於 & 版本",
-    "sub": "版本資訊與關鍵套件清單",
     "frontend": "前端套件",
     "backend": "後端套件",
     "paths": "資料路徑",

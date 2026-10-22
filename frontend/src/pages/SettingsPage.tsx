@@ -24,14 +24,14 @@ import '@/styles/settings.css';
 // ── Nav model ───────────────────────────────────────────────
 
 type PanelId = 'appearance' | 'language' | 'guidance' | 'llm' | 'env' | 'shortcuts' | 'experimental' | 'about';
-type BadgeKind = 'dev' | 'merged' | 'planned';
+type BadgeKind = 'dev' | 'planned';
 
 const NAV_GROUPS: { labelKey: string; items: { id: PanelId; labelKey: string; badge?: BadgeKind }[] }[] = [
   {
     labelKey: 'nav.groupPrefs',
     items: [
       { id: 'appearance', labelKey: 'nav.appearance' },
-      { id: 'language', labelKey: 'nav.language', badge: 'merged' },
+      { id: 'language', labelKey: 'nav.language' },
       { id: 'guidance', labelKey: 'nav.guidance' },
     ],
   },
@@ -56,7 +56,6 @@ const PANEL_IDS: PanelId[] = NAV_GROUPS.flatMap((g) => g.items.map((it) => it.id
 
 const BADGE_KEY: Record<BadgeKind, string> = {
   dev: 'nav.badgeDev',
-  merged: 'nav.badgeMerged',
   planned: 'nav.badgePlanned',
 };
 
@@ -171,7 +170,7 @@ function useMigrationTask(taskId: string | null) {
 function MigrationProgress({ task, pollError, onDone }: {
   task: TaskStatus | undefined; pollError: Error | null; onDone: () => void;
 }) {
-  const { t } = useTranslation('settings');
+  const { t, i18n } = useTranslation('settings');
 
   // The done row collapses itself after 3s and refreshes KG status. No countdown is drawn.
   useEffect(() => {
@@ -184,7 +183,11 @@ function MigrationProgress({ task, pollError, onDone }: {
     const r = task.result as Record<string, number> | null;
     return (
       <MigrationState kind="done">
-        {t('env.migTitle')} — {r?.entities ?? 0} {t('env.entities')}、{r?.relations ?? 0} {t('env.relations')}、{r?.events ?? 0} {t('env.events')}
+        {t('env.migDone', {
+          entities: (r?.entities ?? 0).toLocaleString(i18n.language),
+          relations: (r?.relations ?? 0).toLocaleString(i18n.language),
+          events: (r?.events ?? 0).toLocaleString(i18n.language),
+        })}
       </MigrationState>
     );
   }
@@ -293,7 +296,7 @@ function LanguagePanel() {
 
   return (
     <div className="st-panel">
-      <PanelHead title={t('language.title')} badge="merged" />
+      <PanelHead title={t('language.title')} />
       <div className="st-field">
         <span className="st-field-label" id="st-ui-lang">{t('language.uiLanguage')}</span>
         <div className="ss-seg st-seg" role="group" aria-labelledby="st-ui-lang">
@@ -380,7 +383,6 @@ function LlmPanel() {
               ))}
             </div>
           </StSection>
-          <p className="st-note">{t('llm.note')}</p>
         </>
       )}
     </div>
@@ -445,7 +447,7 @@ function GapNotice({ layer }: { layer: ReturnType<typeof gapLayer> }) {
 function EnvPanel({ migrationTaskId, setMigrationTaskId }: {
   migrationTaskId: string | null; setMigrationTaskId: (id: string | null) => void;
 }) {
-  const { t } = useTranslation('settings');
+  const { t, i18n } = useTranslation('settings');
   const queryClient = useQueryClient();
 
   const { data: kg, isLoading: kgLoading, error: kgError, refetch } = useQuery<KgStatus>({
@@ -615,7 +617,7 @@ function EnvPanel({ migrationTaskId, setMigrationTaskId }: {
             <div className="st-row">
               <span className="st-row-key">{t('env.vectorCount')}</span>
               <code className={'st-row-val mono' + (kg.vectorCount == null ? ' muted' : '')}>
-                {kg.vectorCount != null ? kg.vectorCount.toLocaleString() : '—'}
+                {kg.vectorCount != null ? kg.vectorCount.toLocaleString(i18n.language) : '—'}
               </code>
             </div>
             <div className="st-row">
@@ -632,15 +634,15 @@ function EnvPanel({ migrationTaskId, setMigrationTaskId }: {
           </div>
           <div className="ss-stats-row">
             <div className="ss-stat">
-              <span className="ss-stat-value">{kg.entityCount.toLocaleString()}</span>
+              <span className="ss-stat-value">{kg.entityCount.toLocaleString(i18n.language)}</span>
               <span className="ss-stat-label">{t('env.entities')}</span>
             </div>
             <div className="ss-stat">
-              <span className="ss-stat-value">{kg.relationCount.toLocaleString()}</span>
+              <span className="ss-stat-value">{kg.relationCount.toLocaleString(i18n.language)}</span>
               <span className="ss-stat-label">{t('env.relations')}</span>
             </div>
             <div className="ss-stat">
-              <span className="ss-stat-value">{kg.eventCount.toLocaleString()}</span>
+              <span className="ss-stat-value">{kg.eventCount.toLocaleString(i18n.language)}</span>
               <span className="ss-stat-label">{t('env.events')}</span>
             </div>
           </div>
@@ -672,7 +674,7 @@ function EnvPanel({ migrationTaskId, setMigrationTaskId }: {
 
           <div className="st-fields">
             <div className="st-fieldrow">
-              <span className="st-label" style={{ flex: 1 }}>{t('env.kgBackendTitle')}</span>
+              <span className="st-label st-fieldrow-grow">{t('env.kgBackendTitle')}</span>
               {kgSwitchIsLive
                 ? <span className="st-flag live">{t('env.kgLiveFlag')}</span>
                 : <span className="st-flag restart">{t('env.restartFlag')}</span>}
@@ -699,7 +701,7 @@ function EnvPanel({ migrationTaskId, setMigrationTaskId }: {
                 </button>
               </div>
               {switchMutation.isPending && (
-                <span role="status" aria-label={t('common.loading')} style={{ display: 'inline-flex', color: 'var(--accent)' }}>
+                <span role="status" aria-label={t('common.loading')} className="st-seg-busy">
                   <Loader2 size={14} className="animate-spin" aria-hidden />
                 </span>
               )}
@@ -714,6 +716,7 @@ function EnvPanel({ migrationTaskId, setMigrationTaskId }: {
             <div aria-live="polite">
               <GapNotice layer={layer} />
             </div>
+            <p className="st-note">{t('env.neoNote')}</p>
           </div>
 
           <div className="st-fields">
@@ -721,13 +724,14 @@ function EnvPanel({ migrationTaskId, setMigrationTaskId }: {
             <StandardField id="st-neo-url" name={t('env.neoUrl')} placeholder="bolt://localhost:7687" flag="restart" />
             <StandardField id="st-neo-user" name={t('env.neoUser')} placeholder="neo4j" flag="restart" />
             <StandardField id="st-neo-pass" name={t('env.neoPass')} placeholder="••••••••" secret flag="restart" />
-            <p className="st-note">{t('env.neoNote')}</p>
           </div>
         </>
       )}
 
       {/* Migration — both modes. Two kinds of 「尚未實作」, drawn differently. */}
       <StSection icon={<ArrowRight size={16} />} title={t('env.migTitle')}>
+        {/* One gate note for both KG rows (it was repeated per row). */}
+        {!gate.met && <p className="st-mig-gate" id="st-mig-gate">{t('env.gateNote')}</p>}
         <div className="st-mig">
           {/* Permanent: dashed frame, dimmed, no button, no gate note */}
           <div className="st-mig-row never">
@@ -745,13 +749,12 @@ function EnvPanel({ migrationTaskId, setMigrationTaskId }: {
               <div className="st-mig-body">
                 <span className="st-mig-label" id={`st-mig-${r.key}-label`}>{r.label}</span>
                 <span className="st-mig-sub" id={`st-mig-${r.key}-sub`}>{r.sub}</span>
-                {!gate.met && <span className="st-mig-gate" id={`st-mig-${r.key}-gate`}>{t('env.gateNote')}</span>}
               </div>
               {gate.met && <span className="st-flag live">{t('env.kgLiveFlag')}</span>}
               <button
                 type="button"
                 className="ss-btn ss-btn-sm ss-btn-secondary st-mig-run"
-                aria-describedby={[`st-mig-${r.key}-label`, `st-mig-${r.key}-sub`, !gate.met && `st-mig-${r.key}-gate`]
+                aria-describedby={[`st-mig-${r.key}-label`, `st-mig-${r.key}-sub`, !gate.met && 'st-mig-gate']
                   .filter(Boolean).join(' ')}
                 disabled={!gate.canRun}
                 onClick={() => gate.canRun && migrateMutation.mutate(r.dir)}

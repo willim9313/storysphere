@@ -13,7 +13,6 @@
     "experimental": "Experimental",
     "about": "About & version",
     "badgeDev": "Developer",
-    "badgeMerged": "Merged",
     "badgePlanned": "Planned"
   },
   "appearance": {
@@ -28,7 +27,6 @@
   },
   "language": {
     "title": "Language",
-    "sub": "Interface language and analysis output language",
     "uiLanguage": "Interface language",
     "uiLanguageHint": "Affects all UI text. Does not change book content or analysis results.",
     "outputLanguage": "Analysis output language",
@@ -52,8 +50,7 @@
     "analysisTemp": "Analysis temperature",
     "chatTemp": "Chat temperature",
     "localModel": "Local LLM",
-    "note": "A full LLM settings UI is deferred to its own ticket. This version shows status only.",
-    "loadError": "Unable to load settings"
+    "loadError": "Unable to load LLM settings"
   },
   "common": {
     "loading": "Loading…"
@@ -90,12 +87,12 @@
     "qdrantKeyOpt": "(optional)",
     "qdrantHint": "Run a Qdrant service yourself (docker run qdrant/qdrant)",
     "kgBackendTitle": "Knowledge graph backend",
-    "kgLiveFlag": "live",
-    "restartFlag": "restart",
+    "kgLiveFlag": "Live",
+    "restartFlag": "Restart required",
     "neoUrl": "NEO4J_URL",
     "neoUser": "NEO4J_USER",
     "neoPass": "NEO4J_PASSWORD",
-    "neoNote": "Neo4j switching is the runtime exception (POST /api/v1/kg/switch) — no restart needed.",
+    "neoNote": "When deployed in Standard mode, switching the KG backend takes effect immediately — no restart needed.",
     "kgGapsNow": "The current backend cannot provide:",
     "kgGapsIfSwitch": "Switching to {{mode}} disables:",
     "kgFeature": {
@@ -122,11 +119,11 @@
     "gateNote": "Requirement not met: deployed in Standard mode · KG backend set to Neo4j",
     "runMigration": "Run migration",
     "neoSectionTitle": "Neo4j connection",
-    "kgFeatureUnknown": "Other features"
+    "kgFeatureUnknown": "Other features",
+    "migDone": "Migration complete · Entities {{entities}}, Relations {{relations}}, Events {{events}}"
   },
   "about": {
     "title": "About & version",
-    "sub": "Version information and key package list",
     "frontend": "Frontend packages",
     "backend": "Backend packages",
     "paths": "Data paths",

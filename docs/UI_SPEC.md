@@ -2153,10 +2153,11 @@ byModel 顯示原始 model id。
   （`guidance.count`「已關閉 {{n}} 條」／`guidance.countNone`「目前沒有已關閉的導覽」；n=0 時按鈕 disabled，這就是回饋）。
   計數由 `localStorage` 的 `storysphere:guidance-dismissed:*` 鍵數即時算出（`guidanceStore.useDismissedCount`），不是估計值。
   四條字串 2026-09-25 裁決通過（**非草稿**；en 依語意翻）。
-- **三種徽章視覺分化**（文字互不相同，不另掛圖示）：開發者＝warning 底、整合＝success 底、規劃中＝虛線描邊＋muted 字。
+- **徽章視覺分化**（文字互不相同，不另掛圖示）：開發者＝warning 底、規劃中＝虛線描邊＋muted 字（2026-10-22 拿掉語言的「整合」徽章：
+  稿上也沒說明意思，對使用者沒有可理解的語意，FEEDBACK 2-ST-7）。欄位旗標同理：需重啟＝warning 底、即時生效＝success 底。
   Ink 下 warning 與 success 同為 `#ececea` 底＋墨字，**警示類（開發者、需重啟）加墨線框**（shape token `--badge-caution-border-width`，Warm 0）——
   有框／無框／虛線三種形狀分開。規劃中 nav 列字色降為 `--fg-secondary`、圖示 `--fg-muted`（2026-10-22 改：不再整列 opacity 0.55，免得徽章被乘暗到 1.78:1）。
-  面板標題旁同框：語言「整合」、環境「開發者」。
+  面板標題旁同框：環境「開發者」。
 - 區段小標（accent 圖示＋serif）：介面主題、目前設定、部署模式、目前狀態、資料遷移。其餘小標（Qdrant Service、知識圖譜後端、
   Neo4j 連線、前端／後端套件、資料路徑）是無圖示的 2xs 小字。
 - **面板跟著網址 hash**（FEEDBACK 2-ST-15）：`#appearance`／`#language`／`#guidance`／`#llm`／`#env`／`#shortcuts`／`#experimental`／`#about`，
@@ -2174,7 +2175,7 @@ byModel 顯示原始 model id。
   `data-theme` 讀不回 Warm 值；改 Warm token 時要連動 `settings.css`）。選擇後立即套用，走 ThemeContext，頁面不碰 localStorage。
 - **語言**：介面語言用 `.ss-seg`（選中升到 bg-primary）；分析輸出語言整塊 opacity 0.55、「即將推出」虛線徽章、兩顆 disabled 鈕
   維持既有「跟隨介面語言／自訂語言」。兩條 hint 逐字各貼欄位下。
-- **LLM 設定**：唯讀 text row（hairline 分隔；值為 `(none)` 用 muted）；副標與底註兩條唯讀宣告都在、不合併；不加編輯鈕、不加 .env 連結。
+- **LLM 設定**：唯讀 text row（hairline 分隔；值為 `(none)` 用 muted）；只有副標一條唯讀宣告（2026-10-22 刪掉底註「完整的 LLM 設定 UI 留待獨立設計票…」：內部用語，且狀態列已指出要改的變數）；不加編輯鈕、不加 .env 連結。
   **首列「狀態」**（FEEDBACK 2-ST-17）：讀 #25a `primaryProviderReady`——與 503「尚未設定 LLM provider」同一判準。
   可用＝`circle-check`＋「可用」；未設定＝`circle-x`＋「未設定」，其下一行「在 .env 設定 {`primaryCredentialEnv`} 後重啟服務。」
   （變數名由後端給，例如 `GEMINI_API_KEY`；local provider 是 `LOCAL_LLM_MODEL`）。字形形狀＋文字承載狀態，Ink 下圖示同色仍可讀。
@@ -2183,7 +2184,8 @@ byModel 顯示原始 model id。
     兩者不一致時選中的那張另掛「**預覽中**」（`deployBadges`）。
   - **Lightweight**：目前狀態 text row（Vector 數量 null → 「—」）＋三張 KG 統計磚（kit `StatRow`：tinted 底、sans tabular）。
   - **Standard 預覽**：最上方警告橫幅（**只在預覽中**——選中≠實際 `deployMode`——才出現；實際已是 Standard 時不畫）；Qdrant Service 欄位與 **Neo4j 連線**欄位（常駐，不再只在選 Neo4j 時出現）一律只有
-    placeholder、無 value／onChange、`readOnly`（可聚焦但打不進字，`aria-describedby` 指向該欄旗標），旗標「需重啟」（warning 底）；KG 後端 `.ss-seg`，其下是能力落差層，再往下是 Neo4j 例外註記（在 Neo4j 連線欄位之後）。Neo4j 欄位名為既有 `NEO4J_URL`／`NEO4J_USER`／`NEO4J_PASSWORD`
+    placeholder、無 value／onChange、`readOnly`（可聚焦但打不進字，`aria-describedby` 指向該欄旗標），旗標「需重啟」（warning 底）；KG 後端 `.ss-seg`，其下是能力落差層，再往下是 Neo4j 註記「實際部署為 Standard 時，切換知識圖譜後端即時生效，不需重啟。」
+    （2026-10-22 改寫並從 Neo4j 連線欄位之後移到這裡：原句含 endpoint 路徑，且緊貼三個「需重啟」欄位，FEEDBACK 2-ST-11）。Neo4j 欄位名為既有 `NEO4J_URL`／`NEO4J_USER`／`NEO4J_PASSWORD`
     （稿上 `NEO4J_URI`＋「即時生效」與後端不符，見 FEEDBACK 2-ST-2）。輸入框用 `--input-*`、文字 xs；焦點走全站 2px 焦點環（另加 accent 框色）。
   - **能力落差層**（位置在 segmented 之下、切換之前；`gapLayer`）：措辭一「目前後端無法提供這些功能：」＝error 底、Lucide `circle-x`、
     功能名**實心**；措辭二「切換到 {Neo4j|NetworkX} 會停用這些功能：」＝warning 底、`alert-triangle`、功能名**描邊**。兩者互斥、不合併；
@@ -2201,8 +2203,11 @@ byModel 顯示原始 model id。
     - 遷移 task id 存在 `SettingsPage`（不在環境面板內）：遷移中切到別的面板再回來，進度列還在、「執行遷移」仍鎖住；
       重新整理或離開設定頁才會遺失（任務中心仍看得到「知識圖譜遷移」）。鈕只在任務**進行中**鎖住——任務失敗或輪詢放棄後即解鎖，可再執行。
     - 兩種「功能尚未實作」：Qdrant 列＝**永久**（虛線外框＋降階＋**無鈕**＋無門檻說明，旗標「功能尚未實作」）；
-      KG 兩列＝**條件性**（實線外框＋「執行遷移」鈕在場但 opacity 0.5＋門檻說明「門檻未達成：需實際部署為 Standard · KG 後端為 Neo4j」；
-      達標（**實際** `deployMode` 為 Standard＋KG 後端為 Neo4j，`kgMigrationGate`；預覽中的選卡不算）後門檻說明消失、旗標換「即時生效」、鈕可按；遷移進行中鈕再度 disabled）。
+      KG 兩列＝**條件性**（實線外框＋「執行遷移」鈕在場但 opacity 0.5）；門檻說明「門檻未達成：需實際部署為 Standard · KG 後端為 Neo4j」
+      在區段小標下**只寫一次**（2026-10-22 起，原本每列各一次），兩顆鈕的 `aria-describedby` 都指向它；
+      達標（**實際** `deployMode` 為 Standard＋KG 後端為 Neo4j，`kgMigrationGate`；預覽中的選卡不算）後門檻說明消失、兩列旗標換「即時生效」、鈕可按；遷移進行中鈕再度 disabled）。
+    - 完成計數列文案：「遷移完成 · 實體 {n}、關係 {n}、事件 {n}」（`env.migDone`，單一插值字串；數字依介面語系格式化）。
+    - 功能性說明文字（門檻句、`.st-field-hint`、`.st-note` 底註）用 xs（12px）；mono 的 key／套件名、徽章、旗標、無圖示小標維持 2xs。
 - **關於 & 版本**：hero（S 方塊、StorySphere、版號＋`appEnv`）、前後端套件兩欄、資料路徑——key 保留原始欄位名（mono），
   `databaseUrl` 照後端遮罩顯示，不可展開、無眼睛圖示。
 - **規劃中面板**（快捷鍵、實驗性功能）：圖示＋徽章＋標題（`h2`）＋一句說明四件，無 CTA、無時程暗示。
@@ -2228,6 +2233,12 @@ byModel 顯示原始 model id。
 en 對應：Previewing／Requirement not met: deployed in Standard mode · KG backend set to Neo4j／Run migration／Neo4j connection／Other features。
 **這 4 句也是草稿・待設計定案**（i18n `settings.llm.status`／`ready`／`unset`／`unsetHint`，FEEDBACK 2-ST-17）：
 「狀態」「可用」「未設定」「在 .env 設定 {{env}} 後重啟服務。」；en：Status／Ready／Not configured／Set {{env}} in .env and restart the service.。
+**2026-10-22 已裁決的字串調整（第 202 批）**：
+- 新 `env.migDone`「遷移完成 · 實體 {{entities}}、關係 {{relations}}、事件 {{events}}」；en「Migration complete · Entities {{entities}}, Relations {{relations}}, Events {{events}}」。
+- 改寫 `env.neoNote`（見上）；en「When deployed in Standard mode, switching the KG backend takes effect immediately — no restart needed.」
+- en 旗標 `restartFlag`／`kgLiveFlag` 由小寫 restart／live 改為「Restart required」／「Live」，與其他徽章同為首字大寫。
+- en `llm.loadError` 由「Unable to load settings」改為「Unable to load LLM settings」，與中文「無法載入 LLM 設定」對齊。
+- 刪除 `nav.badgeMerged`、`llm.note`、`language.sub`、`about.sub`。
 其餘文案皆為既有字串逐字。
 
 #### API 參考
