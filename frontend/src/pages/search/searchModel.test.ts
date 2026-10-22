@@ -10,6 +10,7 @@ import {
   groupCap,
   mergeBookSearches,
   parseSearchParams,
+  queryTerms,
   replaceBookResults,
   splitHighlight,
   toSearchParams,
@@ -174,5 +175,12 @@ describe('per-book scope', () => {
     expect(groupCap(10, false)).toBe('more');
     expect(groupCap(30, true)).toBe('none');
     expect(groupCap(50, true)).toBe('max');
+  });
+});
+
+describe('queryTerms', () => {
+  it('dedupes case-insensitively and puts longer words first', () => {
+    expect(queryTerms(' 名  名字 Sea sea ')).toEqual(['sea', '名字', '名']);
+    expect(queryTerms('   ')).toEqual([]);
   });
 });
