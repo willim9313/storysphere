@@ -119,7 +119,7 @@ function BookGroupSection({
           type="button"
           className={`srch-group-toggle${collapsed ? ' collapsed' : ''}`}
           onClick={() => setCollapsed((c) => !c)}
-          aria-label={collapsed ? t('aria.expand') : t('aria.collapse')}
+          aria-label={t(collapsed ? 'aria.expand' : 'aria.collapse', { title: group.title })}
           aria-expanded={!collapsed}
         >
           <ChevronDown size={14} />
@@ -149,27 +149,31 @@ function BookGroupSection({
 
       {!collapsed && (
         <div className="srch-rows">
-          {group.results.map((result) => (
-            <button
-              key={result.id}
-              type="button"
-              className="srch-row"
-              data-result-id={result.id}
-              onClick={() => onNavigatePassage(group.documentId, result)}
-            >
-              <code className="srch-row-pos">
-                {t('result.locator', {
-                  chapter: result.metadata.chapterNumber,
-                  position: padPosition(result.metadata.position),
-                })}
-              </code>
-              <ResultBody text={result.text} query={query} mode={mode} />
-              <span className="srch-row-score">
-                <span className="srch-row-score-label">{scoreHeading}</span>
-                <span className="srch-row-score-value">{formatScore(result.score, mode, (count) => t('score.hitCount', { count }))}</span>
-              </span>
-            </button>
-          ))}
+          {group.results.map((result) => {
+            const locator = t('result.locator', {
+              chapter: result.metadata.chapterNumber,
+              position: padPosition(result.metadata.position),
+            });
+            // Only the locator is a button (its ::after spans the row, so a click anywhere
+            // still opens it); the paragraph stays plain text for screen readers.
+            return (
+              <div key={result.id} className="srch-row" data-result-id={result.id}>
+                <button
+                  type="button"
+                  className="srch-row-open"
+                  aria-label={t('aria.openPassage', { locator })}
+                  onClick={() => onNavigatePassage(group.documentId, result)}
+                >
+                  <code className="srch-row-pos">{locator}</code>
+                </button>
+                <ResultBody text={result.text} query={query} mode={mode} />
+                <span className="srch-row-score">
+                  <span className="srch-row-score-label">{scoreHeading}</span>
+                  <span className="srch-row-score-value">{formatScore(result.score, mode, (count) => t('score.hitCount', { count }))}</span>
+                </span>
+              </div>
+            );
+          })}
           {cap === 'more' && (
             <div className="srch-group-more">
               <button
@@ -222,6 +226,10 @@ export default function SearchPage() {
   const [moreStates, setMoreStates] = useState<Record<string, 'loading' | 'error'>>({});
 
   const searchGenRef = useRef(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const chipsRef = useRef<HTMLDivElement>(null);
+  // After a chip is removed: the chip whose ✕ takes focus, or null for the search input.
+  const chipFocusRef = useRef<string | null | undefined>(undefined);
 
   const { data: books, isLoading: booksLoading, error: booksError, refetch } = useBooks();
 
@@ -323,14 +331,28 @@ export default function SearchPage() {
   const handleClear = useCallback(() => {
     setQuery('');
     commitSearch({ q: '', mode, books: null }, true);
+    inputRef.current?.focus(); // the clear button itself unmounts
   }, [mode, commitSearch]);
 
   const handleRemoveChip = useCallback(
     (bookId: string) => {
+      const i = scopeIds.indexOf(bookId);
+      chipFocusRef.current = scopeIds[i + 1] ?? scopeIds[i - 1] ?? null;
       commitSearch({ q: submittedQuery, mode, books: scopeIds.filter((id) => id !== bookId) }, true);
     },
     [scopeIds, submittedQuery, mode, commitSearch],
   );
+
+  // Focus goes to the next chip's ✕ (else the previous one), and to the input once none are left.
+  useEffect(() => {
+    const target = chipFocusRef.current;
+    if (target === undefined) return;
+    chipFocusRef.current = undefined;
+    const btn = target
+      ? chipsRef.current?.querySelector<HTMLElement>(`[data-chip-id="${CSS.escape(target)}"]`)
+      : null;
+    (btn ?? inputRef.current)?.focus();
+  }, [scopeIds]);
 
   // 重試／重新搜尋: re-send the same query; the chips keep filtering.
   const handleRetry = rerun;
@@ -383,7 +405,7 @@ export default function SearchPage() {
     if (!row) return;
     restoredKeyRef.current = location.key;
     row.scrollIntoView({ block: 'center' });
-    row.focus({ preventScroll: true });
+    row.querySelector<HTMLElement>('.srch-row-open')?.focus({ preventScroll: true });
   }, [lastResultId, loading, results, location.key]);
 
   // ── Derived groups ───────────────────────────────────────────────────────────
@@ -397,6 +419,19 @@ export default function SearchPage() {
   // ── Content renderer ─────────────────────────────────────────────────────────
   const hasSearched = submittedQuery !== '';
   const showChips = scopeIds.length > 0;
+
+  // One persistent polite region announces what the visible states show (error has role="alert").
+  // Summary strings carry <strong> markup for <Trans>; the announcement wants plain text.
+  function statusLines(): string[] {
+    if (!hasSearched || searchError !== null) return [];
+    if (loading || results === null) return [t('loading')];
+    if (groups.length === 0) return [t('empty.noResults')];
+    const summary = t(mode === 'semantic' ? 'summarySemantic' : 'summary', {
+      count: totalCount,
+      books: groups.length,
+    }).replace(/<\/?strong>/g, '');
+    return failedBooks > 0 ? [summary, t('partial.message', { count: failedBooks })] : [summary];
+  }
 
   function renderContent() {
     if (!hasSearched) {
@@ -429,7 +464,7 @@ export default function SearchPage() {
       }
       return (
         <div className="ss-state ss-state-stage" role="alert">
-          <h4 className="ss-state-title">{t('error.searchFailed')}</h4>
+          <h2 className="ss-state-title">{t('error.searchFailed')}</h2>
           <div className="ss-state-actions">
             <button
               type="button"
@@ -490,7 +525,7 @@ export default function SearchPage() {
           {mode === 'semantic' && <p className="srch-semantic-note">{t('semanticNote')}</p>}
 
           {failedBooks > 0 && (
-            <div className="srch-partial" role="status">
+            <div className="srch-partial">
               <AlertTriangle size={14} className="srch-partial-icon" />
               <span className="srch-partial-text">{t('partial.message', { count: failedBooks })}</span>
               <button
@@ -505,7 +540,7 @@ export default function SearchPage() {
         </div>
 
         {showChips && (
-          <div className="srch-chips">
+          <div className="srch-chips" ref={chipsRef}>
             <span className="srch-chips-label">{t('scopeLabel')}</span>
             {scopeIds.map((id) => (
               <span key={id} className="srch-chip">
@@ -513,6 +548,7 @@ export default function SearchPage() {
                 <button
                   type="button"
                   className="srch-chip-remove"
+                  data-chip-id={id}
                   onClick={() => handleRemoveChip(id)}
                   aria-label={t('aria.removeBook', { title: bookTitleMap[id] ?? id })}
                 >
@@ -586,17 +622,26 @@ export default function SearchPage() {
   return (
     <div className="srch-scroll">
       <div className="srch-page">
+        {/* The visible h1 lives in the initial state only. */}
+        {hasSearched && <h1 className="srch-sr-only">{t('title')}</h1>}
+        <div className="srch-sr-only" role="status" aria-live="polite">
+          {statusLines().map((line) => (
+            <p key={line}>{line}</p>
+          ))}
+        </div>
         <form className="srch-bar" onSubmit={handleSubmit}>
           <div className="srch-field">
             <span className="srch-field-icon">
               <Search size={16} />
             </span>
             <input
+              ref={inputRef}
               className="srch-input"
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t(`placeholder.${mode}`)}
+              aria-label={t('aria.input')}
               autoFocus
               autoComplete="off"
             />

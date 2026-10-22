@@ -45,11 +45,13 @@
     "retry": "Search again"
   },
   "aria": {
-    "collapse": "Collapse",
-    "expand": "Expand",
+    "collapse": "Collapse {{title}}",
+    "expand": "Expand {{title}}",
     "removeBook": "Remove {{title}}",
     "clear": "Clear search",
-    "mode": "Search mode"
+    "mode": "Search mode",
+    "input": "Search passages",
+    "openPassage": "Open {{locator}} in the reader"
   },
   "loading": "Searching…",
   "mode": {
