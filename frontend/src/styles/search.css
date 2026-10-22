@@ -403,10 +403,17 @@
   flex-direction: column;
 }
 
+/* The prose track is capped at the text's own 72ch (+ hit track and its gap), and the
+ * score follows it: on wide screens the spare width goes to the right of the row, not
+ * between the prose and its score. The row carries the prose font so `ch` measures the
+ * same as .srch-row-text; every other cell sets its own font. */
 .srch-row {
   position: relative;
   display: grid;
-  grid-template-columns: 96px minmax(0, 1fr) 76px;
+  grid-template-columns: 96px minmax(0, calc(72ch + 3px + var(--space-5))) 76px;
+  justify-content: start;
+  font-family: var(--font-serif);
+  font-size: var(--font-size-sm);
   gap: var(--space-6);
   align-items: start;
   padding: var(--space-6) 0;

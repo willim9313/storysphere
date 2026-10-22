@@ -2406,9 +2406,9 @@ chips 只能移除：沒有全選、重設、加回，也不列未命中的書�
 
 #### 書籍分組區塊（`BookGroupSection`）
 
-group header 五件：accent chevron（收合鈕，`aria-expanded`）+ 書名（serif base 700 accent）+ 「{n} 段落」+ 延伸細線 + 「前往該書 ↗」。**收合後計數與連結都還在。**
+group header 五件：accent chevron（收合鈕，`aria-expanded`）+ 書名（serif base 700 accent）+ 「{n} 段落」（i18n `group.count`；英文分單複數 `{n} passage(s)`）+ 延伸細線 + 「前往該書 ↗」。**收合後計數與連結都還在。**
 
-各列為 `<div>`、整列可點（結構見下方「無障礙」），**三欄 grid `96px / 1fr / 76px`**，列間 hairline、`--space-6 0`，無 hover 填色、無左緣直條、無卡片底：
+各列為 `<div>`、整列可點（結構見下方「無障礙」），**三欄 grid `96px / minmax(0, 72ch + 命中軌) / 76px`、`justify-content: start`**——正文欄寬以正文自己的 72ch 為上限，分數緊跟正文（欄距 `--space-6`），寬螢幕多出的寬度留在列的右側，不再夾在正文與分數之間（1440 寬時原本相距 567px）。列本身帶正文字型（serif sm），讓 grid 的 `ch` 與正文同尺；列間 hairline、`--space-6 0`，無 hover 填色、無左緣直條、無卡片底：
 
 1. **定位碼**（96px，mono）：`第N章·§NN`（i18n `search.result.locator`；英文 `Ch. N · §NN`），pos 補零兩位，`position: sticky; top: 0`——長段落滾動時留在視線內。
 2. **正文**：serif sm、行高 1.85、`max-width: 72ch`、靠左。**段落全文完整渲染，不截斷**——沒有 line-clamp、展開全文、顯示更多或漸層遮罩。
@@ -2421,7 +2421,7 @@ group header 五件：accent chevron（收合鈕，`aria-expanded`）+ 書名（
 
 #### 摘要
 
-「找到 {n} 個段落，來自 {m} 本書籍」（n＝畫面上實際列出的段落數）。
+「找到 {n} 個段落，來自 {m} 本書籍」（n＝畫面上實際列出的段落數）。英文依 n 分 `summary_one`／`_other`，書籍名詞依 m 另取 `unit.book`（`book`／`books`，以 `bookUnit` 帶入；zh-TW 為「本書籍」）；部分失敗句 `partial.message` 同樣分單複數。
 **語意模式**改為「最相近的 {n} 個段落，來自 {m} 本書籍」（i18n `summarySemantic`），並在下一行加 xs secondary 說明句「依意思相近程度排序，不代表段落一定含有你要找的內容；相關度只能在同一次搜尋內比較。」（`semanticNote`）。
 語意搜尋一定回最相近的段落，分數分不出相關與無關，所以**不設相關度門檻**（2-SR-10）（sans sm，數字加粗；i18n `summary`，原本寫死中文）＋「依相關度排序 ⌄」（`<span>`，無行為）。
 
