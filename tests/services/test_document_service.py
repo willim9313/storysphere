@@ -358,3 +358,22 @@ class TestDocumentServiceSearchText:
     async def test_all_tokens_required(self, service):
         results = await self._search(service, ["海與風", "只有海"], "海 風")
         assert [r.text for r in results] == ["海與風"]
+
+    @pytest.mark.asyncio
+    async def test_non_body_chapters_excluded(self, service):
+        doc = Document(
+            title="Matter Novel",
+            file_path="/tmp/matter.pdf",
+            file_type=FileType.PDF,
+            chapters=[
+                Chapter(number=0, title="序", role=ChapterRole.preface,
+                        paragraphs=[Paragraph(text="序裡的海", chapter_number=0, position=0)]),
+                Chapter(number=1, title="Ch 1",
+                        paragraphs=[Paragraph(text="正文的海", chapter_number=1, position=0)]),
+                Chapter(number=2, title="後記", role=ChapterRole.afterword,
+                        paragraphs=[Paragraph(text="後記的海", chapter_number=2, position=0)]),
+            ],
+        )
+        await service.save_document(doc)
+        results = await service.search_paragraphs_by_text("海", document_id=doc.id)
+        assert [r.text for r in results] == ["正文的海"]

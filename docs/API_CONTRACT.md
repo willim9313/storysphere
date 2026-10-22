@@ -3049,7 +3049,7 @@ HITL 審核 NarrativeStructure（approved / rejected / pending）。
 {
   "query": "描述主角內心動搖的段落",
   "bookId": null,
-  "topK": 20,
+  "topK": 10,
   "mode": "fulltext"
 }
 ```
@@ -3057,8 +3057,8 @@ HITL 審核 NarrativeStructure（approved / rejected / pending）。
 | 欄位 | 型別 | 說明 |
 |------|------|------|
 | `query` | `string` | 查詢字串 |
-| `bookId` | `string \| null` | `null` = 跨書；傳入 UUID = 限定單書 |
-| `topK` | `integer` | 回傳筆數，1–50，**後端預設 10**（前端一律明給 20） |
+| `bookId` | `string \| null` | `null` = 跨書；傳入 UUID = 限定單書。**前端一律逐書查詢**（每本書各發一次），不走 `null` |
+| `topK` | `integer` | 回傳筆數，1–50，後端預設 10。前端逐書查詢給 10（`PER_BOOK_LIMIT`），「顯示更多」重查該書給 50（`MORE_LIMIT`） |
 | `mode` | `'fulltext' \| 'semantic'` | 預設 `fulltext`。`fulltext` 走 SQLite 全文檢索（`DocumentService.search_paragraphs_by_text`）；`semantic` 走 Qdrant 向量檢索（`VectorService.search`） |
 
 > **`score` 的意義隨 `mode` 改變**，見下方 Response 說明——兩種模式的數值不可互相比較。
@@ -3084,12 +3084,24 @@ HITL 審核 NarrativeStructure（approved / rejected / pending）。
 |------|------|
 | `score` | **語意隨 `mode` 改變**：`semantic` = Qdrant 相關度 0–1（前端顯示為百分比）；`fulltext` = 關鍵詞命中次數（整數，前端顯示為「N 次」）：以空白切出的詞不分大小寫去重、長詞優先，數**不重疊**的命中處，與前端 `<mark>` 高亮處數相同；每個詞都須出現（AND），`%`／`_` 依字面比對 |
 | `metadata.documentId` | 所屬書籍 UUID，對應 `GET /api/v1/books/` 的 `id` |
-| `metadata.chapterNumber` | 所在章節（1-based） |
-| `metadata.position` | 段落在章節內的位置（1-based） |
+| `metadata.chapterNumber` | 所在章節的故事章號（1-based）。**只回正文章節**（`role = body`）：全文模式排除序、目錄、後記等非正文段落，語意索引本來就只收正文——兩種模式查的是同一批文字 |
+| `metadata.position` | 段落在章節內的位置（**0-based**，與閱讀頁 `chunk.order` 同一個值；前端定位碼補零顯示為 `§00`） |
+
+**錯誤**（只在帶 `bookId` 時；檢查只在查詢失敗或回空時才做，正常路徑不多花一次查詢）：
+
+| 狀態 | 情況 |
+|------|------|
+| 404 | `bookId` 不存在（兩種模式相同；以前全文回 `[]`、語意回 500） |
+| 409 | 語意模式，書存在但**尚未建立語意索引**（Qdrant 無該書 collection；以前回 500） |
+| 500 | 其他失敗（如嵌入模型錯誤），原錯誤照拋 |
+
+跨書（`bookId: null`）的語意查詢會**靜默略過**查詢失敗的書（`VectorService.search` 只記 warning），聊天工具也共用這條路徑，所以未改；搜尋頁不走它。
+
+全文查詢**不加 SQL `LIMIT`**：排序依 Python 端算的不重疊命中數，先在 SQL 截斷會在排序前丟掉高分段落；實測（4 本書）跨全書 3ms 內。
 
 **前端封裝**：`frontend/src/api/search.ts`  
 **頁面**：`/search`（Sidebar Search 圖示）  
-**實作狀態（2026-06-13）**：已完整實作；`metadata` 欄位修復（原回傳空 `{}`）。
+**實作狀態（2026-06-13）**：已完整實作；`metadata` 欄位修復（原回傳空 `{}`）。2026-10-22：404／409 錯誤、只查正文章節、position 改正為 0-based 描述。
 
 ---
 

@@ -688,13 +688,24 @@ class DocumentService:
         Score = number of non-overlapping hits of the tokens (case-insensitive,
         deduplicated, longest first) — the same split the frontend highlights,
         so the「N次」score equals the number of ``<mark>``s.
+
+        Body chapters only: front/back matter is not part of the story, and the
+        semantic index holds body paragraphs only, so both modes cover the same text.
+        No SQL ``LIMIT``: ranking uses the hit count computed here, so limiting
+        before scoring could drop the best matches.
         """
         tokens = list({t.lower(): t for t in query.strip().split() if t}.values())
         if not tokens:
             return []
 
         async with self._session_factory() as session:
-            stmt = select(_ParagraphRow)
+            stmt = select(_ParagraphRow).join(
+                _ChapterRow,
+                and_(
+                    _ChapterRow.id == _ParagraphRow.chapter_id,
+                    _ChapterRow.role == ChapterRole.body.value,
+                ),
+            )
             if document_id:
                 stmt = stmt.where(_ParagraphRow.document_id == document_id)
             for token in tokens:

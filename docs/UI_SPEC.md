@@ -2402,7 +2402,7 @@ chips 只能移除：沒有全選、重設、加回，也不列未命中的書�
 
 **這 2 句是草稿・待設計定案**（README §5；i18n `partial.*`，zh-TW 與 en 皆已補）。不列書名。
 「重新搜尋」重送**同一查詢**（再查每一本；chips 照舊過濾）。若**每一本**都失敗，視為搜尋失敗，走下方失敗分類。
-語意模式下尚未建立語意索引的書目前會被算成查詢失敗（後端回 500），待後端改回空結果。
+單本查詢的錯誤（API_CONTRACT #23a）：書不存在回 404；語意模式下尚未建立語意索引的書回 409——不回空結果，否則「找不到相關段落」會把「根本沒查」說成「沒有命中」。兩者前端都照樣算進「{n} 本書籍查詢失敗」。
 
 #### 書籍分組區塊（`BookGroupSection`）
 
@@ -2410,7 +2410,7 @@ group header 五件：accent chevron（收合鈕，`aria-expanded`）+ 書名（
 
 各列為 `<div>`、整列可點（結構見下方「無障礙」），**三欄 grid `96px / 1fr / 76px`**，列間 hairline、`--space-6 0`，無 hover 填色、無左緣直條、無卡片底：
 
-1. **定位碼**（96px，mono）：`第N章·§NN`（i18n `search.result.locator`；英文 `Ch. N · §NN`），pos 補零兩位，`position: sticky; top: 0`——長段落滾動時留在視線內。
+1. **定位碼**（96px，mono）：`第N章·§NN`（i18n `search.result.locator`；英文 `Ch. N · §NN`），pos 補零兩位（position 為 0-based，與閱讀頁 `#段號` 同值，所以第一段是 `§00`）。只會出現正文章節（後端排除非正文），`第N章` 即故事章號，`position: sticky; top: 0`——長段落滾動時留在視線內。
 2. **正文**：serif sm、行高 1.85、`max-width: 72ch`、靠左。**段落全文完整渲染，不截斷**——沒有 line-clamp、展開全文、顯示更多或漸層遮罩。
    查詢詞以 `<mark class="srch-mark">` 高亮（`color-warning-bg` 底＋1.5px 下緣線）。
    關鍵字模式且至少一個命中時，正文左側多一條 3px **命中軌**：每個命中畫一個 4px warning 刻痕，位置＝命中處在段落文字中的字元 offset ÷ 文字長度。
