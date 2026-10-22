@@ -2171,20 +2171,23 @@ byModel 顯示原始 model id。
   - 部署雙卡（`role="radiogroup"`）：radio＋tagline＋Qdrant／KG 規格。「（目前）」跟著實際 `deployMode`，選中框跟著使用者點選；
     兩者不一致時選中的那張另掛「**預覽中**」（`deployBadges`）。
   - **Lightweight**：目前狀態 text row（Vector 數量 null → 「—」）＋三張 KG 統計磚（kit `StatRow`：tinted 底、sans tabular）。
-  - **Standard 預覽**：最上方警告橫幅；Qdrant Service 欄位與 **Neo4j 連線**欄位（常駐，不再只在選 Neo4j 時出現）一律只有
-    placeholder、無 value／onChange，旗標「需重啟」（warning 底）；KG 後端 `.ss-seg`，旗標「即時生效」（success 底）只掛在這裡，
-    其下是能力落差層，再往下是 Neo4j 例外註記（在 Neo4j 連線欄位之後）。Neo4j 欄位名為既有 `NEO4J_URL`／`NEO4J_USER`／`NEO4J_PASSWORD`
+  - **Standard 預覽**：最上方警告橫幅（**只在預覽中**——選中≠實際 `deployMode`——才出現；實際已是 Standard 時不畫）；Qdrant Service 欄位與 **Neo4j 連線**欄位（常駐，不再只在選 Neo4j 時出現）一律只有
+    placeholder、無 value／onChange，旗標「需重啟」（warning 底）；KG 後端 `.ss-seg`，其下是能力落差層，再往下是 Neo4j 例外註記（在 Neo4j 連線欄位之後）。Neo4j 欄位名為既有 `NEO4J_URL`／`NEO4J_USER`／`NEO4J_PASSWORD`
     （稿上 `NEO4J_URI`＋「即時生效」與後端不符，見 FEEDBACK 2-ST-2）。輸入框用 `--input-*`、文字 xs。
   - **能力落差層**（位置在 segmented 之下、切換之前；`gapLayer`）：措辭一「目前後端無法提供這些功能：」＝error 底、Lucide `circle-x`、
     功能名**實心**；措辭二「切換到 {Neo4j|NetworkX} 會停用這些功能：」＝warning 底、`alert-triangle`、功能名**描邊**。兩者互斥、不合併；
     圖示形狀與填色極性是 Ink 下的非色相載體。功能 id 一律中文（`env.kgFeature.*`）；**不認得的 id 不裸露**，合併成一顆「其他功能」。
+  - **KG 後端 segmented 的生效範圍**（`kgSwitchAction`，FEEDBACK 2-ST-14）：只有**實際** `deployMode` 為 Standard 才送 `POST /kg/switch`，
+    旗標「即時生效」（success 底）；實際為 Lightweight 時是**純預覽**——點選只換選中格、不送請求（後端會以 422 拒絕 Neo4j），
+    旗標改「需重啟」。能力落差層一律以**實際生效**的後端計算（預覽選 Neo4j 時是措辭二「切換到 Neo4j 會停用…」，不是措辭一）。點已生效的那格不送請求。切換失敗走 `MigrationState` 失敗態：`circle-x`＋「切換失敗：」（`env.switchFailed`）
+    ＋後端原文（不改寫不翻譯，`role="alert"`）。
   - **資料遷移**：三列（方向箭頭，第三列朝左）＋冪等註記＋其後 ghost 鈕「重新整理狀態」（`refresh-cw` 圖示，手動重取 `GET /kg/status`）。
     另有每 15 秒背景刷新，**無任何視覺提示**。
     - 遷移三態（`MigrationState`）：進行中「遷移中…」（`loader`，既有 2 秒輪詢）；完成計數列（`circle-check`；3 秒後自收並刷新 KG 狀態，
       畫面不寫倒數）；失敗後端原文（`circle-x`，不改寫不翻譯）。啟動遷移的請求本身失敗，也走同一個失敗態顯示原文。
     - 兩種「功能尚未實作」：Qdrant 列＝**永久**（虛線外框＋降階＋**無鈕**＋無門檻說明，旗標「功能尚未實作」）；
-      KG 兩列＝**條件性**（實線外框＋「執行遷移」鈕在場但 opacity 0.5＋門檻說明「門檻未達成：需 Standard 態 · KG 後端為 Neo4j」；
-      達標（Standard＋KG 後端為 Neo4j，`kgMigrationGate`）後門檻說明消失、旗標換「即時生效」、鈕可按；遷移進行中鈕再度 disabled）。
+      KG 兩列＝**條件性**（實線外框＋「執行遷移」鈕在場但 opacity 0.5＋門檻說明「門檻未達成：需實際部署為 Standard · KG 後端為 Neo4j」；
+      達標（**實際** `deployMode` 為 Standard＋KG 後端為 Neo4j，`kgMigrationGate`；預覽中的選卡不算）後門檻說明消失、旗標換「即時生效」、鈕可按；遷移進行中鈕再度 disabled）。
 - **關於 & 版本**：hero（S 方塊、StorySphere、版號＋`appEnv`）、前後端套件兩欄、資料路徑——key 保留原始欄位名（mono），
   `databaseUrl` 照後端遮罩顯示，不可展開、無眼睛圖示。
 - **規劃中面板**（快捷鍵、實驗性功能）：圖示＋徽章＋標題＋一句說明四件，無 CTA、無時程暗示。
@@ -2198,7 +2201,9 @@ byModel 顯示原始 model id。
 
 #### 字串
 
-**這 2 句是已裁決的新字串**（i18n `settings.env.previewTag`、`gateNote`）：「預覽中」、「門檻未達成：需 Standard 態 · KG 後端為 Neo4j」。
+**這 2 句是已裁決的新字串**（i18n `settings.env.previewTag`、`gateNote`）：「預覽中」、「門檻未達成：需實際部署為 Standard · KG 後端為 Neo4j」。
+**2026-10-22 裁決（FEEDBACK 2-ST-14）**：`env.stWarn` 改為步驟式「下方為 Standard 的預覽，不會儲存。切換步驟：① 修改 .env 的 DEPLOY_MODE 並重啟服務
+② KG 後端切到 Neo4j ③ 執行資料遷移。」（原句「建議先執行遷移再切換」在 Lightweight 下做不到）；新增 `env.switchFailed`「切換失敗：」。
 **這 3 句是草稿・待設計定案**（i18n `settings.env.runMigration`、`neoSectionTitle`、`kgFeatureUnknown`；JSON 不能寫註解，故記在此）：
 「執行遷移」（稿上有按鈕、既有 i18n 沒有）、「Neo4j 連線」（稿上有段標、既有 i18n 沒有）、「其他功能」（不認得的功能 id 的泛稱，稿上沒有）。
 en 對應：Previewing／Requirement not met: Standard mode · KG backend set to Neo4j／Run migration／Neo4j connection／Other features。

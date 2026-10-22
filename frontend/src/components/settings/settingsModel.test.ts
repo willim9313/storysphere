@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { deployBadges, gapLayer, isUnsetValue, kgMigrationGate, splitFeatureIds } from './settingsModel';
+import { deployBadges, gapLayer, isUnsetValue, kgMigrationGate, kgSwitchAction, splitFeatureIds } from './settingsModel';
 
 describe('splitFeatureIds', () => {
   it('keeps known ids in backend order and dedupes', () => {
@@ -59,6 +59,18 @@ describe('kgMigrationGate', () => {
 
   it('stays met but not runnable while a migration is in flight', () => {
     expect(kgMigrationGate({ isStandard: true, backend: 'neo4j', busy: true })).toEqual({ met: true, canRun: false });
+  });
+});
+
+describe('kgSwitchAction', () => {
+  it('only previews when the actual deploy mode is Lightweight', () => {
+    expect(kgSwitchAction({ actual: 'lightweight', current: 'networkx', next: 'neo4j' })).toBe('preview');
+    expect(kgSwitchAction({ actual: 'lightweight', current: 'networkx', next: 'networkx' })).toBe('preview');
+  });
+
+  it('switches in actual Standard, but not onto the backend already live', () => {
+    expect(kgSwitchAction({ actual: 'standard', current: 'networkx', next: 'neo4j' })).toBe('switch');
+    expect(kgSwitchAction({ actual: 'standard', current: 'neo4j', next: 'neo4j' })).toBe('noop');
   });
 });
 

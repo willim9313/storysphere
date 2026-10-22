@@ -15,7 +15,7 @@ import {
 import { fetchSettingsInfo, type SettingsInfo } from '@/api/settingsInfo';
 import type { TaskStatus } from '@/api/types';
 import {
-  deployBadges, gapLayer, isUnsetValue, kgMigrationGate, splitFeatureIds,
+  deployBadges, gapLayer, isUnsetValue, kgMigrationGate, kgSwitchAction, splitFeatureIds,
   type DeployMode, type KgBackend,
 } from '@/components/settings/settingsModel';
 import { resetAllGuidance, useDismissedCount } from '@/components/ui/guidanceStore';
@@ -411,7 +411,8 @@ function EnvPanel() {
   const [kgBackendOverride, setKgBackendState] = useState<KgBackend | null>(null);
   const actualDeployMode = (kg?.deployMode as DeployMode | undefined) ?? 'lightweight';
   const uiMode: DeployMode = uiModeOverride ?? actualDeployMode;
-  const kgBackend: KgBackend = kgBackendOverride ?? (kg?.mode as KgBackend | undefined) ?? 'networkx';
+  const liveKgBackend: KgBackend = (kg?.mode as KgBackend | undefined) ?? 'networkx';
+  const kgBackend: KgBackend = kgBackendOverride ?? liveKgBackend;
   const [migrationTaskId, setMigrationTaskId] = useState<string | null>(null);
   const [switchError, setSwitchError] = useState<string | null>(null);
 
@@ -433,19 +434,25 @@ function EnvPanel() {
     onError: () => setMigrationTaskId(null),
   });
 
+  // Only an actual Standard deployment switches for real; a Lightweight preview just redraws.
+  const kgSwitchIsLive = actualDeployMode === 'standard';
+
   const handleKgBackendChange = (mode: KgBackend) => {
+    const action = kgSwitchAction({ actual: actualDeployMode, current: liveKgBackend, next: mode });
+    if (action === 'noop') return;
     setKgBackendState(mode);
-    if (uiMode === 'standard') {
-      switchMutation.mutate(mode);
-    }
+    setSwitchError(null);
+    if (action === 'switch') switchMutation.mutate(mode);
   };
 
   const isStd = uiMode === 'standard';
+  const isPreviewing = uiMode !== actualDeployMode;
   // Reported for every selectable backend (not just the live one) so the warning sits
   // under the segmented control *before* the switch, not as a 500 on the graph page after.
-  const layer = gapLayer(kg?.unsupportedByMode ?? {}, kgBackend);
+  // Keyed on the live backend: a previewed Neo4j must read 「切換到 Neo4j 會停用…」, not 「目前後端無法提供…」.
+  const layer = gapLayer(kg?.unsupportedByMode ?? {}, liveKgBackend);
   const gate = kgMigrationGate({
-    isStandard: isStd,
+    isStandard: actualDeployMode === 'standard',
     backend: kgBackend,
     busy: migrateMutation.isPending || !!migrationTaskId,
   });
@@ -569,10 +576,12 @@ function EnvPanel() {
       {/* Standard preview: banner first, then the form */}
       {isStd && (
         <>
-          <div className="st-banner warn">
-            <span className="st-banner-ico"><AlertTriangle size={16} /></span>
-            <span>{t('env.stWarn')}</span>
-          </div>
+          {isPreviewing && (
+            <div className="st-banner warn">
+              <span className="st-banner-ico"><AlertTriangle size={16} /></span>
+              <span>{t('env.stWarn')}</span>
+            </div>
+          )}
 
           <div className="st-fields">
             <span className="st-label">{t('env.qdrantSvcTitle')}</span>
@@ -590,7 +599,9 @@ function EnvPanel() {
           <div className="st-fields">
             <div className="st-fieldrow">
               <span className="st-label" style={{ flex: 1 }}>{t('env.kgBackendTitle')}</span>
-              <span className="st-flag live">{t('env.kgLiveFlag')}</span>
+              {kgSwitchIsLive
+                ? <span className="st-flag live">{t('env.kgLiveFlag')}</span>
+                : <span className="st-flag restart">{t('env.restartFlag')}</span>}
             </div>
             <div className="st-seg-wrap">
               <div className="ss-seg st-seg st-seg-kg" role="group" aria-label={t('env.kgBackendTitle')}>
@@ -617,7 +628,12 @@ function EnvPanel() {
                 <Loader2 size={14} className="animate-spin" style={{ color: 'var(--accent)' }} />
               )}
             </div>
-            {switchError && <p className="st-switch-error">{switchError}</p>}
+            {switchError && (
+              <MigrationState kind="failed">
+                <span className="st-mig-state-lead">{t('env.switchFailed')}</span>
+                {switchError}
+              </MigrationState>
+            )}
             {/* Capability gap layer: below the segmented control, before the switch happens. */}
             <GapNotice layer={layer} />
           </div>

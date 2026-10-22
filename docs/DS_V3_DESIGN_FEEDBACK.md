@@ -537,6 +537,7 @@ Handoff `redesign_v3_handoff_batch_2.zip`（`design_handoff_02_system/`）。下
 | 2-ST-11 | 矛盾 · 「需重啟」旗標與緊鄰的 Neo4j 例外註記 | 待同步 |
 | 2-ST-12 | 矛盾 · KG 統計磚與 Token 用量摘要卡是兩種寫法 | 待同步 |
 | 2-ST-13 | 缺陷 · 172px 導覽在英文介面放不下「標籤＋徽章」 | 待同步 |
+| 2-ST-14 | 矛盾 · 「預覽」框架裡的 KG 後端 segmented 會真的切換 | 待同步 |
 
 #### 2-ST-1 能力落差的功能 id 與後端不符
 
@@ -638,6 +639,17 @@ Handoff `redesign_v3_handoff_batch_2.zip`（`design_handoff_02_system/`）。下
 - **問題**：稿只畫了中文。英文下標籤加徽章超寬，「Language／Environment／Shortcuts／Experimental」被截成「Langua…」「Envi…」「Short…」「Experi…」。中文也只有「實驗性…」被截（稿上同樣被截）。
 - **目前處置**（2026-10-02，暫時修法）：放不下時徽章換到第二行靠右，標籤不再被截；放得下時仍同列。
 - **請設計端**：給定案——加寬導覽、縮短英文標籤，或明定徽章換行的版型。
+
+#### 2-ST-14 「預覽」框架裡的 KG 後端 segmented 會真的切換
+
+- **出處**：04 D 區 Standard 預覽（橫幅「下方設定為預覽」＋KG 後端 segmented 旗標「即時生效」）；E 區遷移門檻「需 Standard 態」。
+- **問題**：同一框架內「預覽、不會儲存」與「即時生效」並存。實作照稿後，Lightweight 下預覽 Standard 再點 Neo4j 會送 `POST /kg/switch`
+  並必然被後端 422 拒絕（英文原文顯示在中文介面）；點已選的 NetworkX 也會讓後端重新載入 KG。橫幅「建議先執行遷移再切換」在
+  Lightweight 下做不到（遷移門檻要 Neo4j，而 Lightweight 不准切 Neo4j）；遷移門檻讀的是預覽選卡，不是實際部署。
+- **目前處置**（2026-10-22 裁決）：只有實際 `deployMode` 為 Standard 才真的切換、旗標「即時生效」；Lightweight 下是純預覽（只換選中格、不送請求；
+  能力落差層以實際生效的後端計算，預覽 Neo4j 時是措辭二）、旗標「需重啟」；點已生效那格不送。橫幅只在預覽中出現、改步驟式；門檻改讀實際部署、文案「需實際部署為 Standard」；切換失敗走
+  `MigrationState` 失敗態＋「切換失敗：」前綴＋後端原文。
+- **請設計端**：D 區補畫「實際 Standard」與「Lightweight 純預覽」兩態的旗標差異；確認橫幅步驟文案。
 
 ### 跨書搜尋 `/search`
 

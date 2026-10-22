@@ -78,7 +78,8 @@
     "entities": "Entities",
     "relations": "Relations",
     "events": "Events",
-    "stWarn": "Switching to Standard requires editing .env and restarting. The fields below are a preview. Migrate before switching.",
+    "stWarn": "The fields below preview Standard and are not saved. To switch: ① set DEPLOY_MODE in .env and restart the service ② switch the KG backend to Neo4j ③ run the data migration.",
+    "switchFailed": "Switch failed: ",
     "qdrantSvcTitle": "Qdrant Service",
     "qdrantUrl": "QDRANT_URL",
     "qdrantKey": "QDRANT_API_KEY",
@@ -114,7 +115,7 @@
     "refresh": "Refresh status",
     "currentTag": "(current)",
     "previewTag": "Previewing",
-    "gateNote": "Requirement not met: Standard mode · KG backend set to Neo4j",
+    "gateNote": "Requirement not met: deployed in Standard mode · KG backend set to Neo4j",
     "runMigration": "Run migration",
     "neoSectionTitle": "Neo4j connection",
     "kgFeatureUnknown": "Other features"
