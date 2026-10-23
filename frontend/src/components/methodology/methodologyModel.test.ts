@@ -83,6 +83,11 @@ describe('scaleLabel / firstOfCategory', () => {
     expect(scaleLabel(schmidt)).toBe('45 類型');
   });
 
+  it('uses plural labels in English (every method has at least 2 items)', () => {
+    const labels = getFrameworks('en').map(scaleLabel);
+    expect(labels).toEqual(['12 Types', '45 Types', '12 Stages', '2 Types', '3 Types', '4 Mythoi', '7 Plots', '5 Steps']);
+  });
+
   it('picks the first method of a category', () => {
     expect(firstOfCategory(frameworks, 'arc')?.key).toBe('hero_journey');
     expect(firstOfCategory([], 'arc')).toBeUndefined();

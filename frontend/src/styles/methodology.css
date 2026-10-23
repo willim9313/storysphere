@@ -619,11 +619,18 @@
 }
 
 /* 三層級圖例：名稱＋mono accent 區間＋一句描述；圓點是非色相編碼，不畫漸層條 */
-.md-tierlegend { display: flex; flex-direction: column; gap: var(--space-4); }
+/* 名稱欄取三列最寬者（en「Established」68px），區間欄三列對齊；zh 仍是 52px */
+.md-tierlegend {
+  display: grid;
+  grid-template-columns: auto minmax(52px, max-content) 84px minmax(0, 1fr);
+  column-gap: var(--space-5);
+  row-gap: var(--space-4);
+}
 .md-tier {
-  display: flex;
+  display: grid;
+  grid-column: 1 / -1;
+  grid-template-columns: subgrid;
   align-items: flex-start;
-  gap: var(--space-5);
   padding: var(--space-5) var(--space-6);
   border: var(--line-weight) var(--border-style) var(--border);
   border-radius: var(--card-radius);
@@ -638,7 +645,7 @@
   background: transparent;
 }
 .md-tier-dot.on { border-color: var(--accent); background: var(--accent); }
-.md-tier-name { flex-shrink: 0; width: 52px; font-size: var(--font-size-xs); font-weight: 600; color: var(--fg-primary); }
+.md-tier-name { white-space: nowrap; font-size: var(--font-size-xs); font-weight: 600; color: var(--fg-primary); }
 .md-tier-range {
   flex-shrink: 0;
   width: 84px;
