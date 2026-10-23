@@ -160,6 +160,8 @@
     "bookNoData": "「{{title}}」在這個時間範圍沒有使用記錄",
     "scopeOnly": "只看「{{title}}」",
     "showAllBooks": "顯示全部書籍",
+    "bookFilter": "篩選書籍",
+    "rangeLabel": "時間範圍",
     "services": {
       "analysis": "深度分析",
       "chat": "對話",
