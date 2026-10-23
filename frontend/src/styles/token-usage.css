@@ -39,7 +39,8 @@
 .tu-ranges { display: flex; gap: var(--space-3); }
 .tu-range {
   padding: var(--space-3) var(--space-6);
-  border: none;
+  /* 篩選 chip 語彙：Warm 靠底色分層不畫框，Ink 底色貼近白紙改靠框 */
+  border: var(--chip-border-width) var(--border-style) var(--border);
   border-radius: var(--pill-radius);
   background: var(--bg-secondary);
   color: var(--fg-secondary);
@@ -50,18 +51,20 @@
   transition: background var(--transition-fast), color var(--transition-fast);
 }
 .tu-range[aria-pressed='true'] {
+  border-color: var(--accent);
   background: var(--accent);
   color: var(--accent-fg);
 }
 .tu-book-select {
   min-width: 180px;
+  max-width: 280px;
   padding: var(--space-4) var(--space-5);
   background: var(--input-bg);
   color: var(--fg-primary);
   border: var(--input-border-width) var(--border-style) var(--border);
   border-radius: var(--input-radius);
   font-family: inherit;
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-xs);
 }
 
 /* ── 區段 ── */
@@ -131,13 +134,20 @@
 .tu-table tbody tr + tr td { border-top: var(--line-weight) var(--border-style) var(--border); }
 /* 數字欄 mono（06 canvas 的 NUM），名稱欄 sans。 */
 .tu-table td { color: var(--fg-secondary); font-family: var(--font-mono); }
-.tu-table td.tu-name { color: var(--fg-primary); font-family: var(--font-sans); }
+/* 名稱是要讀的內容（書名、服務名、model id），比數字欄大一階 */
+.tu-table td.tu-name { color: var(--fg-primary); font-family: var(--font-sans); font-size: var(--font-size-xs); }
+/* 服務／模型表並排時欄窄，model id 會在連字號折行；讓數字欄先讓位，真放不下由表內橫捲 */
+.tu-pair .tu-table td.tu-name { white-space: nowrap; }
+/* 並排兩表的格距縮一階，1024 寬時不必為了不折行而橫捲（原需多 14px） */
+.tu-pair .tu-table th,
+.tu-pair .tu-table td { padding-left: var(--space-4); padding-right: var(--space-4); }
 .tu-table td.tu-total { color: var(--fg-primary); font-weight: 600; }
 .tu-table td.tu-calls { color: var(--fg-muted); }
 
 /* byBook：唯一可點的表。選中 = bg-secondary + 加粗 + check（不用左緣強調） */
 .tu-row-pick { cursor: pointer; }
 .tu-row-pick:hover { background: var(--bg-secondary); }
+.tu-row-pick:hover .tu-pick-btn { text-decoration: var(--row-pick-hover-decoration); }
 .tu-row-selected { background: var(--bg-secondary); }
 .tu-row-selected td.tu-name { font-weight: 600; }
 .tu-pick-btn {

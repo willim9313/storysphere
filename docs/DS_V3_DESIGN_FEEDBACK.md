@@ -790,6 +790,7 @@ Handoff `redesign_v3_handoff_batch_2.zip`（`design_handoff_02_system/`）。下
 | 2-TU-3 | 遺漏 · 載入與換範圍時標題列的去留、選定書不在新範圍 | 待同步 |
 | 2-TU-4 | 矛盾 · 標題列右側的下拉與範圍 pill 順序（README vs 決議紀錄） | 待同步 |
 | 2-TU-5 | 遺漏 · 選定書時的範圍標示與網址狀態 | 待同步 |
+| 2-TU-6 | 矛盾 · 範圍 pill 字級：DESIGN_TOKENS 12px vs DESIGN.md 11px；Ink 下 pill 與 hover 不可辨 | 待同步 |
 
 #### 2-TU-1 兩個查詢只有一個失敗時
 
@@ -823,6 +824,13 @@ Handoff `redesign_v3_handoff_batch_2.zip`（`design_handoff_02_system/`）。下
 - **目前處置**（使用者裁決版面）：摘要上方一行「只看「{書名}」 · 顯示全部書籍」（ghost sm 清除鈕）；
   `?range=`／`?book=` 進網址。新字串 `token.bookNoData`／`token.scopeOnly`／`token.showAllBooks` 為工程端草稿。
 - **請設計端**：定字句；稿補範圍標示列。
+
+#### 2-TU-6 範圍 pill 字級與 Ink 辨識度
+
+- **出處**：DESIGN_TOKENS §3.5.1「次要・列表・pill → xs 12」；DESIGN.md Typography「Label 11px 用於 pill／badge」；06 稿只畫 Warm。
+- **問題**：兩份文件對 pill 字級說法相反。Ink 下未選中 pill 與 byBook hover 列的底色對白底 1.08:1，幾乎看不見（頁面評估 2026-10-23 實測）。
+- **目前處置**（使用者裁決）：pill 維持 11px，等全站字級一次定；pill 框改走 `--chip-border-width`（Ink 1px）；hover 加新 shape token `--row-pick-hover-decoration`（Ink 名稱底線）。名稱欄與書籍下拉 11→12px（UI_SPEC 只規定數字欄 2xs）。
+- **請設計端**：統一 pill 字級；稿補 Ink 版標題列與 byBook hover。
 
 #### 2-TU-4 標題列右側的下拉與範圍 pill 順序（README vs 決議紀錄）
 

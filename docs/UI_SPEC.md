@@ -2076,7 +2076,8 @@ padding 24／section 16／card 12／row 8，內容 max-w 1280。
 標題列右側順序：**書籍下拉在前、範圍 pill 在後**（依 06 決議紀錄 A／C；README §3.1 寫反，FEEDBACK 2-TU-4）。標題 serif 2xl，區段標 serif base 600。
 
 - 範圍 pill：四顆獨立 chip「今天／7 天／30 天／全部」，`--pill-radius`，idle `--bg-secondary`，選中 accent 實心；切換時重新請求。
-- 書籍下拉：`--input-bg`／`--input-radius`／`--input-border-width`，min-width 180。選項「全部書籍」＋各書＋「未歸屬」。
+  框走 `--chip-border-width`（Warm 0、Ink 1px，選中框色 accent）；字級 2xs（與 DESIGN_TOKENS 的 pill 12px 矛盾，FEEDBACK 2-TU-6）。
+- 書籍下拉：`--input-bg`／`--input-radius`／`--input-border-width`，min-width 180、max-width 280，字級 xs。選項「全部書籍」＋各書＋「未歸屬」。
   書清單為空（含全部查詢失敗）且未選書時不渲染。它是唯一能選到「未歸屬」的入口，所以不能拿掉。
   換範圍載入中沿用上一個範圍的書清單（`keepPreviousData`），下拉不閃退。
 - **網址狀態**：`?range=`（`today`／`30d`／`all`；預設 7 天不寫）與 `?book=`（書 id 或 `__unattributed__`），
@@ -2092,6 +2093,7 @@ byBook 表的每一列都可點選，等同於用下拉選它，**兩者是同�
 
 - 只有 byBook 的列有 cursor 與 hover；byService／byModel 不可點、無 hover。
 - 選中列：`--bg-secondary` 底＋加粗＋Lucide `check`（accent）。**不用左緣／inset 強調**；check 讓 Ink 下不靠底色也讀得出。
+- hover：`--bg-secondary` 底＋名稱 `text-decoration: var(--row-pick-hover-decoration)`（Warm none、Ink underline——Ink 的底色貼近白紙看不見）。
 - 名稱格內是一顆 button（`aria-pressed`），鍵盤可達；整列 click 也等效。
 - 選定時摘要上方一行「只看「{書名}」 · 顯示全部書籍」（後者 ghost sm 鈕，清除選取），捲動或截圖都不失限定脈絡。
 - **選定書在新範圍沒有呼叫**（2026-10-23 使用者裁決，FEEDBACK 2-TU-3）：**保留選取**，不自動清除。下拉補一個該書的選項
@@ -2113,7 +2115,7 @@ kit `.ss-stats-row`／`.ss-stat`（數值在上、標籤在下）：Prompt Token
 #### 細分表格
 
 三張表（byBook／byService／byModel）表頭逐字「名稱／Prompt／Completion／合計／呼叫」（「Prompt」寫死，維持現況）。
-數字欄 mono 2xs、右對齊＋tabular-nums；合計欄加粗，呼叫欄淡化；依 totalTokens 降冪。服務中文名走既有 `token.services.*`，旁邊不標 slug；
+數字欄 mono 2xs、右對齊＋tabular-nums；名稱欄 sans xs（是要讀的內容）；服務／模型表名稱不折行（並排時欄窄，model id 會在連字號斷開），放不下由表內橫捲；合計欄加粗，呼叫欄淡化；依 totalTokens 降冪。服務中文名走既有 `token.services.*`，旁邊不標 slug；
 byModel 顯示原始 model id。
 
 #### 每日趨勢
