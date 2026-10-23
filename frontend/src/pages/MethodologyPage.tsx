@@ -308,7 +308,7 @@ function ItemsGrid({ fw }: { fw: Framework }) {
       {groupItemsByBadge(fw.items).map((g) => (
         <section key={g.label} className="md-wall-group">
           <div className="md-wall-head">
-            <span>{g.label}</span>
+            <h3 className="md-wall-label">{g.label}</h3>
             <span className="md-wall-count">{g.entries.length}</span>
           </div>
           <div className="md-items">
@@ -378,13 +378,14 @@ function AboutMode({ fw, sections }: AboutModeProps) {
             </div>
           ))}
         </div>
-        <div className="md-subhead">{t('secOutput')}</div>
-        <div className="md-schema">
+        <h3 className="md-subhead" id="md-schema-title">{t('secOutput')}</h3>
+        {/* 無表頭列的三欄表：用 ARIA table 角色保留 grid 版面 */}
+        <div className="md-schema" role="table" aria-labelledby="md-schema-title">
           {fw.output.map((o) => (
-            <div className="md-schema-row" key={o.field}>
-              <code className="md-schema-field">{o.field}</code>
-              <code className="md-schema-type">{o.type}</code>
-              <span className="md-schema-note">{o.note}</span>
+            <div className="md-schema-row" role="row" key={o.field}>
+              <code className="md-schema-field" role="cell">{o.field}</code>
+              <code className="md-schema-type" role="cell">{o.type}</code>
+              <span className="md-schema-note" role="cell">{o.note}</span>
             </div>
           ))}
         </div>
