@@ -791,6 +791,7 @@ Handoff `redesign_v3_handoff_batch_2.zip`（`design_handoff_02_system/`）。下
 | 2-TU-4 | 矛盾 · 標題列右側的下拉與範圍 pill 順序（README vs 決議紀錄） | 待同步 |
 | 2-TU-5 | 遺漏 · 選定書時的範圍標示與網址狀態 | 待同步 |
 | 2-TU-6 | 矛盾 · 範圍 pill 字級：DESIGN_TOKENS 12px vs DESIGN.md 11px；Ink 下 pill 與 hover 不可辨 | 待同步 |
+| 2-TU-7 | 遺漏 · 失敗標題「無法載入Token 用量」CJK 與拉丁字黏在一起 | 待同步 |
 
 #### 2-TU-1 兩個查詢只有一個失敗時
 
@@ -831,6 +832,13 @@ Handoff `redesign_v3_handoff_batch_2.zip`（`design_handoff_02_system/`）。下
 - **問題**：兩份文件對 pill 字級說法相反。Ink 下未選中 pill 與 byBook hover 列的底色對白底 1.08:1，幾乎看不見（頁面評估 2026-10-23 實測）。
 - **目前處置**（使用者裁決）：pill 維持 11px，等全站字級一次定；pill 框改走 `--chip-border-width`（Ink 1px）；hover 加新 shape token `--row-pick-hover-decoration`（Ink 名稱底線）。名稱欄與書籍下拉 11→12px（UI_SPEC 只規定數字欄 2xs）。
 - **請設計端**：統一 pill 字級；稿補 Ink 版標題列與 byBook hover。
+
+#### 2-TU-7 失敗標題 CJK 與拉丁字之間沒有空格
+
+- **出處**：06 E 區失敗態；全站模板 `common:failure.pageTitle`「無法載入{{page}}」。
+- **問題**：頁名以英文開頭時（「Token 用量」）會黏成「無法載入Token 用量」；其他頁名是中文，不受影響。
+- **目前處置**（2026-10-23 使用者裁決）：不改既定稿字串，記在這裡。
+- **請設計端**：定全站 CJK／拉丁字間距規則（模板加空格會讓所有頁名都多一格）。
 
 #### 2-TU-4 標題列右側的下拉與範圍 pill 順序（README vs 決議紀錄）
 

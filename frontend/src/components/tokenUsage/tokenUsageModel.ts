@@ -57,6 +57,11 @@ export function selectedLabel(
   return null;
 }
 
+/** Dropdown order: books as given, 「未歸屬」 last — it is not a book. */
+export function dropdownBooks(books: BookUsage[]): BookUsage[] {
+  return [...books.filter((b) => b.bookId !== null), ...books.filter((b) => b.bookId === null)];
+}
+
 /** Dropdown and table rows share one state: clicking the selected row clears it. */
 export function toggleSelected(current: string | null, key: string): string | null {
   return current === key ? null : key;
