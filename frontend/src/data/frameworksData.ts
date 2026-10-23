@@ -532,7 +532,7 @@ const FRAMEWORKS_EN: RawFramework[] = [
     name: 'Jung Archetypes',
     category: 'Character Analysis',
     description: "Carl Jung's theory of 12 archetypes identifies a character's core drives and behavioural patterns from the collective unconscious. Source quotes and chunk IDs are kept in the character evidence profile; this page shows only the archetype judgement itself.",
-    itemLabel: 'Type',
+    itemLabel: 'Types',
     references: [
       { author: 'Jung, C. G.', year: 1934, title: 'Archetypes of the Collective Unconscious', publisher: 'in Collected Works Vol. 9i, Princeton University Press, 1968', note: 'First systematic exposition of the archetype concept' },
       { author: 'Jung, C. G.', year: 1951, title: 'Aion: Researches into the Phenomenology of the Self', publisher: 'Collected Works Vol. 9ii, Princeton University Press', note: 'Complete treatment of the Self, Shadow, Anima/Animus archetypes' },
@@ -558,7 +558,7 @@ const FRAMEWORKS_EN: RawFramework[] = [
     name: 'Schmidt Types',
     category: 'Character Analysis',
     description: "Victoria Lynn Schmidt's 45 character types, based on a gender-paired classification of heroes and anti-heroes. Gender-pairing is the theoretical structure; classification feeds the LLM a flat list of all 45 types. Each archetype carries `gender` and `is_antagonist` flags in the config — the hero/anti-hero polarity is looked up from the chosen primary type, not produced by the analysis itself.",
-    itemLabel: 'Type',
+    itemLabel: 'Types',
     references: [
       { author: 'Schmidt, V. L.', year: 2001, title: '45 Master Characters: Mythic Models for Creating Original Characters', publisher: "Writer's Digest Books", note: 'Proposes 45 archetypal characters using a gender-paired structure, covering hero and anti-hero arcs for both masculine and feminine' },
     ],
@@ -615,7 +615,7 @@ const FRAMEWORKS_EN: RawFramework[] = [
     name: "Hero's Journey",
     category: 'Narrative Arc',
     description: "Joseph Campbell's 12-stage narrative archetype from The Hero with a Thousand Faces, analysing how a protagonist departs from the ordinary world, endures trials, and returns transformed. The system maps chapters to corresponding stages to reveal the story's narrative rhythm. Not every book covers all 12 stages — stages without explicit textual evidence are skipped; a rough coverage rate can be derived as mapped-stage-count / 12. Each stage also carries representative event IDs for cross-linking with the event analysis page.",
-    itemLabel: 'Stage',
+    itemLabel: 'Stages',
     references: [
       { author: 'Campbell, J.', year: 1949, title: 'The Hero with a Thousand Faces', publisher: 'Pantheon Books', note: 'The founding text of the Hero\'s Journey (Monomyth) theory and a cornerstone of comparative mythology' },
       { author: 'Vogler, C.', year: 1992, title: "The Writer's Journey: Mythic Structure for Writers", publisher: 'Michael Wiese Productions', note: 'Translates Campbell\'s theory into a practical 12-stage framework for Hollywood screenwriters; the version adopted by this system' },
@@ -640,7 +640,7 @@ const FRAMEWORKS_EN: RawFramework[] = [
     name: 'Chatman Kernel / Satellite',
     category: 'Narrative Arc',
     description: "Seymour Chatman's distinction, from Story and Discourse, between two kinds of plot event: kernels are hinge points that drive the causal chain — remove one and subsequent events lose their meaning; satellites are elaborations or decorations that can be removed without breaking the story's logic. The system applies this test to every analysed event, tagging its structural role to assemble the book's plot spine.",
-    itemLabel: 'Type',
+    itemLabel: 'Types',
     references: [
       { author: 'Chatman, S.', year: 1978, title: 'Story and Discourse: Narrative Structure in Fiction and Film', publisher: 'Cornell University Press', note: 'Introduces the kernel/satellite distinction; a core text of structuralist narrative analysis' },
       { author: 'Barthes, R.', year: 1966, title: 'Introduction to the Structural Analysis of Narratives', publisher: 'Communications, no. 8', note: "Distinguishes 'cardinal functions' (noyaux) from 'catalysers' (catalyses), the direct precursor to Chatman's kernel/satellite pair" },
@@ -655,7 +655,7 @@ const FRAMEWORKS_EN: RawFramework[] = [
     name: "Genette's Narrative Order",
     category: 'Narrative Arc',
     description: "Gérard Genette's temporal-order framework from Narrative Discourse, comparing \"story time\" (when events actually happen in the fictional world) against \"discourse time\" (the order in which they are narrated). The system compares each event's text-order rank against an LLM-inferred story rank; a displacement past the threshold is tagged analepsis or prolepsis, and the whole book is also classified by its overall temporal structure. This analysis only runs once story-time-hint coverage reaches 60% — it is the only Genette dimension this system currently implements; focalization and voice are not yet systematised.",
-    itemLabel: 'Type',
+    itemLabel: 'Types',
     references: [
       { author: 'Genette, G.', year: 1972, title: 'Discours du récit (in Figures III)', publisher: 'Éditions du Seuil', note: 'The original French text, introducing the narrative-order framework and the story time / discourse time gap (anachronie)' },
       { author: 'Genette, G. (trans. Lewin, J. E.)', year: 1980, title: 'Narrative Discourse: An Essay in Method', publisher: 'Cornell University Press', note: 'The standard English translation; source of the analepsis/prolepsis terminology this system uses' },
@@ -671,7 +671,7 @@ const FRAMEWORKS_EN: RawFramework[] = [
     name: "Frye's Four Mythoi",
     category: 'Tension Analysis',
     description: "Northrop Frye's Anatomy of Criticism reduces all narrative to four mythic modes, each tied to a season and emotional register. The system uses this framework to characterise a book's primary mythos. In practice, this judgement is produced in the same analysis step as Booker's Seven Basic Plots — both consume the same TensionLine input (chapter-level polar opposites, intensity, and review status), and a single LLM call returns both classification choices plus a synthesised proposition. One layer further down, the individual TEUs (Tension Evidence Units — the binary oppositions found in a scene) that make up a TensionLine are conceptually informed by Aristotelian conflict theory, Greimas's semiotic square, Peter Brooks's Reading for the Plot, and Mieke Bal's narratology — though the system only extracts a binary opposition and is not a precise implementation of any of these theories.",
-    itemLabel: 'Mythos',
+    itemLabel: 'Mythoi',
     references: [
       { author: 'Frye, N.', year: 1957, title: 'Anatomy of Criticism: Four Essays', publisher: 'Princeton University Press', note: 'Establishes a theory of literary modes using seasonal metaphor, proposing the four mythoi: romance, comedy, tragedy, and irony/satire' },
       { author: 'Aristotle', year: 'c. 335 BCE', title: 'Poetics', publisher: '(earliest surviving manuscripts c. 10th–11th century)', note: "Frye's classification of tragedy and comedy directly inherits Aristotle's distinction between high and low mimetic action" },
@@ -688,7 +688,7 @@ const FRAMEWORKS_EN: RawFramework[] = [
     name: "Booker's Seven Basic Plots",
     category: 'Tension Analysis',
     description: "Christopher Booker's The Seven Basic Plots argues all stories are built from seven archetypal plots. The system uses this framework to identify a book's overall plot type. In practice, this judgement is produced in the same analysis step as Frye's Four Mythoi — both consume the same TensionLine input (chapter-level polar opposites, intensity, and review status), and a single LLM call returns both classification choices plus a synthesised proposition. One layer further down, the individual TEUs (Tension Evidence Units — the binary oppositions found in a scene) that make up a TensionLine are conceptually informed by Aristotelian conflict theory, Greimas's semiotic square, Peter Brooks's Reading for the Plot, and Mieke Bal's narratology — though the system only extracts a binary opposition and is not a precise implementation of any of these theories.",
-    itemLabel: 'Plot',
+    itemLabel: 'Plots',
     references: [
       { author: 'Booker, C.', year: 2004, title: 'The Seven Basic Plots: Why We Tell Stories', publisher: 'Continuum', note: 'Written over 34 years; argues from Jungian psychology and mythology that all stories can be classified into seven archetypal plots' },
       { author: 'Polti, G.', year: 1895, title: 'Les Trente-Six Situations Dramatiques (The Thirty-Six Dramatic Situations)', publisher: 'Mercure de France', note: "A distant ancestor of Booker's framework; Polti distilled 36 dramatic situations from classical theatre, influencing later plot-classification theory" },
@@ -708,7 +708,7 @@ const FRAMEWORKS_EN: RawFramework[] = [
     name: 'SEP Methodology',
     category: 'Symbol Analysis',
     description: 'The Symbol Evidence Profile (SEP) is a five-step process for structured analysis of textual symbols. Evidence is first aggregated purely from text data, then interpreted for thematic meaning by an LLM, and finally submitted to human review for confirmation. The LLM interpretation also backfills the character IDs and event IDs most closely linked to the symbol, for downstream cross-linking with the knowledge graph and reader page.',
-    itemLabel: 'Step',
+    itemLabel: 'Steps',
     references: [
       { author: 'Barthes, R.', year: 1957, title: 'Mythologies', publisher: 'Éditions du Seuil', note: 'Reads everyday cultural phenomena as sign systems, laying the popular foundations of semiotic criticism; the core methodological starting point for this system\'s symbol analysis' },
       { author: 'Saussure, F. de', year: 1916, title: 'Cours de linguistique générale (Course in General Linguistics)', publisher: 'Payot', note: 'Origin of the signifier/signified binary structure; the linguistic basis for symbolic semiotic research' },
