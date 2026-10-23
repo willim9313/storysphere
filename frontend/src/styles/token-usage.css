@@ -84,6 +84,8 @@
   color: var(--fg-muted);
   line-height: 1.5;
 }
+/* 刻度註記裡的日期與數值（UI_SPEC：皆 mono） */
+.tu-mono { font-family: var(--font-mono); }
 /* 選定一本書時，摘要上方標出限定範圍＋清除 */
 .tu-scope {
   display: flex;

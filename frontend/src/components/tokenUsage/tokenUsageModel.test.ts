@@ -7,6 +7,7 @@ import {
   bookLabel,
   bookRows,
   dailyScale,
+  dropdownBooks,
   parseRange,
   selectedLabel,
   sortBuckets,
@@ -90,6 +91,14 @@ describe('dailyScale', () => {
   it('does not divide by zero when every day is zero', () => {
     const s = dailyScale([day('2026-09-10', 0)])!;
     expect(s.rows[0].pct).toBe(0);
+  });
+});
+
+describe('dropdownBooks', () => {
+  it('moves the unattributed group to the end and keeps the rest in order', () => {
+    const b = (bookId: string | null) => ({ ...bucket(1), bookId, title: null }) as BookUsage;
+    const out = dropdownBooks([b('a'), b(null), b('c')]);
+    expect(out.map((x) => x.bookId)).toEqual(['a', 'c', null]);
   });
 });
 

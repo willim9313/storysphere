@@ -2077,7 +2077,7 @@ padding 24／section 16／card 12／row 8，內容 max-w 1280。
 
 - 範圍 pill：四顆獨立 chip「今天／7 天／30 天／全部」，`--pill-radius`，idle `--bg-secondary`，選中 accent 實心；切換時重新請求。
   框走 `--chip-border-width`（Warm 0、Ink 1px，選中框色 accent）；字級 2xs（與 DESIGN_TOKENS 的 pill 12px 矛盾，FEEDBACK 2-TU-6）。
-- 書籍下拉：`--input-bg`／`--input-radius`／`--input-border-width`，min-width 180、max-width 280，字級 xs。選項「全部書籍」＋各書＋「未歸屬」。
+- 書籍下拉：`--input-bg`／`--input-radius`／`--input-border-width`，min-width 180、max-width 280，字級 xs。選項「全部書籍」＋各書（依花費）＋「未歸屬」（永遠最後，`dropdownBooks`）。
   書清單為空（含全部查詢失敗）且未選書時不渲染。它是唯一能選到「未歸屬」的入口，所以不能拿掉。
   換範圍載入中沿用上一個範圍的書清單（`keepPreviousData`），下拉不閃退。
 - **網址狀態**：`?range=`（`today`／`30d`／`all`；預設 7 天不寫）與 `?book=`（書 id 或 `__unattributed__`），
@@ -2123,7 +2123,8 @@ byModel 顯示原始 model id。
 與表同框的容器；每列：日期（mono、最小 44px；MM-DD，期間跨年時改 YYYY-MM-DD）＋ 12px 高長條（accent，全同色、不標峰值、無透明度差）＋ 數值（92px 右對齊）。
 **逐日連續**：沒有呼叫的日子也有一列（長條 0、數值 0），由後端補（API #17）；範圍是本地日曆日（2026-10-23 使用者裁決）。
 **無軸線、刻度、格線、tooltip**——長條是本期相對值，數值才是量值來源。長條寬＝該日／期間最大值（`dailyScale`）。
-標題右側（同一行）的刻度註記帶入最大值那天的 MM-DD 與數值（千分位）；日期與數值皆 mono。
+標題右側（同一行）的刻度註記帶入最大值那天的 MM-DD 與數值（千分位）；日期與數值皆 mono（字串內以 `<mono>` 標記、`Trans` 渲染）。
+列首日期用 `<time dateTime="YYYY-MM-DD">`。0 值不淡化（是真實量值；fg-muted 對比不足為全站延後項）。
 
 #### 狀態
 

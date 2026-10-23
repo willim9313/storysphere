@@ -1,6 +1,6 @@
 import { useId } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { Check } from 'lucide-react';
 import { useTokenUsage } from '@/hooks/useTokenUsage';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
@@ -12,6 +12,7 @@ import {
   bookLabel,
   bookRows,
   dailyScale,
+  dropdownBooks,
   parseRange,
   selectedLabel,
   sortBuckets,
@@ -193,13 +194,18 @@ export default function TokenUsagePage() {
             <div className="tu-section-head">
               <h2 className="tu-section-title">{t('token.dailyTrend')}</h2>
               <span className="tu-daily-note">
-                {t('token.dailyNote', { date: daily.baseLabel, value: fmt(daily.baseValue) })}
+                <Trans
+                  i18nKey="token.dailyNote"
+                  ns="settings"
+                  values={{ date: daily.baseLabel, value: fmt(daily.baseValue) }}
+                  components={{ mono: <span className="tu-mono" /> }}
+                />
               </span>
             </div>
             <div className="tu-daily">
               {daily.rows.map((d) => (
                 <div key={d.date} className="tu-daily-row">
-                  <code className="tu-daily-date">{d.label}</code>
+                  <time className="tu-daily-date" dateTime={d.date}>{d.label}</time>
                   <div className="tu-daily-track">
                     <div className="tu-daily-bar" style={{ width: `${d.pct}%` }} />
                   </div>
@@ -227,7 +233,7 @@ export default function TokenUsagePage() {
                 onChange={(e) => setBookId(e.target.value === '' ? null : e.target.value)}
               >
                 <option value="">{t('token.allBooks')}</option>
-                {books.map((b) => (
+                {dropdownBooks(books).map((b) => (
                   <option key={bookKey(b.bookId)} value={bookKey(b.bookId)}>
                     {bookLabel(b, labels)}
                   </option>
