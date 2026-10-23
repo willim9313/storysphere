@@ -244,7 +244,8 @@ function HeroJourney({ fw }: { fw: Framework }) {
         <text x={cx} y={cy + 18} textAnchor="middle" className="md-svg-ring">{`${fw.items.length} ${fw.itemLabel}`}</text>
         {stages.map((s, i) => {
           const act = acts[s.act];
-          const p = polar(cx, cy, R, (i / 12) * 360 + 15);
+          // 起點 -45°：閾限（水平虛線）落在 5|6 與 11|12 之間——12、1–5 在平凡世界，6–11 在非常世界。
+          const p = polar(cx, cy, R, (i / 12) * 360 - 45);
           return (
             <g key={s.n}>
               <Mark kind={act.kind} x={p.x} y={p.y} r={13} color={act.tint.dot} />
