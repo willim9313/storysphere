@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef, type KeyboardEvent } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, ArrowRight, ChevronRight, PanelLeftClose, PanelLeftOpen, Search } from 'lucide-react';
@@ -382,14 +382,6 @@ function OverviewPage({ frameworks, onGoto }: { frameworks: Framework[]; onGoto:
   const { t, i18n } = useTranslation('frameworks');
   const categories = getFrameworkCategories(i18n.language);
 
-  const onCardKey = (e: KeyboardEvent, key?: string) => {
-    if (e.target !== e.currentTarget) return;
-    if (key && (e.key === 'Enter' || e.key === ' ')) {
-      e.preventDefault();
-      onGoto(key);
-    }
-  };
-
   return (
     <div className="md-overview">
       <div className="md-ov-hero">
@@ -407,15 +399,9 @@ function OverviewPage({ frameworks, onGoto }: { frameworks: Framework[]; onGoto:
           const list = frameworks.filter((f) => f.categoryId === cat.id);
           if (!list.length) return null;
           const first = firstOfCategory(frameworks, cat.id);
+          // 整張卡可點只是滑鼠的大命中區（跳該類第一個方法）；鍵盤／讀屏走卡內各方法按鈕，卡本身不是互動元件
           return (
-            <div
-              key={cat.id}
-              className="md-ov-catcard"
-              onClick={() => first && onGoto(first.key)}
-              onKeyDown={(e) => onCardKey(e, first?.key)}
-              role="button"
-              tabIndex={0}
-            >
+            <div key={cat.id} className="md-ov-catcard" onClick={() => first && onGoto(first.key)}>
               <span className="md-ov-catname">{cat.name}</span>
               <div className="md-ov-catmethods">
                 {list.map((fw) => (

@@ -1981,6 +1981,7 @@ page padding `--space-8`（32）、節距 `--space-8`／標題列 `--space-7`（
 
 標題列 → lead（serif，逐字）→ 分隔線 →「概念架構」節頭（無編號、無圖示）→ 四張分類卡（2 欄）。
 每張卡列出該類方法，每列右側 mono accent 規模數字；點卡片本身跳該分類第一個方法（`firstOfCategory`），點方法列跳該方法。
+卡片本身**不是互動元件**（無 role／tabIndex，只是滑鼠的大命中區）：鍵盤與讀屏走卡內各方法按鈕，避免巢狀互動元件。
 
 #### 單一方法六節（`?framework=` 驅動，`replace: true`）
 
@@ -2004,6 +2005,9 @@ page padding `--space-8`（32）、節距 `--space-8`／標題列 `--space-7`（
 
 #### 八張概念圖（`ConceptDiagram.tsx`）
 
+圖卡是 `<figure>`、caption 是 `<figcaption>`；主圖 SVG 一律 `role="img"`＋`aria-label`，label 由圖上既有標籤以中性符號
+（`:` `·` `→` `/`）串成結構摘要、不新增文案（例：Genette「文本順序: A, B, C · 故事順序: C, B, A · 倒敘: C · 預敘: A」）。
+Booker 小曲線 `aria-hidden`（名稱是 HTML 文字）；Schmidt 無 SVG。
 各自不同結構，**不正規化成同一版型**；viewBox、marker、節點座標、分組順序照原始碼。圖卡右上帶「附信心值」或
 「不產生信心值」標（後者虛線框）。**Ink 下 `--entity-*` 與 status 色會退成同一個灰，所以每個分類層都帶非色相載體**：
 填色之上疊 0／45／90／135° hatch（SVG `<pattern>`，id 前綴 `md-`）、節點分組用記號形狀（實圓／空圓／實方／空方）＋半徑差、

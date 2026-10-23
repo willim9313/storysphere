@@ -75,18 +75,20 @@ function Swatch({ id, tint, angle, kind }: { id: string; tint: Tint; angle: numb
   );
 }
 
+// 主圖 SVG 一律 role="img"＋aria-label：label 由圖上既有標籤以中性符號（: · → /）串成結構摘要，
+// 不新增文案；讀屏不再逐字念散落的 <text>。
 function ConceptFrame({ fw, caption, children }: { fw: Framework; caption: string; children: ReactNode }) {
   const { t } = useTranslation('frameworks');
   return (
-    <div className="md-concept">
+    <figure className="md-concept">
       <div className="md-concept-head">
         <span className={`md-confbadge ${fw.hasConfidence ? 'has' : 'none'}`}>
           {fw.hasConfidence ? t('confBadgeHas') : t('confBadgeNone')}
         </span>
       </div>
       <div className="md-concept-stage">{children}</div>
-      {caption && <p className="md-concept-cap">{caption}</p>}
-    </div>
+      {caption && <figcaption className="md-concept-cap">{caption}</figcaption>}
+    </figure>
   );
 }
 
@@ -106,7 +108,13 @@ function JungWheel({ fw }: { fw: Framework }) {
   const labR = 170;
   return (
     <ConceptFrame fw={fw} caption={t('concept.jungCaption')}>
-      <svg viewBox="0 0 460 410" className="md-svg" style={{ maxWidth: 460 }}>
+      <svg
+        viewBox="0 0 460 410"
+        className="md-svg"
+        style={{ maxWidth: 460 }}
+        role="img"
+        aria-label={groups.map((g) => `${g.label}: ${g.ids.map(nameOf).join(' / ')}`).join(' · ')}
+      >
         <defs>
           {groups.map((g, gi) => (
             <Hatch key={gi} id={`md-jung-h${gi}`} angle={gi * 45} stroke={g.tint.edge} />
@@ -170,7 +178,13 @@ function FryeSeasons({ fw }: { fw: Framework }) {
   ];
   return (
     <ConceptFrame fw={fw} caption={t('concept.fryeCaption')}>
-      <svg viewBox="0 0 400 410" className="md-svg" style={{ maxWidth: 400 }}>
+      <svg
+        viewBox="0 0 400 410"
+        className="md-svg"
+        style={{ maxWidth: 400 }}
+        role="img"
+        aria-label={seasons.map((s) => `${s.season}: ${s.mythos} (${s.reg})`).join(' → ')}
+      >
         <defs>
           <ArrowMarker id="frye-arrow" color="var(--fg-secondary)" />
           {seasons.map((s, i) => (
@@ -233,7 +247,13 @@ function HeroJourney({ fw }: { fw: Framework }) {
   ];
   return (
     <ConceptFrame fw={fw} caption={t('concept.hjCaption')}>
-      <svg viewBox="0 0 400 400" className="md-svg" style={{ maxWidth: 380 }}>
+      <svg
+        viewBox="0 0 400 400"
+        className="md-svg"
+        style={{ maxWidth: 380 }}
+        role="img"
+        aria-label={`${t('concept.hjOrdinary')}: 12, 1–5 · ${t('concept.hjSpecial')}: 6–11`}
+      >
         <path d={`M ${cx - R} ${cy} A ${R} ${R} 0 0 1 ${cx + R} ${cy} Z`} fill="var(--bg-secondary)" />
         <path d={`M ${cx + R} ${cy} A ${R} ${R} 0 0 1 ${cx - R} ${cy} Z`} fill="var(--bg-tertiary)" />
         <circle cx={cx} cy={cy} r={R} fill="none" stroke="var(--border)" />
@@ -377,7 +397,13 @@ function SepFlow({ fw }: { fw: Framework }) {
   ];
   return (
     <ConceptFrame fw={fw} caption={t('concept.sepCaption')}>
-      <svg viewBox="0 0 660 250" className="md-svg" style={{ maxWidth: 660 }}>
+      <svg
+        viewBox="0 0 660 250"
+        className="md-svg"
+        style={{ maxWidth: 660 }}
+        role="img"
+        aria-label={`${t('concept.sepDataLayer')}: ${data.join(' → ')} → ${t('concept.sepAiLayer')}: ${t('concept.sepLlm')} → ${t('concept.sepHitl')} · ${t('concept.sepReject')} → ${t('concept.sepLlm')}`}
+      >
         <defs>
           <ArrowMarker id="sep-arrow" color="var(--fg-muted)" />
           <ArrowMarker id="sep-arrow-warn" color="var(--status-partial-border)" />
@@ -436,7 +462,13 @@ function ChatmanChain({ fw }: { fw: Framework }) {
   const satX = [175, 385];
   return (
     <ConceptFrame fw={fw} caption={t('concept.chatmanCaption')}>
-      <svg viewBox="0 0 560 190" className="md-svg" style={{ maxWidth: 560 }}>
+      <svg
+        viewBox="0 0 560 190"
+        className="md-svg"
+        style={{ maxWidth: 560 }}
+        role="img"
+        aria-label={`${t('concept.chatmanKernel')}: K1 → K2 → K3 · ${t('concept.chatmanSatellite')}: S1 / S2`}
+      >
         <defs>
           <ArrowMarker id="chatman-arrow" color={TINT.red.fg} />
         </defs>
@@ -490,7 +522,13 @@ function GenetteOrder({ fw }: { fw: Framework }) {
   ];
   return (
     <ConceptFrame fw={fw} caption={t('concept.genetteCaption')}>
-      <svg viewBox="0 0 460 230" className="md-svg" style={{ maxWidth: 460 }}>
+      <svg
+        viewBox="0 0 460 230"
+        className="md-svg"
+        style={{ maxWidth: 460 }}
+        role="img"
+        aria-label={`${t('concept.genetteTextAxis')}: A, B, C · ${t('concept.genetteStoryAxis')}: C, B, A · ${t('concept.genetteAnalepsis')}: C · ${t('concept.genetteProlepsis')}: A`}
+      >
         <text x="40" y="26" className="md-svg-band" style={{ fill: 'var(--fg-secondary)' }}>
           {t('concept.genetteTextAxis')}
         </text>
