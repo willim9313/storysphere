@@ -2077,7 +2077,10 @@ padding 24／section 16／card 12／row 8，內容 max-w 1280。
 
 - 範圍 pill：四顆獨立 chip「今天／7 天／30 天／全部」，`--pill-radius`，idle `--bg-secondary`，選中 accent 實心；切換時重新請求。
 - 書籍下拉：`--input-bg`／`--input-radius`／`--input-border-width`，min-width 180。選項「全部書籍」＋各書＋「未歸屬」。
-  書清單為空（含全部查詢失敗）時不渲染。它是唯一能選到「未歸屬」的入口，所以不能拿掉。
+  書清單為空（含全部查詢失敗）且未選書時不渲染。它是唯一能選到「未歸屬」的入口，所以不能拿掉。
+  換範圍載入中沿用上一個範圍的書清單（`keepPreviousData`），下拉不閃退。
+- **網址狀態**：`?range=`（`today`／`30d`／`all`；預設 7 天不寫）與 `?book=`（書 id 或 `__unattributed__`），
+  以 `replace` 更新；未知 range 退回 7 天。可重開同一檢視、可從他處深連結。
 
 #### 書籍選擇器與下鑽
 
@@ -2090,6 +2093,10 @@ byBook 表的每一列都可點選，等同於用下拉選它，**兩者是同�
 - 只有 byBook 的列有 cursor 與 hover；byService／byModel 不可點、無 hover。
 - 選中列：`--bg-secondary` 底＋加粗＋Lucide `check`（accent）。**不用左緣／inset 強調**；check 讓 Ink 下不靠底色也讀得出。
 - 名稱格內是一顆 button（`aria-pressed`），鍵盤可達；整列 click 也等效。
+- 選定時摘要上方一行「只看「{書名}」 · 顯示全部書籍」（後者 ghost sm 鈕，清除選取），捲動或截圖都不失限定脈絡。
+- **選定書在新範圍沒有呼叫**（2026-10-23 使用者裁決，FEEDBACK 2-TU-3）：**保留選取**，不自動清除。下拉補一個該書的選項
+  （否則原生 select 會顯示「全部書籍」而篩選仍在作用、且無法再選回）；書名從當前清單找，找不到再查一次「全部」範圍，
+  查詢中顯示「…」，都沒有則用 id 前 8 碼。內容區為虛線框「「{書名}」在這個時間範圍沒有使用記錄」＋ byBook 表（可直接換書）。
 
 兩種沒有書名的列必須看得見，不得隱藏、併入其他列或降階成灰字：
 
@@ -2127,7 +2134,8 @@ byModel 顯示原始 model id。
 #### 字串來源
 
 既有字串逐字保留（`settings.json` 的 `token.*`）。**新字串 2 句，皆為已裁決**（README §5／決議紀錄 06）：
-`token.dailyNote`（刻度註記）、`token.byBookScope`（byBook 範圍說明）；失敗標題用 common 的 `failure.pageTitle`。無草稿字串。
+`token.dailyNote`（刻度註記）、`token.byBookScope`（byBook 範圍說明）；失敗標題用 common 的 `failure.pageTitle`。
+另 3 句（2026-10-23 使用者裁決版面，字句為工程端草稿，FEEDBACK 2-TU-5）：`token.bookNoData`、`token.scopeOnly`、`token.showAllBooks`。
 
 #### API 參考
 
