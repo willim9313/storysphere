@@ -1,38 +1,17 @@
 import { apiFetch } from './client';
+import type { components } from './generated';
 
-export interface TokenBucket {
-  promptTokens: number;
-  completionTokens: number;
-  totalTokens: number;
-  calls: number;
-}
+type Schemas = components['schemas'];
 
-export interface DailyUsage extends TokenBucket {
-  date: string;
-}
-
-export interface BookUsage extends TokenBucket {
-  /** null = calls that belong to no book (global chat, records predating attribution). */
-  bookId: string | null;
-  /** null with a non-null bookId = the book was deleted; its spending still counts. */
-  title: string | null;
-}
+export type TokenBucket = Schemas['TokenBucket'];
+export type DailyUsage = Schemas['DailyUsage'];
+/** `bookId: null` = calls that belong to no book (global chat, records predating attribution);
+ *  `title: null` with a bookId = the book was deleted, its spending still counts. */
+export type BookUsage = Schemas['BookUsage'];
+export type TokenUsageResponse = Schemas['TokenUsageResponse'];
 
 /** Selects the rows with no book. The backend treats it as `book_id IS NULL`. */
 export const UNATTRIBUTED = '__unattributed__';
-
-export interface TokenUsageResponse {
-  summary: {
-    totalPromptTokens: number;
-    totalCompletionTokens: number;
-    totalTokens: number;
-    totalCalls: number;
-  };
-  byService: Record<string, TokenBucket>;
-  byModel: Record<string, TokenBucket>;
-  byBook: BookUsage[];
-  daily: DailyUsage[];
-}
 
 export function fetchTokenUsage(
   range: string,

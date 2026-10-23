@@ -2345,9 +2345,9 @@ sentenceLengthHistogram: HistogramBucket[]; // 6 buckets；依實際句長分桶
   （本機自架，主機與瀏覽器通常同一台；2026-10-23 前 `today` 誤用 UTC 午夜、`7d`／`30d` 為滾動 168／720 小時。）
 - `bookId`（選填）：限定單一本書。傳 `__unattributed__` 代表歸不了書的呼叫
   （全站 chat、2026-08-19 歸因修正之前的舊記錄）。**篩選會作用在每一個區塊**
-  ——`summary`、`byService`、`byModel`、`daily` 全部跟著限定。
+  ——`summary`、`byService`、`byModel`、`daily` 全部跟著限定。空字串 422（2026-10-23 前會以 `book_id = ''` 篩選、回全 0）。
 
-**Response 200**
+**Response 200**：`TokenUsageResponse`（`api/schemas/token_usage.py`；前端型別取 generated.ts，不手寫）。形狀如下：
 ```ts
 interface TokenUsageResponse {
   summary: {
