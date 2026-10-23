@@ -186,7 +186,7 @@ function FryeSeasons({ fw }: { fw: Framework }) {
         aria-label={seasons.map((s) => `${s.season}: ${s.mythos} (${s.reg})`).join(' → ')}
       >
         <defs>
-          <ArrowMarker id="frye-arrow" color="var(--fg-secondary)" />
+          <ArrowMarker id="md-frye-arrow" color="var(--fg-secondary)" />
           {seasons.map((s, i) => (
             <Hatch key={i} id={`md-frye-h${i}`} angle={i * 45} stroke={s.tint.edge} />
           ))}
@@ -219,7 +219,7 @@ function FryeSeasons({ fw }: { fw: Framework }) {
               fill="none"
               stroke="var(--fg-secondary)"
               strokeWidth="1.5"
-              markerEnd="url(#frye-arrow)"
+              markerEnd="url(#md-frye-arrow)"
             />
           );
         })}
@@ -379,7 +379,8 @@ function SchmidtPairs({ fw }: { fw: Framework }) {
         </div>
       </div>
       <div className="md-pairs-eq">
-        8 {t('concept.schmidtEqFem')} + 8 {t('concept.schmidtEqMasc')} + {t('concept.schmidtEqSupp')} = <b>45</b>
+        {fem.length} {t('concept.schmidtEqFem')} + {masc.length} {t('concept.schmidtEqMasc')} + {t('concept.schmidtEqSupp')} ={' '}
+        <b>{fw.items.length}</b>
       </div>
       <p className="md-pairs-note">{t('concept.schmidtNote')}</p>
     </ConceptFrame>
@@ -405,8 +406,8 @@ function SepFlow({ fw }: { fw: Framework }) {
         aria-label={`${t('concept.sepDataLayer')}: ${data.join(' → ')} → ${t('concept.sepAiLayer')}: ${t('concept.sepLlm')} → ${t('concept.sepHitl')} · ${t('concept.sepReject')} → ${t('concept.sepLlm')}`}
       >
         <defs>
-          <ArrowMarker id="sep-arrow" color="var(--fg-muted)" />
-          <ArrowMarker id="sep-arrow-warn" color="var(--status-partial-border)" />
+          <ArrowMarker id="md-sep-arrow" color="var(--fg-muted)" />
+          <ArrowMarker id="md-sep-arrow-warn" color="var(--status-partial-border)" />
           <Hatch id="md-sep-h1" angle={0} stroke={TINT.green.edge} />
           <Hatch id="md-sep-h2" angle={90} stroke={TINT.violet.edge} />
         </defs>
@@ -421,7 +422,7 @@ function SepFlow({ fw }: { fw: Framework }) {
               <text x={x + 39} y="94" textAnchor="middle" className="md-svg-box">{d}</text>
               <text x={x + 39} y="112" textAnchor="middle" className="md-svg-boxnum">{i + 1}</text>
               {i < 3 && (
-                <line x1={x + 78} y1="97" x2={x + 92} y2="97" stroke="var(--fg-muted)" strokeWidth="1.5" markerEnd="url(#sep-arrow)" />
+                <line x1={x + 78} y1="97" x2={x + 92} y2="97" stroke="var(--fg-muted)" strokeWidth="1.5" markerEnd="url(#md-sep-arrow)" />
               )}
             </g>
           );
@@ -435,15 +436,15 @@ function SepFlow({ fw }: { fw: Framework }) {
         <rect x="448" y="146" width="186" height="56" rx="8" fill="var(--bg-primary)" stroke="var(--status-partial-border)" strokeWidth="1.5" />
         <text x="541" y="170" textAnchor="middle" className="md-svg-box">{t('concept.sepHitl')}</text>
         <text x="541" y="188" textAnchor="middle" className="md-svg-boxnum">{t('concept.sepHitlSub')}</text>
-        <line x1="400" y1="97" x2="448" y2="94" stroke="var(--fg-muted)" strokeWidth="1.5" markerEnd="url(#sep-arrow)" />
-        <line x1="541" y1="122" x2="541" y2="146" stroke="var(--fg-muted)" strokeWidth="1.5" markerEnd="url(#sep-arrow)" />
+        <line x1="400" y1="97" x2="448" y2="94" stroke="var(--fg-muted)" strokeWidth="1.5" markerEnd="url(#md-sep-arrow)" />
+        <line x1="541" y1="122" x2="541" y2="146" stroke="var(--fg-muted)" strokeWidth="1.5" markerEnd="url(#md-sep-arrow)" />
         <path
           d="M 448 174 C 410 174 410 94 446 94"
           fill="none"
           stroke="var(--status-partial-border)"
           strokeWidth="1.5"
           strokeDasharray="4 3"
-          markerEnd="url(#sep-arrow-warn)"
+          markerEnd="url(#md-sep-arrow-warn)"
         />
         <text x="410" y="194" textAnchor="middle" className="md-svg-loop" style={{ fill: 'var(--status-partial-fg)' }}>
           {t('concept.sepReject')}
@@ -470,7 +471,7 @@ function ChatmanChain({ fw }: { fw: Framework }) {
         aria-label={`${t('concept.chatmanKernel')}: K1 → K2 → K3 · ${t('concept.chatmanSatellite')}: S1 / S2`}
       >
         <defs>
-          <ArrowMarker id="chatman-arrow" color={TINT.red.fg} />
+          <ArrowMarker id="md-chatman-arrow" color={TINT.red.fg} />
         </defs>
         <text x={kx[0] - 46} y={cy - 30} className="md-svg-band" style={{ fill: TINT.red.fg }}>
           {t('concept.chatmanKernel')}
@@ -479,7 +480,7 @@ function ChatmanChain({ fw }: { fw: Framework }) {
           <line
             key={i}
             x1={x + 22} y1={cy} x2={kx[i + 1] - 24} y2={cy}
-            stroke={TINT.red.fg} strokeWidth="2" markerEnd="url(#chatman-arrow)"
+            stroke={TINT.red.fg} strokeWidth="2" markerEnd="url(#md-chatman-arrow)"
           />
         ))}
         {kx.map((x, i) => (

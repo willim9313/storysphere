@@ -108,7 +108,12 @@
   color: var(--fg-primary);
 }
 .md-search input::placeholder { color: var(--fg-muted); }
-.md-search:focus-within { border-color: var(--accent); }
+/* input 本身 outline:none，焦點環畫在外框上（全站 focus-ring token） */
+.md-search:focus-within {
+  border-color: var(--accent);
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
 
 .md-rail-scroll {
   flex: 1;
@@ -321,7 +326,7 @@
 .md-sechead-sub { flex-shrink: 0; font-size: var(--font-size-2xs); color: var(--fg-muted); }
 .md-sechead-rule { flex: 1; height: var(--line-weight); background: var(--border); align-self: center; }
 
-.md-subhead { font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 600; color: var(--fg-primary); }
+.md-subhead { margin: 0; line-height: 1.6; font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 600; color: var(--fg-primary); }
 
 .md-rule { height: var(--line-weight); margin: 0; border: none; background: var(--border); }
 
@@ -573,6 +578,7 @@
   letter-spacing: 0.06em;
   color: var(--fg-muted);
 }
+.md-wall-label { margin: 0; font: inherit; color: inherit; }
 .md-wall-count { font-variant-numeric: tabular-nums; }
 .md-wall-group .md-items { padding: var(--space-4) 0 var(--space-6); }
 
