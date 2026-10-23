@@ -89,6 +89,7 @@ function MethodologyRail({ frameworks, selectedKey, onSelect, query, setQuery, h
   );
 
   const toggle = (id: string) => setCollapsed((c) => ({ ...c, [id]: !c[id] }));
+  const searchRef = useRef<HTMLInputElement>(null);
 
   return (
     <nav className="md-rail" id="md-rail" aria-label={t('brand')} hidden={hidden}>
@@ -102,6 +103,7 @@ function MethodologyRail({ frameworks, selectedKey, onSelect, query, setQuery, h
       <label className="md-search">
         <Search size={14} aria-hidden="true" />
         <input
+          ref={searchRef}
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder={t('searchPh')}
@@ -117,6 +119,24 @@ function MethodologyRail({ frameworks, selectedKey, onSelect, query, setQuery, h
         >
           <span className="md-railitem-name">{t('overview')}</span>
         </button>
+        {/* 常駐 status 容器：無命中提示出現時讀屏會念出 */}
+        <div role="status">
+          {searching && groups.length === 0 && (
+            <div className="md-rail-empty">
+              <p className="md-rail-empty-text">{t('searchEmpty', { q: query.trim() })}</p>
+              <button
+                type="button"
+                className="md-rail-empty-clear"
+                onClick={() => {
+                  setQuery('');
+                  searchRef.current?.focus();
+                }}
+              >
+                {t('searchClear')}
+              </button>
+            </div>
+          )}
+        </div>
         {groups.map(({ category, frameworks: list }) => {
           // 搜尋期間所有分組強制展開
           const isOpen = searching || !collapsed[category.id];
