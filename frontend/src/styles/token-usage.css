@@ -170,8 +170,9 @@
   font-family: var(--font-mono);
   font-size: var(--font-size-2xs);
 }
+/* min：跨年時日期帶年份會變寬；同一期間格式一致，mono 下各列仍對齊 */
 .tu-daily-date {
-  width: 44px;
+  min-width: 44px;
   flex-shrink: 0;
   font-family: var(--font-mono);
   color: var(--fg-muted);

@@ -189,7 +189,7 @@ export default function TokenUsagePage() {
             </div>
             <div className="tu-daily">
               {daily.rows.map((d) => (
-                <div key={d.label} className="tu-daily-row">
+                <div key={d.date} className="tu-daily-row">
                   <code className="tu-daily-date">{d.label}</code>
                   <div className="tu-daily-track">
                     <div className="tu-daily-bar" style={{ width: `${d.pct}%` }} />

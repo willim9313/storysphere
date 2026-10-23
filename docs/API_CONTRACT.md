@@ -2340,7 +2340,9 @@ sentenceLengthHistogram: HistogramBucket[]; // 6 buckets；依實際句長分桶
 取得 Token 用量統計。
 
 **Query Params**：
-- `range=today|7d|30d|all`
+- `range=today|7d|30d|all`（其他值 422）。**以後端主機本地時間的日曆日計**：`today` 自本地午夜起，
+  `7d`／`30d` 為今天加前 6／29 天（自該日本地午夜起），與 `daily` 的分組時鐘相同。
+  （本機自架，主機與瀏覽器通常同一台；2026-10-23 前 `today` 誤用 UTC 午夜、`7d`／`30d` 為滾動 168／720 小時。）
 - `bookId`（選填）：限定單一本書。傳 `__unattributed__` 代表歸不了書的呼叫
   （全站 chat、2026-08-19 歸因修正之前的舊記錄）。**篩選會作用在每一個區塊**
   ——`summary`、`byService`、`byModel`、`daily` 全部跟著限定。
@@ -2376,6 +2378,9 @@ interface DailyUsage extends TokenBucket {
   date: string;   // 'YYYY-MM-DD'
 }
 ```
+
+`daily` **逐日連續、沒有呼叫的日子補 0 列**（趨勢不得藏空白日）：範圍起始日到今天；`all` 從第一筆記錄那天起。
+從未有記錄的 `all` 回 `[]`；有範圍但無記錄則是全 0 列（前端以 `summary.totalCalls === 0` 判空）。
 
 `byBook` 是陣列而非 `Record`：`bookId` 為 `null` 是有意義的一組，當不了物件的
 key。各列 `totalTokens` 相加等於 `summary.totalTokens`。

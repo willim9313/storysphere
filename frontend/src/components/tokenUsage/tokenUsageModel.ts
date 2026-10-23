@@ -63,7 +63,9 @@ export function toggleSelected(current: string | null, key: string): string | nu
 }
 
 export interface DailyRow {
-  /** MM-DD */
+  /** YYYY-MM-DD — unique, unlike the label. */
+  date: string;
+  /** MM-DD, or YYYY-MM-DD when the period crosses a year. */
   label: string;
   totalTokens: number;
   /** 0–100, relative to this period's maximum. */
@@ -72,7 +74,7 @@ export interface DailyRow {
 
 export interface DailyScale {
   rows: DailyRow[];
-  /** MM-DD of the day the bars are scaled against (earliest on a tie). */
+  /** Label of the day the bars are scaled against (earliest on a tie). */
   baseLabel: string;
   baseValue: number;
 }
@@ -84,11 +86,15 @@ export function dailyScale(daily: DailyUsage[]): DailyScale | null {
   let base = daily[0];
   for (const d of daily) if (d.totalTokens > base.totalTokens) base = d;
   const max = base.totalTokens;
+  // 「全部」 can cross a year; MM-DD alone would then name two different days the same.
+  const crossesYear = daily[0].date.slice(0, 4) !== daily[daily.length - 1].date.slice(0, 4);
+  const label = (date: string) => (crossesYear ? date : date.slice(5));
   return {
-    baseLabel: base.date.slice(5),
+    baseLabel: label(base.date),
     baseValue: max,
     rows: daily.map((d) => ({
-      label: d.date.slice(5),
+      date: d.date,
+      label: label(d.date),
       totalTokens: d.totalTokens,
       pct: max > 0 ? (d.totalTokens / max) * 100 : 0,
     })),
