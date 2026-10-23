@@ -1991,6 +1991,9 @@ page padding `--space-8`（32）、節距 `--space-8`／標題列 `--space-7`（
 
 右側「本頁目錄」編號 01–06，沿用 IntersectionObserver 高亮目前所在節、點擊平滑捲動。<1080px 隱藏目錄。
 
+**窄寬重排看文章欄實際寬度**（`.md-article` 是 container `md-article`，不看視窗）：≤640px 類型卡 3→2 欄、Booker 七格改一欄；
+≤560px 第 04 節 pipeline 改直排（箭頭轉向下）；≤440px 類型卡改一欄。類型卡名稱欄不足 120px 時 badge 換到下一行，不跟名稱搶寬。
+
 **Schmidt 45 類型**：依 badge 首詞分三組（`groupItemsByBadge`；zh 女性 17／男性 18／中性 10，en Female／Male／Neutral 同數），
 每組一條 **sticky 標頭**（組名＋數量，捲動容器為 `.md-content`），組內保留資料原序與**原序號**；
 不分頁、不加「顯示更多」、不縮成列表。每卡：名稱、id、badge、核心驅力、最大恐懼。

@@ -202,7 +202,8 @@
 
 /* 閱讀：文章＋本頁目錄 */
 .md-reading { display: flex; gap: var(--space-8); align-items: flex-start; }
-.md-article { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-8); }
+/* 文章欄是 container：窄寬重排看文章實際寬度（rail／目錄進出都會改它），不看視窗 */
+.md-article { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-8); container: md-article / inline-size; }
 .md-section { display: flex; flex-direction: column; gap: var(--space-5); scroll-margin-top: var(--space-7); }
 
 .md-toc {
@@ -463,7 +464,8 @@
   border: var(--card-border-width) var(--border-style) var(--border);
   border-radius: var(--card-radius);
 }
-.md-itemcard-top { display: flex; align-items: flex-start; gap: var(--space-4); }
+/* 名稱欄不足 120px 時 badge 換到下一行，不跟名稱搶寬 */
+.md-itemcard-top { display: flex; flex-wrap: wrap; align-items: flex-start; gap: var(--space-4); }
 .md-itemcard-num { flex-shrink: 0; font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--accent); padding-top: var(--space-1); }
 /* 一般方法卡（07 稿 C 區 03）：24px 圓形序號、名稱 base；Schmidt 卡牆維持純文字序號＋sm 名稱（F 區） */
 .md-itemcard-plain .md-itemcard-num {
@@ -472,7 +474,7 @@
   display: flex; align-items: center; justify-content: center;
 }
 .md-itemcard-plain .md-itemcard-name { font-size: var(--font-size-base); }
-.md-itemcard-id { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-1); }
+.md-itemcard-id { flex: 1 1 120px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-1); }
 .md-itemcard-name { font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 700; color: var(--fg-primary); }
 .md-itemcard-sub {
   font-family: var(--font-mono);
@@ -696,5 +698,17 @@
 @media (max-width: 1080px) {
   .md-toc { display: none; }
   .md-page { padding: var(--space-7); }
+}
+
+/* 窄文章欄：類型卡 3→2→1 欄、Booker 改一欄、pipeline 改直排 */
+@container md-article (max-width: 640px) {
   .md-items { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .md-shapes { grid-template-columns: minmax(0, 1fr); }
+}
+@container md-article (max-width: 560px) {
+  .md-pipe, .md-pipe-slot { flex-direction: column; }
+  .md-pipe-arrow { transform: rotate(90deg); }
+}
+@container md-article (max-width: 440px) {
+  .md-items { grid-template-columns: minmax(0, 1fr); }
 }
