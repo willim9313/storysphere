@@ -46,6 +46,23 @@ export function scaleLabel(fw: Framework): string {
   return `${fw.items.length} ${fw.itemLabel}`;
 }
 
+/**
+ * 本頁目錄的目前節：頂端已越過判定線（捲動容器頂端往下 `line` px）的最後一節；
+ * 都還沒越過時是第一節；捲到底一律是最後一節（最後幾節可能永遠捲不到判定線）。
+ * `top` 為各節頂端相對捲動容器頂端的位移。
+ */
+export function activeSectionId(
+  sections: readonly { id: string; top: number }[],
+  line: number,
+  atBottom: boolean,
+): string {
+  if (sections.length === 0) return '';
+  if (atBottom) return sections[sections.length - 1].id;
+  let id = sections[0].id;
+  for (const s of sections) if (s.top <= line) id = s.id;
+  return id;
+}
+
 /** 某分類的第一個方法（點分類卡的跳轉目標）。 */
 export function firstOfCategory(
   frameworks: Framework[],
