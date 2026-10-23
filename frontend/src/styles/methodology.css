@@ -230,9 +230,20 @@
   color: var(--fg-muted);
   transition: color var(--transition-fast), border-color var(--transition-fast);
 }
-.md-tab:hover:not(:disabled) { color: var(--fg-primary); }
+.md-tab:hover:not([aria-disabled="true"]) { color: var(--fg-primary); }
 .md-tab.active { color: var(--fg-primary); font-weight: 600; border-bottom-color: var(--accent); }
-.md-tab:disabled { opacity: 0.45; cursor: not-allowed; }
+.md-tab[aria-disabled="true"] { opacity: 0.45; cursor: not-allowed; }
+.md-sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
 
 /* 閱讀：文章＋本頁目錄 */
 .md-reading { display: flex; gap: var(--space-8); align-items: flex-start; }
