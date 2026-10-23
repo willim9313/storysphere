@@ -81,6 +81,16 @@
   color: var(--fg-muted);
   line-height: 1.5;
 }
+/* 選定一本書時，摘要上方標出限定範圍＋清除 */
+.tu-scope {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+}
 .tu-pair {
   display: grid;
   grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr);

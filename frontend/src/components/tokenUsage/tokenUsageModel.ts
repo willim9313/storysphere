@@ -33,6 +33,30 @@ export function bookRows(books: BookUsage[]): BucketRow[] {
   return sortBuckets(Object.fromEntries(books.map((b) => [bookKey(b.bookId), b])));
 }
 
+export type Range = 'today' | '7d' | '30d' | 'all';
+export const RANGE_KEYS: readonly Range[] = ['today', '7d', '30d', 'all'];
+export const DEFAULT_RANGE: Range = '7d';
+
+/** `?range=` from the URL; anything unknown falls back to the default. */
+export function parseRange(value: string | null): Range {
+  return RANGE_KEYS.find((r) => r === value) ?? DEFAULT_RANGE;
+}
+
+/** Label for the selected book even when the current range has no row for it:
+ *  look through every list we have. `null` = no list knows it (yet). */
+export function selectedLabel(
+  key: string,
+  lists: BookUsage[][],
+  labels: { unattributed: string; deleted: (id: string) => string },
+): string | null {
+  if (key === UNATTRIBUTED) return labels.unattributed;
+  for (const list of lists) {
+    const hit = list.find((b) => bookKey(b.bookId) === key);
+    if (hit) return bookLabel(hit, labels);
+  }
+  return null;
+}
+
 /** Dropdown and table rows share one state: clicking the selected row clears it. */
 export function toggleSelected(current: string | null, key: string): string | null {
   return current === key ? null : key;

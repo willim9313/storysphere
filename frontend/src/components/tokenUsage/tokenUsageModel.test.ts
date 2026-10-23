@@ -2,7 +2,16 @@ import { describe, expect, it } from 'vitest';
 
 import type { BookUsage, DailyUsage, TokenBucket } from '@/api/tokenUsage';
 import { UNATTRIBUTED } from '@/api/tokenUsage';
-import { bookKey, bookLabel, bookRows, dailyScale, sortBuckets, toggleSelected } from './tokenUsageModel';
+import {
+  bookKey,
+  bookLabel,
+  bookRows,
+  dailyScale,
+  parseRange,
+  selectedLabel,
+  sortBuckets,
+  toggleSelected,
+} from './tokenUsageModel';
 
 const bucket = (totalTokens: number): TokenBucket => ({
   promptTokens: 0,
@@ -74,5 +83,30 @@ describe('dailyScale', () => {
   it('does not divide by zero when every day is zero', () => {
     const s = dailyScale([day('2026-09-10', 0)])!;
     expect(s.rows[0].pct).toBe(0);
+  });
+});
+
+describe('parseRange', () => {
+  it('accepts the four ranges and falls back to 7d otherwise', () => {
+    expect(parseRange('today')).toBe('today');
+    expect(parseRange('all')).toBe('all');
+    expect(parseRange(null)).toBe('7d');
+    expect(parseRange('1y')).toBe('7d');
+  });
+});
+
+describe('selectedLabel', () => {
+  const b = (o: Partial<BookUsage>) => ({ ...bucket(1), bookId: 'x', title: null, ...o }) as BookUsage;
+
+  it('finds the title in a later list when the current range has no row', () => {
+    expect(selectedLabel('abc', [[], [b({ bookId: 'abc', title: '名字的潮汐' })]], labels)).toBe('名字的潮汐');
+  });
+
+  it('labels unattributed without looking it up', () => {
+    expect(selectedLabel(UNATTRIBUTED, [], labels)).toBe('未歸屬');
+  });
+
+  it('returns null when no list knows the book', () => {
+    expect(selectedLabel('8f18dd59-1111', [[]], labels)).toBeNull();
   });
 });

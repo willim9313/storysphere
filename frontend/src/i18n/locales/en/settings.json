@@ -160,6 +160,9 @@
     "allBooks": "All books",
     "unattributed": "Unattributed",
     "deletedBook": "Deleted book · {{id}}",
+    "bookNoData": "No usage for {{title}} in this time range",
+    "scopeOnly": "Showing only {{title}}",
+    "showAllBooks": "Show all books",
     "services": {
       "analysis": "Deep Analysis",
       "chat": "Chat",
