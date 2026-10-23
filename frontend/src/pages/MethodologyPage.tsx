@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, useRef, type KeyboardEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, ArrowRight, ChevronRight, Search } from 'lucide-react';
+import { AlertTriangle, ArrowRight, ChevronRight, PanelLeftClose, PanelLeftOpen, Search } from 'lucide-react';
 import {
   getFrameworks,
   getFrameworkCategories,
@@ -17,7 +17,11 @@ import {
   scaleLabel,
 } from '@/components/methodology/methodologyModel';
 import { Tooltip } from '@/components/ui/Tooltip';
+import { useDismissOverlay } from '@/hooks/useDismissOverlay';
 import '@/styles/methodology.css';
+
+// ≤960 視窗：rail 收成 40px 條，展開時覆蓋在內容上（不推擠內容）。
+const NARROW_QUERY = '(max-width: 960px)';
 
 type Mode = 'about' | 'cross';
 type Tier = 'established' | 'presumed' | 'tentative';
@@ -70,9 +74,10 @@ interface RailProps {
   onSelect: (key: string) => void;
   query: string;
   setQuery: (q: string) => void;
+  hidden?: boolean;
 }
 
-function MethodologyRail({ frameworks, selectedKey, onSelect, query, setQuery }: RailProps) {
+function MethodologyRail({ frameworks, selectedKey, onSelect, query, setQuery, hidden }: RailProps) {
   const { t, i18n } = useTranslation('frameworks');
   const categories = getFrameworkCategories(i18n.language);
   const [collapsed, setCollapsed] = useState<Record<string, boolean>>({});
@@ -85,7 +90,7 @@ function MethodologyRail({ frameworks, selectedKey, onSelect, query, setQuery }:
   const toggle = (id: string) => setCollapsed((c) => ({ ...c, [id]: !c[id] }));
 
   return (
-    <nav className="md-rail" aria-label={t('brand')}>
+    <nav className="md-rail" id="md-rail" aria-label={t('brand')} hidden={hidden}>
       <div className="md-rail-head">
         <div className="md-rail-brand">
           {t('brand')}
@@ -470,6 +475,29 @@ export default function MethodologyPage() {
   const [query, setQuery] = useState('');
   const contentRef = useRef<HTMLDivElement>(null);
 
+  const [narrow, setNarrow] = useState(
+    () => typeof window.matchMedia === 'function' && window.matchMedia(NARROW_QUERY).matches,
+  );
+  const [railOpen, setRailOpen] = useState(false);
+  useEffect(() => {
+    if (typeof window.matchMedia !== 'function') return;
+    const mq = window.matchMedia(NARROW_QUERY);
+    const onChange = () => {
+      setNarrow(mq.matches);
+      setRailOpen(false);
+    };
+    mq.addEventListener('change', onChange);
+    return () => mq.removeEventListener('change', onChange);
+  }, []);
+  const railWrapRef = useRef<HTMLDivElement>(null);
+  const railToggleRef = useRef<HTMLButtonElement>(null);
+  const closeRail = () => setRailOpen(false);
+  useDismissOverlay(narrow && railOpen, closeRail, railWrapRef, railToggleRef);
+  // 展開時焦點落在目前所在的項目，鍵盤使用者從自己的位置開始
+  useEffect(() => {
+    if (narrow && railOpen) railWrapRef.current?.querySelector<HTMLElement>('.md-railitem.active')?.focus();
+  }, [narrow, railOpen]);
+
   const fw = selectedKey === 'overview' ? null : frameworks.find((f) => f.key === selectedKey) ?? null;
 
   const sections = useMemo(() => {
@@ -498,13 +526,32 @@ export default function MethodologyPage() {
 
   return (
     <div className="md-app">
-      <MethodologyRail
-        frameworks={frameworks}
-        selectedKey={selectedKey}
-        onSelect={goto}
-        query={query}
-        setQuery={setQuery}
-      />
+      <div className={`md-railwrap ${narrow ? 'narrow' : ''}`} ref={railWrapRef}>
+        {narrow && (
+          <button
+            ref={railToggleRef}
+            type="button"
+            className="md-railtoggle"
+            aria-expanded={railOpen}
+            aria-controls="md-rail"
+            aria-label={t(railOpen ? 'railClose' : 'railOpen')}
+            onClick={() => setRailOpen((o) => !o)}
+          >
+            {railOpen ? <PanelLeftClose size={16} aria-hidden="true" /> : <PanelLeftOpen size={16} aria-hidden="true" />}
+          </button>
+        )}
+        <MethodologyRail
+          frameworks={frameworks}
+          selectedKey={selectedKey}
+          onSelect={(key) => {
+            goto(key);
+            setRailOpen(false);
+          }}
+          query={query}
+          setQuery={setQuery}
+          hidden={narrow && !railOpen}
+        />
+      </div>
 
       <div className="md-main">
         <div className="md-content" ref={contentRef}>

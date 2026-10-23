@@ -1972,6 +1972,10 @@ page padding `--space-8`（32）、節距 `--space-8`／標題列 `--space-7`（
 - 搜尋同時比對**方法名、item 名、分類名**（不分大小寫）；搜尋期間「總覽」仍在、所有分組強制展開（無折疊箭頭）；
   無命中的組**整組不渲染、標頭一併消失**。查「英雄」→ 角色分析 2／敘事弧分析 1。
 - 分類組平時可個別收合（`collapsed` 本地狀態）。
+- **≤960px 視窗**：rail 收成 40px 條，只留展開鈕（Lucide `panel-left-open`／`panel-left-close`，`aria-expanded`＋`aria-controls="md-rail"`，
+  可及名稱 `railOpen`／`railClose`）。展開的 rail（232px）貼在條右側、**覆蓋**內容不推擠；焦點落在目前選中項；
+  選方法後、Esc（焦點回展開鈕）、點 rail 外都會收合。跨過 960 門檻一律回到收合。>960 完全不變、沒有手動收合。
+  720 視窗下文章欄由 392 → 584px（SEP 概念圖 0.52 → 0.81 倍）。FEEDBACK 2-MT-11。
 
 #### 總覽
 

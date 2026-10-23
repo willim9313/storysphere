@@ -26,6 +26,40 @@
   gap: var(--space-6);
   overflow: hidden;
 }
+.md-rail[hidden] { display: none; }
+
+/* ≤960 視窗：rail 收成 40px 條，只留展開鈕；展開的 rail 貼在條右側、覆蓋內容（不推擠） */
+.md-railwrap { position: relative; flex-shrink: 0; display: flex; }
+.md-railwrap.narrow {
+  width: 40px;
+  box-sizing: border-box;
+  justify-content: center;
+  padding-top: var(--space-6);
+  border-right: var(--border-width) var(--border-style) var(--border);
+}
+.md-railwrap.narrow .md-rail {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 100%;
+  z-index: 20;
+  box-shadow: var(--shadow-lg);
+}
+.md-railtoggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--fg-secondary);
+  cursor: pointer;
+}
+.md-railtoggle:hover,
+.md-railtoggle[aria-expanded="true"] { background: var(--bg-secondary); color: var(--fg-primary); }
+
 .md-rail-head { display: flex; flex-direction: column; gap: var(--space-2); padding: 0 var(--space-5); }
 .md-rail-brand {
   display: flex;
