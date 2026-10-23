@@ -176,3 +176,26 @@ class TestBookFilterParam:
             mock_token_store.get_usage.await_args.kwargs["book_id"]
             == "__unattributed__"
         )
+
+    def test_empty_book_id_is_rejected(self, token_client, mock_token_store):
+        """Before: ``bookId=`` filtered on ``book_id = ''`` and answered 200 with all zeros."""
+        resp = token_client.get("/api/v1/token-usage?bookId=")
+
+        assert resp.status_code == 422
+        mock_token_store.get_usage.assert_not_awaited()
+
+
+class TestResponseModel:
+    def test_store_dict_is_returned_in_camel_case(self, token_client):
+        data = token_client.get("/api/v1/token-usage").json()
+
+        assert set(data) == {"summary", "byService", "byModel", "byBook", "daily"}
+        assert data["summary"]["totalCalls"] == 10
+        assert data["byService"]["chat"]["promptTokens"] == 600
+        assert data["daily"][0] == {
+            "date": "2026-03-21",
+            "promptTokens": 1000,
+            "completionTokens": 500,
+            "totalTokens": 1500,
+            "calls": 10,
+        }

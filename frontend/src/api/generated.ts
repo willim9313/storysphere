@@ -2685,6 +2685,21 @@ export interface components {
              */
             pipelineStatus: components["schemas"]["PipelineStatusResponse"];
         };
+        /** BookUsage */
+        BookUsage: {
+            /** Prompttokens */
+            promptTokens: number;
+            /** Completiontokens */
+            completionTokens: number;
+            /** Totaltokens */
+            totalTokens: number;
+            /** Calls */
+            calls: number;
+            /** Bookid */
+            bookId: string | null;
+            /** Title */
+            title: string | null;
+        };
         /**
          * Carrier
          * @description An entity embodying one pole of a tension.
@@ -3018,6 +3033,19 @@ export interface components {
         ConfirmInferredRequest: {
             /** Relationtype */
             relationType?: string | null;
+        };
+        /** DailyUsage */
+        DailyUsage: {
+            /** Prompttokens */
+            promptTokens: number;
+            /** Completiontokens */
+            completionTokens: number;
+            /** Totaltokens */
+            totalTokens: number;
+            /** Calls */
+            calls: number;
+            /** Date */
+            date: string;
         };
         /** DetectLanguageResponse */
         DetectLanguageResponse: {
@@ -5306,6 +5334,44 @@ export interface components {
              * @default true
              */
             isBody: boolean;
+        };
+        /** TokenBucket */
+        TokenBucket: {
+            /** Prompttokens */
+            promptTokens: number;
+            /** Completiontokens */
+            completionTokens: number;
+            /** Totaltokens */
+            totalTokens: number;
+            /** Calls */
+            calls: number;
+        };
+        /** TokenUsageResponse */
+        TokenUsageResponse: {
+            summary: components["schemas"]["TokenUsageSummary"];
+            /** Byservice */
+            byService: {
+                [key: string]: components["schemas"]["TokenBucket"];
+            };
+            /** Bymodel */
+            byModel: {
+                [key: string]: components["schemas"]["TokenBucket"];
+            };
+            /** Bybook */
+            byBook: components["schemas"]["BookUsage"][];
+            /** Daily */
+            daily: components["schemas"]["DailyUsage"][];
+        };
+        /** TokenUsageSummary */
+        TokenUsageSummary: {
+            /** Totalprompttokens */
+            totalPromptTokens: number;
+            /** Totalcompletiontokens */
+            totalCompletionTokens: number;
+            /** Totaltokens */
+            totalTokens: number;
+            /** Totalcalls */
+            totalCalls: number;
         };
         /** ToneSegmentResponse */
         ToneSegmentResponse: {
@@ -9010,9 +9076,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TokenUsageResponse"];
                 };
             };
             /** @description Validation Error */
