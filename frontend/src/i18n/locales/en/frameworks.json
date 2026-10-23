@@ -6,6 +6,8 @@
   "placeholder": "Docs",
   "searchPh": "Search methods, archetypes, types…",
   "overview": "Overview",
+  "railOpen": "Open method menu",
+  "railClose": "Close method menu",
   "ovLead": "The analytical lens behind StorySphere: every judgement about a character, event, or symbol comes from a method that is grounded in the literature, traceable, and confidence-tagged. This is its documentation and education centre.",
   "tabAbout": "Theory & method",
   "tabCross": "Cross-book",

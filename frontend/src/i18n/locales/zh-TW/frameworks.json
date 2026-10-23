@@ -6,6 +6,8 @@
   "placeholder": "說明文件",
   "searchPh": "搜尋方法、原型、類型…",
   "overview": "總覽",
+  "railOpen": "展開方法選單",
+  "railClose": "收合方法選單",
   "ovLead": "StorySphere 背後的分析視角：每一個角色、事件、象徵的判定，都來自一套有典籍依據、可追溯、且標註信心的方法。這裡是它的說明與教育中心。",
   "tabAbout": "理論與方法",
   "tabCross": "跨書查閱",
