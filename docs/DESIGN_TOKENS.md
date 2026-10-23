@@ -309,6 +309,7 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 | `--card-attention-border-width` | `var(--card-border-width)`（1px） | `3px` | 要人處理的卡的框重（書庫人工閘門帶）。Warm 由 accent 框色承載；Ink 下 accent 與 border 同色，只能靠比「選中」更重的線 |
 | `--drop-active-border-style` | `dashed` | `solid` | 上傳頁投件框拖曳中的框線樣式。Warm 靠 accent 框色＋`bg-secondary` 底；Ink 的 accent `#111` 與 border `#1a1a1a` 同色、底色貼近白紙（1.08:1），改由虛線轉實線承載 |
 | `--notice-error-border-width` | `0` | `1.5px` | 上傳頁錯誤提示列（`.up-notice-error`）與失敗卡（`.up-failed`）的 error 色外框。Warm 靠 error 色相；Ink 的錯誤與警告同為 `#ececea` 底＋同一個三角字形，錯誤改由墨線框承載 |
+| `--row-pick-hover-decoration` | `none` | `underline` | 可點選列 hover 時名稱的 `text-decoration`（Token 頁書籍別表）。Warm 的 hover 底色已足以回饋；Ink 的 `#f6f6f4` 對白底 1.08:1 看不見，改由名稱底線承載 |
 | `--row-open-marker-width` | `0px` | `3px` | 開著詳情的列左側標記（張力頁抽屜對應的表格列與格點列標籤，以 inset box-shadow 畫 `--fg-primary`）。Warm 的 `bg-secondary` 底色已足以分辨；Ink 的 `#f6f6f4` 與白底太近 |
 | `--btn-radius` | `var(--radius-md)`（8px） | `var(--radius-sm)`（4px） | 按鈕 |
 | `--btn-border-width` | `1px` | `1.5px` | 按鈕外框 |
