@@ -7,6 +7,7 @@ import {
   type FrameworkItem,
 } from '@/data/frameworksData';
 import {
+  activeSectionId,
   buildRailGroups,
   firstOfCategory,
   groupItemsByBadge,
@@ -72,6 +73,26 @@ describe('buildRailGroups against real data', () => {
   it('matches by category name alone', () => {
     const groups = buildRailGroups(frameworks, categories, '象徵分析');
     expect(groups.map((g) => g.category.id)).toEqual(['symbol']);
+  });
+});
+
+describe('activeSectionId', () => {
+  const at = (...tops: number[]) => tops.map((top, i) => ({ id: `s${i + 1}`, top }));
+
+  it('is the first section before any heading crosses the line', () => {
+    expect(activeSectionId(at(40, 600, 1200), 270, false)).toBe('s1');
+  });
+
+  it('is the last section whose top has crossed the line', () => {
+    expect(activeSectionId(at(-900, -200, 100, 700), 270, false)).toBe('s3');
+  });
+
+  it('is the last section at the bottom even if its heading never reaches the line', () => {
+    expect(activeSectionId(at(-1500, -400, 500, 820), 270, true)).toBe('s4');
+  });
+
+  it('returns empty for no sections', () => {
+    expect(activeSectionId([], 270, false)).toBe('');
   });
 });
 

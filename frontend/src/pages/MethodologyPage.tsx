@@ -10,6 +10,7 @@ import {
 } from '@/data/frameworksData';
 import { ConceptDiagram } from '@/components/methodology/ConceptDiagram';
 import {
+  activeSectionId,
   buildRailGroups,
   firstOfCategory,
   groupItemsByBadge,
@@ -182,32 +183,52 @@ function AboutTOC({ sections, scrollerRef }: AboutTOCProps) {
   // `key` on the component is set by the parent on framework change, so this
   // component remounts and the initial section is correct.
   const [active, setActive] = useState(sections[0]?.id ?? '');
+  // 點目錄後釘住被點的節（底部的節可能捲不到判定線），直到使用者自己再捲動
+  const pinned = useRef<string | null>(null);
 
   useEffect(() => {
     const root = scrollerRef.current;
     if (!root) return;
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((e) => e.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (visible[0]) setActive(visible[0].target.id);
-      },
-      { root, rootMargin: '0px 0px -62% 0px', threshold: 0 },
-    );
-    sections.forEach((s) => {
-      const el = document.getElementById(s.id);
-      if (el) observer.observe(el);
-    });
-    return () => observer.disconnect();
+    let raf = 0;
+    const compute = () => {
+      raf = 0;
+      if (pinned.current) return;
+      const rootTop = root.getBoundingClientRect().top;
+      const tops = sections.map((s) => ({
+        id: s.id,
+        top: (document.getElementById(s.id)?.getBoundingClientRect().top ?? Infinity) - rootTop,
+      }));
+      const atBottom = root.scrollTop + root.clientHeight >= root.scrollHeight - 2;
+      setActive(activeSectionId(tops, root.clientHeight * 0.3, atBottom));
+    };
+    const onScroll = () => {
+      if (!raf) raf = requestAnimationFrame(compute);
+    };
+    const unpin = () => {
+      pinned.current = null;
+    };
+    const userEvents = ['wheel', 'keydown', 'pointerdown', 'touchstart'] as const;
+    root.addEventListener('scroll', onScroll, { passive: true });
+    userEvents.forEach((ev) => root.addEventListener(ev, unpin, { passive: true }));
+    raf = requestAnimationFrame(compute);
+    return () => {
+      cancelAnimationFrame(raf);
+      root.removeEventListener('scroll', onScroll);
+      userEvents.forEach((ev) => root.removeEventListener(ev, unpin));
+    };
   }, [sections, scrollerRef]);
 
   const go = (id: string) => {
     const root = scrollerRef.current;
     const el = document.getElementById(id);
     if (!root || !el) return;
+    pinned.current = id;
+    setActive(id);
     const offset = el.getBoundingClientRect().top - root.getBoundingClientRect().top + root.scrollTop - 24;
-    root.scrollTo({ top: offset, behavior: 'smooth' });
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    root.scrollTo({ top: offset, behavior: reduceMotion ? 'auto' : 'smooth' });
+    // 焦點跟著移到該節，鍵盤使用者接著 Tab 就從那一節開始
+    el.focus({ preventScroll: true });
   };
 
   return (
@@ -294,7 +315,7 @@ function AboutMode({ fw, sections }: AboutModeProps) {
 
   return (
     <article className="md-article">
-      <section id={sections[0].id} className="md-section">
+      <section id={sections[0].id} className="md-section" tabIndex={-1}>
         <SectionHead no={no(0)} title={t('secIntro')} />
         <p className="md-lead">{fw.description}</p>
         <div className="md-metarow">
@@ -309,17 +330,17 @@ function AboutMode({ fw, sections }: AboutModeProps) {
         </div>
       </section>
 
-      <section id={sections[1].id} className="md-section">
+      <section id={sections[1].id} className="md-section" tabIndex={-1}>
         <SectionHead no={no(1)} title={t('secConcept')} sub={conceptSub || undefined} />
         <ConceptDiagram fw={fw} />
       </section>
 
-      <section id={sections[2].id} className="md-section">
+      <section id={sections[2].id} className="md-section" tabIndex={-1}>
         <SectionHead no={no(2)} title={t('secItems')} sub={scaleLabel(fw)} />
         <ItemsGrid fw={fw} />
       </section>
 
-      <section id={sections[3].id} className="md-section">
+      <section id={sections[3].id} className="md-section" tabIndex={-1}>
         <SectionHead no={no(3)} title={t('secPipeline')} sub={t('pipelineSub')} />
         <div className="md-pipe">
           {fw.pipeline.map((s, i) => (
@@ -349,7 +370,7 @@ function AboutMode({ fw, sections }: AboutModeProps) {
         </div>
       </section>
 
-      <section id={sections[4].id} className="md-section">
+      <section id={sections[4].id} className="md-section" tabIndex={-1}>
         <SectionHead no={no(4)} title={t('secConfidence')} />
         {fw.hasConfidence ? (
           <>
@@ -363,7 +384,7 @@ function AboutMode({ fw, sections }: AboutModeProps) {
         )}
       </section>
 
-      <section id={sections[5].id} className="md-section">
+      <section id={sections[5].id} className="md-section" tabIndex={-1}>
         <SectionHead no={no(5)} title={t('secTheory')} />
         <div className="md-refs">
           {fw.references.map((r, i) => (
@@ -460,9 +481,25 @@ export default function MethodologyPage() {
   const selectedKey =
     paramKey && frameworks.some((f) => f.key === paramKey) ? paramKey : 'overview';
 
-  const [mode, setMode] = useState<Mode>('about');
+  // 分頁跟著方法走：換方法（含上一頁／下一頁）一律回到「理論與方法」
+  const [modeState, setModeState] = useState<{ key: string; mode: Mode }>({ key: selectedKey, mode: 'about' });
+  const mode: Mode = modeState.key === selectedKey ? modeState.mode : 'about';
+  const setMode = (m: Mode) => setModeState({ key: selectedKey, mode: m });
   const [query, setQuery] = useState('');
   const contentRef = useRef<HTMLDivElement>(null);
+
+  // 換方法時捲回頂端（rail 點選與瀏覽器上一頁都走這裡）
+  useEffect(() => {
+    contentRef.current?.scrollTo({ top: 0 });
+  }, [selectedKey]);
+
+  // 無效的 ?framework= 會顯示總覽，網址也一併清掉，不留下指不到東西的參數
+  useEffect(() => {
+    if (!paramKey || frameworks.some((f) => f.key === paramKey)) return;
+    const next = new URLSearchParams(searchParams);
+    next.delete('framework');
+    setSearchParams(next, { replace: true });
+  }, [paramKey, frameworks, searchParams, setSearchParams]);
 
   const [narrow, setNarrow] = useState(
     () => typeof window.matchMedia === 'function' && window.matchMedia(NARROW_QUERY).matches,
@@ -518,16 +555,16 @@ export default function MethodologyPage() {
     document.getElementById(`md-tab-${target}`)?.focus();
   };
 
+  // 每次換方法推一筆歷史紀錄：上一頁回到前一個方法
   const goto = (key: string) => {
-    setMode('about');
-    contentRef.current?.scrollTo({ top: 0 });
+    if (key === selectedKey) return;
     const next = new URLSearchParams(searchParams);
     if (key === 'overview') {
       next.delete('framework');
     } else {
       next.set('framework', key);
     }
-    setSearchParams(next, { replace: true });
+    setSearchParams(next);
   };
 
   return (

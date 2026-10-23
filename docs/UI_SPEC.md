@@ -1983,7 +1983,10 @@ page padding `--space-8`（32）、節距 `--space-8`／標題列 `--space-7`（
 每張卡列出該類方法，每列右側 mono accent 規模數字；點卡片本身跳該分類第一個方法（`firstOfCategory`），點方法列跳該方法。
 卡片本身**不是互動元件**（無 role／tabIndex，只是滑鼠的大命中區）：鍵盤與讀屏走卡內各方法按鈕，避免巢狀互動元件。
 
-#### 單一方法六節（`?framework=` 驅動，`replace: true`）
+#### 單一方法六節（`?framework=` 驅動，每次換方法 push 一筆歷史）
+
+換方法（rail／總覽卡）推一筆歷史紀錄，上一頁回到前一個方法（2026-10-23 使用者裁決，原為 `replace: true`）；換方法時捲回頂端、分頁回到「理論與方法」，
+分頁本身不進網址。無效的 `?framework=` 顯示總覽並以 `replace` 清掉參數。
 
 | # | 節 | 內容 |
 |---|----|------|
@@ -1994,7 +1997,9 @@ page padding `--space-8`（32）、節距 `--space-8`／標題列 `--space-7`（
 | 05 | 分析品質與信心值 | 見「信心值分歧」 |
 | 06 | 參考文獻 | `[n]`（mono accent）＋「作者 (年份). *書名*. 出版社. — 註記」 |
 
-右側「本頁目錄」編號 01–06，沿用 IntersectionObserver 高亮目前所在節、點擊平滑捲動。<1080px 隱藏目錄。
+右側「本頁目錄」編號 01–06。目前節＝頂端已越過判定線（捲動容器頂端往下 30%）的最後一節，捲到底一律最後一節
+（`methodologyModel.activeSectionId`，scroll＋rAF 計算）；點擊直接亮被點的節並釘住，直到使用者自己再捲動（wheel／keydown／pointerdown／touchstart）。
+點擊平滑捲動（`prefers-reduced-motion: reduce` 時直接跳），焦點移到該節（`<section tabIndex={-1}>`）。<1080px 隱藏目錄。
 
 **窄寬重排看文章欄實際寬度**（`.md-article` 是 container `md-article`，不看視窗）：≤640px 類型卡 3→2 欄、Booker 七格改一欄；
 ≤560px 第 04 節 pipeline 改直排（箭頭轉向下）；≤440px 類型卡改一欄。類型卡名稱欄不足 120px 時 badge 換到下一行，不跟名稱搶寬。
