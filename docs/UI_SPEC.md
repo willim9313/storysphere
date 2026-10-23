@@ -1971,6 +1971,10 @@ page padding `--space-8`（32）、節距 `--space-8`／標題列 `--space-7`（
 - 選中態＝`--bg-secondary` 底＋accent 字＋加粗，**不用左緣／inset 強調**（本頁目錄同）。
 - 搜尋同時比對**方法名、item 名、分類名**（不分大小寫）；搜尋期間「總覽」仍在、所有分組強制展開（無折疊箭頭）；
   無命中的組**整組不渲染、標頭一併消失**。查「英雄」→ 角色分析 2／敘事弧分析 1。
+  **全部無命中**：「總覽」下方顯示 `searchEmpty`（「沒有符合「{q}」的方法、原型或類型」，xs `--fg-secondary`）＋「清除搜尋」（`searchClear`，accent 底線文字鈕，
+  清空後焦點回搜尋框）；外層常駐 `role="status"`，提示出現時讀屏念出。文案為草稿（FEEDBACK 2-MT-12）。
+- 字級：多行說明段落（類型卡說明、pipeline 描述、層級描述、輸出欄位註記、圖說、Schmidt 交代句）一律 12px（`--font-size-xs`），
+  不用 11px；承載資訊的文字（英雄旅程階段編號、Schmidt 交代句）用 `--fg-secondary`，`--fg-muted` 只留給註記與 placeholder。
 - 分類組平時可個別收合（`collapsed` 本地狀態）。
 - **≤960px 視窗**：rail 收成 40px 條，只留展開鈕（Lucide `panel-left-open`／`panel-left-close`，`aria-expanded`＋`aria-controls="md-rail"`，
   可及名稱 `railOpen`／`railClose`）。展開的 rail（232px）貼在條右側、**覆蓋**內容不推擠；焦點落在目前選中項；

@@ -5,6 +5,8 @@
   "brandSub": "METHODOLOGY",
   "placeholder": "Docs",
   "searchPh": "Search methods, archetypes, types…",
+  "searchEmpty": "No methods, archetypes or types match \"{{q}}\"",
+  "searchClear": "Clear search",
   "overview": "Overview",
   "railOpen": "Open method menu",
   "railClose": "Close method menu",

@@ -142,6 +142,21 @@
 .md-railitem.active .md-railitem-name { color: var(--accent); font-weight: 600; }
 
 /* 分類標頭：右側方法數是 2xs muted sans tabular，不隨狀態換色 */
+/* 搜尋無命中：一句說明＋清除搜尋（可操作元件不用 fg-muted） */
+.md-rail-empty { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3); padding: 0 var(--space-5); }
+.md-rail-empty-text { margin: 0; font-size: var(--font-size-xs); line-height: 1.6; color: var(--fg-secondary); }
+.md-rail-empty-clear {
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-xs);
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
 .md-railgroup-label {
   display: flex;
   align-items: center;
@@ -383,7 +398,7 @@
   max-width: 64ch;
   align-self: center;
   text-align: center;
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-xs);
   line-height: 1.7;
   color: var(--fg-secondary);
   text-wrap: pretty;
@@ -424,7 +439,7 @@
 .md-hj-acthead .rg { font-family: var(--font-mono); font-size: var(--font-size-2xs); font-weight: 400; color: var(--accent); }
 .md-hj-stages { display: flex; flex-wrap: wrap; gap: var(--space-3) var(--space-5); }
 .md-hj-stage { font-size: var(--font-size-2xs); color: var(--fg-secondary); }
-.md-hj-stage b { font-family: var(--font-mono); font-weight: 600; color: var(--fg-muted); margin-right: var(--space-1); }
+.md-hj-stage b { font-family: var(--font-mono); font-weight: 600; color: var(--fg-secondary); margin-right: var(--space-1); }
 
 /* Booker：兩欄七格，每格同尺寸小框、同一條虛線中性線、同筆色 */
 .md-shapes {
@@ -493,9 +508,9 @@
 .md-pairs-note {
   margin: 0;
   text-align: center;
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-xs);
   line-height: 1.6;
-  color: var(--fg-muted);
+  color: var(--fg-secondary);
   text-wrap: pretty;
 }
 
@@ -539,7 +554,7 @@
   font-size: var(--font-size-2xs);
   color: var(--fg-secondary);
 }
-.md-itemcard-detail { font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-secondary); }
+.md-itemcard-detail { font-size: var(--font-size-xs); line-height: 1.6; color: var(--fg-secondary); }
 .md-itemcard-detail b { font-weight: 600; color: var(--fg-primary); }
 
 /* Schmidt 45 卡牆：依 badge 首詞分三組，組標頭 sticky（捲動容器為 .md-content） */
@@ -577,7 +592,7 @@
 }
 .md-pipe-kicker { font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--accent); }
 .md-pipe-title { font-family: var(--font-serif); font-size: var(--font-size-lg); font-weight: 700; line-height: 1; color: var(--fg-primary); }
-.md-pipe-desc { font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-secondary); }
+.md-pipe-desc { font-size: var(--font-size-xs); line-height: 1.6; color: var(--fg-secondary); }
 .md-pipe-arrow { align-self: center; display: inline-flex; flex-shrink: 0; color: var(--fg-muted); }
 
 .md-schema {
@@ -603,7 +618,7 @@
 }
 .md-schema-field { color: var(--fg-primary); }
 .md-schema-type { color: var(--fg-secondary); }
-.md-schema-note { font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-secondary); }
+.md-schema-note { font-size: var(--font-size-xs); line-height: 1.6; color: var(--fg-secondary); }
 
 /* ── 05 信心值 ────────────────────────────────────────────── */
 .md-conf-intro { margin: 0; max-width: 72ch; font-size: var(--font-size-xs); line-height: 1.7; color: var(--fg-secondary); }
@@ -668,7 +683,7 @@
   background: transparent;
   padding: 0;
 }
-.md-tier-desc { flex: 1; min-width: 0; font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-secondary); }
+.md-tier-desc { flex: 1; min-width: 0; font-size: var(--font-size-xs); line-height: 1.6; color: var(--fg-secondary); }
 
 /* ── 06 參考文獻 ──────────────────────────────────────────── */
 .md-refs { display: flex; flex-direction: column; gap: var(--space-4); }

@@ -5,6 +5,8 @@
   "brandSub": "METHODOLOGY",
   "placeholder": "說明文件",
   "searchPh": "搜尋方法、原型、類型…",
+  "searchEmpty": "沒有符合「{{q}}」的方法、原型或類型",
+  "searchClear": "清除搜尋",
   "overview": "總覽",
   "railOpen": "展開方法選單",
   "railClose": "收合方法選單",
