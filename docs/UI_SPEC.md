@@ -2037,8 +2037,11 @@ Booker 小曲線 `aria-hidden`（名稱是 HTML 文字）；Schmidt 無 SVG。
 #### 跨書查閱（兩種佔位，不合併）
 
 - `crossBook === true`（7 個方法）：分頁可點；內容＝虛線徽章「跨書查閱即將推出」＋說明全文（`crossSoonBody`）。
-- `sep_methodology`：分頁 **disabled**，`components/ui/Tooltip.tsx` 掛在外層 wrapper（取代原生 `title`），tooltip 與內容是同一句
-  `noCross`。「還沒做」與「不會有」是兩件事。
+- `sep_methodology`：分頁 **停用**——用 `aria-disabled="true"`（不用原生 `disabled`），方向鍵仍可聚焦、啟動無作用；
+  `aria-describedby` 指向 sr-only 的 `noCross`，`components/ui/Tooltip.tsx` 掛在外層 wrapper（取代原生 `title`，hover 與鍵盤 focus-visible 都顯示），
+  tooltip 與內容是同一句 `noCross`。「還沒做」與「不會有」是兩件事。
+- 分頁語意：tablist（`aria-label`＝方法名）＋`role="tab"`（`md-tab-about`／`md-tab-cross`、`aria-controls`）＋單一 `role="tabpanel"`；
+  roving tabindex，←／→ 循環、Home／End（自動啟用；停用分頁只移焦點）。rail 選中項 `aria-current="page"`、本頁目錄選中項 `aria-current="location"`。
 
 #### 字串來源與草稿
 

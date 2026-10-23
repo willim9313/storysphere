@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useRef } from 'react';
+import { useState, useEffect, useMemo, useRef, type KeyboardEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { AlertTriangle, ArrowRight, ChevronRight, PanelLeftClose, PanelLeftOpen, Search } from 'lucide-react';
@@ -110,6 +110,7 @@ function MethodologyRail({ frameworks, selectedKey, onSelect, query, setQuery, h
       <div className="md-rail-scroll">
         <button
           type="button"
+          aria-current={selectedKey === 'overview' ? 'page' : undefined}
           className={`md-railitem ${selectedKey === 'overview' ? 'active' : ''}`}
           onClick={() => onSelect('overview')}
         >
@@ -138,6 +139,7 @@ function MethodologyRail({ frameworks, selectedKey, onSelect, query, setQuery, h
                   <button
                     type="button"
                     key={fw.key}
+                    aria-current={selectedKey === fw.key ? 'page' : undefined}
                     className={`md-railitem ${selectedKey === fw.key ? 'active' : ''}`}
                     onClick={() => onSelect(fw.key)}
                   >
@@ -210,12 +212,13 @@ function AboutTOC({ sections, scrollerRef }: AboutTOCProps) {
 
   return (
     <aside className="md-toc">
-      <div className="md-toc-label">{t('onThisPage')}</div>
-      <nav>
+      <div className="md-toc-label" id="md-toc-label">{t('onThisPage')}</div>
+      <nav aria-labelledby="md-toc-label">
         {sections.map((s, i) => (
           <button
             type="button"
             key={s.id}
+            aria-current={active === s.id ? 'location' : undefined}
             className={`md-toc-item ${active === s.id ? 'active' : ''}`}
             onClick={() => go(s.id)}
           >
@@ -498,6 +501,23 @@ export default function MethodologyPage() {
     ];
   }, [fw, t]);
 
+  // WAI-ARIA tabs（自動啟用）：←／→ 循環、Home／End；停用的跨書分頁只移焦點、不切換
+  const onTabKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    const order: Mode[] = ['about', 'cross'];
+    const focused = order.findIndex((m) => document.activeElement?.id === `md-tab-${m}`);
+    const cur = focused === -1 ? order.indexOf(mode) : focused;
+    let next: number;
+    if (e.key === 'ArrowRight') next = (cur + 1) % order.length;
+    else if (e.key === 'ArrowLeft') next = (cur - 1 + order.length) % order.length;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = order.length - 1;
+    else return;
+    e.preventDefault();
+    const target = order[next];
+    if (target === 'about' || fw?.crossBook) setMode(target);
+    document.getElementById(`md-tab-${target}`)?.focus();
+  };
+
   const goto = (key: string) => {
     setMode('about');
     contentRef.current?.scrollTo({ top: 0 });
@@ -551,11 +571,14 @@ export default function MethodologyPage() {
                     <span className="md-cat-chip">{fw.category}</span>
                     <span className="md-notice">{t('globalNotice')}</span>
                   </div>
-                  <div className="md-tabs" role="tablist">
+                  <div className="md-tabs" role="tablist" aria-label={fw.name} onKeyDown={onTabKeyDown}>
                     <button
                       type="button"
                       role="tab"
+                      id="md-tab-about"
                       aria-selected={mode === 'about'}
+                      aria-controls="md-tabpanel"
+                      tabIndex={mode === 'about' ? 0 : -1}
                       className={`md-tab ${mode === 'about' ? 'active' : ''}`}
                       onClick={() => setMode('about')}
                     >
@@ -565,29 +588,44 @@ export default function MethodologyPage() {
                       <button
                         type="button"
                         role="tab"
+                        id="md-tab-cross"
                         aria-selected={mode === 'cross'}
+                        aria-controls="md-tabpanel"
+                        tabIndex={mode === 'cross' ? 0 : -1}
                         className={`md-tab ${mode === 'cross' ? 'active' : ''}`}
                         onClick={() => setMode('cross')}
                       >
                         {t('tabCross')}
                       </button>
                     ) : (
-                      // disabled 控制項不觸發滑鼠事件，Tooltip 掛在外層 wrapper
+                      // aria-disabled（不用原生 disabled）：方向鍵仍走得到、讀屏念得出原因；啟動無作用
                       <Tooltip label={t('noCross')}>
-                        <button type="button" role="tab" aria-selected={false} className="md-tab" disabled>
+                        <button
+                          type="button"
+                          role="tab"
+                          id="md-tab-cross"
+                          aria-selected={false}
+                          aria-disabled="true"
+                          aria-describedby="md-nocross"
+                          tabIndex={-1}
+                          className="md-tab"
+                        >
                           {t('tabCross')}
                         </button>
                       </Tooltip>
                     )}
                   </div>
+                  {!fw.crossBook && <span id="md-nocross" className="md-sr-only">{t('noCross')}</span>}
                 </header>
-                {mode === 'about' && (
-                  <div className="md-reading">
-                    <AboutMode fw={fw} sections={sections} />
-                    <AboutTOC key={fw.key + i18n.language} sections={sections} scrollerRef={contentRef} />
-                  </div>
-                )}
-                {mode === 'cross' && <CrossBookComingSoon crossBook={fw.crossBook} />}
+                <div role="tabpanel" id="md-tabpanel" aria-labelledby={`md-tab-${mode}`}>
+                  {mode === 'about' && (
+                    <div className="md-reading">
+                      <AboutMode fw={fw} sections={sections} />
+                      <AboutTOC key={fw.key + i18n.language} sections={sections} scrollerRef={contentRef} />
+                    </div>
+                  )}
+                  {mode === 'cross' && <CrossBookComingSoon crossBook={fw.crossBook} />}
+                </div>
               </>
             )}
           </div>
