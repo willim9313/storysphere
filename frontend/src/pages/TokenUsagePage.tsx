@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import { Check } from 'lucide-react';
@@ -20,8 +21,10 @@ import {
 } from '@/components/tokenUsage/tokenUsageModel';
 import '@/styles/token-usage.css';
 
-function fmt(n: number): string {
-  return n.toLocaleString();
+/** Thousands separators follow the interface language, not the browser's. */
+function useFmt(): (n: number) => string {
+  const { i18n } = useTranslation();
+  return (n) => n.toLocaleString(i18n.language);
 }
 
 export default function TokenUsagePage() {
@@ -31,6 +34,10 @@ export default function TokenUsagePage() {
   const bookId = params.get('book');
   const { t } = useTranslation('settings');
   const { t: tc } = useTranslation('common');
+  const fmt = useFmt();
+  const byBookId = useId();
+  const byServiceId = useId();
+  const byModelId = useId();
 
   const update = (next: { range?: Range; book?: string | null }) => {
     const p = new URLSearchParams(params);
@@ -91,9 +98,10 @@ export default function TokenUsagePage() {
   const bookLabels = new Map(books.map((b) => [bookKey(b.bookId), bookLabel(b, labels)]));
   const byBookSection = byBook.length > 0 && (
     <section className="tu-section">
-      <h3 className="tu-section-title">{t('token.byBook')}</h3>
+      <h2 className="tu-section-title" id={byBookId}>{t('token.byBook')}</h2>
       {bookId !== null && <p className="tu-scope-note">{t('token.byBookScope')}</p>}
       <BreakdownTable
+        labelledBy={byBookId}
         rows={byBook}
         labelFn={(k) => bookLabels.get(k) ?? k}
         selectedKey={bookId}
@@ -163,8 +171,9 @@ export default function TokenUsagePage() {
           <div className="tu-pair">
             {byService.length > 0 && (
               <section className="tu-section">
-                <h3 className="tu-section-title">{t('token.byService')}</h3>
+                <h2 className="tu-section-title" id={byServiceId}>{t('token.byService')}</h2>
                 <BreakdownTable
+                  labelledBy={byServiceId}
                   rows={byService}
                   labelFn={(k) => t(`token.services.${k}`, { defaultValue: k })}
                 />
@@ -172,8 +181,8 @@ export default function TokenUsagePage() {
             )}
             {byModel.length > 0 && (
               <section className="tu-section">
-                <h3 className="tu-section-title">{t('token.byModel')}</h3>
-                <BreakdownTable rows={byModel} labelFn={(k) => k} />
+                <h2 className="tu-section-title" id={byModelId}>{t('token.byModel')}</h2>
+                <BreakdownTable labelledBy={byModelId} rows={byModel} labelFn={(k) => k} />
               </section>
             )}
           </div>
@@ -182,7 +191,7 @@ export default function TokenUsagePage() {
         {daily && (
           <section className="tu-section">
             <div className="tu-section-head">
-              <h3 className="tu-section-title">{t('token.dailyTrend')}</h3>
+              <h2 className="tu-section-title">{t('token.dailyTrend')}</h2>
               <span className="tu-daily-note">
                 {t('token.dailyNote', { date: daily.baseLabel, value: fmt(daily.baseValue) })}
               </span>
@@ -208,11 +217,12 @@ export default function TokenUsagePage() {
     <div className="tu-page">
       <div className="tu-inner">
         <div className="tu-head">
-          <h2 className="tu-title">{t('token.title')}</h2>
+          <h1 className="tu-title">{t('token.title')}</h1>
           <div className="tu-controls">
             {(books.length > 0 || bookId !== null) && (
               <select
                 className="tu-book-select"
+                aria-label={t('token.bookFilter')}
                 value={bookId ?? ''}
                 onChange={(e) => setBookId(e.target.value === '' ? null : e.target.value)}
               >
@@ -226,7 +236,7 @@ export default function TokenUsagePage() {
                 {selectedMissing && <option value={bookId}>{selectedTitle}</option>}
               </select>
             )}
-            <div className="tu-ranges">
+            <div className="tu-ranges" role="group" aria-label={t('token.rangeLabel')}>
               {RANGES.map(({ key, label }) => (
                 <button
                   key={key}
@@ -248,24 +258,28 @@ export default function TokenUsagePage() {
 }
 
 function BreakdownTable({
+  labelledBy,
   rows,
   labelFn,
   selectedKey,
   onSelect,
 }: Readonly<{
   rows: BucketRow[];
+  /** id of the section heading that names this table. */
+  labelledBy: string;
   labelFn: (key: string) => string;
   /** Only the byBook table is pickable; the others pass neither prop. */
   selectedKey?: string | null;
   onSelect?: (key: string) => void;
 }>) {
   const { t } = useTranslation('settings');
+  const fmt = useFmt();
   const heads = [t('token.colName'), 'Prompt', t('token.colCompletion'), t('token.colTotal'), t('token.colCalls')];
   const pickable = onSelect !== undefined;
 
   return (
     <div className="tu-table-wrap">
-      <table className="tu-table">
+      <table className="tu-table" aria-labelledby={labelledBy}>
         <thead>
           <tr>
             {heads.map((h) => (

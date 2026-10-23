@@ -160,6 +160,8 @@
     "bookNoData": "No usage for {{title}} in this time range",
     "scopeOnly": "Showing only {{title}}",
     "showAllBooks": "Show all books",
+    "bookFilter": "Filter by book",
+    "rangeLabel": "Time range",
     "services": {
       "analysis": "Deep Analysis",
       "chat": "Chat",
