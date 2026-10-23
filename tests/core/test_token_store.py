@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import time
+from datetime import date, datetime, timedelta
 
 import pytest
 from storysphere.core.token_store import TokenUsageStore
@@ -125,15 +126,67 @@ async def test_range_to_timestamps():
     assert since is None and until is None
 
     since, until = TokenUsageStore.range_to_timestamps("today")
-    assert since is not None and until is None
+    assert until is None
+    assert since == datetime.combine(date.today(), datetime.min.time()).timestamp()
 
     since, until = TokenUsageStore.range_to_timestamps("7d")
-    assert since is not None
-    assert time.time() - since < 7.1 * 86400
+    assert datetime.fromtimestamp(since) == datetime.combine(
+        date.today() - timedelta(days=6), datetime.min.time()
+    )
 
     since, until = TokenUsageStore.range_to_timestamps("30d")
-    assert since is not None
-    assert time.time() - since < 30.1 * 86400
+    assert datetime.fromtimestamp(since).date() == date.today() - timedelta(days=29)
+
+
+class TestRangeIsLocalCalendarDays:
+    def test_today_starts_at_local_midnight_not_utc(self, monkeypatch):
+        """Before the fix 'today' began at UTC midnight (08:00 in Taipei)."""
+        monkeypatch.setenv("TZ", "Asia/Taipei")
+        time.tzset()
+        try:
+            since, _ = TokenUsageStore.range_to_timestamps("today")
+            start = datetime.fromtimestamp(since)
+            assert (start.hour, start.minute) == (0, 0)
+        finally:
+            monkeypatch.undo()
+            time.tzset()
+
+
+class TestFillDays:
+    @staticmethod
+    def _row(d: str, total: int) -> dict:
+        return {"date": d, "promptTokens": 0, "completionTokens": 0, "totalTokens": total, "calls": 1}
+
+    @staticmethod
+    def _ts(d: date) -> float:
+        return datetime.combine(d, datetime.min.time()).timestamp()
+
+    def test_fills_gaps_inside_a_range(self):
+        today = date.today()
+        since = self._ts(today - timedelta(days=6))
+        rows = [self._row((today - timedelta(days=4)).isoformat(), 5)]
+        out = TokenUsageStore.fill_days(rows, since, None)
+        assert len(out) == 7
+        assert out[0]["date"] == (today - timedelta(days=6)).isoformat()
+        assert out[-1]["date"] == today.isoformat()
+        assert [r["totalTokens"] for r in out] == [0, 0, 5, 0, 0, 0, 0]
+
+    def test_all_range_starts_at_first_recorded_day(self):
+        today = date.today()
+        first = (today - timedelta(days=2)).isoformat()
+        out = TokenUsageStore.fill_days([self._row(first, 3)], None, None)
+        assert [r["date"] for r in out] == [
+            first,
+            (today - timedelta(days=1)).isoformat(),
+            today.isoformat(),
+        ]
+
+    def test_nothing_recorded_ever_is_empty(self):
+        assert TokenUsageStore.fill_days([], None, None) == []
+
+    def test_empty_range_is_all_zero_days(self):
+        out = TokenUsageStore.fill_days([], self._ts(date.today()), None)
+        assert len(out) == 1 and out[0]["calls"] == 0
 
 
 # ---------------------------------------------------------------------------

@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import logging
 import time
-from datetime import datetime, timezone
+from datetime import date, datetime, timedelta
 from typing import Any
 
 import aiosqlite
@@ -245,7 +245,7 @@ class TokenUsageStore:
                     ORDER BY date""",
                 params,
             )
-            return [
+            rows = [
                 {
                     "date": r["date"],
                     "promptTokens": r["prompt_tokens"],
@@ -255,6 +255,47 @@ class TokenUsageStore:
                 }
                 async for r in cur
             ]
+        return self.fill_days(rows, since, until)
+
+    @staticmethod
+    def fill_days(
+        rows: list[dict], since: float | None, until: float | None
+    ) -> list[dict]:
+        """Add zero rows for the days without calls, so the trend has no hidden gaps.
+
+        Span: the day ``since`` falls on (or the first recorded day) through the
+        day before ``until`` (or today, or the last recorded day if later).
+        No rows and no ``since`` means nothing was ever recorded → ``[]``.
+        """
+        if since is None and not rows:
+            return []
+        first = (
+            datetime.fromtimestamp(since).date()
+            if since is not None
+            else date.fromisoformat(rows[0]["date"])
+        )
+        last = (
+            datetime.fromtimestamp(until - 1).date() if until is not None else date.today()
+        )
+        if rows:
+            last = max(last, date.fromisoformat(rows[-1]["date"]))
+        by_date = {r["date"]: r for r in rows}
+        out: list[dict] = []
+        d = first
+        while d <= last:
+            key = d.isoformat()
+            out.append(
+                by_date.get(key)
+                or {
+                    "date": key,
+                    "promptTokens": 0,
+                    "completionTokens": 0,
+                    "totalTokens": 0,
+                    "calls": 0,
+                }
+            )
+            d += timedelta(days=1)
+        return out
 
     # ------------------------------------------------------------------
     # Helpers
@@ -285,15 +326,14 @@ class TokenUsageStore:
 
     @staticmethod
     def range_to_timestamps(range_str: str) -> tuple[float | None, float | None]:
-        """Convert a range string ('today', '7d', '30d', 'all') to (since, until)."""
+        """Convert a range string ('today', '7d', '30d', 'all') to (since, until).
+
+        Calendar days in the host's local time — the same clock ``daily`` groups
+        by: 'today' starts at local midnight, '7d' is today plus the six days
+        before it. (Self-hosted: host and browser are normally the same machine.)
+        """
         if range_str == "all":
             return None, None
-        now = time.time()
-        if range_str == "today":
-            today_start = datetime.now(tz=timezone.utc).replace(
-                hour=0, minute=0, second=0, microsecond=0
-            )
-            return today_start.timestamp(), None
-        days_map = {"7d": 7, "30d": 30}
-        days = days_map.get(range_str, 7)
-        return now - days * 86_400, None
+        days = {"today": 1, "7d": 7, "30d": 30}.get(range_str, 7)
+        start = date.today() - timedelta(days=days - 1)
+        return datetime.combine(start, datetime.min.time()).timestamp(), None

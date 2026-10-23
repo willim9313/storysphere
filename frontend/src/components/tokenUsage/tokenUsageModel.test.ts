@@ -80,6 +80,13 @@ describe('dailyScale', () => {
     expect(s.baseLabel).toBe('09-10');
   });
 
+  it('shows the year only when the period crosses one', () => {
+    const s = dailyScale([day('2025-12-31', 1), day('2026-01-01', 2)])!;
+    expect(s.rows.map((r) => r.label)).toEqual(['2025-12-31', '2026-01-01']);
+    expect(s.baseLabel).toBe('2026-01-01');
+    expect(s.rows[0].date).toBe('2025-12-31');
+  });
+
   it('does not divide by zero when every day is zero', () => {
     const s = dailyScale([day('2026-09-10', 0)])!;
     expect(s.rows[0].pct).toBe(0);
