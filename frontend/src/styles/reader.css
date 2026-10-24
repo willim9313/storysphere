@@ -130,7 +130,7 @@
   padding: var(--space-4); padding-top: 0; display: flex; flex-direction: column; gap: var(--space-3);
 }
 .rd-chapter-summary {
-  margin: 0; font-family: var(--font-serif); font-size: var(--font-size-2xs);
+  margin: 0; font-family: var(--font-serif); font-size: var(--font-size-note);
   line-height: 1.7; color: var(--fg-secondary); text-wrap: pretty;
 }
 .rd-chips { display: flex; flex-wrap: wrap; gap: var(--space-2); }
@@ -324,7 +324,7 @@
 .rd-rerun-line { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); font-size: var(--font-size-2xs); color: var(--fg-primary); }
 .rd-rerun-done { display: inline-flex; color: var(--color-success); }
 .rd-rerun-error { font-size: var(--font-size-2xs); color: var(--color-error); }
-.rd-rerun-hint { margin: 0; font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-muted); }
+.rd-rerun-hint { margin: 0; font-size: var(--font-size-note); line-height: 1.6; color: var(--fg-muted); }
 
 /* ── 認知狀態側欄（col4 · 288）────────────────────────────── */
 .rd-ep { height: 100%; display: flex; flex-direction: column; background: var(--bg-primary); border-left: var(--line-weight) var(--border-style) var(--border); }
@@ -336,7 +336,7 @@
   background: var(--input-bg); color: var(--fg-primary);
   border: var(--input-border-width) var(--border-style) var(--border); border-radius: var(--input-radius);
 }
-.rd-ep-note { margin: 0; font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-secondary); text-wrap: pretty; }
+.rd-ep-note { margin: 0; font-size: var(--font-size-note); line-height: 1.7; color: var(--fg-secondary); text-wrap: pretty; }
 .rd-ep-muted { margin: 0; font-size: var(--font-size-2xs); color: var(--fg-muted); }
 .rd-ep-cutoff { margin: 0; font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-muted); }
 .rd-ep-warn { margin: 0; display: flex; align-items: center; gap: var(--space-3); font-size: var(--font-size-2xs); color: var(--color-warning); }
@@ -406,7 +406,7 @@
   border: var(--line-weight) var(--border-style) var(--border); border-radius: var(--radius-md);
 }
 .rd-unanalyzed-title { margin: 0; font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 600; color: var(--fg-primary); }
-.rd-unanalyzed-body { margin: 0; font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-secondary); }
+.rd-unanalyzed-body { margin: 0; font-size: var(--font-size-note); line-height: 1.7; color: var(--fg-secondary); }
 
 /* ── 純分隔符段落（✦✦✦ 等場景切換）：留 #order 可定位，但畫成一條置中細線，不佔整張卡 ── */
 .rd-chunk.rd-chunk-sep {

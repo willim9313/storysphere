@@ -246,7 +246,7 @@
 .srch-partial-text {
   flex: 1;
   font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   line-height: 1.6;
   color: var(--fg-primary);
 }

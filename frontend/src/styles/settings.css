@@ -216,7 +216,7 @@
 }
 .st-theme-meta { display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-5) var(--space-6); }
 .st-theme-name { font-family: var(--font-sans); font-size: var(--font-size-sm); font-weight: 600; color: var(--fg-primary); }
-.st-theme-desc { font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-secondary); }
+.st-theme-desc { font-size: var(--font-size-note); line-height: 1.6; color: var(--fg-secondary); }
 
 /* ── 語言：segmented + hint ───────────────────────────────── */
 .st-field { display: flex; flex-direction: column; gap: var(--space-4); }
@@ -370,7 +370,7 @@
 .st-mig-dir { display: inline-flex; flex-shrink: 0; color: var(--accent); }
 .st-mig-body { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-2); }
 .st-mig-label { font-size: var(--font-size-xs); font-weight: 600; color: var(--fg-primary); }
-.st-mig-sub { font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-secondary); }
+.st-mig-sub { font-size: var(--font-size-note); line-height: 1.6; color: var(--fg-secondary); }
 .st-mig-gate { font-size: var(--font-size-xs); line-height: 1.6; color: var(--color-warning); margin: 0; }
 .st-fieldrow-grow { flex: 1; }
 .st-seg-busy { display: inline-flex; color: var(--accent); }

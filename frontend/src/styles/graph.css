@@ -107,7 +107,7 @@
 .kg-menu-icon { margin-top: 2px; flex-shrink: 0; color: var(--fg-secondary); }
 .kg-menu-item.is-danger .kg-menu-icon { color: var(--color-error); }
 .kg-menu-title { font-size: var(--font-size-2xs); font-weight: 600; color: var(--fg-primary); }
-.kg-menu-desc { font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-muted); }
+.kg-menu-desc { font-size: var(--font-size-note); line-height: 1.6; color: var(--fg-muted); }
 .kg-menu-item.is-danger .kg-menu-title,
 .kg-menu-item.is-danger .kg-menu-desc { color: var(--color-error); }
 
@@ -173,7 +173,7 @@
   border: var(--card-border-width) var(--border-style) var(--border);
   border-radius: var(--card-radius); box-shadow: var(--shadow-md, var(--shadow-sm));
 }
-.kg-orphan-desc { font-size: var(--font-size-2xs); line-height: 1.5; color: var(--fg-muted); margin-bottom: var(--space-4); }
+.kg-orphan-desc { font-size: var(--font-size-note); line-height: 1.5; color: var(--fg-muted); margin-bottom: var(--space-4); }
 .kg-orphan-list { display: flex; flex-direction: column; gap: var(--space-2); max-height: 220px; overflow-y: auto; }
 .kg-orphan-item {
   display: inline-flex; align-items: center; align-self: flex-start; gap: var(--space-2);
@@ -218,7 +218,7 @@
 .kg-lens-play-hint {
   padding: 0; background: none; border: 0; cursor: pointer;
   display: inline-flex; align-items: center; gap: var(--space-2);
-  font-family: var(--font-sans); font-size: var(--font-size-2xs); color: var(--fg-muted);
+  font-family: var(--font-sans); font-size: var(--font-size-note); color: var(--fg-muted);
 }
 .kg-lens-play-hint:hover:not(:disabled) { color: var(--fg-primary); }
 .kg-lens-play-hint:disabled, .kg-lens-play:disabled { opacity: 0.5; cursor: not-allowed; }
@@ -270,7 +270,7 @@
 .kg-lens-toggle[aria-checked="true"] .kg-switch-knob { left: 12px; background: var(--accent-fg); }
 .kg-lens-toggle-text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
 .kg-lens-toggle-label { font-size: var(--font-size-2xs); font-weight: 600; color: var(--fg-primary); }
-.kg-lens-toggle-desc { font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-muted); }
+.kg-lens-toggle-desc { font-size: var(--font-size-note); line-height: 1.6; color: var(--fg-muted); }
 .kg-lens-stat { display: flex; justify-content: space-between; gap: var(--space-4); }
 .kg-lens-stat-key { color: var(--fg-muted); }
 .kg-lens-stat-val { font-weight: 600; font-variant-numeric: tabular-nums; color: var(--fg-primary); }
@@ -287,7 +287,7 @@
 }
 .kg-lens-bookmark-pill { margin: 0; min-width: 0; cursor: pointer; }
 .kg-lens-bookmark-name { overflow: hidden; text-overflow: ellipsis; }
-.kg-lens-note { margin: 0; font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-muted); }
+.kg-lens-note { margin: 0; font-size: var(--font-size-note); line-height: 1.6; color: var(--fg-muted); }
 .kg-lens-note.kg-lens-note-secondary { line-height: 1.7; color: var(--fg-secondary); }
 .kg-lens-locked { font-size: var(--font-size-2xs); line-height: 1.7; color: var(--status-partial-fg); margin-bottom: var(--space-3); }
 .kg-lens-aggregate {
@@ -379,8 +379,8 @@
 }
 .kg-section-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
 .kg-label { font-size: var(--font-size-2xs); font-weight: 600; color: var(--fg-primary); }
-.kg-note { font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-muted); margin: 0; }
-.kg-text { font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-secondary); margin: 0; }
+.kg-note { font-size: var(--font-size-note); line-height: 1.7; color: var(--fg-muted); margin: 0; }
+.kg-text { font-size: var(--font-size-note); line-height: 1.7; color: var(--fg-secondary); margin: 0; }
 .kg-serif { font-family: var(--font-serif); }
 .kg-chiprow { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); }
 .kg-tag {
@@ -477,7 +477,7 @@
 }
 .kg-hero-eyebrow { font-size: var(--font-size-2xs); color: var(--fg-muted); }
 .kg-hero-title { margin: 0; font-family: var(--font-serif); font-size: var(--font-size-lg); font-weight: 700; color: var(--fg-primary); }
-.kg-hero-text { margin: 0; font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-secondary); }
+.kg-hero-text { margin: 0; font-size: var(--font-size-note); line-height: 1.6; color: var(--fg-secondary); }
 
 /* 失敗態：PageFailure 在 stage 內置中；框住讓 ss-state-stage 的 flex:1 有高度可用 */
 .kg-failure { display: flex; flex-direction: column; width: 100%; height: 100%; padding: var(--space-5); background: var(--bg-primary); }

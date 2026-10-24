@@ -132,7 +132,7 @@
 }
 .ea-batch-link:hover { text-decoration: underline; text-underline-offset: 2px; }
 /* run-scoped 提示：這份失敗名單只屬於剛才那次執行 */
-.ea-batch-hint { margin: 0; font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-muted); }
+.ea-batch-hint { margin: 0; font-size: var(--font-size-note); line-height: 1.7; color: var(--fg-muted); }
 
 /* 子集：同一張卡、緊貼主鈕（與主鈕同進同出） */
 .ea-batch-subset { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3); }

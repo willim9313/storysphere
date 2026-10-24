@@ -118,6 +118,7 @@
 | `--font-size-xl`   | `1.25rem`   | 20 |
 | `--font-size-2xl`  | `1.5rem`    | 24 |
 | `--font-size-3xl`  | `2rem`      | 32 |
+| `--font-size-note` | `var(--font-size-xs)` | 12 | 語意 token：整句說明（見下表） |
 
 #### 語意層級（面板 chrome）
 
@@ -128,7 +129,10 @@
 | 強調數字（stat） | `--font-size-2xl` | 24 |
 | 內文 | `--font-size-sm` | 14 |
 | 次要・列表・pill | `--font-size-xs` | 12 |
-| 註記・計數・eyebrow | `--font-size-2xs` | 11 |
+| 整句說明（提示、圖例說明、空態／錯誤說明、警示內文、研究者導覽條） | `--font-size-note` | 12 |
+| 註記・計數・eyebrow・標籤・徽章・成本提示 | `--font-size-2xs` | 11 |
+
+「整句說明」與「註記」的分界（2026-10-24）：成句、需要讀完才懂的說明走 `--font-size-note`；由 ` · ` 串起的計數 meta、欄位／圖例項目標籤、eyebrow、徽章、短狀態詞（約 8 字內）、原文摘錄、「會呼叫 LLM，消耗 token」這類成本提示維持 2xs。要整體調整說明字級時只改 `--font-size-note`。
 
 面板一律套用此層級；`text-[Npx]` 等 arbitrary 值禁用，標準 `text-xs`/`text-sm`（=12/14，在 scale 上）可接受。
 

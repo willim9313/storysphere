@@ -218,6 +218,7 @@ StorySphere 是一張攤在書桌上的暖象牙紙，分析結果是用細墨�
 - **Body**（sans 400，0.875rem，1.6）：chrome 內文、說明、表單。
 - **Label**（sans 600，0.6875rem，0.06em 字距）：eyebrow、分區小標、計數、pill／badge。
 - **Mono**（0.6875rem）：段落編號、log、key、raw 輸出。
+- **Note**（sans 0.75rem，`--font-size-note`）：整句說明——提示、圖例說明、空態／錯誤說明、警示內文、研究者導覽條。計數 meta、標籤、徽章、成本提示仍用 Label 的 0.6875rem。
 
 字級只有 8 階（11／12／14／16／18／20／24／32px），一律引用 `--font-size-*`。
 
@@ -300,7 +301,7 @@ StorySphere 是一張攤在書桌上的暖象牙紙，分析結果是用細墨�
 - **底線分頁:** 切換不同內容。12px sans，idle 鉛筆灰 500 → hover 褪墨 → active 墨色 600＋2px 焦赭底線。
 
 ### Researcher Guidance（研究者導覽條）
-頁面層級的定向說明。灰藍淡底、hairline 框、4px 圓角，前置 14px info 字符（`::before` 以 mask 繪製）；開頭一律是粗體「研究者導覽：」，11px／1.7 行高。可依頁面關閉，關閉後從書名列右端的 ghost 鈕重開。工作台頁可改成滿版（只留底線）。**永遠不用左側色條。**
+頁面層級的定向說明。灰藍淡底、hairline 框、4px 圓角，前置 14px info 字符（`::before` 以 mask 繪製）；開頭一律是粗體「研究者導覽：」，12px（`--font-size-note`）／1.7 行高。可依頁面關閉，關閉後從書名列右端的 ghost 鈕重開。工作台頁可改成滿版（只留底線）。**永遠不用左側色條。**
 
 ### State（空態／錯誤／載入）
 置中的 icon＋serif 標題＋說明＋動作。空態 icon 用柔墨線插畫，可配一行 Caveat 手寫標語；錯誤態 icon 用錯誤色，可展開技術細節（mono）。

@@ -169,7 +169,7 @@
   flex-wrap: wrap;
 }
 .bo-selbar-legend { display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap; }
-.bo-selbar-item { font-size: var(--font-size-2xs); color: var(--fg-secondary); }
+.bo-selbar-item { font-size: var(--font-size-note); color: var(--fg-secondary); }
 .bo-selbar-item.is-drop { color: var(--color-error); font-weight: 600; }
 .bo-swatch {
   display: inline-block;
@@ -349,7 +349,7 @@
   padding: var(--space-4);
   background: var(--bg-secondary);
   border-radius: var(--radius-sm);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   line-height: 1.6;
   color: var(--fg-secondary);
 }
@@ -369,7 +369,7 @@
 }
 .bo-box-title { font-size: var(--font-size-xs); font-weight: 600; }
 .bo-box-title.is-error { display: inline-flex; align-items: center; gap: var(--space-3); color: var(--color-error); }
-.bo-box-text { font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-secondary); }
+.bo-box-text { font-size: var(--font-size-note); line-height: 1.6; color: var(--fg-secondary); }
 .bo-box-tech {
   font-family: var(--font-mono);
   font-size: var(--font-size-2xs);
@@ -456,7 +456,7 @@
   color: var(--accent);
 }
 .bo-queue-toggle:hover { text-decoration: underline; }
-.bo-queue-note { margin: 0; font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-muted); }
+.bo-queue-note { margin: 0; font-size: var(--font-size-note); line-height: 1.6; color: var(--fg-muted); }
 .bo-queue { display: flex; flex-direction: column; gap: var(--space-5); }
 .bo-concept {
   display: flex;

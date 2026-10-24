@@ -200,7 +200,7 @@
   min-width: 0;
 }
 .tl-action-status {
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   color: var(--fg-primary);
   line-height: 1.6;
 }
@@ -252,7 +252,7 @@
 }
 .tl-skipped-desc {
   margin: 0;
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   line-height: 1.7;
   color: var(--fg-secondary);
   text-wrap: pretty;
@@ -477,7 +477,7 @@
   flex-shrink: 0;
 }
 .tl-compare-note {
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   color: var(--fg-muted);
 }
 /* disabled / off / on. On is the accent outline and track; disabled is dimmed
@@ -582,6 +582,7 @@
   color: var(--fg-muted);
   margin: 0;
 }
+.tl-view-legend { font-size: var(--font-size-note); }
 /* Legend lines carry a `.tl-legend-dot` sample, and that shared mark is sized
    with width/height — it needs a flex row to lay out against. */
 .tl-view-legend {
@@ -924,7 +925,7 @@
 }
 .tl-band-hint {
   margin-left: auto;
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   color: var(--fg-muted);
 }
 .tl-band-body {
@@ -1098,7 +1099,7 @@
   margin: 0;
 }
 .tl-band-empty-desc {
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   line-height: 1.7;
   color: var(--fg-secondary);
   margin: 0;
@@ -1214,7 +1215,7 @@
 }
 .tl-lanes-empty {
   margin: 0;
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   color: var(--fg-muted);
 }
 .tl-lanes-ticks {
@@ -1559,7 +1560,7 @@
   margin: 0;
 }
 .tl-state-desc {
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   line-height: 1.7;
   color: var(--fg-secondary);
   max-width: 52ch;
@@ -1658,7 +1659,7 @@
   color: var(--fg-primary);
 }
 .tl-hero-step-desc {
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   color: var(--fg-muted);
   line-height: 1.7;
 }
