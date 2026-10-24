@@ -642,7 +642,7 @@
 .ea-chip-row { display: flex; flex-wrap: wrap; gap: var(--space-3); }
 .ea-chip {
   padding: var(--space-2) var(--space-4);
-  border: var(--line-weight) var(--border-style) var(--border); border-radius: var(--radius-sm);
+  border: var(--line-weight) var(--border-style) var(--border); border-radius: var(--pill-radius);
   background: var(--bg-primary); color: var(--fg-secondary);
   font-family: var(--font-sans); font-size: var(--font-size-2xs); cursor: pointer;
 }

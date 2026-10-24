@@ -81,7 +81,7 @@ export function ProcessingTimeline({ task }: Readonly<ProcessingTimelineProps>) 
               <Marker state={state} n={idx + 1} />
               <span className="up-step-label">
                 {t(`steps.${step.key}`)}
-                <span className="up-sr-only">{t(`stepState.${state}`)}</span>
+                <span className="sr-only">{t(`stepState.${state}`)}</span>
               </span>
               {/* An anchor on the overall bar, not this step's completion —
                   read aloud it would be heard as the latter. */}

@@ -223,6 +223,7 @@
   border-radius: var(--input-radius); background: var(--input-bg);
   color: var(--fg-muted);
 }
+.ca-archfilter-search:focus-within { outline: var(--focus-ring-width) solid var(--focus-ring-color); outline-offset: var(--focus-ring-offset); }
 .ca-archfilter-search input {
   flex: 1; min-width: 0; border: none; outline: none; background: transparent;
   font-size: var(--font-size-xs); color: var(--fg-primary); font-family: var(--font-sans);

@@ -640,15 +640,6 @@
 
 /* Page heading for assistive tech only: the stepper and hero already name the
    page visually. */
-.tn-sr-only {
-  position: absolute;
-  width: 1px; height: 1px;
-  padding: 0; margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
 
 /* Reduced motion: the running cards stop spinning and the progress bar jumps
    instead of easing. */

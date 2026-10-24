@@ -50,7 +50,7 @@
   border: var(--input-border-width) var(--border-style) var(--border);
   border-radius: var(--input-radius);
 }
-.kg-search-box:focus-within { border-color: var(--accent); }
+.kg-search-box:focus-within { outline: var(--focus-ring-width) solid var(--focus-ring-color); outline-offset: var(--focus-ring-offset); }
 .kg-search-box input {
   flex: 1; min-width: 0; border: 0; outline: 0; background: transparent;
   font-family: inherit; font-size: var(--font-size-2xs); color: var(--fg-primary);
@@ -214,7 +214,7 @@
 .kg-lens-row { display: flex; align-items: center; gap: var(--space-3); }
 .kg-lens-seg .ss-seg-item { font-size: var(--font-size-2xs); padding: var(--space-1) var(--space-5); }
 .kg-lens-seg .ss-seg-item.active { box-shadow: var(--shadow-sm); }
-.kg-lens-seg .ss-seg-item:disabled { opacity: 0.45; cursor: not-allowed; }
+.kg-lens-seg .ss-seg-item:disabled { opacity: 0.5; cursor: not-allowed; }
 .kg-lens-play-hint {
   padding: 0; background: none; border: 0; cursor: pointer;
   display: inline-flex; align-items: center; gap: var(--space-2);

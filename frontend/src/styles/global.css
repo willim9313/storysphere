@@ -183,8 +183,8 @@
   .btn {
     display: inline-flex;
     align-items: center;
-    gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-6);
     border-radius: var(--btn-radius);
     font-size: var(--font-size-sm);
     font-weight: 500;
@@ -217,7 +217,7 @@
     background-color: var(--bg-primary);
     border: var(--card-border-width) var(--border-style) var(--border);
     border-radius: var(--card-radius);
-    padding: var(--space-lg);
+    padding: var(--space-7);
     box-shadow: var(--card-shadow);
   }
 
@@ -386,7 +386,7 @@
     transition: transform var(--transition-fast);
   }
   .ss-toggle.is-on::after { transform: translateX(16px); }
-  .ss-toggle.is-disabled { cursor: not-allowed; opacity: 0.45; }
+  .ss-toggle.is-disabled { cursor: not-allowed; opacity: 0.5; }
 }
 
 /* Deep-link jump highlight — used when navigating into a specific paragraph

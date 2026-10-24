@@ -192,8 +192,7 @@
 /* 上游依賴鏈外圈：shape token，Warm none、Ink inline */
 .bo-node-halo { display: var(--dag-chain-halo-display); }
 /* 執行中：狀態記號換成轉動弧線 */
-.bo-node-spin { transform-box: fill-box; transform-origin: center; animation: bo-spin 1.1s linear infinite; }
-@keyframes bo-spin { to { transform: rotate(360deg); } }
+.bo-node-spin { transform-box: fill-box; transform-origin: center; animation: spin 1.1s linear infinite; }
 .bo-node-label {
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
@@ -518,17 +517,6 @@
 }
 
 /* 頁名 h1 只給輔助技術（同張力、時間軸頁） */
-.bo-sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
-}
 /* 改成標題元素後，只去掉瀏覽器預設外距；字級字重照原 class */
 .bo-side-title, .bo-title, .bo-lgroup-name, .bo-section-h { margin: 0; }
 .bo-lgroup-name { font-size: inherit; font-weight: inherit; }

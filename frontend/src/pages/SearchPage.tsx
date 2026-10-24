@@ -596,7 +596,7 @@ export default function SearchPage() {
     return (
       <div className="srch-scroll">
         <div className="srch-page">
-          <h1 className="srch-sr-only">{t('title')}</h1>
+          <h1 className="sr-only">{t('title')}</h1>
           <PageFailure
             variant={failureKind(booksError)}
             pageName={t('title')}
@@ -613,7 +613,7 @@ export default function SearchPage() {
     return (
       <div className="srch-scroll">
         <div className="srch-page">
-          <h1 className="srch-sr-only">{t('title')}</h1>
+          <h1 className="sr-only">{t('title')}</h1>
           <EmptyState
             weight="ready"
             icon={<Upload size={28} />}
@@ -638,8 +638,8 @@ export default function SearchPage() {
     <div className="srch-scroll">
       <div className="srch-page">
         {/* The visible h1 lives in the initial state only. */}
-        {hasSearched && <h1 className="srch-sr-only">{t('title')}</h1>}
-        <div className="srch-sr-only" role="status" aria-live="polite">
+        {hasSearched && <h1 className="sr-only">{t('title')}</h1>}
+        <div className="sr-only" role="status" aria-live="polite">
           {statusLines().map((line) => (
             <p key={line}>{line}</p>
           ))}
