@@ -2449,6 +2449,7 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 | XS-2 | 遺漏 · 浮動聊天泡泡蓋住內容的讓位規則、拖曳位置隨視窗重算 | 待同步 |
 | XS-3 | 矛盾 · 寬版頁內容寬 1280／1232 兩種算法並存、頁寬沒有 token | 待同步 |
 | XS-4 | 遺漏 · 空態／失敗態標題層級、頁面 h1、toast 讀屏通報 | 待同步 |
+| XS-5 | 矛盾 · 整句說明 11px（稿）與各頁已裁決的 12px 並存 | 待同步 |
 
 ### XS-1 `--fg-muted` 對比與用途
 
@@ -2482,3 +2483,10 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 - **問題**：稿只畫狀態的字級，沒有定語意層級。實作 EmptyState 依份量出 h3／h4、PageFailure 固定 h4：29 處使用中 9 處 h1 直跳 h4、18 處根本沒有 h1（提早 return 把頁面 h1 一起丟掉；閱讀、章節審閱、圖譜健康時也沒有 h1）。toast 沒有任何 live region，且容器隨第一則才掛載，讀屏完全念不到。
 - **目前處置**（使用者 2026-10-24 裁決）：兩元件標題一律 h2（外觀不變）；每頁每個分支保證一個 h1（缺的補 sr-only）；ToastHost 常駐 polite／assertive 兩個 live region，error 打斷、其餘排隊，每則念一次、不念按鈕。
 - **請設計端**：狀態元件規格補「標題為 h2」；頁面規格註明每頁需有 h1（可視或僅讀屏）。
+
+### XS-5 整句說明字級
+
+- **出處**：design system `colors_and_type.css:197`（`--font-size-2xs` 註為 meta、badges、pill labels、dense counts）；04 設定稿語言提示 2xs muted（:175、186）、面板副標 xs（:78）；第 5 批 ss-kit `.ss-guidance > p` 2xs；2-MT-12、NL-1、TL-4
+- **問題**：稿上的提示、圖例說明、導覽條畫成 11px，但沒有寫明「11px 只給註記」的規則；各頁評估時（NL-1、TL-4、事件 #232、設定 #324、方法論 #338）陸續裁決整句說明升 12px，其他頁仍 11px，同一類文字跨頁兩種字級。
+- **目前處置**（使用者 2026-10-24 裁決）：新增語意 token `--font-size-note`（= xs 12px），全站整句說明改用它（約 75 個 selector，含研究者導覽條與任務中心空態說明）；標籤、計數 meta、eyebrow、徽章、短狀態詞、原文摘錄與成本提示維持 2xs。分界寫在 DESIGN_TOKENS §3.5.1。
+- **請設計端**：type scale 補「整句說明 = note（12）」一列；導覽條與各稿的說明句改畫 12px。
