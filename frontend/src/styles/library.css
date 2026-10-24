@@ -8,7 +8,7 @@
   --lib-pad: var(--space-8);
   --lib-section: var(--space-7);
   --lib-row: var(--space-5);
-  --lib-max: 960px;
+  --lib-max: var(--page-width-entry);
   --bc-pad: var(--space-6);
   --lib-cover: 90px;
   --lib-card-min: 200px;
@@ -21,7 +21,7 @@
   --lib-pad: var(--space-7);
   --lib-section: var(--space-6);
   --lib-row: var(--space-4);
-  --lib-max: 1280px;
+  --lib-max: var(--page-content-wide);
   --bc-pad: var(--space-5);
   --lib-cover: 76px;
   --lib-card-min: 196px;

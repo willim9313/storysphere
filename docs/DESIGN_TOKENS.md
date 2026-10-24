@@ -412,6 +412,14 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 | `--space-7` | `1.5rem` | 24px |
 | `--space-8` | `2rem` | 32px |
 
+**頁寬（跨主題共用）**——規則見 UI_SPEC §1.2.1
+
+| Token | 值 | 用途 |
+|-------|-----|------|
+| `--page-width-entry` | `960px` | 入口／表單頁內容上限，靠左（書庫稀疏、上傳 C、設定） |
+| `--page-width-wide` | `1280px` | 寬版（B 檢視）盒寬，**含左右內距 24**；內距在盒內的頁取用（時間軸、敘事、張力、建構概覽、搜尋） |
+| `--page-content-wide` | `calc(var(--page-width-wide) - 2 * var(--space-7))` = 1232 | 內距在外層容器的頁取用（角色、事件、象徵、Token、書庫滿載、上傳 B），內容寬同為 1232 |
+
 **浮動聊天鈕安全區（跨主題共用）**
 
 | Token | 值 | 用途 |

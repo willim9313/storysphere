@@ -122,7 +122,7 @@
 /* ── content / panel ───────────────────────────────────────── */
 .st-content { flex: 1; min-width: 0; overflow-y: auto; background: var(--bg-primary); }
 .st-panel {
-  max-width: 960px;
+  max-width: var(--page-width-entry);
   padding: var(--space-8);
   display: flex; flex-direction: column; gap: var(--space-7);
 }

@@ -15,7 +15,7 @@
 }
 
 .nl-page {
-  max-width: 1280px;
+  max-width: var(--page-width-wide);
   margin: 0 auto;
   padding: var(--space-7) var(--space-7) var(--fab-clearance);
   display: flex;

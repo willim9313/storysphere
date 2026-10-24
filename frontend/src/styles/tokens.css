@@ -228,6 +228,13 @@
      = 浮動軌底距 24（RAIL.slots[0]）＋ 泡泡 48 ＋ 間隙 16。 */
   --fab-clearance: 88px;
 
+  /* 頁寬兩檔（DS v3 密度）。entry＝C 入口／表單頁的內容上限，靠左（書庫稀疏、上傳 C、設定）；
+     wide＝B 檢視頁「含左右內距 24」的盒寬，內容 1232，固定寬頁置中。內距放在外層容器的頁
+     （角色、事件、象徵、Token、書庫滿載、上傳 B）改取 --page-content-wide，內容同樣是 1232。 */
+  --page-width-entry: 960px;
+  --page-width-wide: 1280px;
+  --page-content-wide: calc(var(--page-width-wide) - 2 * var(--space-7));
+
   /* Legacy — 新程式碼不要用；各頁隨 DS v3 重寫遷完後移除 */
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
