@@ -596,6 +596,7 @@ export default function SearchPage() {
     return (
       <div className="srch-scroll">
         <div className="srch-page">
+          <h1 className="srch-sr-only">{t('title')}</h1>
           <PageFailure
             variant={failureKind(booksError)}
             pageName={t('title')}
@@ -612,6 +613,7 @@ export default function SearchPage() {
     return (
       <div className="srch-scroll">
         <div className="srch-page">
+          <h1 className="srch-sr-only">{t('title')}</h1>
           <EmptyState
             weight="ready"
             icon={<Upload size={28} />}

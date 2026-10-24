@@ -52,21 +52,24 @@ export function CharacterOverviewLanding({
   // an empty chart and an empty ranking.
   if (totalCount === 0) {
     return (
-      <EmptyState
-        weight="prerequisite"
-        icon={<Users size={26} aria-hidden="true" />}
-        title={t('character.overview.empty.title')}
-        description={t('character.overview.empty.description')}
-        action={
-          <button
-            type="button"
-            className="ss-btn ss-btn-md ss-btn-primary"
-            onClick={() => navigate(`/books/${bookId}/unraveling`)}
-          >
-            {t('graph:onboarding.cta')}
-          </button>
-        }
-      />
+      <>
+        <h1 className="sr-only">{t('character.overview.title')}</h1>
+        <EmptyState
+          weight="prerequisite"
+          icon={<Users size={26} aria-hidden="true" />}
+          title={t('character.overview.empty.title')}
+          description={t('character.overview.empty.description')}
+          action={
+            <button
+              type="button"
+              className="ss-btn ss-btn-md ss-btn-primary"
+              onClick={() => navigate(`/books/${bookId}/unraveling`)}
+            >
+              {t('graph:onboarding.cta')}
+            </button>
+          }
+        />
+      </>
     );
   }
 

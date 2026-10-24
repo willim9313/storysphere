@@ -36,7 +36,14 @@ export function BookLayout() {
   // spinner, the reader's own useBook would refetch the errored query on every
   // remount — react-query resets an errored, data-less query to pending — and
   // loop forever (mount → refetch → spinner → error → mount …).
-  if (isLoading && !isReaderRoute) return <LoadingSpinner />;
+  if (isLoading && !isReaderRoute) {
+    return (
+      <>
+        <h1 className="sr-only">{t('failurePageName')}</h1>
+        <LoadingSpinner />
+      </>
+    );
+  }
   const showFailure = !!error && !isReaderRoute;
 
   return (
@@ -47,6 +54,7 @@ export function BookLayout() {
           // The Outlet is not mounted here, so no page-level useBook competes
           // with this one over the same errored query (see the reader note above).
           <div className="book-layout-failure">
+            <h1 className="sr-only">{t('failurePageName')}</h1>
             <PageFailure
               variant={failureKind(error)}
               pageName={t('failurePageName')}

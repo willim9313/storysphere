@@ -693,6 +693,7 @@ export default function TensionPage() {
       <div className="tn-shell">
         <div className="tn-shell-main tn-scroll">
           <div className="tn-page">
+            <h1 className="tn-sr-only">{tn('tabs.tensionAnalysis')}</h1>
             <PageFailure
               variant={failureKind(loadError)}
               pageName={tn('tabs.tensionAnalysis')}

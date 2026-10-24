@@ -359,6 +359,7 @@ export default function EventAnalysisPage() {
     return (
       <div className="ea-page">
         <div className="ea-empty">
+          <h1 className="sr-only">{tn('tabs.eventAnalysis')}</h1>
           <div className="ea-spinner" />
         </div>
       </div>
@@ -485,6 +486,7 @@ export default function EventAnalysisPage() {
             )}
             {selectedEntityId && detailLoading ? (
               <div className="ea-empty">
+                <h1 className="sr-only">{pageName}</h1>
                 <div className="ea-spinner" />
               </div>
             ) : selectedEntityId && eventDetail ? (
@@ -601,18 +603,22 @@ export default function EventAnalysisPage() {
               // shape a 500 from #7d took before it was found. A bare gateway
               // status (no app body) is a backend outage instead.
               failureKind(detailError) === 'backend' ? (
-                <PageFailure
-                  variant="backend"
-                  pageName={pageName}
-                  onRetry={() => void refetchDetail()}
-                  techDetail={techDetailOf(detailError)}
-                />
+                <>
+                  <h1 className="sr-only">{pageName}</h1>
+                  <PageFailure
+                    variant="backend"
+                    pageName={pageName}
+                    onRetry={() => void refetchDetail()}
+                    techDetail={techDetailOf(detailError)}
+                  />
+                </>
               ) : (
                 <div className="ss-state ss-state-stage" role="alert">
+                  <h1 className="sr-only">{pageName}</h1>
                   <span className="ss-state-icon ss-state-icon-error">
                     <AlertCircle size={24} />
                   </span>
-                  <h4 className="ss-state-title">{t('event.detailError.title')}</h4>
+                  <h2 className="ss-state-title">{t('event.detailError.title')}</h2>
                   <p className="ss-state-text">{t('event.detailError.body')}</p>
                   <div className="ss-state-actions">
                     <button
@@ -627,6 +633,7 @@ export default function EventAnalysisPage() {
               )
             ) : gen.task?.status === 'error' && selectedEntityId === generatingId ? (
               <div className="ea-empty">
+                <h1 className="sr-only">{pageName}</h1>
                 <div className="ea-empty-icon error">
                   <AlertTriangle size={24} />
                 </div>
@@ -666,6 +673,7 @@ export default function EventAnalysisPage() {
               </div>
             ) : selectedIsGenerating && gen.task && gen.task.status !== 'done' ? (
               <div className="ea-empty">
+                <h1 className="sr-only">{pageName}</h1>
                 <div className="ea-spinner" />
                 <p className="ea-empty-title" style={{ fontSize: 'var(--font-size-base)' }}>
                   {selectedUnanalyzed?.name ?? t('event.generating.title')}
@@ -752,6 +760,7 @@ export default function EventAnalysisPage() {
               </div>
             ) : triggerError ? (
               <div className="ea-empty">
+                <h1 className="sr-only">{pageName}</h1>
                 <div className="ea-empty-icon error">
                   <AlertTriangle size={24} />
                 </div>
@@ -780,13 +789,16 @@ export default function EventAnalysisPage() {
             ) : (
               // Only reached if the #6b list query itself failed (isLoading
               // already gated the loading state above).
-              <PageFailure
-                variant={failureKind(listError)}
-                pageName={pageName}
-                onRetry={() => void refetchList()}
-                secondaryAction={backToBook}
-                techDetail={techDetailOf(listError)}
-              />
+              <>
+                <h1 className="sr-only">{pageName}</h1>
+                <PageFailure
+                  variant={failureKind(listError)}
+                  pageName={pageName}
+                  onRetry={() => void refetchList()}
+                  secondaryAction={backToBook}
+                  techDetail={techDetailOf(listError)}
+                />
+              </>
             )}
             </div>
           </div>

@@ -791,11 +791,12 @@ export default function ChapterReviewPage() {
       <div className="cr-root">
         {crumb}
         <div className="cr-main">
+          <h1 className="sr-only">{t('review.title')}</h1>
           <div className="ss-state ss-state-stage" role="status">
             <span className={ok ? 'ss-state-icon cr-conflict-icon-ok' : 'ss-state-icon'}>
               {ok ? <CircleCheck size={26} /> : <Info size={26} />}
             </span>
-            <h4 className="ss-state-title">{t(`review.conflict.${copy}Title`)}</h4>
+            <h2 className="ss-state-title">{t(`review.conflict.${copy}Title`)}</h2>
             <p className="ss-state-text">{t(`review.conflict.${copy}Body`)}</p>
             <div className="ss-state-actions">
               <button type="button" className="ss-btn ss-btn-sm ss-btn-primary" onClick={() => navigate(uploadPath)}>
@@ -813,6 +814,7 @@ export default function ChapterReviewPage() {
       <div className="cr-root">
         {crumb}
         <div className="cr-main">
+          <h1 className="sr-only">{t('review.title')}</h1>
           <PageFailure
             variant={failureKind(failure.err)}
             pageName={t('review.crumb')}
@@ -837,6 +839,7 @@ export default function ChapterReviewPage() {
       {crumb}
 
       <div className="cr-main">
+        <h1 className="sr-only">{t('review.title')}</h1>
         {/* Title + actions */}
         <div className="cr-head">
           <div className="cr-head-text">

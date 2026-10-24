@@ -617,7 +617,14 @@ export default function GraphPage() {
     }
   }, [selectedNode, setPageContext]);
 
-  if (isLoading) return <LoadingSpinner />;
+  if (isLoading) {
+    return (
+      <>
+        <h1 className="sr-only">{tNav('tabs.knowledgeGraph')}</h1>
+        <LoadingSpinner />
+      </>
+    );
+  }
   if (error) {
     // Title bar / sidebar stay (this is the route's content area); only the page
     // body is replaced. `failureKind` splits the app's own JSON error from a bare
@@ -625,6 +632,7 @@ export default function GraphPage() {
     // the page, so an errored (data-less) query is not reset in a loop.
     return (
       <div className="kg-failure">
+        <h1 className="sr-only">{tNav('tabs.knowledgeGraph')}</h1>
         <PageFailure
           variant={failureKind(error)}
           pageName={tNav('tabs.knowledgeGraph')}
@@ -650,7 +658,14 @@ export default function GraphPage() {
     !clusteredGraph && shown !== total ? `${shown}／${total}` : String(total);
 
   // No nodes yet → show an onboarding guide instead of a blank canvas.
-  if (nodeCount === 0) return <GraphOnboardingHero bookId={bookId ?? ''} />;
+  if (nodeCount === 0) {
+    return (
+      <>
+        <h1 className="sr-only">{tNav('tabs.knowledgeGraph')}</h1>
+        <GraphOnboardingHero bookId={bookId ?? ''} />
+      </>
+    );
+  }
 
   // Right rail: one main panel (priority chain), plus at most one secondary
   // panel beside it — and only when the main one is the entity / event detail.
@@ -690,6 +705,7 @@ export default function GraphPage() {
 
   return (
     <div className="kg-page">
+      <h1 className="sr-only">{tNav('tabs.knowledgeGraph')}</h1>
       {/* Phase 5 exclusive mode: while entity-pair mode is active, the toolbar,
           lenses, legend, mini-map/stats, and right-side panels are all
           suspended (not rendered) rather than mutated — their own state is

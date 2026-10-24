@@ -91,11 +91,13 @@ function ReviewGate({ tasks }: Readonly<{ tasks: TaskStatus[] }>) {
 }
 
 function LibrarySkeleton() {
+  const { t } = useTranslation('library');
   const { t: tc } = useTranslation('common');
   return (
     // Sparse density: most libraries load into it, so the page doesn't jump
     // when the books arrive (only a > 8 library switches to full).
     <div className="lib-page" aria-busy="true">
+      <h1 className="sr-only">{t('allBooks')}</h1>
       <span className="sr-only" role="status">
         {tc('loading')}
       </span>
@@ -185,6 +187,7 @@ export default function LibraryPage() {
     return (
       <div className="lib-page">
         <div className="lib-inner">
+          <h1 className="sr-only">{t('allBooks')}</h1>
           <EmptyState
             weight="ready"
             icon={<BookOpen size={28} />}
