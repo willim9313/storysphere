@@ -2,7 +2,6 @@
   "search": "Search…",
   "analyzed": "Analyzed",
   "notAnalyzed": "Not Analyzed",
-  "noAnalysis": "No analysis yet",
   "generate": "Generate Analysis",
   "regenerate": "Regenerate",
   "analyzing": "Analyzing",
@@ -10,12 +9,30 @@
   "retry": "Retry",
   "triggerFailed": "Failed to trigger analysis. Please try again later.",
   "batchTriggerFailed": "Failed to trigger batch analysis. Please try again later.",
-  "selectCharacter": "Select a character to view or generate analysis",
   "viewInGraph": "View in Graph",
   "frameworkIndex": "Frameworks",
   "regenerateTitle": "Regenerate Analysis",
   "regenerateMessage": "This will overwrite the existing result and consume tokens. Proceed?",
   "character": {
+      "unanalyzed": {
+        "mentions": "Mentions",
+        "relations": "Relations",
+        "faction": "Faction",
+        "noFaction": "No faction",
+        "factionWith": "Same faction as {{names}}",
+        "factionWithMore": "Same faction as {{names}} and {{rest}} more",
+        "factionSize": "In a faction of {{count}}",
+        "nameJoiner": ", ",
+        "lead": "Not analyzed in depth yet. Generating gives you:",
+        "yields": {
+          "persona": "Persona and archetypes (Jung 12 / Schmidt 45)",
+          "behavior": "Actions and key events",
+          "relations": "Relationship network and representative quotes",
+          "arc": "Development arc"
+        },
+        "later": "Voice profile and epistemic state are generated separately once the analysis is done.",
+        "create": "Create character analysis"
+      },
     "sections": {
       "profile": "Character Profile",
       "traits": "Personality Traits",
@@ -54,20 +71,20 @@
       "title": "Framework Compare — {{name}}",
       "fromSidebar": "Compare Jung vs Schmidt",
       "switchTo": "Switch to compare",
-      "confidencePct": "{{pct}}% confidence",
       "evidenceLabel": "Evidence",
       "notGenerated": "This framework hasn't been generated yet",
       "secondaryLabel": "Secondary: {{name}}"
     },
     "persona": {
-      "profileSub": "One-line summary",
+      "profileSub": "Overall portrait",
       "archetypeLabelJung": "Jung Archetype — {{name}}",
       "archetypeLabelSchmidt": "Schmidt Type — {{name}}",
       "archetypeNotGenerated": "Not generated",
       "archetypeFailed": "Generation failed",
       "retryFailed": "Retry failed parts",
       "evidenceHeading": "Supporting Evidence",
-      "traitsCount": "{{count}} traits"
+      "traitsCount": "{{count}} traits",
+      "confidenceThreshold": "Thresholds: ≥80 high · ≥50 medium · otherwise low"
     },
     "behavior": {
       "actionsCount": "{{count}} items",
@@ -80,18 +97,23 @@
       "quotesCount": "{{count}} quotes",
       "segmentCount": "{{count}} segments",
       "egoCaption": "Relationship graph · centered on {{name}}",
-      "egoLegendNote": "Click a node to load that character · badge = multiple relation segments"
+      "egoLegendNote": "Click a node to load that character · badge = multiple relation segments",
+      "types": {"enemy": "Enemy", "ally": "Ally", "subordinate": "Subordinate", "member": "Member", "other": "Other"},
+      "typesShort": {"enemy": "E", "ally": "A", "subordinate": "S", "member": "M", "other": "O"}
     },
     "arcPane": {
       "stagesCount": "{{count}} stages",
       "keyEventMarkerLegend": "Key event marker",
-      "overlapStackingNote": "Adjacent phases sharing a boundary chapter are shown stacked in offset rows"
+      "overlapStackingNote": "Adjacent phases sharing a boundary chapter are shown stacked in offset rows",
+      "paletteNote": "Bands are a rotating palette; they do not stand for narrative modes"
     },
     "list": {
       "searchPlaceholder": "Search {{count}} characters",
       "frameworkLabel": "Analysis framework",
       "mentionCount": "{{count}} mentions",
-      "createBtn": "Create"
+      "createBtn": "Create",
+      "frameworkNote": "The framework (Jung / Schmidt) only affects the archetype section.",
+      "empty": "No characters yet."
     },
     "archFilter": {
       "label": "Filter analyzed characters by archetype",
@@ -101,13 +123,14 @@
       "clearAll": "Clear all filters"
     },
     "overview": {
+      "empty": {
+        "title": "No characters extracted from this book yet",
+        "description": "The cast comes from the knowledge graph’s entity extraction. Check in the build overview that the “Knowledge graph” step has finished, or run it again."
+      },
       "title": "Cast Overview",
       "metaTotal": "characters",
       "metaAnalyzed": "analyzed",
       "metaUnanalyzed": "unanalyzed",
-      "batchTop10": "Generate top 10 leads first",
-      "batchAll": "Generate all",
-      "batchProgress": "Analyzing · {{progress}}%",
       "backToOverview": "Cast Overview",
       "viewQuadrant": "Position Quadrant",
       "viewRanking": "Mention Ranking",
@@ -116,15 +139,20 @@
       "quadrant": {
         "yAxis": "Structural importance ↑",
         "xAxis": "Narrative presence (log mentions) →",
-        "cornerLead": "Leads",
-        "cornerTail": "Background long tail",
         "ariaLabel": "Character positioning quadrant scatter plot",
+        "median": "Median",
         "metricsError": "Character structural-importance data is temporarily unavailable, so the quadrant view can't render.",
         "bubbleDetail": "· {{mentions}} mentions · {{degree}} relations",
         "legendHead": "Faction · colour coding",
-        "legendRow": "{{names}} and {{count}} more",
+        "legendRow": "{{names}} and {{rest}} more",
         "unaffiliated": "No faction · {{count}}",
-        "footnote": "Cross-hairs mark both axes' medians · only the top 8 are always labelled, others show on hover · the {{count}} unaffiliated characters render as low-saturation outlined rings · click a bubble to load that character"
+        "footnote": "Cross-hairs mark both axes' medians · only the top 8 are always labelled, others show on hover · the {{count}} unaffiliated characters render as low-saturation outlined rings · click a bubble to load that character",
+        "legendNote": "Colours are assigned by faction size rank, up to 5; from the 6th faction on they are merged into \"Other\". Click a legend entry to light up just that faction.",
+        "legendAnalyzedRing": "Outer ring = analyzed",
+        "legendEmpty": "No factions were extracted for this book",
+        "legendOther": "Other: {{n}} factions · {{m}} people",
+        "legendExpand": "Expand",
+        "legendCollapse": "Collapse"
       },
       "ranking": {
         "heroTag": "Most-mentioned core character",
@@ -138,15 +166,32 @@
     "batch": {
       "toastTitle": "Batch character analysis complete",
       "toastBody": "{{generated}} generated · {{skipped}} skipped · {{failed}} failed",
-      "toastClose": "Close",
       "confirmTitle": "Generate all character analyses",
       "confirmMessage": "Run deep analysis on {{count}} unanalyzed characters. Already-analyzed characters are skipped. This consumes a significant amount of tokens.",
       "confirmTop10Title": "Generate top-10 lead analyses",
       "confirmTop10Message": "Run deep analysis on the {{count}} unanalyzed characters with the most mentions. Already-analyzed characters are skipped. This consumes a significant amount of tokens.",
       "confirmBtn": "Confirm",
-      "triggerFailed": "Failed to trigger batch analysis. Please try again later."
+      "triggerFailed": "Failed to trigger batch analysis. Please try again later.",
+      "header": "Character Analysis",
+      "running": "Analyzing",
+      "allDone": "All characters analyzed ✓",
+      "triggerAll": "Generate all",
+      "progress": "Analyzing characters {{done}}/{{total}}",
+      "topSubset": "Generate top 10 leads first",
+      "remaining": "{{count}} pending",
+      "statusLine": "{{count}} pending · Already-analyzed characters will be skipped",
+      "summaryProgress": "Processed {{count}} this batch",
+      "runningWithCount": "Analyzing {{current}}/{{total}}…",
+      "failedShort": "{{count}} failed",
+      "showFailures": "Show failures only ({{count}}) →",
+      "stat": {
+        "generated": "Generated",
+        "skipped": "Skipped",
+        "failed": "Failed"
+      }
     },
     "voice": {
+      "regenerateFailed": "Regeneration failed; the existing voice profile was kept.",
       "avgSentenceLength": "Avg. Sentence Length",
       "questionRatio": "Question Ratio",
       "exclamationRatio": "Exclamation Ratio",
@@ -161,13 +206,8 @@
       "noData": "No voice profile yet",
       "paragraphsAnalyzed": "{{count}} passages analyzed",
       "toneDistribution": "Tone Distribution",
-      "toneDistributionSub": "Sentence-type breakdown",
-      "sentenceLength": "Sentence Length",
-      "sentenceLengthSub": "Word-count buckets",
-      "speechStyleSub": "Qualitative description",
-      "dominantToneSub": "One-line summary",
-      "distinctivePatternsCount": "{{count}} items",
-      "representativeQuotesCount": "{{count}} quotes",
+      "sentenceLength": "Sentence Length (characters)",
+      "regenerate": "Regenerate voice profile",
       "tones": {
         "declarative": "Declarative",
         "interrogative": "Interrogative",
@@ -176,6 +216,7 @@
     },
     "epistemic": {
       "upToChapter": "Up to Chapter",
+      "cursorHint": "Drag or press ← →",
       "chapterN": "Chapter {{n}}",
       "computing": "Computing…",
       "noVisibilityData": "No visibility data for this book (all events default to public)",
@@ -190,6 +231,10 @@
       "knownEmpty": "No classified events known to the character by this chapter.",
       "unknownEmpty": "The character knows all events.",
       "misbeliefEmpty": "No significant misbeliefs detected.",
+      "misbeliefPending": "Misbeliefs up to chapter {{n}} have not been inferred yet.",
+      "inferMisbeliefs": "Infer misbeliefs",
+      "inferringMisbeliefs": "Inferring…",
+      "inferMisbeliefsFailed": "Inference failed. Please try again.",
       "characterBelieves": "Believes:",
       "actually": "Actually:"
     },
@@ -203,7 +248,8 @@
       "loading": "Computing…",
       "dataIncomplete": "{{name}} has no complete visibility data yet — comparison unavailable.",
       "onlyLabel": "Only {{name}} knows",
-      "bothLabel": "Both know"
+      "bothLabel": "Both know",
+      "matchNote": "Matched by event id, not by title."
     },
     "sourceJump": {
       "cta": "Click to jump to this passage in the reader",
@@ -227,11 +273,13 @@
     },
     "stale": {
       "badge": "Evidence moved",
-      "tooltip": "Built on the vector evidence and keywords from before a feature-extraction rerun. Still readable, but no longer reflects the current data — regenerate if you need it current."
+      "tooltip": "The book's evidence passages were reprocessed after this analysis was made. It is still worth reading, but may not fully match the current data; regenerate it if you need an up-to-date version."
+    },
+    "error": {
+      "backToBook": "Back to book overview"
     }
   },
   "event": {
-    "batchTitle": "Batch Generate Event EEP",
     "batchMessage": "Will run deep analysis on {{count}} unanalyzed events. Already-analyzed events will be skipped. This will consume significant tokens.",
     "batchConfirm": "Confirm",
     "retryFailed": "Retry failed parts",
@@ -259,7 +307,9 @@
       "kernel": "Kernel Event",
       "satellite": "Satellite Event",
       "kernelTagline": "Kernel · Pivotal turning point",
-      "satelliteTagline": "Satellite · Supporting detail"
+      "kernelMeta": "Kernel event: drives the main line; the plot fails without it",
+      "satelliteTagline": "Satellite · Supporting detail",
+      "satelliteMeta": "Satellite event: supporting detail"
     },
     "narrative": {
       "flashback": "Flashback",
@@ -276,7 +326,6 @@
     "labels": {
       "before": "Before",
       "after": "After",
-      "stateChangeSub": "State before → after",
       "causalitySub": "root cause · chain",
       "impactSub": "people · relations",
       "rootCauseLabel": "Root cause",
@@ -291,7 +340,7 @@
       "factorsConsequencesSub": "factors · consequences",
       "keyQuotesCount": "{{count}} quotes",
       "roleLegend": "Role key",
-      "topTermsSub": "TF · top terms"
+      "topTermsSub": "TF · top 12"
     },
     "list": {
       "searchPlaceholder": "Search {{count}} events…",
@@ -300,39 +349,50 @@
       "satelliteAbbr": "S",
       "filterKernel": "Kernel K",
       "filterSatellite": "Satellite S",
-      "groupLabel": "Group by",
       "groupByChapter": "Chapter",
       "groupByImportance": "Importance",
       "chapterGroup": "Chapter {{n}}",
       "noChapterGroup": "No chapter",
       "groupMeta": "{{total}} · {{analyzed}} analyzed",
       "noMatch": "No events match these filters",
-      "clearFilters": "Clear filters"
+      "empty": "No events yet.",
+      "clearFilters": "Clear filters",
+      "checkedCount": "{{count}} selected",
+      "checkNote": "Analyzed rows get no checkbox — checking them would not re-run anything."
     },
     "empty": {
-      "subtitle": "Select an analyzed event from the left to view its EEP details, or click \"Create\" on an unanalyzed event to trigger deep analysis.",
       "unanalyzedSubtitle": "This event has no EEP analysis yet. Triggering will extract state changes, participant roles, causal chain, and impact.",
       "createBtn": "Create analysis"
     },
     "generating": {
       "title": "Analyzing event",
-      "stage": "{{stage}} · {{progress}}%"
+      "stage": "{{stage}} · {{progress}}%",
+      "blockedBySingle": "Another event is being generated — try again once it finishes.",
+      "blockedByBatch": "A batch run is in progress and will include this event.",
+      "stages": {
+        "eep": "Extracting event evidence",
+        "causality": "Analyzing causality and impact",
+        "summary": "Generating event summary",
+        "coverage": "Computing coverage"
+      }
     },
     "overview": {
       "title": "Event Landscape",
-      "metaTotal": "events",
-      "metaAnalyzed": "analyzed",
-      "metaUnanalyzed": "not analyzed",
-      "metaKernel": "kernel",
+      "meta": "{{total}} events · analyzed {{analyzed}} · not analyzed {{unanalyzed}} · kernel {{kernel}}",
       "undetermined": "Importance undetermined",
       "emptyLead": "Nothing in this book has been analyzed yet.",
       "emptyBody": "Run a batch EEP generation and this overview will fill in.",
       "emptyBatch": "Generate all EEPs",
+      "empty": {
+        "title": "No events extracted from this book yet",
+        "description": "Events come from the knowledge graph’s event extraction. Check in the build overview that the “Knowledge graph” step has finished, or run it again."
+      },
       "backToOverview": "Back to overview",
       "ranking": {
         "caption": "Sorted by importance (kernel first), then participant count · bar = participant count. Importance is only determined once an EEP exists.",
         "heroSub": "Ch.{{chapter}} · {{importance}} · {{participants}} participants",
-        "viewAnalysis": "View analysis",
+        "heroSubAnalyzed": "Ch.{{chapter}} · {{participants}} participants",
+        "viewAnalysis": "View details",
         "createHero": "Create event analysis",
         "participants": "{{count}}",
         "collapse": "Collapse",
@@ -344,11 +404,12 @@
         "caption": "X = chapter order · bands = importance (kernel above, satellite below; the centre line holds events whose importance is not yet judged) · colour = narrative mode · dashed = not yet analyzed. Each band grows to fit its densest chapter, so nodes never overlap.",
         "bandKernel": "Kernel K",
         "bandSatellite": "Satellite S",
-        "legendNarrative": "Narrative mode",
         "legendKernel": "Large circle = kernel event",
         "legendUnanalyzed": "Dashed circle = not yet analyzed",
         "legendAxis": "X axis = chapter order",
-        "undated": "{{count}} more events have no chapter and are not shown."
+        "undated": "{{count}} more events have no chapter and are not shown.",
+        "importanceUnreliableKernel": "{{count}} of {{analyzed}} analyzed events were judged kernel — the kernel/satellite split is not reliable for this book; read the bands as rough.",
+        "importanceUnreliableSatellite": "{{count}} of {{analyzed}} analyzed events were judged satellite — the kernel/satellite split is not reliable for this book; read the bands as rough."
       },
       "viewFlow": "Context flow",
       "flow": {
@@ -387,7 +448,8 @@
       "title": "Source passages · judge before generating",
       "empty": "No sufficiently similar passage found in this chapter.",
       "similarity": "similarity {{score}}",
-      "caveat": "Retrieved by vector search over this chapter using the event's title and description — not a canonical source reference. Treat low-similarity hits with suspicion."
+      "caveat": "Retrieved by vector search over this chapter using the event's title and description — not a canonical source reference. Treat low-similarity hits with suspicion.",
+      "openInReader": "Open in reader →"
     },
     "context": {
       "title": "Position in context",
@@ -400,7 +462,11 @@
       "empty": "No cross-chapter related events for this event.",
       "shared": "shares {{names}}",
       "more": "{{count}} more",
-      "collapse": "Collapse"
+      "collapse": "Collapse",
+      "nameJoiner": ", "
+    },
+    "detail": {
+      "tabEmpty": "Nothing in this tab yet."
     },
     "detailError": {
       "title": "Couldn't load event detail",
@@ -408,13 +474,15 @@
     },
     "stale": {
       "badge": "Evidence moved",
-      "tooltip": "Built on the vector evidence and keywords from before a feature-extraction rerun. Still readable, but no longer reflects the current data — regenerate if you need it current."
+      "tooltip": "The book's evidence passages were reprocessed after this analysis was made. It is still worth reading, but may not fully match the current data; regenerate it if you need an up-to-date version."
     }
   },
   "batch": {
     "header": "Event Analysis",
     "running": "Analyzing",
     "allDone": "All events analyzed ✓",
+    "progress": "Analyzing events {{done}}/{{total}}",
+    "rateLimited": "API quota reached. Processed {{done}}/{{total}} so far. Please try again later.",
     "triggerAll": "Generate All EEP",
     "autoSkip": "Already-analyzed events will be skipped",
     "remaining": "{{count}} pending",
@@ -426,11 +494,9 @@
     "summaryProgress": "Processed {{count}} this batch",
     "toastTitle": "Batch EEP Complete",
     "toastBody": "Generated {{generated}} · Skipped {{skipped}} · Failed {{failed}}",
-    "toastClose": "Close",
-    "errorFallback": "Batch run failed",
+    "failedShort": "{{count}} failed",
+    "showFailures": "Show failures only ({{count}}) →",
     "runningWithCount": "Analyzing {{current}}/{{total}}…",
-    "kernelOnly": "Kernel only ({{count}})",
-    "kernelOnlyDisabled": "Importance is only assigned during analysis, so no kernel events are known to be pending",
     "chapterOnly": "This chapter only",
     "chapterOnlyDisabled": "Select an event first so the chapter is known",
     "checkModeOn": "Select multiple",
@@ -444,6 +510,12 @@
     }
   },
   "tension": {
+    "busy": {
+      "analyze": "TEU assembly is running; other tension steps can start once it finishes.",
+      "group": "TensionLine grouping is running; other tension steps can start once it finishes.",
+      "synthesize": "TensionTheme synthesis is running; other tension steps can start once it finishes.",
+      "other": "Another tension step is running; try again once it finishes."
+    },
     "status": {
       "pending": "Pending",
       "approved": "Approved",
@@ -472,13 +544,11 @@
       "title": "Re-run Step 2?",
       "body": "This calls the LLM, consumes tokens (a few minutes), and overwrites the existing result.",
       "willLose": "You will lose:",
-      "separator": ", ",
       "lossLines": "{{count}} tension lines",
       "lossApproved": "{{count}} approved",
       "lossEdited": "{{count}} with edited labels",
       "willStale": "This will also go stale:",
       "willStaleBody": "the book-wide proposition (it cites these lines)",
-      "cancel": "Cancel",
       "confirm": "Re-run",
       "trigger": "Re-run Step 2"
     },
@@ -523,7 +593,8 @@
       "clearSelection": "Esc to clear",
       "sortIntensity": "Intensity ↓",
       "sortChapter": "Chapter ↑",
-      "sortCount": "Evidence ↓"
+      "sortCount": "Evidence ↓",
+      "batchFailed": "{{count}} could not be processed and stay selected; you can try again."
     },
     "drawer": {
       "title": "TensionLine Review",
@@ -537,7 +608,6 @@
       "editedNote": "Reason: {{note}}",
       "editorTitle": "Edit pole labels",
       "noteLabel": "Reason for the edit (optional, recorded in the review log)",
-      "notePlaceholder": "e.g. the original label mistook a carrier for a concept",
       "editorHint": "Edits the label text only — no LLM call, no tokens; evidence and intensity are unchanged. Saving marks this line as Modified.",
       "cancel": "Cancel",
       "saveLabels": "Save labels",
@@ -546,7 +616,8 @@
       "backToText": "Back to text · Chapter {{n}}",
       "approveKey": "Approve · A",
       "editKey": "Edit labels · E",
-      "rejectKey": "Reject · X"
+      "rejectKey": "Reject · X",
+      "carrier": "Carrier"
     },
     "stage": {
       "scopeScene": "SCENE level",
@@ -607,9 +678,10 @@
       "analyzeRunningTitle": "TEU Assembly · running",
       "themeRunningTitle": "TensionTheme Synthesis · running",
       "groupErrorTitle": "TensionLine grouping failed",
-      "groupErrorBody": "{{error}} The last successful result ({{count}} tension lines) is still shown below and was not overwritten.",
-      "groupErrorBodyNoPrev": "{{error}}",
-      "retryGroup": "Retry grouping"
+      "groupErrorBody": "<mono>{{error}}</mono> The last successful result ({{count}} tension lines) is still shown below and was not overwritten.",
+      "groupErrorBodyNoPrev": "<mono>{{error}}</mono>",
+      "retryGroup": "Retry grouping",
+      "gateHint": "Review them all →"
     },
     "theme": {
       "eyebrow": "BOOK LEVEL · TENSIONTHEME",
@@ -627,7 +699,9 @@
       "incompleteBody": "Those lines entered the synthesis as raw model output; re-synthesizing after review is recommended.",
       "supporting": "Supporting tension lines",
       "builtFrom": "From {{reviewed}} / {{total}} reviewed tension lines",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "fryeLabel": "Frye",
+      "bookerLabel": "Booker"
     },
     "grid": {
       "title": "Chapter grid",
@@ -640,6 +714,8 @@
       "intensitySep": ", ",
       "orphanTitle": "Not grouped into any tension line",
       "orphanCellLabel": "Chapter {{chapter}}, {{count}} ungrouped TEUs",
+      "cellLabelIntensity": "Chapter {{chapter}}, {{count}} TEUs, intensity {{intensities}}",
+      "orphanCellLabelIntensity": "Chapter {{chapter}}, {{count}} ungrouped TEUs, intensity {{intensities}}",
       "orphanMeta": "{{count}} TEU ({{pct}}%)",
       "lostChapters": "{{list}} entirely ungrouped",
       "expand": "Expand",
@@ -659,7 +735,12 @@
       "someOrphan": "{{count}} ungrouped",
       "noneOrphan": "All grouped",
       "orphanBadge": "Ungrouped",
-      "noneMatch": "No matching TEUs."
+      "noneMatch": "No matching TEUs.",
+      "assign": {
+        "conflict": "<strong>This TEU is already claimed by another tension line</strong>. A TEU belongs to exactly one line; there is no \"move\" action.",
+        "zeroCost": "Writes the assignment only, no cost",
+        "failed": "Assignment failed: {{reason}}"
+      }
     },
     "mode": {
       "lines": "Tension Lines {{count}}",
@@ -673,15 +754,9 @@
     }
   },
   "timeline": {
-    "tabs": {
-      "narrative": "Narrative Order",
-      "chronological": "Chronological",
-      "matrix": "Matrix View"
-    },
-    "modeSub": {
-      "narrative": "Order in which events appear, grouped by chapter",
-      "chronological": "Order in which events actually occurred (Fabula)",
-      "matrix": "Chapter × story-time — see how narration diverges from chronology"
+    "coverage": {
+      "prereq": "Prerequisite: event analysis {{done}} / {{total}} events ({{pct}}%)",
+      "toEvents": "Go to event analysis →"
     },
     "narrativeModes": {
       "present": "Present",
@@ -716,7 +791,7 @@
       "chrono": {
         "scope": "STEP 02 · Story Time",
         "name": "Compute Chronology",
-        "desc": "Order events by their story-time hints to unlock story-order and matrix views."
+        "desc": "Order events by their story-time hints; once computed, turn on story-order comparison on the chapter-order base."
       },
       "genette": {
         "scope": "STEP 03 · Narrative Order",
@@ -735,8 +810,6 @@
       "importance": "Importance"
     },
     "charSearch": "Search characters…",
-    "reset": "Reset",
-    "apply": "Apply",
     "panel": {
       "region": "Event detail",
       "eyebrow": "Event detail",
@@ -749,6 +822,7 @@
       "morePills": "+{{n}}",
       "timing": "Timing",
       "noRank": "Not placed in story order",
+      "storyPosition": "Story order {{i}} / {{n}}",
       "position": "Narrative position {{i}} / {{n}}",
       "mode": "Narrative mode",
       "needsStoryTime": "Needs a story-time hint",
@@ -764,18 +838,20 @@
       "xAxisLabel": "Narrative Order (Sjuzhet) →",
       "yAxisLabel": "↑ Story Chronology (Fabula)",
       "diagonalLabel": "Perfect narrative order",
-      "legendTitle": "Chapter × story order",
-      "legendDesc": "Each dot is an event: X is the chapter it appears in, Y is where it actually happens in the story. On the 45° line = told in story order; the further off, the greater the divergence.",
-      "legendFoot": "Same-chapter events are spread sideways to avoid overlap; the spread carries no meaning.",
-      "unrankedBand": "↵ Unranked events {{n}}"
+      "unrankedBand": "↵ Unranked events {{n}}",
+      "cellsLegend": "Events per cell",
+      "legendFourPlus": "4 or more",
+      "scaleNote": "The scale is absolute counts; it is not rescaled per book",
+      "unsortedNote": "Cannot be placed in story order; not drawn in the matrix",
+      "cellTitle": "Chapter {{ch}} · story order {{from}}–{{to}}% · {{n}} events",
+      "emptyHint": "Click a cell to list the events in that chapter and story-order band.",
+      "selectedTitle": "Selected cell",
+      "clearSelection": "Clear selection"
     },
-    "viewTabs": "View",
     "keyHint": "← → switch event · Esc close",
     "gotoChapter": "Go to chapter {{n}}",
     "loadingBy": {
-      "chapter": "Loading timeline…",
-      "story": "Loading story order…",
-      "matrix": "Computing matrix coordinates…"
+      "chapter": "Loading timeline…"
     },
     "error": {
       "title": "Failed to load timeline data"
@@ -812,7 +888,7 @@
       "displacementDone": "{{analepsis}} flashbacks · {{prolepsis}} flashforwards identified",
       "displacementCostRerun": "Several minutes · overwrites the existing verdicts",
       "displacementReady": "Ready · story-time hint coverage {{pct}}%",
-      "displacementBlocked": "Not available · needs hints on 60% of events, currently {{pct}}%",
+      "displacementBlocked": "Not available · needs hints on 60% of events, currently {{n}} / {{total}} ({{pct}}%)",
       "displacementRunning": "Analyzing…",
       "displacementCost": "A few minutes · compares narrative order against story order",
       "displacementUnblock": "Story-time hints are set during knowledge-graph extraction · neither story order nor event analysis adds them · re-run the knowledge graph from Build Overview →",
@@ -827,9 +903,7 @@
       "storyBody": "This calls the LLM to read the story time of all {{total}} events and overwrites the existing {{ranked}} rankings. It takes several minutes and consumes tokens; you can leave the page while it runs. Event content, participants and the knowledge graph are unaffected.",
       "displacementTitle": "Identify flashback & flashforward",
       "displacementBody": "This calls the LLM to compare narrative order against story order across {{total}} events. It takes several minutes and consumes tokens; you can leave the page while it runs.",
-      "start": "Start",
-      "eventsTitle": "Analyze the unanalyzed events",
-      "eventsBody": "This calls the LLM to analyze the {{n}} events that have no analysis yet, producing importance, state changes, participant roles and causal chains. It takes several minutes and consumes tokens; you can leave the page while it runs. Already-analyzed events are not re-run, and event content and the knowledge graph are unaffected."
+      "start": "Start"
     },
     "toast": {
       "storyOrderDone": "Story order computed",
@@ -838,32 +912,19 @@
       "displacementFailed": "Displacement analysis failed",
       "displacementSkipped": "Displacement analysis did not run",
       "displacementSkippedDesc": "Story-time hint coverage is below 60%, so no LLM call was made and no verdicts were produced.",
-      "eventsDone": "Event analysis complete",
-      "eventsFailed": "Event analysis failed"
+      "cancelFailed": "Could not cancel — the task is still running."
     },
     "stave": {
-      "headline": "The narrative runs {{rows}} rows; story order breaks away {{outliers}} times",
+      "headline": "Story order breaks from the telling at {{outliers}} points",
       "meta": "{{onLine}} on the line · {{outliers}} clearly displaced · {{unranked}} with no story order",
       "legend": "Midline = both orders agree　below = flashback　above = flashforward　large = KERNEL",
       "legendUnranked": "The \"unranked\" strip below = no place in story order (not the same as unanalyzed)",
       "unranked": "Unranked",
+      "chapterTag": "Ch.{{n}} · {{count}} events",
       "flashbackNote": "Flashback ↩ Ch.{{ch}} covers earlier story time ({{count}})",
       "flashforwardNote": "Ch.{{ch}} tells {{count}} events ahead of time",
       "flashbackJudged": "Judged flashback ↩ Ch.{{ch}} ({{count}})",
       "flashforwardJudged": "Judged flashforward ↗ Ch.{{ch}} ({{count}})"
-    },
-    "coverage": {
-      "label": "Event analysis",
-      "count": "{{done}} / {{total}} ({{pct}}%)",
-      "running": "Analyzing…",
-      "action": "Analyze the remaining {{n}}…",
-      "actionRunning": "Analyzing…"
-    },
-    "storyOrderPrompt": {
-      "title": "Story order has not been computed, so the stave has no dots",
-      "desc": "None of these {{n}} events has a story time yet, so there is nothing to compare narrative order against — they all sit in the \"unordered\" strip under each row. Once computed, each event is plotted along the midline: flashbacks below, flashforwards above.",
-      "action": "Compute story order",
-      "running": "Computing…"
     },
     "band": {
       "region": "Chapter {{n}} events",
@@ -877,7 +938,7 @@
       "emptyFilteredDesc": "All {{n}} events in Ch.{{ch}} are excluded by the filter.",
       "emptyUnanalyzedTitle": "This chapter has not been analyzed yet",
       "emptyUnanalyzedDesc": "All {{n}} events in Ch.{{ch}} have titles only — no summary, participants or story time.",
-      "analyzeChapter": "Analyze this chapter's {{n}} events…"
+      "analyzeElsewhere": "Event analysis runs on the event analysis page."
     },
     "card": {
       "kernel": "K",
@@ -885,18 +946,9 @@
       "unrated": "n/a",
       "noSummary": "(no summary yet)"
     },
-    "story": {
-      "headline": "{{n}} events in the order they actually happened",
-      "meta": "A chapter marked in sienna appears later in the book than its story position",
-      "trayLabel": "↵ {{n}} events that don't fit the story order",
-      "trayMore": "+{{n}} more"
-    },
     "legend": {
-      "kernel": "Large = KERNEL event",
       "analyzed": "Solid = analyzed",
-      "unanalyzed": "Dashed = not yet analyzed",
-      "unranked": "Thin ring = no place in story order",
-      "outlier": "Sienna = past the displacement threshold ({{n}})"
+      "unanalyzed": "Dashed = not yet analyzed"
     },
     "lanes": {
       "region": "Character lanes",
@@ -920,9 +972,7 @@
       "desc": "{{n}} conditions applied. Relax one, or clear the filter."
     },
     "noRanked": {
-      "story": "These events have no story order",
-      "matrix": "These events cannot be plotted",
-      "desc": "All {{n}} matching events have no story time (chronological_rank is empty), so they cannot be ordered. They can still be inspected one by one."
+      "desc": "None of the book's {{n}} events has a story order yet, so they cannot be ordered."
     },
     "displacementTypes": {
       "analepsis": "flashback",
@@ -931,13 +981,26 @@
     },
     "guide": {
       "prefix": "Researcher guide:",
-      "body": "The three views ask different questions: <strong>chapter order</strong> is the order the book narrates events in, <strong>story order</strong> is the order they happened, and the <strong>matrix</strong> shows the gap between them — a crossing is an analepsis or prolepsis. Story order needs event analysis (EEP) first; flashback detection additionally needs story-time hints on 60% of events, and <strong>those hints are set during knowledge-graph extraction</strong>."
+      "body": "<strong>Chapter order</strong> is the order the book narrates events in, and the base of this page; with <strong>story-order comparison</strong> on, the vertical deviation is the gap to the order they happened — a crossing is an analepsis or prolepsis. Story order needs event analysis (EEP) first; flashback detection additionally needs story-time hints on 60% of events, and <strong>those hints are set during knowledge-graph extraction</strong>."
+    },
+    "base": {
+      "title": "Chapter order",
+      "subtitle": "The horizontal axis is the order events appear in the book; with comparison on, the vertical deviation is the gap between that and the order they actually happened (fabula) — and that gap is analepsis and prolepsis."
+    },
+    "compare": {
+      "label": "Compare with story order",
+      "zeroCost": "Zero cost · redraws only, no LLM call",
+      "blockedTitle": "Comparison with story order is not available yet",
+      "blockedHint": "Compute it with “Compute for the first time…” on the right, then compare",
+      "mode": {
+        "stave": "Deviation stave",
+        "matrix": "Density matrix"
+      }
     }
   },
-  "unravelingLoadError": "Failed to load build overview data",
   "unraveling": {
     "status": {
-      "complete": "complete",
+      "complete": "built",
       "partial": "partial",
       "empty": "not built"
     },
@@ -945,33 +1008,52 @@
     "ranked": "ranked",
     "summary": {
       "eyebrow": "Build Overview",
-      "complete": "complete",
+      "complete": "built",
       "partial": "partial",
       "empty": "not built",
-      "totalNodes": "{{n}} nodes total"
+      "totalNodes": "{{n}} nodes total",
+      "completionRule": "{{done}} of {{total}} nodes built · partial counts as half"
     },
     "inspector": {
       "layerList": "Layer list",
       "nodeDetail": "Node detail",
       "backToList": "Back to layer list",
-      "nodeCount": "{{n}} nodes",
-      "layerLabel": "L{{n}}"
+      "nodeCount": "{{n}} nodes"
     },
     "detail": {
       "chapterDist": "Per-chapter distribution",
+      "chapterDistItem": "Ch.{{n}} {{v}}",
       "blockedTitle": "Not ready",
       "blockedHint": "Requires {{n}} upstream dependencies",
       "openPage": "Open the matching page",
       "rawCounts": "Raw counts",
       "meta": "Metadata",
-      "triggerSoon": "Build trigger coming soon"
+      "triggerSoon": "Build trigger coming soon",
+      "buildOnPage": "This layer is built on the {{page}} page →",
+      "sharedTrigger": "Runs together with {{names}} — different views of one run",
+      "missingPrereq": "Missing {{n}} prerequisites",
+      "blockedByHazard": "Rerun is deliberately unavailable for this layer: reclassifying a book whose EEP cache is gone wipes the knowledge graph's existing kernel weights, and it cannot be undone.",
+      "nameJoin": ", ",
+      "allBuilt": "All built — nothing left to fill in."
+    },
+    "run": {
+      "banner": "Building: {{names}}",
+      "view": "View",
+      "done": "“{{names}}” finished building",
+      "dismiss": "Dismiss",
+      "waitFor": "Other builds can start once “{{names}}” finishes"
     },
     "cta": {
       "running": "Building…",
       "failed": "Could not start the run",
+      "taskFailed": "The build did not finish",
+      "rateLimitedTitle": "Provider quota or rate limit reached",
+      "rateLimitedBody": "Try again later; whatever finished is kept.",
       "generic": {
         "partial": "Fill in what's missing",
-        "empty": "Start building"
+        "empty": "Start building",
+        "rerun": "Rebuild",
+        "again": "Run again"
       },
       "node": {
         "summaries": {
@@ -980,31 +1062,38 @@
         },
         "keywords": {
           "partial": "Extract the remaining keywords",
-          "empty": "Extract keywords"
+          "empty": "Extract keywords",
+          "rerun": "Re-extract keywords"
         },
         "symbols": {
           "partial": "Continue symbol discovery",
-          "empty": "Discover symbols"
+          "empty": "Discover symbols",
+          "rerun": "Rediscover symbols"
         },
         "kg_entity": {
           "partial": "Fill in the missing entities",
-          "empty": "Build the knowledge graph"
+          "empty": "Build the knowledge graph",
+          "rerun": "Rerun the knowledge graph"
         },
         "kg_concept": {
           "partial": "Fill in the missing concepts",
-          "empty": "Build the knowledge graph"
+          "empty": "Build the knowledge graph",
+          "rerun": "Rerun the knowledge graph"
         },
         "kg_concept_inferred": {
           "partial": "Infer the remaining concepts",
-          "empty": "Infer thematic propositions"
+          "empty": "Infer thematic propositions",
+          "again": "Infer again"
         },
         "kg_relation": {
           "partial": "Fill in the missing relations",
-          "empty": "Build the knowledge graph"
+          "empty": "Build the knowledge graph",
+          "rerun": "Rerun the knowledge graph"
         },
         "kg_event": {
           "partial": "Fill in the missing events",
-          "empty": "Build the knowledge graph"
+          "empty": "Build the knowledge graph",
+          "rerun": "Rerun the knowledge graph"
         },
         "cep": {
           "partial": "Analyze the remaining characters",
@@ -1028,11 +1117,13 @@
         }
       },
       "confirm": {
-        "title": "Start this build?",
-        "intro": "About to run: {{action}}.",
-        "token": "This calls the LLM and costs tokens; anything already built is skipped.",
-        "dropsDerived": "This step regenerates entities and events, so the analyses derived from them are deleted and will need rebuilding.",
-        "start": "Start building"
+        "dropsDownstream": "Rerunning this node will discard {{n}} downstream outputs already built",
+        "keepsDownstream": "Only fills in what is missing; no downstream output is affected",
+        "affectsDownstream": "After the rerun, the downstream outputs listed below will be affected.",
+        "overwrites": "This overwrites the existing analysis results.",
+        "staleDownstream": "{{n}} will be marked stale (content and reviews are kept)",
+        "staleOnly": "After the rerun, the built outputs below are marked stale: their content and human reviews are kept, and each can be rerun when you need it.",
+        "firstBuild": "This builds it for the first time; nothing existing is overwritten."
       }
     },
     "layer": {
@@ -1040,14 +1131,8 @@
       "1": "Knowledge Graph",
       "2": "Analysis intermediates",
       "3": "Derived analyses",
-      "4": "Book synthesis"
-    },
-    "laneName": {
-      "0": "Text",
-      "1": "KG",
-      "2": "Analysis",
-      "3": "Results",
-      "4": "Synthesis"
+      "4": "Book synthesis",
+      "sourceHint": "Source data present at upload, not produced by an LLM"
     },
     "node": {
       "book_meta": "Book Meta",
@@ -1080,13 +1165,18 @@
       "chronological_rank": "Chronological Rank"
     },
     "toolbar": {
-      "clearSelection": "Clear selection",
-      "showAll": "Show all"
+      "clearSelection": "Clear selection"
     },
     "openPageNotImplemented": "Not yet wired",
     "counts": {
       "chapters": "chapters",
-      "paragraphs": "chunks",
+      "title": "Title",
+      "author": "Author",
+      "language": "Language",
+      "total_imagery": "Total imagery",
+      "paragraphs": "paragraphs",
+      "chaptersN": "{{n}} ch.",
+      "paragraphsN": "{{n}} paras",
       "generated": "generated",
       "total": "total",
       "character": "CHARACTER",
@@ -1113,11 +1203,32 @@
       "pendingTitle": "Awaiting review ({{n}})",
       "confidence": "Confidence {{v}}%",
       "adopt": "Adopt",
-      "dismiss": "Dismiss"
+      "dismiss": "Dismiss",
+      "rejectPermanent": "Dismissals are permanent: a dismissed proposition will not reappear even after a rerun",
+      "pendingCount": "{{n}} pending",
+      "expand": "Expand review ↓",
+      "collapse": "Collapse review ↑",
+      "dismissTitle": "Dismiss this proposition?",
+      "dismissBody": "Once dismissed, “{{name}}” will not come back, even after a rerun. This cannot be undone.",
+      "actionFailed": "That didn't go through. Please try again."
     },
     "guide": {
       "prefix": "Researcher guide:",
-      "body": "This page is the book's <strong>build inventory</strong>, in five layers from L0 (text) to L4, where <strong>each layer feeds the ones above it</strong>. Node colour shows built / partial / not built. Any layer can be re-run from here — <strong>but re-running discards whatever downstream depends on it</strong>, and the confirmation lists what that includes."
+      "body": "This page is the book's <strong>build inventory</strong>, in five layers from L0 (text) to L4, left to right, where <strong>each column feeds the ones to its right</strong>. The mark at each node's top right shows built (filled) / partial (half) / not built (hollow). Builds can be started from here — <strong>some reruns delete downstream outputs or mark them stale</strong>, and the confirmation lists what is affected."
+    },
+    "selection": {
+      "hint": "Select a node to see what it depends on and what a rerun affects",
+      "upstreamCount": "{{n}} upstream dependencies",
+      "willDelete": "Will be deleted"
+    },
+    "dag": {
+      "label": "Data-layer dependency graph",
+      "roleUpstream": "upstream dependency",
+      "kgGroup": "KG features · one rerun",
+      "backEdge": "Back edge · temporal relations wait on EEP (L2 → L1)"
+    },
+    "layerList": {
+      "counts": "{{n}} · {{done}} built"
     }
   },
   "symbol": {
@@ -1129,6 +1240,8 @@
     "occurrences": "Occurrences",
     "chapterN": "Ch. {{n}}",
     "chapterOccurrences": "{{count}}×",
+    "chartLabel": "{{term}}: {{counts}}",
+    "chartListSep": ", ",
     "noOccurrences": "No occurrence records",
     "frequency": "{{count}} occurrences",
     "aliases": "Aliases",
@@ -1143,14 +1256,12 @@
       "other": "Other"
     },
     "polarity": {
-      "label": "Narrative polarity",
       "positive": "Positive",
       "negative": "Negative",
       "neutral": "Neutral",
       "mixed": "Mixed"
     },
     "review": {
-      "label": "HITL review",
       "pending": "Pending",
       "approved": "Approved",
       "modified": "Modified",
@@ -1158,23 +1269,17 @@
       "approve": "Approve",
       "modify": "Modify",
       "reject": "Reject",
-      "save": "Save",
       "cancel": "Cancel"
     },
     "interpretation": {
       "tag": "LLM interpretation",
-      "evidence": "Evidence summary",
-      "confidence": "Model confidence",
-      "confidenceNote": "Based on {{count}} occurrences",
-      "linkedCharacters": "Linked characters",
-      "linkedEvents": "Linked events",
+      "toSources": "Sources ({{count}}) ↓",
       "linkedEmpty": "No linked records",
       "regenerate": "Regenerate",
       "regenerateConfirm": "Regenerating will overwrite the existing interpretation and review status. Continue?",
       "themeEditPlaceholder": "Enter revised thematic proposition…",
       "linkedCharHint": "{{count}} co-occurrences",
       "linkedEventHint": "Ch. {{chapter}}",
-      "occurrenceJumpTitle": "Jump to reader",
       "frontMatterWarning": "{{count}} of this symbol's occurrences sit in front matter (colophon / title page) and were left out of the evidence; only body and afterword text goes to the model. The distribution chart still shows them.",
       "cta": {
         "recommendedTitle": "Strong enough signals — worth writing up as an argument",
@@ -1188,19 +1293,31 @@
         "discouragedButton": "Interpret anyway",
         "weakTitle": "Weak signals — the result may only paraphrase the quotes",
         "frontWarn": "{{count}} front-matter occurrences are excluded from the evidence; only body and afterword text is sent.",
-        "blockedTitle": "The provider refused this prompt — the signals are not the problem",
-        "blockedDesc": "The LLM provider blocked this symbol's prompt ({{detail}}) and returned nothing. That is a judgement made at the model, so re-sending the same evidence gets the same answer. Worth retrying once a different provider is configured.",
+        "blockedTitle": "The LLM provider refused text about this symbol",
+        "blockedDesc": "The LLM provider blocked this symbol's prompt ({{detail}}) and returned nothing.",
         "blockedEmptyDesc": "The LLM provider returned empty content and gave no reason. Re-sending the same evidence will most likely get the same result. Worth retrying once a different provider is configured.",
         "blockedButton": "Try again",
         "blockedHint": "Retrying re-sends the same evidence; expect the same refusal unless the provider has changed"
-      }
+      },
+      "field": {
+        "theme": "Theme",
+        "polarity": "Polarity",
+        "confidence": "Confidence",
+        "evidence": "Evidence summary"
+      },
+      "linkedCharactersN": "Linked characters · {{count}}",
+      "linkedEventsN": "Linked events · {{count}}",
+      "rejectedNote": "The content is kept for comparison; to replace it, press “Regenerate”.",
+      "saveEdit": "Save revision",
+      "editZeroCost": "Text only — does not call the LLM",
+      "blockedKept": "The last regeneration was refused. The earlier interpretation below is unchanged, and so is its review status."
     },
     "generating": {
       "eyebrow": "Interpreting symbol",
       "taskLabel": "TASK ID",
       "overallProgress": "Overall progress",
       "cancel": "Cancel",
-      "footerNote": "~12s expected · polling every 2s",
+      "footerNote": "Polling every 2s",
       "stageDone": "Done",
       "stagePending": "Waiting",
       "stages": {
@@ -1209,12 +1326,17 @@
         "link": "Link KG characters / events",
         "llm": "LLM interpretation · thematic proposition",
         "review": "Persist for review"
-      }
+      },
+      "stageRunning": "In progress",
+      "cancelFailed": "Could not cancel — the task is still running.",
+      "blockedBySingle": "Another symbol interpretation is being generated. Try again when it finishes.",
+      "blockedByBatch": "A batch run is in progress. Try again when it finishes."
     },
     "error": {
       "generic": "Operation failed. Please try again.",
       "triggerFailed": "Failed to trigger interpretation. Please try again.",
-      "reviewFailed": "Failed to update review status."
+      "reviewFailed": "Failed to update review status.",
+      "blockedInline": "Behaviour signals, the heatmap and the triage panel are unaffected — they are computed for free and never go through the provider."
     },
     "dashboard": {
       "heatTitle": "Chapter density heatmap"
@@ -1238,7 +1360,6 @@
       "headingSorted": "By {{axis}}",
       "headingSearch": "Search results",
       "headingShape": "Filtered by behaviour",
-      "count": "{{shown}} / {{total}}",
       "tailNote": "{{count}} more words occur once and are not ranked",
       "metric": {
         "load": "{{value}}",
@@ -1253,7 +1374,9 @@
       },
       "checkHint": "Tick the symbols to interpret. Already-interpreted symbols and words occurring once are not included.",
       "checkNone": "Nothing here can be picked.",
-      "checkAria": "Pick {{term}}"
+      "checkAria": "Pick {{term}}",
+      "trustBelowFloor": "Evidence trust {{pct}}%, below the 80% trust floor",
+      "groupMeta": "{{total}} · {{analyzed}} interpreted"
     },
     "shape": {
       "through": "Runs through {{count}} chapters",
@@ -1281,7 +1404,6 @@
         "noisy": "{{count}} with noisy evidence",
         "separator": " · "
       },
-      "aiCostLegend": "Marked items are LLM-generated or will trigger generation: they spend tokens and enter HITL review. Every other signal is computed at no cost.",
       "picks": {
         "title": "Where to start",
         "subtitle": "Top {{count}} by narrative load, computed from structured signals",
@@ -1298,6 +1420,7 @@
         "ctaBlocked": "Refused by provider — cannot interpret"
       },
       "heat": {
+        "loadHead": "Load",
         "meta": "{{rows}} ranked symbols × {{slots}} axis slots · body chapter maximum {{max}}",
         "subtitle": "Shading is an absolute occurrence count, never rescaled per symbol or chapter, so rows compare directly — the steps are in the legend below",
         "axisBody": "Body, ch {{first}}–{{last}}",
@@ -1327,10 +1450,11 @@
         "chapterBack": "back"
       },
       "batch": {
+        "progress": "Interpreting symbols {{done}}/{{total}}",
         "topN": "Interpret the strongest {{count}}…",
         "all": "All {{count}}…",
         "confirmTopN": "This will interpret the {{count}} symbols with the highest narrative load. Each one spends tokens and enters HITL review. Continue?",
-        "confirmAll": "This will interpret all {{count}} ranked symbols, skipping any already done. Each one spends tokens and enters HITL review. Continue?",
+        "confirmAll": "This will interpret {{count}} symbols that have no interpretation yet ({{skipped}} already done, skipped automatically). Each one spends tokens and enters HITL review. Continue?",
         "running": "Batch interpretation running",
         "hint": "You can leave the page; the run continues.",
         "statGenerated": "generated",
@@ -1342,7 +1466,8 @@
         "check": "Pick several…",
         "checkOff": "Cancel picking",
         "checked": "Interpret picked ({{count}})",
-        "confirmChecked": "This will interpret the {{count}} symbols you picked. Each one spends tokens and enters HITL review. Continue?"
+        "confirmChecked": "This will interpret the {{count}} symbols you picked. Each one spends tokens and enters HITL review. Continue?",
+        "confirmTitle": "Interpret symbols in bulk"
       }
     },
     "detail": {
@@ -1450,7 +1575,8 @@
       "frontShow": "Show {{count}} front-matter records",
       "frontHide": "Hide {{count}} front-matter records",
       "frontDesc": "Colophon and title page — noise. Never sent to interpretation, and not in the reader.",
-      "metaClean": "{{count}} records · {{chapters}} body chapters"
+      "metaClean": "{{count}} records · {{chapters}} body chapters",
+      "jump": "Jump to text"
     },
     "cluster": {
       "crumb": "Cluster",
@@ -1464,7 +1590,8 @@
       "withSeed": "{{count}} shared",
       "hot": "Shared landing point: Ch. {{chapters}} — {{count}} of {{total}} members appear there at once",
       "hotNone": "The members share no body chapter, so this group carries separately rather than together",
-      "boundary": "Scope: this is not a small knowledge graph. Rows are symbols, columns are chapters, shade is occurrence count — it answers what these symbols carry between them. Who is related to whom stays on the knowledge graph page."
+      "boundary": "Scope: this is not a small knowledge graph. Rows are symbols, columns are chapters, shade is occurrence count — it answers what these symbols carry between them. Who is related to whom stays on the knowledge graph page.",
+      "empty": "No two symbols share a paragraph 2 or more times."
     },
     "pin": {
       "set": "Pin for comparison",
@@ -1477,15 +1604,35 @@
       "badge": "Blocked",
       "badgeTitle": "The LLM provider refused this symbol's prompt; no interpretation was produced"
     },
-    "emptyStep1Title": "Confirm paragraph tokenisation is complete",
-    "emptyStep1Desc": "Imagery extraction relies on paragraph-level tokens — if the paragraph layer has not been built, extraction will not run automatically.",
-    "emptyStep2Title": "Check status on the Build Overview page",
-    "emptyStep2Desc": "The Build Overview DAG will clearly mark the \"Symbols\" node as empty, partial, or complete.",
-    "emptyStep3Title": "Trigger manually if needed",
-    "emptyStep3Desc": "If the dependency layer is complete but the list is still empty, trigger the imagery extraction pipeline from the corresponding node on the Build Overview page.",
     "guide": {
       "prefix": "Researcher guide:",
       "body": "This page lays the book's imagery out as a map. The <strong>sort axis</strong> decides what \"important\" means — narrative load is the composite measure, while <strong>raw frequency is only a control</strong>: appearing often is not the same as carrying weight. Filter by category and review state on the left."
+    },
+    "filterEmpty": {
+      "clear": "Clear search"
+    },
+    "empty": {
+      "steps": {
+        "1": {
+          "title": "Make sure paragraphs are built",
+          "desc": "Symbols are found inside paragraphs; with no paragraphs there are no symbols."
+        },
+        "2": {
+          "title": "Open the Build Overview and look at the Symbols node",
+          "desc": "The node is marked built, partial or not built, and lists which prerequisites are still missing."
+        },
+        "3": {
+          "title": "Prerequisites are met but it is still empty",
+          "desc": "Build it by hand from the Symbols node in the Build Overview. This calls the LLM and spends tokens."
+        }
+      }
+    },
+    "regen": {
+      "title": "Regenerate the interpretation of “{{term}}”?",
+      "loss": {
+        "content": "The current theme, evidence summary and links",
+        "status": "Review status: {{status}}"
+      }
     }
   },
   "narrative": {
@@ -1496,6 +1643,7 @@
     "bookMeta": "{{title}} · {{chapters}} chapters · {{events}} events · {{source}}",
     "methodLink": "See the full framework on the methodology page →",
     "index": {
+      "navLabel": "On this page",
       "role1": "Interpretation",
       "title1": "Hero's Journey",
       "answers1": "Which of Campbell's 12 stages this book takes",
@@ -1541,15 +1689,17 @@
     "review": {
       "pending": "System-generated · unreviewed",
       "approved": "Approved",
-      "rejected": "Marked not applicable"
+      "rejected": "Marked not applicable",
+      "withdrawApproved": "Press again to withdraw approval and return to \"System-generated · unreviewed\"",
+      "withdrawRejected": "Press again to withdraw and return to \"System-generated · unreviewed\""
     },
     "approve": "Approve",
     "markNA": "Mark N/A",
     "rerun": "Re-analyze",
-    "rerunning": "Re-analyzing…",
     "rerunArrow": "Re-run analysis →",
     "coverage": "Mapped {{mapped}}",
     "ofTotal": "/ {{total}} stages",
+    "ringStageOrdinal": "Stage {{n}}",
     "legend": "Legend",
     "absentSummary": "Not identified · {{count}}",
     "absentBody": "Absent stages are deliberate narrative choices, not \"incomplete\" — a step this book never takes is itself a finding.",
@@ -1575,10 +1725,6 @@
       "columns": "Departure, initiation, return",
       "ring": "Where the gap falls on the ring"
     },
-    "ring": {
-      "knownWorld": "KNOWN WORLD",
-      "specialWorld": "SPECIAL WORLD"
-    },
     "spine": {
       "title": "Event Spine",
       "subtitle": "Chatman kernel / satellite",
@@ -1590,6 +1736,8 @@
       "barKernel": "Kernel {{n}}",
       "barSatellite": "Satellite {{n}}",
       "barSatelliteNone": "Satellite 0 · this book has none",
+      "dominantKernel": "{{count}} of {{total}} events in this book are classed as kernels — event analysis judges each event alone, with no book-wide baseline, so it cannot yet tell major from minor (B-133).",
+      "dominantSatellite": "{{count}} of {{total}} events in this book are classed as satellites — event analysis judges each event alone, with no book-wide baseline, so it cannot yet tell major from minor (B-133).",
       "barUnclassified": "Unclassified {{n}}",
       "noKernel": "No kernel events",
       "evHint": "Pick an event to see what it signifies, and the way through to it.",
@@ -1609,9 +1757,14 @@
       "jump": "Go to event analysis →",
       "running": "Working… {{progress}}%",
       "classifyConfirmTitle": "Reclassify from EEP?",
-      "classifyConfirmBody": "Recomputes kernel/satellite for the whole book from the existing event-analysis (EEP) cache. No LLM call, no token cost. If every cache entry is gone the server refuses, so existing classifications cannot be wiped.",
+      "classifyConfirmBody": "Recomputes kernel/satellite for the whole book from the existing event-analysis (EEP) results. No LLM call, no token cost. Events without an EEP result keep the classification they have.",
       "refineConfirmTitle": "Refine {{n}} unclassified events with the LLM?",
-      "refineConfirmBody": "Sends one LLM request per event to judge kernel vs satellite. This spends tokens, and takes longer the more events there are. The verdicts overwrite these events\\u2019 current weights."
+      "refineConfirmBody": "Sends one LLM request per event to judge kernel vs satellite. This spends tokens, and takes longer the more events there are. The verdicts overwrite these events’ current weights.",
+      "classifyCost": "Zero cost · writes data",
+      "badgeFree": "Zero cost",
+      "badgeTokens": "Consumes tokens",
+      "classifyAffects": "Will be deleted / overwritten: kernel/satellite weights of all {{total}} events (now: kernel {{kernel}} · satellite {{satellite}} · unclassified {{unclassified}})",
+      "refineAffects": "Will be deleted / overwritten: the current weights of these {{n}} events"
     },
     "cross": {
       "title": "Laid on one chapter axis",
@@ -1622,7 +1775,7 @@
       "rowKernelSub": "{{n}} total",
       "rowTension": "Tension peak",
       "rowTensionSub": "highest TEU per chapter",
-      "notePeak": "Chapter {{ch}} is where the layers peak together: tension {{tension}}, stage {{stages}}, {{kernels}} kernel events.",
+      "notePeak": "Among chapters where all three layers register, chapter {{ch}} has the highest tension ({{tension}}): it falls in stage {{stages}} and has {{kernels}} kernel events.",
       "noteGap": "Chapter {{ch}} carries tension and a stage but no kernel events at all — event classification stops at chapter {{last}}; the chapter is not empty.",
       "temporalTitle": "Temporal structure",
       "temporalSub": "Genette · narrative order vs story order",
@@ -1653,10 +1806,14 @@
       "human": "Human-verified"
     },
     "empty": {
+      "classifyFirst": "Classify events from EEP",
+      "classifyFirstTitle": "Classify events from EEP?",
+      "classifyFirstNote": "The plot spine needs one classification from event analysis (EEP) before it can be drawn; {{n}} events have an analysis so far.",
       "title": "No Hero's Journey yet",
       "message": "This analysis reads chapter summaries, not the source text. With summaries missing it reports success and produces zero stages — so check the two below first.",
       "trigger": "Start Hero's Journey analysis",
-      "running": "Analyzing… {{progress}}%",
+      "runningStep": "Analyzing · {{step}}",
+      "runningPlain": "Analyzing…",
       "prereqTitle": "Prerequisites",
       "prereqSummary": "Chapter summaries",
       "prereqEvents": "Event analysis (EEP)",
@@ -1676,15 +1833,39 @@
       "classifyFailed": "Reclassification failed.",
       "refineTrigger": "Failed to start LLM refinement. Please try again.",
       "refineFailed": "LLM refinement failed.",
-      "classifyRefused": "Cannot reclassify: none of the {{total}} events still have an event-analysis (EEP) cache entry, so all {{classified}} classified events would be reset to unclassified. Re-run event analysis first."
+      "classifyRefused": "Cannot reclassify: none of the {{total}} events has an event-analysis (EEP) result yet, so this run would change nothing (the {{classified}} classified events stay as they are). Run event analysis first.",
+      "reviewFailed": "Could not update the review status. Please try again later."
+    },
+    "busy": {
+      "heroJourney": "Hero's Journey analysis is running. Other narrative analyses can start once it finishes.",
+      "classify": "Reclassification from EEP is running. Other narrative analyses can start once it finishes.",
+      "refine": "LLM refinement is running. Other narrative analyses can start once it finishes.",
+      "other": "Another narrative analysis is running. Try again once it finishes."
+    },
+    "detailFold": {
+      "open": "Show details",
+      "close": "Hide"
+    },
+    "a11y": {
+      "chartSummary": "{{label}}: {{values}}",
+      "listSep": ", "
+    },
+    "toSource": "Chapter {{ch}} text →",
+    "heroStep": {
+      "load": "reading chapter summaries",
+      "llm": "LLM mapping stages",
+      "parse": "tidying results"
     },
     "stale": {
       "title": "This analysis may be out of date",
-      "body": "The \"{{step}}\" step has run since this analysis was produced, so what follows describes older data. Re-run the analysis to refresh it."
+      "body": "The \"{{step}}\" step has run since this analysis was produced, so what follows describes older data. Re-run the analysis to refresh it.",
+      "spine": "This kernel/satellite classification predates the latest \"{{step}}\" run and may be out of date.",
+      "spineWithAction": "This kernel/satellite classification predates the latest \"{{step}}\" run and may be out of date; \"Reclassify from EEP\" below brings it up to date."
     },
     "guide": {
       "prefix": "Researcher guide:",
       "body": "Three sections: <strong>narrative structure</strong> for the shape of the book, <strong>hero's journey</strong> against Campbell's twelve stages, and <strong>event spine</strong> for which kernel events hold that arc up. <strong>All three read chapter summaries, not the source text</strong> — with summaries missing, the analysis reports success and produces zero stages, so check the prerequisites below first."
-    }
+    },
+    "repEventsNoneGap": "This stage sits in chapter {{ch}}, but those chapters have no kernel events to show — having no events to show does not invalidate the stage."
   }
 }

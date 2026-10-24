@@ -70,7 +70,7 @@ def voice_client(mock_kg, mock_doc):
 
 class TestVoiceCachedOnly:
     def test_default_behaviour_unchanged(self, voice_client):
-        """cached_only omitted → same as False, generation path used as before."""
+        """cached_only omitted → cache first; a hit is served without generating."""
         voice_client.mock_voice.get_voice_profile.return_value = _profile()
 
         resp = voice_client.get(
@@ -81,8 +81,23 @@ class TestVoiceCachedOnly:
             document_id=BOOK_ID,
             character_id=ENTITY_ID,
             language="en",
-            cached_only=False,
+            cached_only=True,
         )
+
+    def test_default_generates_on_cache_miss(self, voice_client):
+        voice_client.mock_voice.get_voice_profile.side_effect = [None, _profile()]
+
+        resp = voice_client.get(
+            f"/api/v1/books/{BOOK_ID}/entities/{ENTITY_ID}/voice"
+        )
+        assert resp.status_code == 200
+        second = voice_client.mock_voice.get_voice_profile.await_args_list[1]
+        assert second.kwargs == {
+            "document_id": BOOK_ID,
+            "character_id": ENTITY_ID,
+            "language": "en",
+            "force": False,
+        }
 
     def test_cached_only_true_returns_200_when_cached(self, voice_client):
         voice_client.mock_voice.get_voice_profile.return_value = _profile()
@@ -105,6 +120,52 @@ class TestVoiceCachedOnly:
 
         resp = voice_client.get(
             f"/api/v1/books/{BOOK_ID}/entities/{ENTITY_ID}/voice?cached_only=true"
+        )
+        assert resp.status_code == 404
+        voice_client.mock_voice.get_voice_profile.assert_awaited_once_with(
+            document_id=BOOK_ID,
+            character_id=ENTITY_ID,
+            language="en",
+            cached_only=True,
+        )
+
+
+class TestVoiceForce:
+    """ENG-001: ``force=true`` regenerates and overwrites only on success."""
+
+    def test_force_skips_cache_read_and_returns_new_profile(self, voice_client):
+        voice_client.mock_voice.get_voice_profile.return_value = _profile()
+
+        resp = voice_client.get(
+            f"/api/v1/books/{BOOK_ID}/entities/{ENTITY_ID}/voice?force=true"
+        )
+        assert resp.status_code == 200
+        voice_client.mock_voice.get_voice_profile.assert_awaited_once_with(
+            document_id=BOOK_ID,
+            character_id=ENTITY_ID,
+            language="en",
+            force=True,
+        )
+
+    def test_force_failure_returns_502_with_detail(self, voice_client):
+        from storysphere.services.voice_profiling_service import VoiceGenerationError
+
+        voice_client.mock_voice.get_voice_profile.side_effect = VoiceGenerationError(
+            "TimeoutError"
+        )
+
+        resp = voice_client.get(
+            f"/api/v1/books/{BOOK_ID}/entities/{ENTITY_ID}/voice?force=true"
+        )
+        assert resp.status_code == 502
+        assert "existing profile was kept" in resp.json()["detail"]
+
+    def test_cached_only_wins_over_force(self, voice_client):
+        voice_client.mock_voice.get_voice_profile.return_value = None
+
+        resp = voice_client.get(
+            f"/api/v1/books/{BOOK_ID}/entities/{ENTITY_ID}/voice"
+            "?cached_only=true&force=true"
         )
         assert resp.status_code == 404
         voice_client.mock_voice.get_voice_profile.assert_awaited_once_with(

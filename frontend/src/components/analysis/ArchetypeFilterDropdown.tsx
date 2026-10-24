@@ -3,6 +3,7 @@ import { Flag, X, Check, ChevronDown, ChevronRight, Search } from 'lucide-react'
 import { useTranslation } from 'react-i18next';
 import { getFrameworks } from '@/data/frameworksData';
 import type { AnalysisItem } from '@/api/types';
+import { archetypeKey } from './characterModel';
 
 interface ArchetypeFilterDropdownProps {
   framework: 'jung' | 'schmidt';
@@ -12,8 +13,10 @@ interface ArchetypeFilterDropdownProps {
 }
 
 /** Searchable multi-select popover, left panel (#14). Filters the analyzed
- * list by primary archetype name for the active framework; facet counts are
- * derived client-side from #6a `analyzed[].archetypes`. */
+ * list by primary archetype for the active framework; facet counts are
+ * derived client-side from #6a `analyzed[].archetypes`. Everything is keyed by
+ * archetype id (`archetypeKey`): #6a names are in the book's language, the
+ * taxonomy here is in the interface language. */
 export function ArchetypeFilterDropdown({
   framework,
   analyzed,
@@ -44,15 +47,20 @@ export function ArchetypeFilterDropdown({
   const facet = new Map<string, number>();
   analyzed.forEach((item) => {
     const name = item.archetypes?.[framework];
-    if (name) facet.set(name, (facet.get(name) ?? 0) + 1);
+    if (name) {
+      const key = archetypeKey(framework, name);
+      facet.set(key, (facet.get(key) ?? 0) + 1);
+    }
   });
 
+  const query = search.trim().toLowerCase();
   const options = taxonomy
-    .filter((item) => !search.trim() || item.name.includes(search.trim()))
-    .sort((a, b) => (facet.get(b.name) ?? 0) - (facet.get(a.name) ?? 0));
+    .filter((item) => !query || item.name.toLowerCase().includes(query))
+    .sort((a, b) => (facet.get(b.id) ?? 0) - (facet.get(a.id) ?? 0));
+  const nameOfKey = (key: string) => taxonomy.find((item) => item.id === key)?.name ?? key;
 
-  const toggle = (name: string) => {
-    onChange(selected.includes(name) ? selected.filter((v) => v !== name) : [...selected, name]);
+  const toggle = (key: string) => {
+    onChange(selected.includes(key) ? selected.filter((v) => v !== key) : [...selected, key]);
   };
 
   return (
@@ -112,14 +120,14 @@ export function ArchetypeFilterDropdown({
             <div className="ca-archfilter-options">
               {options.length ? (
                 options.map((item) => {
-                  const on = selected.includes(item.name);
-                  const count = facet.get(item.name) ?? 0;
+                  const on = selected.includes(item.id);
+                  const count = facet.get(item.id) ?? 0;
                   return (
                     <button
                       key={item.id}
                       type="button"
                       className={'ca-archfilter-option' + (on ? ' selected' : '')}
-                      onClick={() => toggle(item.name)}
+                      onClick={() => toggle(item.id)}
                     >
                       <span className={'ca-archfilter-check' + (on ? ' checked' : '')}>
                         {on && <Check size={10} strokeWidth={3} />}
@@ -146,9 +154,9 @@ export function ArchetypeFilterDropdown({
 
       {selected.length > 0 && (
         <div className="ca-archfilter-pills">
-          {selected.map((name) => (
-            <span key={name} className="ca-archfilter-pill" onClick={() => toggle(name)}>
-              {name}
+          {selected.map((key) => (
+            <span key={key} className="ca-archfilter-pill" onClick={() => toggle(key)}>
+              {nameOfKey(key)}
               <X size={10} />
             </span>
           ))}

@@ -11,8 +11,8 @@
   "onboarding": {
     "eyebrow": "知識圖譜",
     "title": "尚無可顯示的節點",
-    "intro": "知識圖譜由各章節的實體與關係萃取而成。這本書還沒有節點——請確認書籍已完成處理，或重新上傳。",
-    "cta": "前往上傳"
+    "intro": "知識圖譜由各章節的實體與關係萃取而成。這本書還沒有節點——請到建構概覽確認「知識圖譜」步驟已完成，或重新執行。",
+    "cta": "前往建構概覽"
   },
   "timeline": {
     "modal": {
@@ -39,7 +39,6 @@
       "modeStory": "故事"
     }
   },
-  "stats": "{{nodes}} 節點 · {{edges}} 關係",
   "statsInferred": "+{{n}} 推斷",
   "statsNodeLabel": "節點",
   "statsEdgeLabel": "關係",
@@ -49,7 +48,6 @@
   "panel": {
     "deepAnalysis": "深度分析",
     "relatedParagraphs": "相關段落",
-    "eventInfo": "事件資訊",
     "participants": "參與者",
     "eventAnalysis": "事件分析",
     "bookmark": "標記",
@@ -63,7 +61,11 @@
     "statFirstChapter": "首次登場章",
     "addToCompare": "加入比較",
     "comparePending": "再選一個實體",
-    "chunkRef": "章節 {{chapter}} · 片段 {{order}}"
+    "chunkRef": "章節 {{chapter}} · 片段 {{order}}",
+    "current": "目前顯示 · {{name}}",
+    "chainInferred": "推斷關係審查",
+    "chainEntity": "實體詳情",
+    "chainEvent": "事件詳情"
   },
   "entity": {
     "triggerFailed": "觸發分析失敗，請稍後再試。",
@@ -112,13 +114,13 @@
         "community": "社群"
       },
       "overview": "群集概觀",
+      "overviewIn": "群集概觀 · {{lens}}",
       "drillInTitle": "{{typeName}}群集 · {{n}} 個成員",
       "drillInFactionTitle": "{{name}} · {{n}} 名成員",
       "members": "{{n}} 個成員",
       "sortImportance": "依重要性",
       "sortName": "依名稱",
       "back": "上一階",
-      "toggleSort": "切換排序",
       "unaffiliated": "無派系 ({{n}})",
       "communityScope": {
         "heading": "此檢視範圍",
@@ -136,7 +138,23 @@
         "algorithm": "偵測算法",
         "resolution": "解析度",
         "minSize": "最小群集大小",
-        "recompute": "重新運算"
+        "recompute": "重新運算",
+        "zeroCost": "零成本"
+      },
+      "communityRowCount": "{{n}} 個 · {{composition}}",
+      "cohesion": "凝聚 {{score}}",
+      "compositionAbbr": {
+        "character": "角",
+        "location": "地",
+        "concept": "概",
+        "event": "事",
+        "organization": "組",
+        "object": "物",
+        "other": "他"
+      },
+      "rel": {
+        "cooperation": "合作 {{score}}",
+        "rivalry": "敵對 {{score}}"
       }
     },
     "search": {
@@ -192,7 +210,7 @@
         "adopt": "採用",
         "reject": "否決",
         "empty": "尚無待審查推斷關係",
-        "rerunForceConfirm": "重跡會把所有「已採用 / 已否決」的決定重設為待審查，原本寫入圖譜的關係不會被刪除，但會以待審查狀態再次出現。確定繼續嗎？"
+        "rerunForceConfirm": "重跑會把所有「已採用 / 已否決」的決定重設為待審查，原本寫入圖譜的關係不會被刪除，但會以待審查狀態再次出現。確定繼續嗎？"
       }
     },
     "compare": {
@@ -243,7 +261,9 @@
       "noBookmarks": "尚未標記實體",
       "removeBookmark": "移除標記",
       "bookmarkAggregateNote": "目前為聚合檢視：點擊書籤將切回個別檢視並選取該實體。",
-      "bookmarkStorageNote": "存於此瀏覽器（localStorage）"
+      "bookmarkStorageNote": "存於此瀏覽器（localStorage）",
+      "expand": "展開 Lens 卡",
+      "collapse": "收合 Lens 卡"
     },
     "orphan": {
       "button": "未連結實體",
@@ -266,8 +286,67 @@
       "noPath": "找不到連接兩者的路徑。"
     }
   },
+  "mode": {
+    "subtitle": {
+      "node": "單一實體怎麼連",
+      "type": "按 7 類分群後長怎樣",
+      "community": "演算法自動聚出哪些派系"
+    }
+  },
+  "legend": {
+    "currentLens": "目前鏡頭 · {{mode}}",
+    "typeToggleHint": "型別開關在上方工具列"
+  },
+  "inference": {
+    "noTokenCostInline": "無 token 成本",
+    "forceRerunTitle": "強制重跑推論"
+  },
   "guide": {
     "prefix": "研究者導覽：",
     "body": "三種鏡頭看同一張圖——<strong>個別</strong>看單一實體的連法，<strong>類型</strong>按角色／地點／物品等分群，<strong>社群</strong>用演算法找出自動聚成的派系；<strong>圖例會跟著鏡頭換</strong>。「執行推論」用共同鄰居演算法補可能存在但沒被明寫的關係，不呼叫 LLM、不耗 token，<strong>但推論結果需人工確認才會進圖</strong>。"
+  },
+  "inferredType": {
+    "potential_ally": "潛在盟友",
+    "potential_enemy": "潛在敵對",
+    "potential_friendship": "潛在友誼",
+    "potential_associate": "潛在關聯",
+    "unknown": "未判定"
+  },
+  "searchA11y": {
+    "inputLabel": "搜尋實體或章節",
+    "listLabel": "搜尋結果"
+  },
+  "a11y": {
+    "close": "關閉面板",
+    "zoomIn": "放大",
+    "zoomOut": "縮小",
+    "decrease": "減少",
+    "increase": "增加",
+    "lensTabs": "視角分頁"
+  },
+  "relations": {
+    "title": "關係",
+    "count": "{{count}} 筆",
+    "empty": "沒有已確認的關係",
+    "showAll": "顯示全部 {{count}} 筆",
+    "showLess": "收合",
+    "offCanvas": "（畫布已隱藏）",
+    "cooperative": "合作",
+    "hostile": "敵對",
+    "canvasSummary": "知識圖譜：{{nodes}} 個節點、{{edges}} 條關係",
+    "types": {
+      "family": "家人",
+      "friendship": "友誼",
+      "romance": "戀人",
+      "enemy": "敵對",
+      "ally": "盟友",
+      "subordinate": "從屬",
+      "located_in": "位於",
+      "member_of": "成員",
+      "owns": "擁有",
+      "other": "其他",
+      "unknown": "未分類",
+      "participates_in": "參與"
+    }
   }
 }

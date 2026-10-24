@@ -1,19 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useLocation, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import {
-  Search,
-  ExternalLink,
-  RefreshCw,
-  AlertTriangle,
-  GitCompare,
-  ArrowLeft,
-  Check,
-  X,
-} from 'lucide-react';
+import { Search, ExternalLink, AlertCircle, ArrowLeft, X } from 'lucide-react';
 import { Trans, useTranslation } from 'react-i18next';
 import '@/styles/character-analysis.css';
 import { useChatDispatch } from '@/contexts/ChatContext';
+import { useToast } from '@/contexts/ToastContext';
 import { useBook } from '@/hooks/useBook';
 import { useCharacterAnalysis } from '@/hooks/useCharacterAnalysis';
 import { useEventAnalysis } from '@/hooks/useEventAnalysis';
@@ -21,7 +13,9 @@ import {
   fetchEntityAnalysis,
   triggerEntityAnalysis,
   triggerBatchEntityAnalysis,
+  fetchActiveEntityBatch,
 } from '@/api/analysis';
+import { failureKind, isLlmUnconfigured, techDetailOf } from '@/api/failureKind';
 import {
   CharacterAnalysisDetail,
   type OverviewSubTab,
@@ -32,13 +26,23 @@ import { FrameworkCompareDrawer } from '@/components/analysis/FrameworkCompareDr
 import { EpistemicCompareDrawer } from '@/components/analysis/EpistemicCompareDrawer';
 import { CharacterGenerating } from '@/components/analysis/CharacterGenerating';
 import { GuidanceRibbon } from '@/components/ui/GuidanceRibbon';
+import { LlmUnconfiguredNotice } from '@/components/ui/LlmUnconfiguredNotice';
+import { PageFailure } from '@/components/ui/PageFailure';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { AnalyzedItem, UnanalyzedItem } from '@/components/analysis/AnalysisListItems';
 import { ArchetypeFilterDropdown } from '@/components/analysis/ArchetypeFilterDropdown';
 import { CharacterOverviewLanding } from '@/components/analysis/overview/CharacterOverviewLanding';
+import { UnanalyzedCharacterDetail } from '@/components/analysis/UnanalyzedCharacterDetail';
+import {
+  archetypeDisplayName,
+  archetypeKey,
+  archetypeState,
+} from '@/components/analysis/characterModel';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
 import { useAsyncTask } from '@/hooks/useAsyncTask';
-import { BatchFailureList } from '@/components/analysis/BatchFailureList';
+import { BatchEepPanel } from '@/components/analysis/BatchEepPanel';
+import { failedCountOf, liveFailedIds } from '@/components/analysis/batchPanelModel';
 import { useBatchTask } from '@/hooks/useBatchTask';
 import { qk } from '@/api/queryKeys';
 
@@ -55,13 +59,21 @@ type PrimaryTab = 'overview' | 'voice' | 'epistemic';
 
 const PRIMARY_TABS: PrimaryTab[] = ['overview', 'voice', 'epistemic'];
 
+/** Group head count: just the total, or "shown / total" while search or the
+ *  archetype filter is narrowing the group. */
+function groupCount(shown: number, total: number): string {
+  return shown === total ? String(total) : `${shown} / ${total}`;
+}
+
 export default function CharacterAnalysisPage() {
   const queryClient = useQueryClient();
   const { bookId } = useParams<{ bookId: string }>();
   const { setPageContext } = useChatDispatch();
   const { data: book } = useBook(bookId);
-  const { t } = useTranslation('analysis');
+  const { t, i18n } = useTranslation('analysis');
+  const { push } = useToast();
   const { t: tc } = useTranslation('common');
+  const { t: tn } = useTranslation('nav');
 
   const location = useLocation();
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -83,18 +95,27 @@ export default function CharacterAnalysisPage() {
   const [epistemicCompareChapter, setEpistemicCompareChapter] = useState(1);
   const [generatingId, setGeneratingId] = useState<string | null>(null);
   const [triggerError, setTriggerError] = useState<string | null>(null);
+  // 「尚未設定 LLM provider」（503 + 應用層 body）是功能層狀態：就地顯示，
+  // 已分析的結果照常可讀——失敗的只是「生成」這個動作。
+  const [llmBlocked, setLlmBlocked] = useState(false);
 
   // #11 tiered batch: 'top10' analyzes the top-10-by-mentionCount unanalyzed
   // characters (entityIds subset), 'all' analyzes everything unanalyzed.
   const [batchMode, setBatchMode] = useState<'top10' | 'all' | null>(null);
-  const [toastVisible, setToastVisible] = useState(false);
+  // 「只看失敗」：把左欄清單篩到上一批失敗的角色（本次瀏覽才有）。
+  const [failedOnly, setFailedOnly] = useState(false);
 
   useEffect(() => {
     if (book) setPageContext({ page: 'analysis', bookId, bookTitle: book.title, analysisTab: 'characters' });
     return () => setPageContext({ page: 'other' });
   }, [book, bookId, setPageContext]);
 
-  const { data: charData, isLoading } = useCharacterAnalysis(bookId);
+  const {
+    data: charData,
+    isLoading,
+    error: charError,
+    refetch: refetchChars,
+  } = useCharacterAnalysis(bookId);
   // #5 behavior-pane keyEvents -> event analysis page name matching.
   const { data: eventData } = useEventAnalysis(bookId);
 
@@ -113,7 +134,12 @@ export default function CharacterAnalysisPage() {
     },
   });
 
-  const { data: entityAnalysis, isLoading: analysisLoading } = useQuery({
+  const {
+    data: entityAnalysis,
+    isLoading: analysisLoading,
+    error: analysisError,
+    refetch: refetchAnalysis,
+  } = useQuery({
     queryKey: qk.entity.analysis(bookId, selectedEntityId),
     queryFn: () => fetchEntityAnalysis(bookId!, selectedEntityId!),
     // Pause while a generation task runs. The old analysis is no longer
@@ -123,26 +149,38 @@ export default function CharacterAnalysisPage() {
     enabled: !!bookId && !!selectedEntityId && !gen.taskId,
   });
 
+  // Every token-spending trigger (建立, 覆蓋重新生成, 重試失敗部分) fails the same
+  // way: a 503 carrying the app's own body means no LLM provider is configured.
+  // Say that in place; anything else is the generic trigger failure.
+  const onTriggerStart = () => {
+    setTriggerError(null);
+    setLlmBlocked(false);
+  };
+  const onTriggerFailed = (err: unknown) => {
+    if (isLlmUnconfigured(err)) {
+      setLlmBlocked(true);
+      setTriggerError(null);
+    } else {
+      setTriggerError(t('triggerFailed'));
+    }
+  };
+
   const triggerMutation = useMutation({
     mutationFn: (id: string) => triggerEntityAnalysis(bookId!, id),
-    onSuccess: (data) => {
-      setTriggerError(null);
-      gen.adopt(data.taskId);
-    },
-    onError: () => {
+    onMutate: onTriggerStart,
+    onSuccess: (data) => gen.adopt(data.taskId),
+    onError: (err) => {
       setGeneratingId(null);
-      setTriggerError(t('triggerFailed'));
+      onTriggerFailed(err);
     },
   });
 
   // Retry only the failed parts of a partial result (reuses cached CEP).
   const retryFailedMutation = useMutation({
     mutationFn: (id: string) => triggerEntityAnalysis(bookId!, id, 'retryFailed'),
-    onSuccess: (data) => {
-      setTriggerError(null);
-      gen.adopt(data.taskId);
-    },
-    onError: () => setTriggerError(t('triggerFailed')),
+    onMutate: onTriggerStart,
+    onSuccess: (data) => gen.adopt(data.taskId),
+    onError: onTriggerFailed,
   });
 
   const handleSelectEntity = useCallback((id: string) => {
@@ -175,27 +213,74 @@ export default function CharacterAnalysisPage() {
     triggerMutation.mutate(selectedEntityId);
   };
 
+  // 失敗面板的「重試」：和「生成分析」一樣會花 token（鈕上掛 LLM 字符），
+  // 所以是真的重新送出，不只是把面板收掉。
+  const handleRetryGeneration = () => {
+    gen.reset();
+    triggerMutation.reset();
+    if (!selectedEntityId) return;
+    setGeneratingId(selectedEntityId);
+    triggerMutation.mutate(selectedEntityId);
+  };
+
   const refreshCast = useCallback(
     () => queryClient.invalidateQueries({ queryKey: qk.analysis.characters(bookId) }),
     [queryClient, bookId],
   );
 
+  const [batchLlmBlocked, setBatchLlmBlocked] = useState(false);
   const batch = useBatchTask<string[]>({
-    trigger: (entityIds) => triggerBatchEntityAnalysis(bookId!, entityIds),
+    i18nPrefix: 'character.batch',
+    trigger: async (entityIds) => {
+      setBatchLlmBlocked(false);
+      try {
+        return await triggerBatchEntityAnalysis(bookId!, entityIds);
+      } catch (err) {
+        // useBatchTask only keeps a message, so the 503 distinction is made here.
+        if (isLlmUnconfigured(err)) setBatchLlmBlocked(true);
+        throw err;
+      }
+    },
     onProgress: refreshCast,
-    onDone: () => {
+    onDone: (summary) => {
       refreshCast();
-      setToastVisible(true);
+      if (!summary) return;
+      // Same as the events page (DS v3 第 5 批 · 09·10 C 區): the toast is only a
+      // completion notice and auto-dismisses. Failures stay as a count plus
+      // 「只看失敗」 in the left-column panel, and as marked rows in the list.
+      // `warning` when something failed: a partial run is not a clean success.
+      const hasFailures = (summary.failures?.length ?? 0) > 0;
+      push({
+        type: hasFailures ? 'warning' : 'success',
+        title: t('character.batch.toastTitle'),
+        body: t('character.batch.toastBody', {
+          generated: summary.progress - summary.skipped - summary.failed,
+          skipped: summary.skipped,
+          failed: summary.failed,
+        }),
+      });
     },
     failureMessage: t('character.batch.triggerFailed'),
+    resume: { key: bookId, fetch: () => fetchActiveEntityBatch(bookId!) },
   });
+  const startBatch = (ids?: string[]) => {
+    setFailedOnly(false);
+    batch.start(ids);
+  };
 
-  useEffect(() => {
-    if (!toastVisible) return;
-    if ((batch.summary?.failures?.length ?? 0) > 0) return;
-    const timer = setTimeout(() => setToastVisible(false), 5000);
-    return () => clearTimeout(timer);
-  }, [toastVisible, batch.summary]);
+  // Failed characters of the last run that are still unanalyzed (面板失敗數、清單篩選與列上記號共用)。
+  const failedIds = useMemo(
+    () =>
+      liveFailedIds(
+        batch.summary,
+        (charData?.unanalyzed ?? []).map((u) => u.id),
+        'characters',
+      ),
+    [batch.summary, charData],
+  );
+  const failedCount = failedCountOf(batch.summary, failedIds);
+  const failedSet = useMemo(() => new Set(failedIds), [failedIds]);
+  const failedFilterOn = failedOnly && failedIds.length > 0;
 
   const selectedAnalyzed = charData?.analyzed.find((a) => a.entityId === selectedEntityId);
   const selectedUnanalyzed = charData?.unanalyzed.find((u) => u.id === selectedEntityId);
@@ -208,18 +293,27 @@ export default function CharacterAnalysisPage() {
   // scoped to "篩選已分析角色"), and resets whenever the framework switches.
   const filteredAnalyzed = useMemo(
     () =>
-      (charData?.analyzed ?? [])
-        .filter((a) => matchesQuery(searchQuery, a.title, a.archetypes?.[framework]))
-        .filter((a) => archFilter.length === 0 || archFilter.includes(a.archetypes?.[framework] ?? ''))
+      (failedFilterOn ? [] : (charData?.analyzed ?? []))
+        .filter((a) =>
+          matchesQuery(
+            searchQuery,
+            a.title,
+            archetypeDisplayName(framework, a.archetypes?.[framework], i18n.language),
+          ),
+        )
+        .filter(
+          (a) => archFilter.length === 0 || archFilter.includes(archetypeKey(framework, a.archetypes?.[framework])),
+        )
         .sort((a, b) => b.mentionCount - a.mentionCount),
-    [charData, searchQuery, framework, archFilter],
+    [charData, searchQuery, framework, archFilter, failedFilterOn, i18n.language],
   );
   const filteredUnanalyzed = useMemo(
     () =>
       (charData?.unanalyzed ?? [])
         .filter((u) => matchesQuery(searchQuery, u.name))
+        .filter((u) => !failedFilterOn || failedSet.has(u.id))
         .sort((a, b) => b.mentionCount - a.mentionCount),
-    [charData, searchQuery],
+    [charData, searchQuery, failedFilterOn, failedSet],
   );
 
   const totalCharacters = (charData?.analyzed.length ?? 0) + (charData?.unanalyzed.length ?? 0);
@@ -265,14 +359,20 @@ export default function CharacterAnalysisPage() {
 
   // #13 keyboard operation: ↑/↓ moves through the left list, / focuses search,
   // 1/2/3 switches primary tabs (only once an analyzed character is selected).
-  // Ignored entirely while focus is in an input/textarea/contenteditable so it
-  // never steals keys from the search box or the epistemic chapter slider.
+  // Ignored entirely while focus is in an input/textarea/select/contenteditable
+  // (search box, epistemic chapter slider, native <select> that uses ↑/↓ itself),
+  // on a role=tab (tablists own ←/→/↓ roving focus), or anywhere inside a
+  // role=dialog. While a compare drawer is open every shortcut is off, so ↓ in
+  // the drawer can't switch the primary character and close it underneath.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const target = e.target as HTMLElement | null;
       const tag = target?.tagName;
-      const isEditable = tag === 'INPUT' || tag === 'TEXTAREA' || !!target?.isContentEditable;
+      const isEditable =
+        tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || !!target?.isContentEditable;
       if (isEditable) return;
+      if (drawerOpen !== null) return;
+      if (target?.closest('[role="tab"], [role="dialog"]')) return;
 
       if (e.key === '/') {
         e.preventDefault();
@@ -304,69 +404,325 @@ export default function CharacterAnalysisPage() {
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [flatNavList, selectedEntityId, selectedAnalyzed, handleSelectEntity]);
+  }, [flatNavList, selectedEntityId, selectedAnalyzed, handleSelectEntity, drawerOpen]);
 
-  // Title bar archetype badge label
-  const titleArchetypeName = entityAnalysis
-    ? entityAnalysis.archetypes.find((a) => a.framework === framework)?.primary
-    : undefined;
+  if (isLoading) {
+    return (
+      <>
+        <h1 className="sr-only">{tn('tabs.characterAnalysis')}</h1>
+        <LoadingSpinner />
+      </>
+    );
+  }
 
-  if (isLoading) return <LoadingSpinner />;
+  // Header badge: archetype of the active framework — or why there is none.
+  const fwName = framework === 'jung' ? 'Jung' : 'Schmidt';
+  const headerArchetype = (() => {
+    if (!entityAnalysis) return null;
+    const state = archetypeState(entityAnalysis, framework);
+    if (state === 'ready') {
+      const primary = archetypeDisplayName(
+        framework,
+        entityAnalysis.archetypes.find((a) => a.framework === framework)?.primary,
+        i18n.language,
+      );
+      return { cls: 'ss-badge ss-badge-info', text: `${fwName} · ${primary}` };
+    }
+    if (state === 'failed') {
+      return { cls: 'ss-badge ss-badge-error', text: `${fwName} · ${t('character.persona.archetypeFailed')}` };
+    }
+    return { cls: 'ss-badge', text: `${fwName} · ${t('character.persona.archetypeNotGenerated')}` };
+  })();
+
+  const pageName = tn('tabs.characterAnalysis');
+  // Branches without a heading of their own (loading, failures, generating).
+  const srTitle = <h1 className="sr-only">{pageName}</h1>;
+  const backToBook = (
+    <Link to={`/books/${bookId}`} className="ss-btn ss-btn-md ss-btn-secondary">
+      {t('character.error.backToBook')}
+    </Link>
+  );
+
+  const retryFailed = () => {
+    if (selectedEntityId) retryFailedMutation.mutate(selectedEntityId);
+  };
+  // A batch 503 shows in the panel (BatchEepPanel) instead of up here.
+  const showLlmNotice = llmBlocked;
+
+  // 「← 角色總覽」：詳情態放在標題列名字之前（09 D 區）；其他有選角的態（未分析、
+  // 生成中、失敗）沒有標題列，退回內容區頂端，免得失去回程路徑。
+  const backLink = (
+    <button type="button" className="ca-back-link" onClick={handleBackToOverview}>
+      <ArrowLeft size={12} /> {t('character.overview.backToOverview')}
+    </button>
+  );
+  const inDetail = !!(selectedEntityId && !analysisLoading && entityAnalysis && !gen.taskId);
+
+  let body: React.ReactNode;
+  if (selectedEntityId && analysisLoading) {
+    body = (
+      <>
+        {srTitle}
+        <LoadingSpinner />
+      </>
+    );
+  } else if (selectedEntityId && entityAnalysis && !gen.taskId) {
+    body = (
+      <>
+        {/* Title bar */}
+        <div className="ca-titlebar">
+          <div className="ca-titlebar-main">
+            {backLink}
+            {selectedAnalyzed?.status === 'partial' && <span className="ca-title-dot" aria-hidden="true" />}
+            <h1 className="ca-title">{entityAnalysis.entityName}</h1>
+            {selectedAnalyzed && headerArchetype && (
+              <span className={headerArchetype.cls}>{headerArchetype.text}</span>
+            )}
+            {selectedAnalyzed && (
+              <span className="ca-title-meta">
+                {t('character.list.mentionCount', { count: selectedAnalyzed.mentionCount })}
+              </span>
+            )}
+            {selectedAnalyzed?.status === 'partial' && (
+              <span className="ss-badge ss-badge-warning">{t('event.partialBadge')}</span>
+            )}
+            {entityAnalysis.isStale && (
+              <Tooltip label={t('character.stale.tooltip')}>
+                <span className="ss-badge ss-badge-info" tabIndex={0}>
+                  {t('character.stale.badge')}
+                </span>
+              </Tooltip>
+            )}
+          </div>
+          <div className="ca-titlebar-actions">
+            <button
+              type="button"
+              className="ss-btn ss-btn-sm ss-btn-secondary"
+              onClick={() => setDrawerOpen('framework')}
+            >
+              {t('character.compare.open')}
+            </button>
+            <Link
+              to={`/books/${bookId}/graph?entity=${selectedEntityId}`}
+              className="ss-btn ss-btn-sm ss-btn-ghost"
+            >
+              {t('viewInGraph')} <ExternalLink size={11} />
+            </Link>
+            {entityAnalysis.status === 'partial' && (
+              <button
+                type="button"
+                className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+                disabled={retryFailedMutation.isPending}
+                onClick={retryFailed}
+              >
+                {t('character.persona.retryFailed')}
+              </button>
+            )}
+            <button
+              type="button"
+              className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+              onClick={() => setConfirmRegenerate(true)}
+            >
+              {t('regenerate')}
+            </button>
+          </div>
+        </div>
+
+        {/* Primary tabs */}
+        <div className="ss-utabs" role="tablist">
+          {PRIMARY_TABS.map((tab) => (
+            <button
+              key={tab}
+              type="button"
+              role="tab"
+              aria-selected={primaryTab === tab}
+              className={'ss-utab' + (primaryTab === tab ? ' active' : '')}
+              onClick={() => setPrimaryTab(tab)}
+            >
+              {t(`character.tabs.${tab}`)}
+            </button>
+          ))}
+        </div>
+
+        {/* Tab panels */}
+        {primaryTab === 'overview' && (
+          <CharacterAnalysisDetail
+            data={entityAnalysis}
+            framework={framework}
+            subTab={overviewSubTab}
+            onSubTabChange={setOverviewSubTab}
+            onOpenCompare={() => setDrawerOpen('framework')}
+            onRegenerate={() => setConfirmRegenerate(true)}
+            isRegenerating={
+              triggerMutation.isPending || (!!gen.taskId && gen.task?.status !== 'done')
+            }
+            onRetryFailed={retryFailed}
+            isRetrying={retryFailedMutation.isPending}
+            bookId={bookId!}
+            chapterCount={book?.chapterCount ?? 0}
+            characterRoster={characterRoster}
+            eventRoster={eventRoster}
+            onSelectCharacter={handleSelectEntity}
+          />
+        )}
+        {primaryTab === 'voice' && bookId && selectedEntityId && (
+          <VoiceProfilingPanel bookId={bookId} entityId={selectedEntityId} />
+        )}
+        {primaryTab === 'epistemic' && bookId && selectedEntityId && book && (
+          <EpistemicStateSection
+            bookId={bookId}
+            characterId={selectedEntityId}
+            totalChapters={book.chapterCount}
+            onOpenCompare={(currentChapter) => {
+              setEpistemicCompareChapter(currentChapter);
+              setDrawerOpen('epistemic');
+            }}
+          />
+        )}
+      </>
+    );
+  } else if (gen.task?.status === 'error') {
+    // The task id stays on screen on purpose: it is what you quote when reporting
+    // the failure, and the panel is rendered from `gen.task`, so it must outlive
+    // the failure. The message is the backend's own, unrewritten.
+    body = (
+      <div className="ca-gen">
+        {srTitle}
+        <div className="ca-gen-card ca-gen-fail">
+          <div className="ca-gen-fail-head">
+            <AlertCircle size={16} />
+            <span>{t('analysisFailed')}</span>
+          </div>
+          {gen.task.error && <code className="ca-gen-fail-msg">{gen.task.error}</code>}
+          <span className="ca-gen-fail-id">
+            {t('character.generating.taskLabel')} {gen.taskId}
+          </span>
+          <button
+            type="button"
+            className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+            onClick={handleRetryGeneration}
+          >
+            {tc('retry')}
+          </button>
+        </div>
+      </div>
+    );
+  } else if (gen.taskId && gen.task?.status !== 'done') {
+    body = (
+      <>
+        {srTitle}
+        <CharacterGenerating
+          task={gen.task}
+          name={selectedUnanalyzed?.name ?? selectedAnalyzed?.title ?? ''}
+        />
+      </>
+    );
+  } else if (selectedUnanalyzed) {
+    body = (
+      <UnanalyzedCharacterDetail
+        bookId={bookId!}
+        entityId={selectedUnanalyzed.id}
+        name={selectedUnanalyzed.name}
+        mentionCount={selectedUnanalyzed.mentionCount}
+        onGenerate={() => handleGenerate(selectedUnanalyzed.id)}
+        generating={triggerMutation.isPending}
+      />
+    );
+  } else if (selectedEntityId && analysisError && selectedAnalyzed) {
+    body = (
+      <>
+        {srTitle}
+        <PageFailure
+          variant={failureKind(analysisError)}
+          pageName={pageName}
+          onRetry={() => void refetchAnalysis()}
+          secondaryAction={backToBook}
+          techDetail={techDetailOf(analysisError)}
+        />
+      </>
+    );
+  } else if (charData) {
+    body = (
+      <CharacterOverviewLanding
+        bookId={bookId!}
+        charData={charData}
+        onSelectEntity={handleSelectEntity}
+        onGenerate={handleGenerate}
+        generatingId={generatingId}
+      />
+    );
+  } else {
+    // The #6a list itself failed to load (isLoading already gated the spinner).
+    body = (
+      <>
+        {srTitle}
+        <PageFailure
+          variant={failureKind(charError)}
+          pageName={pageName}
+          onRetry={() => void refetchChars()}
+          secondaryAction={backToBook}
+          techDetail={techDetailOf(charError)}
+        />
+      </>
+    );
+  }
 
   return (
     <div className="ca-page">
       <div className="ca-body">
         {/* ── Left panel ── */}
         <aside className="ca-left">
-          <div className="ca-left-section">
-            <p className="ca-left-section-label">{t('character.list.frameworkLabel')}</p>
-            <div className="ca-fw-chips">
-              {(['jung', 'schmidt'] as Framework[]).map((f) => (
-                <button
-                  key={f}
-                  type="button"
-                  className={'ca-fw-chip' + (framework === f ? ' active' : '')}
-                  onClick={() => {
-                    setFramework(f);
-                    setArchFilter([]);
-                  }}
-                >
-                  {f === 'jung' ? 'Jung 12' : 'Schmidt 45'}
-                </button>
-              ))}
-            </div>
-            <div className="ca-fw-meta">
-              <button
-                type="button"
-                onClick={() => {
-                  if (entityAnalysis) setDrawerOpen('framework');
+          <div className="ca-left-top">
+            {/* Book-level batch actions live in the one column both views share,
+                above the framework axis (09·10): reachable with a character selected. */}
+            {/* With no characters the panel is only disabled buttons (0/0); hide it. */}
+            {charData && bookId && totalCharacters > 0 && (
+              <BatchEepPanel
+                bookId={bookId}
+                page="characters"
+                i18nPrefix="character.batch"
+                analyzedCount={charData.analyzed.length}
+                totalCount={totalCharacters}
+                batchTask={batch.task}
+                stage={batch.stage}
+                isBatchRunning={batch.running}
+                batchError={batchLlmBlocked ? null : batch.error}
+                batchSummary={batch.summary}
+                onTrigger={() => setBatchMode('all')}
+                llmBlocked={batchLlmBlocked}
+                isPending={batch.pending}
+                pendingLine={t('character.batch.statusLine', { count: charData.unanalyzed.length })}
+                failedCount={failedCount}
+                onShowFailures={failedIds.length > 0 ? () => setFailedOnly(true) : undefined}
+                topSubset={{
+                  count: top10UnanalyzedIds.length,
+                  onTrigger: () => setBatchMode('top10'),
                 }}
-                disabled={!entityAnalysis}
-              >
-                <GitCompare size={10} />
-                {t('character.compare.fromSidebar')}
-              </button>
-              <Link to={`/methodology?framework=${framework}`}>
-                {t('frameworkIndex')} <ExternalLink size={9} />
-              </Link>
+              />
+            )}
+            <div className="ca-left-fx">
+              <span className="ca-left-label">{t('character.list.frameworkLabel')}</span>
+              <div className="ca-fw-chips">
+                {(['jung', 'schmidt'] as Framework[]).map((f) => (
+                  <button
+                    key={f}
+                    type="button"
+                    className={'ca-fw-chip' + (framework === f ? ' active' : '')}
+                    aria-pressed={framework === f}
+                    onClick={() => {
+                      setFramework(f);
+                      setArchFilter([]);
+                    }}
+                  >
+                    {f === 'jung' ? 'Jung 12' : 'Schmidt 45'}
+                  </button>
+                ))}
+              </div>
+              <span className="ca-left-note">{t('character.list.frameworkNote')}</span>
             </div>
-            <ArchetypeFilterDropdown
-              framework={framework}
-              analyzed={charData?.analyzed ?? []}
-              selected={archFilter}
-              onChange={setArchFilter}
-            />
-          </div>
 
-          {selectedEntityId && (
-            <button type="button" className="ca-back-to-overview" onClick={handleBackToOverview}>
-              <ArrowLeft size={14} /> {t('character.overview.backToOverview')}
-            </button>
-          )}
-
-          <div className="ca-left-section tight">
             <div className="ca-search">
-              <Search size={12} style={{ color: 'var(--fg-muted)' }} />
+              <Search size={14} />
               <input
                 ref={searchInputRef}
                 type="text"
@@ -375,45 +731,94 @@ export default function CharacterAnalysisPage() {
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
+
+            <ArchetypeFilterDropdown
+              framework={framework}
+              analyzed={charData?.analyzed ?? []}
+              selected={archFilter}
+              onChange={setArchFilter}
+            />
+
+            <div className="ca-fw-meta">
+              <button
+                type="button"
+                className="ss-btn ss-btn-sm ss-btn-secondary"
+                onClick={() => {
+                  if (entityAnalysis) setDrawerOpen('framework');
+                }}
+                disabled={!entityAnalysis}
+              >
+                {t('character.compare.fromSidebar')}
+              </button>
+              <Link to={`/methodology?framework=${framework}`}>
+                {t('frameworkIndex')} <ExternalLink size={10} />
+              </Link>
+            </div>
           </div>
 
+          {failedIds.length > 0 && (
+            <div className="ca-fail-row">
+              <button
+                type="button"
+                className={'ca-fail-chip' + (failedFilterOn ? ' active' : '')}
+                aria-pressed={failedFilterOn}
+                onClick={() => setFailedOnly(!failedFilterOn)}
+              >
+                {t('character.batch.failedShort', { count: failedIds.length })}
+              </button>
+            </div>
+          )}
+
           <div className="ca-list">
+            {charData && totalCharacters === 0 && (
+              // Group-head row: same inset and muted 2xs as the group labels it replaces.
+              <p className="ca-list-group-head" style={{ margin: 0 }}>{t('character.list.empty')}</p>
+            )}
             {filteredAnalyzed.length > 0 && (
               <div className="ca-list-group">
                 <div className="ca-list-group-head">
                   <span>{t('analyzed')}</span>
-                  <span className="count">{filteredAnalyzed.length}</span>
+                  <span className="count">
+                    {groupCount(filteredAnalyzed.length, charData?.analyzed.length ?? 0)}
+                  </span>
                 </div>
-                {filteredAnalyzed.map((item) => (
-                  <AnalyzedItem
-                    key={item.id}
-                    itemId={`ca-list-item-${item.entityId}`}
-                    item={item}
-                    isSelected={selectedEntityId === item.entityId}
-                    onSelect={() => handleSelectEntity(item.entityId)}
-                    maxMentionCount={maxMentionCount}
-                  />
-                ))}
+                <div className="ca-list-rows">
+                  {filteredAnalyzed.map((item) => (
+                    <AnalyzedItem
+                      key={item.id}
+                      itemId={`ca-list-item-${item.entityId}`}
+                      item={item}
+                      isSelected={selectedEntityId === item.entityId}
+                      onSelect={() => handleSelectEntity(item.entityId)}
+                      maxMentionCount={maxMentionCount}
+                    />
+                  ))}
+                </div>
               </div>
             )}
             {filteredUnanalyzed.length > 0 && (
               <div className="ca-list-group">
                 <div className="ca-list-group-head">
                   <span>{t('notAnalyzed')}</span>
-                  <span className="count">{filteredUnanalyzed.length}</span>
+                  <span className="count">
+                    {groupCount(filteredUnanalyzed.length, charData?.unanalyzed.length ?? 0)}
+                  </span>
                 </div>
-                {filteredUnanalyzed.map((item) => (
-                  <UnanalyzedItem
-                    key={item.id}
-                    itemId={`ca-list-item-${item.id}`}
-                    item={item}
-                    isSelected={selectedEntityId === item.id}
-                    onSelect={() => handleSelectEntity(item.id)}
-                    onGenerate={() => handleGenerate(item.id)}
-                    isGenerating={generatingId === item.id}
-                    maxMentionCount={maxMentionCount}
-                  />
-                ))}
+                <div className="ca-list-rows">
+                  {filteredUnanalyzed.map((item) => (
+                    <UnanalyzedItem
+                      key={item.id}
+                      itemId={`ca-list-item-${item.id}`}
+                      item={item}
+                      isSelected={selectedEntityId === item.id}
+                      onSelect={() => handleSelectEntity(item.id)}
+                      onGenerate={() => handleGenerate(item.id)}
+                      isGenerating={generatingId === item.id}
+                      failed={failedSet.has(item.id)}
+                      maxMentionCount={maxMentionCount}
+                    />
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -422,241 +827,38 @@ export default function CharacterAnalysisPage() {
         {/* ── Content area ── */}
         <div className="ca-content">
           <div className="ca-content-scroll">
-            <GuidanceRibbon surface="character-analysis">
-              <strong>{t('character.tip.prefix')}</strong>{' '}
-              <Trans
-                i18nKey="character.tip.body"
-                ns="analysis"
-                components={{ strong: <strong /> }}
-              />
-            </GuidanceRibbon>
-
-            {selectedEntityId && analysisLoading ? (
-              <LoadingSpinner />
-            ) : selectedEntityId && entityAnalysis && !gen.taskId ? (
-              <>
-                {/* Title bar */}
-                <div className="ca-titlebar">
-                  <div className="ca-titlebar-main">
-                    <h1 className="ca-title">{entityAnalysis.entityName}</h1>
-                    {selectedAnalyzed && (
-                      <span className="ca-title-badge">
-                        <span className="ca-title-badge-dot" />
-                        {framework === 'jung' ? 'Jung · ' : 'Schmidt · '}
-                        {titleArchetypeName || t('character.persona.archetypeNotGenerated')}
-                      </span>
-                    )}
-                    {selectedAnalyzed && (
-                      <span className="ca-title-meta">
-                        {t('character.list.mentionCount', { count: selectedAnalyzed.mentionCount })}
-                      </span>
-                    )}
-                    {entityAnalysis.isStale && (
-                      <span className="ca-title-stale" title={t('character.stale.tooltip')}>
-                        {t('character.stale.badge')}
-                      </span>
-                    )}
-                  </div>
-                  <div className="ca-titlebar-actions">
-                    <Link
-                      to={`/books/${bookId}/graph?entity=${selectedEntityId}`}
-                      className="ca-btn"
-                    >
-                      <ExternalLink size={12} /> {t('viewInGraph')}
-                    </Link>
-                    <button
-                      type="button"
-                      className="ca-btn"
-                      onClick={() => setDrawerOpen('framework')}
-                    >
-                      <GitCompare size={12} /> {t('character.compare.open')}
-                    </button>
-                    {entityAnalysis.status === 'partial' && (
-                      <button
-                        type="button"
-                        className="ca-btn"
-                        style={{ color: 'var(--color-warning)' }}
-                        disabled={retryFailedMutation.isPending}
-                        onClick={() => selectedEntityId && retryFailedMutation.mutate(selectedEntityId)}
-                      >
-                        <RefreshCw size={12} /> {t('character.persona.retryFailed')}
-                      </button>
-                    )}
-                    <button
-                      type="button"
-                      className="ca-btn"
-                      onClick={() => setConfirmRegenerate(true)}
-                    >
-                      <RefreshCw size={12} /> {t('regenerate')}
-                    </button>
-                  </div>
-                </div>
-
-                {/* Primary tabs */}
-                <div className="ca-tabs" role="tablist">
-                  {PRIMARY_TABS.map((tab) => (
-                    <button
-                      key={tab}
-                      type="button"
-                      role="tab"
-                      aria-selected={primaryTab === tab}
-                      className={'ca-tab' + (primaryTab === tab ? ' active' : '')}
-                      onClick={() => setPrimaryTab(tab)}
-                    >
-                      {t(`character.tabs.${tab}`)}
-                    </button>
-                  ))}
-                </div>
-
-                {/* Tab panels */}
-                {primaryTab === 'overview' && (
-                  <CharacterAnalysisDetail
-                    data={entityAnalysis}
-                    framework={framework}
-                    subTab={overviewSubTab}
-                    onSubTabChange={setOverviewSubTab}
-                    onOpenCompare={() => setDrawerOpen('framework')}
-                    onRegenerate={handleRegenerate}
-                    isRegenerating={
-                      triggerMutation.isPending ||
-                      (!!gen.taskId && gen.task?.status !== 'done')
-                    }
-                    bookId={bookId!}
-                    chapterCount={book?.chapterCount ?? 0}
-                    characterRoster={characterRoster}
-                    eventRoster={eventRoster}
-                    onSelectCharacter={handleSelectEntity}
+            <div className="ca-content-inner">
+              {/* 研究者導覽條只在總覽（landing）出現（09 A 區）。 */}
+              {!selectedEntityId && (
+                <GuidanceRibbon surface="character-analysis">
+                  <strong>{t('character.tip.prefix')}</strong>{' '}
+                  <Trans
+                    i18nKey="character.tip.body"
+                    ns="analysis"
+                    components={{ strong: <strong /> }}
                   />
-                )}
-                {primaryTab === 'voice' && bookId && selectedEntityId && (
-                  <VoiceProfilingPanel bookId={bookId} entityId={selectedEntityId} />
-                )}
-                {primaryTab === 'epistemic' && bookId && selectedEntityId && book && (
-                  <EpistemicStateSection
-                    bookId={bookId}
-                    characterId={selectedEntityId}
-                    totalChapters={book.chapterCount}
-                    onOpenCompare={(currentChapter) => {
-                      setEpistemicCompareChapter(currentChapter);
-                      setDrawerOpen('epistemic');
-                    }}
-                  />
-                )}
-              </>
-            ) : gen.task?.status === 'error' ? (
-              <div className="ca-empty">
-                <div className="ca-empty-icon">
-                  <AlertTriangle size={22} />
-                </div>
-                <div className="ca-empty-title">{t('analysisFailed')}</div>
-                {gen.task.error && (
-                  <p className="ca-empty-sub">{gen.task.error}</p>
-                )}
-                <button
-                  type="button"
-                  className="ca-btn"
-                  onClick={() => {
-                    gen.reset();
-                    triggerMutation.reset();
-                    setTriggerError(null);
-                  }}
-                >
-                  {tc('retry')}
-                </button>
-              </div>
-            ) : gen.taskId && gen.task?.status !== 'done' ? (
-              <CharacterGenerating
-                task={gen.task}
-                name={selectedUnanalyzed?.name ?? selectedAnalyzed?.title ?? ''}
-              />
-            ) : selectedUnanalyzed ? (
-              <div className="ca-empty">
-                <p className="ca-empty-title">{selectedUnanalyzed.name}</p>
-                <p className="ca-empty-sub">{t('noAnalysis')}</p>
-                <button
-                  type="button"
-                  className="ca-btn ca-btn-primary"
-                  onClick={() => handleGenerate(selectedUnanalyzed.id)}
-                  disabled={triggerMutation.isPending}
-                >
-                  {t('generate')}
-                </button>
-              </div>
-            ) : triggerError ? (
-              <div className="ca-empty">
-                <div className="ca-empty-icon">
-                  <AlertTriangle size={22} />
-                </div>
-                <p className="ca-empty-sub">{triggerError}</p>
-                <button
-                  type="button"
-                  className="ca-btn"
-                  onClick={() => setTriggerError(null)}
-                >
-                  {tc('confirm')}
-                </button>
-              </div>
-            ) : charData ? (
-              <CharacterOverviewLanding
-                bookId={bookId!}
-                charData={charData}
-                onSelectEntity={handleSelectEntity}
-                onGenerate={handleGenerate}
-                generatingId={generatingId}
-                onOpenBatchModal={setBatchMode}
-                isBatchRunning={batch.running}
-                batchProgressLabel={
-                  batch.running
-                    ? t('character.overview.batchProgress', { progress: batch.task?.progress ?? 0 })
-                    : undefined
-                }
-                batchError={batch.error}
-                onDismissBatchError={batch.dismiss}
-              />
-            ) : (
-              // Only reached if the #6a list query itself failed (isLoading
-              // already gates the loading state above).
-              <div className="ca-empty">
-                <div className="ca-empty-icon">
-                  <AlertTriangle size={22} />
-                </div>
-                <p className="ca-empty-sub">{t('selectCharacter')}</p>
-              </div>
-            )}
-          </div>
+                </GuidanceRibbon>
+              )}
 
-          {/* Batch completion toast */}
-          {toastVisible && batch.summary && (
-            <div className="ca-toast" role="status">
-              <div className="ca-toast-icon">
-                <Check size={18} strokeWidth={2.2} />
-              </div>
-              <div className="ca-toast-main">
-                <div className="ca-toast-title">{t('character.batch.toastTitle')}</div>
-                <div className="ca-toast-body">
-                  {t('character.batch.toastBody', {
-                    generated:
-                      batch.summary.progress - batch.summary.skipped - batch.summary.failed,
-                    skipped: batch.summary.skipped,
-                    failed: batch.summary.failed,
-                  })}
+              {showLlmNotice && <LlmUnconfiguredNotice />}
+              {triggerError && (
+                <div className="ca-inline-banner" role="alert">
+                  <span>{triggerError}</span>
+                  <button
+                    type="button"
+                    className="ss-btn ss-btn-sm ss-btn-ghost"
+                    onClick={() => setTriggerError(null)}
+                    aria-label={tc('confirm')}
+                  >
+                    <X size={12} />
+                  </button>
                 </div>
-                {/* The character page has no persistent batch panel — only this
-                    toast — so the list lives here despite the toast being
-                    dismissible. Closing it is the reader's own choice, unlike
-                    the events page where a panel keeps the answer on screen. */}
-                <BatchFailureList failures={batch.summary.failures ?? []} />
-              </div>
-              <button
-                type="button"
-                className="ca-toast-close"
-                onClick={() => setToastVisible(false)}
-                aria-label={t('character.batch.toastClose')}
-              >
-                <X size={12} />
-              </button>
+              )}
+
+              {selectedEntityId && !inDetail && backLink}
+              {body}
             </div>
-          )}
+          </div>
 
           {/* Compare drawers overlay content area only; page-level drawerOpen
               guarantees only one of the two is ever open at once. */}
@@ -682,6 +884,7 @@ export default function CharacterAnalysisPage() {
         open={confirmRegenerate}
         title={t('regenerateTitle')}
         message={t('regenerateMessage')}
+        spendsTokens
         onConfirm={() => {
           setConfirmRegenerate(false);
           handleRegenerate();
@@ -702,10 +905,11 @@ export default function CharacterAnalysisPage() {
             : t('character.batch.confirmMessage', { count: charData?.unanalyzed.length ?? 0 })
         }
         confirmLabel={t('character.batch.confirmBtn')}
+        spendsTokens
         onConfirm={() => {
           const ids = batchMode === 'top10' ? top10UnanalyzedIds : undefined;
           setBatchMode(null);
-          batch.start(ids);
+          startBatch(ids);
         }}
         onCancel={() => setBatchMode(null)}
       />

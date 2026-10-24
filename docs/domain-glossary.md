@@ -282,7 +282,8 @@
 
 **功能後果（重要）**：實際 pipeline **只分 `body` / 非 `body` 兩檔**。非 `body` 的章節
 （toc/preface/afterword/other）一律被排除於 **embedding 索引、KG 抽取、摘要**，也不進
-閱讀頁。toc/preface/afterword/other 之間的差別**純粹是顯示分類**，不影響任何排除行為。
+閱讀流（「下一章」、章節計數、實體出處都只算 body）；閱讀頁只以「卷首／卷末」摺疊群組唯讀呈現原文
+（UI_SPEC §3.3）。toc/preface/afterword/other 之間的差別**純粹是顯示分類**，不影響任何排除行為。
 
 **章號語意**：`Chapter.number` 是**故事章號**——body 章連號 1..N，前置事務為 `0, -1, -2…`、
 後置事務為 `N+1, N+2…`（`domain/documents.py::assign_chapter_numbers`）。非 body 章不佔章號，

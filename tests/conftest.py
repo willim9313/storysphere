@@ -72,6 +72,19 @@ def isolated_task_store(monkeypatch):
     return fresh
 
 
+@pytest.fixture(autouse=True)
+def llm_provider_configured(monkeypatch):
+    """Report the primary LLM provider as configured unless a test says otherwise.
+
+    Analysis endpoints answer 503 up front when no provider key is set
+    (``api/llm_guard.py``). Whether CI, a fresh clone or a developer's ``.env``
+    has a key must not decide whether the endpoint tests pass, so the default is
+    "configured". Tests of the unconfigured path patch the same function to
+    return a message (see ``tests/api/test_llm_provider_guard.py``).
+    """
+    monkeypatch.setattr("storysphere.api.llm_guard._primary_config_error", lambda: None)
+
+
 def attach_get_as(cache):
     """Give an AsyncMock cache a ``get_as`` that reads through its ``get``.
 

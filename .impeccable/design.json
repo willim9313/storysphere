@@ -1,0 +1,853 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-06T15:27:13+00:00",
+  "title": "Design System: StorySphere",
+  "extensions": {
+    "colorMeta": {
+      "bg-primary": {
+        "role": "neutral",
+        "displayName": "Ivory Paper 象牙紙",
+        "canonical": "oklch(96.5% 0.017 88.0)",
+        "tonalRamp": [
+          "#0e0b04",
+          "#28251c",
+          "#464238",
+          "#656157",
+          "#868277",
+          "#a9a599",
+          "#cec9bd",
+          "#f3eee2"
+        ]
+      },
+      "bg-secondary": {
+        "role": "neutral",
+        "displayName": "Folded Paper 摺紙",
+        "canonical": "oklch(93.3% 0.027 85.7)",
+        "tonalRamp": [
+          "#100a01",
+          "#2b2416",
+          "#484132",
+          "#686050",
+          "#8a8170",
+          "#ada492",
+          "#d1c8b6",
+          "#f7eedb"
+        ]
+      },
+      "bg-tertiary": {
+        "role": "neutral",
+        "displayName": "Aged Paper 舊紙",
+        "canonical": "oklch(90.1% 0.033 83.7)",
+        "tonalRamp": [
+          "#110a00",
+          "#2d2411",
+          "#4a412e",
+          "#6a604c",
+          "#8c816c",
+          "#afa48e",
+          "#d4c8b1",
+          "#f9edd6"
+        ]
+      },
+      "paper-warmth-0": {
+        "role": "neutral",
+        "displayName": "Fresh Sheet 新紙",
+        "canonical": "oklch(98.5% 0.012 91.5)",
+        "tonalRamp": [
+          "#0d0b06",
+          "#27251e",
+          "#44423b",
+          "#646159",
+          "#85827a",
+          "#a8a59d",
+          "#ccc9c0",
+          "#f1eee5"
+        ]
+      },
+      "fg-primary": {
+        "role": "neutral",
+        "displayName": "Warm Ink 暖墨",
+        "canonical": "oklch(27.1% 0.012 78.1)",
+        "tonalRamp": [
+          "#0e0b06",
+          "#28241e",
+          "#46413b",
+          "#65605a",
+          "#86827a",
+          "#a9a49d",
+          "#cec8c0",
+          "#f3eee6"
+        ]
+      },
+      "fg-secondary": {
+        "role": "neutral",
+        "displayName": "Faded Ink 褪墨",
+        "canonical": "oklch(45.8% 0.025 78.9)",
+        "tonalRamp": [
+          "#110a02",
+          "#2c2417",
+          "#494133",
+          "#696052",
+          "#8b8172",
+          "#aea494",
+          "#d2c8b8",
+          "#f8eddc"
+        ]
+      },
+      "fg-muted": {
+        "role": "neutral",
+        "displayName": "Pencil 鉛筆灰",
+        "canonical": "oklch(63.1% 0.029 80.2)",
+        "tonalRamp": [
+          "#120a00",
+          "#2d2414",
+          "#4a4030",
+          "#6a604f",
+          "#8c816f",
+          "#afa391",
+          "#d3c8b4",
+          "#f9edd9"
+        ]
+      },
+      "border": {
+        "role": "neutral",
+        "displayName": "Deckle Edge 毛邊",
+        "canonical": "oklch(85.6% 0.041 83.1)",
+        "tonalRamp": [
+          "#110a00",
+          "#2f230b",
+          "#4d4028",
+          "#6d5f46",
+          "#8e8167",
+          "#b2a388",
+          "#d6c7ab",
+          "#fcedd0"
+        ]
+      },
+      "accent": {
+        "role": "primary",
+        "displayName": "Burnt Sienna 焦赭",
+        "canonical": "oklch(56.4% 0.124 43.4)",
+        "tonalRamp": [
+          "#1a0400",
+          "#421500",
+          "#702800",
+          "#99451e",
+          "#be6741",
+          "#e58a63",
+          "#ffb597",
+          "#feeae1"
+        ]
+      },
+      "accent-fg": {
+        "role": "primary",
+        "displayName": "On-Sienna 焦赭上字",
+        "canonical": "oklch(96.5% 0.017 88.0)",
+        "tonalRamp": [
+          "#0e0b04",
+          "#28251c",
+          "#464238",
+          "#656157",
+          "#868277",
+          "#a9a599",
+          "#cec9bd",
+          "#f3eee2"
+        ]
+      },
+      "panel-bg": {
+        "role": "neutral",
+        "displayName": "Panel 工具板",
+        "canonical": "oklch(92.7% 0.027 85.7)",
+        "tonalRamp": [
+          "#100a01",
+          "#2b2416",
+          "#484132",
+          "#686050",
+          "#8a8170",
+          "#ada492",
+          "#d1c8b6",
+          "#f7eedb"
+        ]
+      },
+      "panel-bg-card": {
+        "role": "neutral",
+        "displayName": "Panel Card 工具板卡",
+        "canonical": "oklch(89.7% 0.032 84.6)",
+        "tonalRamp": [
+          "#110a00",
+          "#2c2412",
+          "#4a412f",
+          "#6a604d",
+          "#8b816d",
+          "#aea48f",
+          "#d3c8b2",
+          "#f8edd7"
+        ]
+      },
+      "panel-border": {
+        "role": "neutral",
+        "displayName": "Panel Edge 工具板框",
+        "canonical": "oklch(82.2% 0.046 83.9)",
+        "tonalRamp": [
+          "#110a00",
+          "#2f2307",
+          "#4d4025",
+          "#6e5f43",
+          "#8f8063",
+          "#b3a385",
+          "#d7c7a8",
+          "#fdedcd"
+        ]
+      },
+      "color-success": {
+        "role": "status",
+        "displayName": "Olive 橄欖",
+        "canonical": "oklch(55.1% 0.099 129.4)",
+        "tonalRamp": [
+          "#060e00",
+          "#1a2b01",
+          "#314c02",
+          "#4f6c2a",
+          "#6f8e4c",
+          "#91b26e",
+          "#b5d691",
+          "#d9fcb5"
+        ]
+      },
+      "color-success-bg": {
+        "role": "status",
+        "displayName": "Olive Wash 橄欖淡底",
+        "canonical": "oklch(95.1% 0.024 114.5)",
+        "tonalRamp": [
+          "#0b0c03",
+          "#252619",
+          "#414435",
+          "#616354",
+          "#828474",
+          "#a4a796",
+          "#c8cbba",
+          "#eef1df"
+        ]
+      },
+      "color-warning": {
+        "role": "status",
+        "displayName": "Ochre 赭黃",
+        "canonical": "oklch(60.6% 0.121 73.3)",
+        "tonalRamp": [
+          "#130900",
+          "#352001",
+          "#5b3a02",
+          "#845605",
+          "#ad751a",
+          "#d29845",
+          "#f9bd6b",
+          "#ffebd2"
+        ]
+      },
+      "color-warning-bg": {
+        "role": "status",
+        "displayName": "Ochre Wash 赭黃淡底",
+        "canonical": "oklch(94.7% 0.032 89.1)",
+        "tonalRamp": [
+          "#100a00",
+          "#2b2412",
+          "#49412e",
+          "#68614d",
+          "#8a826d",
+          "#ada48f",
+          "#d1c9b2",
+          "#f7eed7"
+        ]
+      },
+      "color-error": {
+        "role": "status",
+        "displayName": "Brick 磚紅",
+        "canonical": "oklch(52.3% 0.134 36.9)",
+        "tonalRamp": [
+          "#1c0300",
+          "#460f01",
+          "#761f01",
+          "#9e3f23",
+          "#c46245",
+          "#ec8567",
+          "#feb59f",
+          "#ffe9e3"
+        ]
+      },
+      "color-error-bg": {
+        "role": "status",
+        "displayName": "Brick Wash 磚紅淡底",
+        "canonical": "oklch(92.9% 0.022 54.3)",
+        "tonalRamp": [
+          "#120904",
+          "#2e221b",
+          "#4c3f37",
+          "#6c5e56",
+          "#8d7f76",
+          "#b1a298",
+          "#d5c6bc",
+          "#fbebe1"
+        ]
+      },
+      "color-info": {
+        "role": "status",
+        "displayName": "Slate Blue 灰藍",
+        "canonical": "oklch(52.7% 0.049 269.0)",
+        "tonalRamp": [
+          "#040920",
+          "#1b243d",
+          "#37415d",
+          "#56607e",
+          "#7682a1",
+          "#98a4c5",
+          "#bcc9ea",
+          "#e8eeff"
+        ]
+      },
+      "color-info-bg": {
+        "role": "status",
+        "displayName": "Slate Wash 灰藍淡底",
+        "canonical": "oklch(93.1% 0.009 292.8)",
+        "tonalRamp": [
+          "#0b0a0f",
+          "#252429",
+          "#424147",
+          "#616066",
+          "#828188",
+          "#a5a4ab",
+          "#c9c8cf",
+          "#eeedf4"
+        ]
+      },
+      "bg-primary-ink": {
+        "role": "neutral",
+        "displayName": "Ivory Paper 象牙紙 · Ink",
+        "canonical": "oklch(100.0% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "bg-secondary-ink": {
+        "role": "neutral",
+        "displayName": "Folded Paper 摺紙 · Ink",
+        "canonical": "oklch(97.3% 0.003 106.4)",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#252524",
+          "#424240",
+          "#616160",
+          "#828281",
+          "#a5a5a3",
+          "#c9c9c7",
+          "#eeeeec"
+        ]
+      },
+      "bg-tertiary-ink": {
+        "role": "neutral",
+        "displayName": "Aged Paper 舊紙 · Ink",
+        "canonical": "oklch(94.3% 0.003 106.5)",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#252524",
+          "#424240",
+          "#616160",
+          "#828281",
+          "#a5a5a3",
+          "#c9c9c7",
+          "#eeeeec"
+        ]
+      },
+      "fg-primary-ink": {
+        "role": "neutral",
+        "displayName": "Warm Ink 暖墨 · Ink",
+        "canonical": "oklch(19.6% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "fg-secondary-ink": {
+        "role": "neutral",
+        "displayName": "Faded Ink 褪墨 · Ink",
+        "canonical": "oklch(36.8% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "fg-muted-ink": {
+        "role": "neutral",
+        "displayName": "Pencil 鉛筆灰 · Ink",
+        "canonical": "oklch(64.0% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "border-ink": {
+        "role": "neutral",
+        "displayName": "Deckle Edge 毛邊 · Ink",
+        "canonical": "oklch(21.8% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "accent-ink": {
+        "role": "primary",
+        "displayName": "Burnt Sienna 焦赭 · Ink",
+        "canonical": "oklch(17.8% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "accent-fg-ink": {
+        "role": "primary",
+        "displayName": "On-Sienna 焦赭上字 · Ink",
+        "canonical": "oklch(100.0% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "panel-bg-ink": {
+        "role": "neutral",
+        "displayName": "Panel 工具板 · Ink",
+        "canonical": "oklch(97.3% 0.003 106.4)",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#252524",
+          "#424240",
+          "#616160",
+          "#828281",
+          "#a5a5a3",
+          "#c9c9c7",
+          "#eeeeec"
+        ]
+      },
+      "panel-bg-card-ink": {
+        "role": "neutral",
+        "displayName": "Panel Card 工具板卡 · Ink",
+        "canonical": "oklch(94.6% 0.003 106.5)",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#252524",
+          "#424240",
+          "#616160",
+          "#828281",
+          "#a5a5a3",
+          "#c9c9c7",
+          "#eeeeec"
+        ]
+      },
+      "panel-border-ink": {
+        "role": "neutral",
+        "displayName": "Panel Edge 工具板框 · Ink",
+        "canonical": "oklch(21.8% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "color-success-ink": {
+        "role": "status",
+        "displayName": "Olive 橄欖 · Ink",
+        "canonical": "oklch(19.6% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "color-success-bg-ink": {
+        "role": "status",
+        "displayName": "Olive Wash 橄欖淡底 · Ink",
+        "canonical": "oklch(94.3% 0.003 106.5)",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#252524",
+          "#424240",
+          "#616160",
+          "#828281",
+          "#a5a5a3",
+          "#c9c9c7",
+          "#eeeeec"
+        ]
+      },
+      "color-warning-ink": {
+        "role": "status",
+        "displayName": "Ochre 赭黃 · Ink",
+        "canonical": "oklch(19.6% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "color-warning-bg-ink": {
+        "role": "status",
+        "displayName": "Ochre Wash 赭黃淡底 · Ink",
+        "canonical": "oklch(94.3% 0.003 106.5)",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#252524",
+          "#424240",
+          "#616160",
+          "#828281",
+          "#a5a5a3",
+          "#c9c9c7",
+          "#eeeeec"
+        ]
+      },
+      "color-error-ink": {
+        "role": "status",
+        "displayName": "Brick 磚紅 · Ink",
+        "canonical": "oklch(19.6% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "color-error-bg-ink": {
+        "role": "status",
+        "displayName": "Brick Wash 磚紅淡底 · Ink",
+        "canonical": "oklch(94.3% 0.003 106.5)",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#252524",
+          "#424240",
+          "#616160",
+          "#828281",
+          "#a5a5a3",
+          "#c9c9c7",
+          "#eeeeec"
+        ]
+      },
+      "color-info-ink": {
+        "role": "status",
+        "displayName": "Slate Blue 灰藍 · Ink",
+        "canonical": "oklch(19.6% 0.000 89.9)",
+        "tonalRamp": [
+          "#0b0b0b",
+          "#252525",
+          "#424242",
+          "#616161",
+          "#828282",
+          "#a5a5a5",
+          "#c9c9c9",
+          "#eeeeee"
+        ]
+      },
+      "color-info-bg-ink": {
+        "role": "status",
+        "displayName": "Slate Wash 灰藍淡底 · Ink",
+        "canonical": "oklch(94.3% 0.003 106.5)",
+        "tonalRamp": [
+          "#0b0b0a",
+          "#252524",
+          "#424240",
+          "#616160",
+          "#828281",
+          "#a5a5a3",
+          "#c9c9c7",
+          "#eeeeec"
+        ]
+      }
+    },
+    "typographyMeta": {
+      "display": {
+        "displayName": "Display",
+        "purpose": "一頁唯一的大標，如書庫頁標題。"
+      },
+      "headline": {
+        "displayName": "Headline",
+        "purpose": "各分析頁的頁面標題。"
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "面板、分區、卡片標題。"
+      },
+      "reading": {
+        "displayName": "Reading",
+        "purpose": "閱讀頁正文；預設 17px／1.6，使用者可在 Aa 面板調整。"
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "chrome 內文、說明、表單。"
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "eyebrow、分區小標、計數、pill／badge。"
+      },
+      "mono": {
+        "displayName": "Mono",
+        "purpose": "段落編號、log、key、raw 輸出。"
+      },
+      "hand": {
+        "displayName": "Hand",
+        "purpose": "僅限插畫語彙：empty-state 標語、doodle、splash。"
+      }
+    },
+    "shadows": [
+      {
+        "name": "shadow-sm",
+        "value": "0 1px 2px rgba(42,38,32,0.07)",
+        "purpose": "卡片靜止態（--card-shadow，僅 Warm）。"
+      },
+      {
+        "name": "shadow-md",
+        "value": "0 2px 8px rgba(42,38,32,0.09)",
+        "purpose": "浮動選單、popover。"
+      },
+      {
+        "name": "shadow-lg",
+        "value": "0 4px 16px rgba(42,38,32,0.11)",
+        "purpose": "側欄浮層、chat 視窗等覆蓋層。"
+      },
+      {
+        "name": "scrim",
+        "value": "rgba(42,38,32,0.40)",
+        "purpose": "對話框遮罩，單一種、不模糊。"
+      }
+    ],
+    "motion": [
+      {
+        "name": "transition-fast",
+        "value": "150ms ease",
+        "purpose": "hover／active 的顏色與透明度變化。"
+      },
+      {
+        "name": "transition-normal",
+        "value": "250ms ease",
+        "purpose": "進度條寬度等較大的狀態變化。"
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "narrow",
+        "value": "768px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "焦赭填色主動作；會消耗 token 時帶 sparkles 字符。",
+      "html": "<button class=\"ds-btn ds-btn-primary\">開始分析</button>",
+      "css": ".ds-btn{display:inline-flex;align-items:center;gap:var(--space-3);font-family: var(--font-sans);font-weight:500;font-size:var(--font-size-xs);padding:var(--space-4) var(--space-6);border-radius:var(--btn-radius);border:var(--btn-border-width) solid transparent;cursor:pointer;transition:opacity var(--transition-fast),background-color var(--transition-fast),color var(--transition-fast);} .ds-btn-primary{background:var(--accent);color:var(--accent-fg);} .ds-btn-primary:hover{opacity:.9;} .ds-btn-primary:active{opacity:.95;} .ds-btn:focus-visible{outline:var(--focus-ring-width) solid var(--focus-ring-color);outline-offset:var(--focus-ring-offset);}"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "紙底墨字毛邊框；hover／active 逐階降紙。",
+      "html": "<button class=\"ds-btn-secondary\">取消</button>",
+      "css": ".ds-btn-secondary{font-family: var(--font-sans);font-weight:500;font-size:var(--font-size-xs);padding:var(--space-4) var(--space-6);border-radius:var(--btn-radius);background:var(--bg-primary);color:var(--fg-primary);border:var(--btn-border-width) var(--border-style) var(--border);cursor:pointer;transition:background-color var(--transition-fast);} .ds-btn-secondary:hover{background:var(--bg-secondary);} .ds-btn-secondary:active{background:var(--bg-tertiary);} .ds-btn-secondary:focus-visible{outline:var(--focus-ring-width) solid var(--focus-ring-color);outline-offset:var(--focus-ring-offset);}"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "透明底褪墨字，hover 轉焦赭。",
+      "html": "<button class=\"ds-btn-ghost\">重設視圖</button>",
+      "css": ".ds-btn-ghost{font-family: var(--font-sans);font-weight:500;font-size:var(--font-size-xs);padding:var(--space-4) var(--space-6);border-radius:var(--btn-radius);background:transparent;color:var(--fg-secondary);border:0;cursor:pointer;transition:color var(--transition-fast);} .ds-btn-ghost:hover,.ds-btn-ghost:active{color:var(--accent);} .ds-btn-ghost:focus-visible{outline:var(--focus-ring-width) solid var(--focus-ring-color);outline-offset:var(--focus-ring-offset);}"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "紙底毛邊框，焦點走全站單一焦點環。",
+      "html": "<input class=\"ds-input\" placeholder=\"搜尋實體…\">",
+      "css": ".ds-input{font-family: var(--font-sans);font-size:var(--font-size-sm);padding:var(--space-4) var(--space-5);background:var(--input-bg);color:var(--fg-primary);border:var(--input-border-width) var(--border-style) var(--border);border-radius:var(--input-radius);} .ds-input::placeholder{color:var(--fg-muted);} .ds-input:focus-visible{outline:var(--focus-ring-width) solid var(--focus-ring-color);outline-offset:var(--focus-ring-offset);}"
+    },
+    {
+      "name": "Entity Pills",
+      "kind": "chip",
+      "refersTo": null,
+      "description": "帶色點的實體 lozenge；色取 entity arc，跨主題不變。",
+      "html": "<span class=\"ds-pill ds-pill-char\"><span class=\"ds-dot\"></span>葉文潔</span> <span class=\"ds-pill ds-pill-loc\"><span class=\"ds-dot\"></span>紅岸基地</span> <span class=\"ds-pill ds-pill-con\"><span class=\"ds-dot\"></span>黑暗森林</span>",
+      "css": ".ds-pill{display:inline-flex;align-items:center;gap:var(--space-2);font-family: var(--font-sans);font-size:var(--font-size-2xs);padding:var(--space-1) var(--space-4);border-radius:var(--pill-radius);border:var(--pill-border-width) solid;} .ds-dot{width:5px;height:5px;border-radius:50%;background:currentColor;opacity:.8;} .ds-pill-char{background:var(--entity-char-bg);border-color:var(--entity-char-border);color:var(--entity-char-fg);} .ds-pill-loc{background:var(--entity-loc-bg);border-color:var(--entity-loc-border);color:var(--entity-loc-fg);} .ds-pill-con{background:var(--entity-con-bg);border-color:var(--entity-con-border);color:var(--entity-con-fg);}"
+    },
+    {
+      "name": "Book Card",
+      "kind": "card",
+      "refersTo": "card-book",
+      "description": "書庫書卡：紙底、hairline 框、Warm 微陰影；hover 降一階紙。",
+      "html": "<a class=\"ds-card\"><div class=\"ds-card-cover\"></div><div class=\"ds-card-title\">書名</div><div class=\"ds-card-meta\">作者 · 32 章</div></a>",
+      "css": ".ds-card{display:flex;flex-direction:column;gap:var(--space-3);width:200px;padding:var(--space-6);background:var(--bg-primary);border:var(--card-border-width) var(--border-style) var(--border);border-radius:var(--card-radius);box-shadow:var(--card-shadow);cursor:pointer;color:inherit;text-decoration:none;transition:background-color var(--transition-fast);} .ds-card:hover{background:var(--bg-secondary);} .ds-card-cover{height:90px;border-radius:var(--radius-md);background:var(--bg-tertiary);} .ds-card-title{font-family:var(--font-serif);font-size:var(--font-size-base);font-weight:700;color:var(--fg-primary);} .ds-card-meta{font-family: var(--font-sans);font-size:var(--font-size-2xs);color:var(--fg-muted);}"
+    },
+    {
+      "name": "Sidebar Rail",
+      "kind": "nav",
+      "refersTo": "rail-item",
+      "description": "48px 收合側欄；作用中＝舊紙底＋焦赭 icon。",
+      "html": "<nav class=\"ds-rail\"><a class=\"ds-rail-item\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><path d=\"M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z\"/></svg></a><a class=\"ds-rail-item is-active\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"12\" cy=\"5\" r=\"2\"/><circle cx=\"5\" cy=\"19\" r=\"2\"/><circle cx=\"19\" cy=\"19\" r=\"2\"/><path d=\"M12 7v4M12 11l-6 6M12 11l6 6\"/></svg></a><a class=\"ds-rail-item\"><svg width=\"18\" height=\"18\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"1.75\" stroke-linecap=\"round\" stroke-linejoin=\"round\"><circle cx=\"11\" cy=\"11\" r=\"7\"/><path d=\"M21 21l-4.3-4.3\"/></svg></a></nav>",
+      "css": ".ds-rail{display:flex;flex-direction:column;align-items:center;gap:var(--space-2);width:48px;padding:var(--space-5) 0;background:var(--bg-secondary);border-right:var(--line-weight) var(--border-style) var(--border);} .ds-rail-item{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:var(--radius-md);color:var(--fg-secondary);cursor:pointer;transition:background-color var(--transition-fast),color var(--transition-fast);} .ds-rail-item:hover{background:var(--bg-tertiary);} .ds-rail-item.is-active{background:var(--bg-tertiary);color:var(--accent);} .ds-rail-item:focus-visible{outline:var(--focus-ring-width) solid var(--focus-ring-color);outline-offset:var(--focus-ring-offset);}"
+    },
+    {
+      "name": "Researcher Guidance",
+      "kind": "custom",
+      "refersTo": "guidance",
+      "description": "頁面定向說明條；粗體「研究者導覽：」開頭，永不用左側色條。",
+      "html": "<div class=\"ds-guidance\"><p><strong>研究者導覽：</strong>張力分析把每章的衝突兩極配對，曲線高點是兩極最接近對撞的章節。</p></div>",
+      "css": ".ds-guidance{display:flex;align-items:flex-start;gap:var(--space-5);padding:var(--space-5);max-width:520px;background:var(--color-info-bg);border:var(--line-weight) var(--border-style) var(--border);border-radius:var(--radius-sm);} .ds-guidance::before{content:\"\";width:14px;height:14px;flex-shrink:0;margin-top:2px;border:1.5px solid var(--color-info);border-radius:50%;box-sizing:border-box;} .ds-guidance p{margin:0;font-family: var(--font-sans);font-size:var(--font-size-2xs);line-height:1.7;color:var(--fg-secondary);} .ds-guidance strong{color:var(--fg-primary);}"
+    },
+    {
+      "name": "Underline Tabs",
+      "kind": "nav",
+      "refersTo": null,
+      "description": "切換不同內容；active 墨色 600＋2px 焦赭底線。",
+      "html": "<div class=\"ds-utabs\"><button class=\"ds-utab active\">總覽</button><button class=\"ds-utab\">弧線</button><button class=\"ds-utab\">語氣</button></div>",
+      "css": ".ds-utabs{display:flex;gap:var(--space-1);border-bottom:var(--line-weight) var(--border-style) var(--border);} .ds-utab{padding:var(--space-3) var(--space-5);background:none;border:none;cursor:pointer;font-family: var(--font-sans);font-size:var(--font-size-xs);font-weight:500;color:var(--fg-muted);transition:color var(--transition-fast);} .ds-utab:hover:not(.active){color:var(--fg-secondary);} .ds-utab.active{color:var(--fg-primary);font-weight:600;box-shadow:inset 0 -2px 0 var(--accent);} .ds-utab:focus-visible{outline:var(--focus-ring-width) solid var(--focus-ring-color);outline-offset:var(--focus-ring-offset);}"
+    }
+  ],
+  "narrative": {
+    "northStar": "Ink on Paper",
+    "overview": "StorySphere 是一張攤在書桌上的暖象牙紙，分析結果是用細墨線畫上去的。紙面是沉靜的底，墨是內容，焦赭（burnt sienna）是唯一會出聲的顏色。一切裝飾都要能被說成「書房裡本來就有的東西」：紙張的層次、墨線的粗細、眉批式的手寫註記。\n\n這是 Operate 型的工作台：密度高、工具多、九個書籍功能並列。所以表達的力道不在大面積色彩或動態，而在精準的細節——serif 與 sans 的分工、hairline 邊框、只有在需要時才出現的墨色強調。兩個主題共用同一份版面與字體：**Warm** 是暖紙上的墨線，**Ink** 是白紙上的純黑鋼筆稿；主題只置換 palette 與 component shape 兩層。\n\n資料視覺化（實體、語氣、派系、象徵、張力）使用一條低彩度的 warm hue arc——每個色塊讀起來都像「染過色的紙」，而不是螢光標籤。",
+    "keyCharacteristics": [
+      "暖紙三層表面＋暖墨三階文字，唯一 accent 是焦赭",
+      "serif 承載內容本身，sans 承載關於內容的 chrome",
+      "hairline（1px）邊框與微陰影；Ink 主題完全平面、直角、較重單線",
+      "分類色跨主題不變；Ink 下狀態語意改由字形與標籤承載",
+      "動態克制：只過渡顏色與透明度，按下不縮放、hover 不長陰影"
+    ],
+    "rules": [
+      {
+        "name": "The No New Hue Rule",
+        "body": "需要新分類色時，取既有 entity／symbol／status token 或 warm arc 上未使用的一步；不發明新色相。",
+        "section": "colors"
+      },
+      {
+        "name": "The Shared Taxonomy Rule",
+        "body": "Entity、symbol、graph、tone、categorical 這些分類色在 Ink 主題**不覆寫**——同一個角色在兩個主題下是同一色。",
+        "section": "colors"
+      },
+      {
+        "name": "The Glyph Not Hue Rule",
+        "body": "狀態與分類不得只靠色相區分。Ink 主題下 status 全是墨色，辨識完全靠 icon 字形、形狀（實心圓／空心圈／實心方）與文字標籤；Warm 也必須照同樣的方式能讀懂。",
+        "section": "colors"
+      },
+      {
+        "name": "The Categorical Registry Rule",
+        "body": "`cat-*` 只用在資料標記（點、色塊、描邊），不做 pill、不進正文，新用途先在 DESIGN_TOKENS 登記再用；依排名配色、不依名稱。",
+        "section": "colors"
+      },
+      {
+        "name": "The Is-Or-About Rule",
+        "body": "一個東西**是**內容（書名、章名、正文、頁面標題）→ serif；**關於**內容（按鈕、meta、badge、nav、統計）→ sans。",
+        "section": "typography"
+      },
+      {
+        "name": "The Caveat Quarantine Rule",
+        "body": "Caveat 只出現在插畫時刻：empty-state 手寫標語、doodle 標註、splash 花飾。不進 chrome、不進正文。",
+        "section": "typography"
+      },
+      {
+        "name": "The Measure Rule",
+        "body": "說明文字段落限寬 40–72ch；閱讀正文欄寬上限 760px。",
+        "section": "typography"
+      },
+      {
+        "name": "The Paper Stack Rule",
+        "body": "要表達「在上面一層」，先換紙張階，再考慮陰影。",
+        "section": "elevation"
+      },
+      {
+        "name": "The Still Hover Rule",
+        "body": "hover 不長陰影、按下不縮放不位移；狀態變化只過渡 color、background-color、opacity、box-shadow，一律 ease（150ms／250ms）。",
+        "section": "elevation"
+      },
+      {
+        "name": "The Same Markup Rule",
+        "body": "Warm 與 Ink 是同一份 markup；兩主題需要進一步分化時，在 shape token 層加 token，不寫主題專屬元件。",
+        "section": "shapes"
+      }
+    ],
+    "dos": [
+      "**Do** 一律用 `var(--*)` 取色、字級、間距、圓角；新增或修改 token 時同步 `docs/DESIGN_TOKENS.md`。",
+      "**Do** 元件的圓角、框線、陰影走 shape token（`--card-radius`、`--btn-radius`、`--pill-radius`…），讓 Ink 能改「形」。",
+      "**Do** 新程式碼用 `--space-1` … `--space-8`；看到 legacy 間距時對照實際 px 再換，不要照名字換。",
+      "**Do** 讓每個狀態與分類都有非色相的線索（字形、形狀、文字），並在 Ink 主題下檢查一次。",
+      "**Do** 會花 token 的按鈕都帶 sparkles 字符，一頁只用一種字形。",
+      "**Do** 主題切換只經過 ThemeContext。"
+    ],
+    "donts": [
+      "**Don't** 在元件裡寫死色碼；唯一例外是 Cytoscape 需要的 `--graph-*` hex 家族，它也只存在於 tokens.css。",
+      "**Don't** 用 `text-[Npx]` 之類的任意字級；字級只有 8 階。",
+      "**Don't** 把 Caveat 用在按鈕、nav、meta 或正文。",
+      "**Don't** 給導覽條或任何提示框加左側色條。",
+      "**Don't** 在 hover 時長陰影、在按下時縮放或位移，也不要過渡寬度與版面屬性。",
+      "**Don't** 給對話框遮罩加模糊。",
+      "**Don't** 在 Ink 主題覆寫 entity／symbol／graph／tone／categorical 分類色。",
+      "**Don't** 在元件內直接讀寫 localStorage 的主題值或操作 `data-theme`。"
+    ]
+  }
+}

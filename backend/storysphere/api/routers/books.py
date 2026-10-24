@@ -10,8 +10,9 @@ import logging
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import JSONResponse
 
-from storysphere.api import task_registry, task_runner
+from storysphere.api import batch_guard, task_registry, task_runner
 from storysphere.api.deps import (
     AnalysisAgentDep,
     AnalysisCacheDep,
@@ -21,7 +22,9 @@ from storysphere.api.deps import (
     SymbolServiceDep,
     VectorServiceDep,
 )
+from storysphere.api.llm_guard import require_llm_provider
 from storysphere.api.routers._book_shared import cleanup_ingestion_checkpoint, now_iso
+from storysphere.api.routers.unraveling import UNRAVELING_GUARD_KIND
 from storysphere.api.schemas.books import (
     BookDetailResponse,
     BookResponse,
@@ -138,6 +141,7 @@ async def list_books(doc: DocServiceDep, kg: KGServiceDep) -> list[dict]:
             chapter_count=item.chapter_count,
             entity_count=len(entities),
             uploaded_at="",
+            last_opened_at=item.last_opened_at,
             pipeline_status=_pipeline_status_response_from_domain(ps),
         ).model_dump(by_alias=True)
         for item, entities, ps in zip(settled, entity_lists, pipeline_statuses, strict=False)
@@ -184,8 +188,19 @@ async def get_book(book_id: str, doc: DocServiceDep, kg: KGServiceDep) -> dict:
         uploaded_at=(
             document.processed_at.isoformat() if document.processed_at else now_iso()
         ),
+        last_opened_at=document.last_opened_at,
         pipeline_status=_pipeline_status_response_from_domain(document.pipeline_status),
     ).model_dump(by_alias=True)
+
+
+# ── #2-c POST /books/:bookId/opened ──────────────────────────────────────────
+
+
+@router.post("/{book_id}/opened", status_code=204)
+async def mark_book_opened(book_id: str, doc: DocServiceDep) -> None:
+    """Stamp ``lastOpenedAt``. Called by the frontend once when a book route is entered."""
+    if not await doc.mark_opened(book_id):
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
 
 
 # ── #2-b DELETE /books/:bookId ───────────────────────────────────────────────
@@ -261,6 +276,21 @@ _RERUN_STEPS = {
     "symbol-discovery",
 }
 
+# Steps whose pipeline calls the LLM. "feature-extraction" is not one of them
+# (embeddings + keyword extraction) — except when the configured keyword
+# extractor itself is LLM-backed; see ``_rerun_uses_llm``.
+_LLM_RERUN_STEPS = {"summarization", "knowledge-graph", "symbol-discovery"}
+
+
+def _rerun_uses_llm(step: str) -> bool:
+    if step in _LLM_RERUN_STEPS:
+        return True
+    if step == "feature-extraction":
+        from storysphere.config.settings import get_settings  # noqa: PLC0415
+
+        return get_settings().keyword_extractor_type.lower() in {"llm", "composite"}
+    return False
+
 
 async def _rerun_step(
     book_id: str,
@@ -284,7 +314,7 @@ async def _rerun_step(
     if not outcome.ok:
         # A refused step is a real outcome with a message for the user, not a
         # crash — and not a success either, which a bare return would make it.
-        raise task_runner.TaskAborted(outcome.error)
+        raise task_runner.TaskAborted(outcome.error, error_kind=outcome.error_kind or "other")
 
     return {"bookId": book_id, "step": step}
 
@@ -295,8 +325,12 @@ async def rerun_pipeline_step(
     step: str,
     doc: DocServiceDep,
     kg: KGServiceDep,
-) -> dict:
-    """Trigger a rerun of a single failed pipeline step for a book."""
+) -> dict | JSONResponse:
+    """Trigger a rerun of a single failed pipeline step for a book.
+
+    409 (``code: batch_running``) while another rerun or concept inference is
+    going for the book — they share one lock (#19c).
+    """
     if step not in _RERUN_STEPS:
         raise HTTPException(
             status_code=422,
@@ -306,9 +340,16 @@ async def rerun_pipeline_step(
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
 
+    # No await between the check and the claim (see batch_guard).
+    if (busy := batch_guard.op_conflict(UNRAVELING_GUARD_KIND, book_id)) is not None:
+        return busy
+    if _rerun_uses_llm(step):
+        require_llm_provider()
+
     task_id = str(uuid4())
     task_store.create(task_id, kind="ingestion", title="重跑處理步驟")
     task_runner.launch(task_id, _rerun_step(book_id, step, doc, kg))
+    batch_guard.hold(UNRAVELING_GUARD_KIND, book_id, task_id, item_id=step)
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
 
 

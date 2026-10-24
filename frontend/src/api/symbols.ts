@@ -10,6 +10,8 @@ export type CoOccurrenceEntry = components['schemas']['CoOccurrenceEntry'];
 export type SEP = components['schemas']['SEP'];
 export type SEPOccurrenceContext = components['schemas']['SEPOccurrenceContext'];
 export type SymbolInterpretation = components['schemas']['SymbolInterpretation'];
+type ActiveBatchResponse = components['schemas']['ActiveBatchResponse'];
+type RunningSymbolAnalysesResponse = components['schemas']['RunningSymbolAnalysesResponse'];
 export type SymbolOverview = components['schemas']['SymbolOverview'];
 export type SymbolOverviewItem = components['schemas']['SymbolOverviewItem'];
 export type CoOccurringEntityRef = components['schemas']['CoOccurringEntityRef'];
@@ -70,6 +72,18 @@ export interface AnalyzeAllSymbolsOpts {
   forceRefresh?: boolean;
 }
 
+/** The symbol batch running for this book, if any (#15k) — to resume after a remount. */
+export function fetchActiveSymbolBatch(bookId: string): Promise<ActiveBatchResponse> {
+  const params = new URLSearchParams({ book_id: bookId });
+  return apiFetch<ActiveBatchResponse>(`/symbols/analyze-all/active?${params}`);
+}
+
+/** Single-symbol interpretations running for this book (#15l) — to resume after a remount. */
+export function fetchRunningSymbolAnalyses(bookId: string): Promise<RunningSymbolAnalysesResponse> {
+  const params = new URLSearchParams({ book_id: bookId });
+  return apiFetch<RunningSymbolAnalysesResponse>(`/symbols/analyses/running?${params}`);
+}
+
 /** Batch LLM interpretation (#15j). Poll via #8, not the per-symbol #15f. */
 export function analyzeAllSymbols(opts: AnalyzeAllSymbolsOpts): Promise<TaskStatus> {
   return apiFetch<TaskStatus>('/symbols/analyze-all', {
@@ -122,6 +136,7 @@ export interface ReviewSymbolInterpretationOpts {
   bookId: string;
   reviewStatus: 'approved' | 'modified' | 'rejected';
   theme?: string;
+  evidenceSummary?: string;
   polarity?: Polarity;
 }
 
@@ -135,6 +150,7 @@ export function reviewSymbolInterpretation(
       book_id: opts.bookId,
       review_status: opts.reviewStatus,
       theme: opts.theme,
+      evidence_summary: opts.evidenceSummary,
       polarity: opts.polarity,
     }),
   });

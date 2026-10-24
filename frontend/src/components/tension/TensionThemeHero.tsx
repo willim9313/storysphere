@@ -1,16 +1,18 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
-import { AlertTriangle, CheckCircle, Edit3, Loader2, Sparkles, XCircle } from 'lucide-react';
 import type { components } from '@/api/generated';
 import { relativeIntensity } from './intensity';
 import type { TensionLineDetail } from './reviewTypes';
+import { TriggerNote } from './TensionStateCards';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 type TensionTheme = components['schemas']['TensionThemeResponse'];
 
-function formatTimestamp(iso: string): string | null {
+/** In the UI language's format, not the browser's. */
+function formatTimestamp(iso: string, locale: string): string | null {
   try {
-    return new Date(iso).toLocaleString();
+    return new Date(iso).toLocaleString(locale);
   } catch {
     return null;
   }
@@ -25,14 +27,17 @@ interface Props {
   onReject: () => void;
   onModify: (proposition: string) => void;
   pending?: boolean;
+  /** Another tension run is going; 重新合成 waits for it. */
+  busyReason?: string | null;
 }
 
 /**
- * The book-level proposition — the largest type on the page, deliberately.
+ * The book-level proposition. When the theme is stale it is replaced by a
+ * warning card rather than shown as current: the claim on screen was
+ * synthesised from lines that no longer exist.
  *
- * When the theme is stale it is replaced by a warning card rather than shown as
- * current: the proposition on screen was synthesised from lines that no longer
- * exist, and rendering it normally would present a stale claim as fact.
+ * Only 重新合成 spends tokens, so only it carries the glyph; approve / modify /
+ * reject are free writes and stay plain text.
  */
 export function TensionThemeHero({
   theme,
@@ -43,40 +48,43 @@ export function TensionThemeHero({
   onReject,
   onModify,
   pending = false,
-}: Props) {
-  const { t } = useTranslation('analysis');
+  busyReason = null,
+}: Readonly<Props>) {
+  const { t, i18n } = useTranslation('analysis');
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(theme.proposition);
 
-  const assembledAt = formatTimestamp(theme.assembled_at);
+  const assembledAt = formatTimestamp(theme.assembled_at, i18n.language);
   const meta = [theme.assembled_by, assembledAt].filter(Boolean).join(' · ');
 
   if (theme.is_stale) {
     return (
-      <section className="tn-stale-card">
-        <div className="tn-stale-head">
-          <span className="tn-stale-mark" aria-hidden="true">
-            !
-          </span>
-          <span>{t('tension.theme.staleTitle')}</span>
-        </div>
-        <p className="tn-stale-body">
+      <section className="tn-note is-warning tn-alert">
+        <span className="tn-alert-title">{t('tension.theme.staleTitle')}</span>
+        <span className="tn-alert-body">
           {t(`tension.theme.staleReason.${theme.stale_reason ?? 'lines_regrouped'}`)}
-        </p>
+        </span>
         <div className="tn-stale-old">{theme.proposition}</div>
-        <div className="tn-state-actions">
-          <button type="button" className="tn-state-cta sm" onClick={onResynthesize}>
-            <Sparkles size={13} />
-            {t('tension.theme.resynthesize')}
-          </button>
-          {meta && <span className="tn-state-meta">{meta}</span>}
+        <div className="tn-alert-actions">
+          <Tooltip label={busyReason ?? ''} disabled={!busyReason}>
+            <button
+              type="button"
+              className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+              onClick={onResynthesize}
+              disabled={!!busyReason}
+            >
+              {t('tension.theme.resynthesize')}
+            </button>
+          </Tooltip>
+          <TriggerNote busyReason={busyReason} />
+          {meta && <span className="tn-meta-mono">{meta}</span>}
         </div>
       </section>
     );
   }
 
   // Counts frozen at synthesis: reviewing since then does not change what this
-  // proposition was actually built from.
+  // proposition was actually built from. null on themes that predate them.
   const reviewed = theme.reviewed_line_count;
   const total = theme.total_line_count;
   const unreviewedAtSynth = total != null && reviewed != null ? total - reviewed : 0;
@@ -88,41 +96,51 @@ export function TensionThemeHero({
     .slice(0, 4);
 
   return (
-    <section className="tn-hero">
+    <section className="tn-card tn-hero">
       <div className="tn-hero-top">
-        <span className="tn-hero-eyebrow">{t('tension.theme.eyebrow')}</span>
-        <span className="tn-hero-badge">{t('tension.theme.fresh')}</span>
-        {/* Not in the design canvas — kept per the cross-check decision to
-            retain the Frye / Booker classification. Badge doubles as the way
-            out to its full description, so the term needs no explaining here. */}
+        <h2 className="tn-hero-eyebrow">{t('tension.theme.eyebrow')}</h2>
+        <span className="ss-badge ss-badge-success">{t('tension.theme.fresh')}</span>
+        {/* Both chips read just "悲劇" for a tragedy, so a 2xs label says which
+            framework each one is. The chip text itself is untouched. */}
         {theme.frye_mythos && (
-          <Link className="tn-frye-badge" data-mode={theme.frye_mythos} to="/methodology?framework=frye_mythos">
-            <span className="tn-frye-dot" />
-            {t(`tension.frye.${theme.frye_mythos}`, { defaultValue: theme.frye_mythos })}
-          </Link>
+          <span className="tn-chip-group">
+            <span className="tn-chip-label">{t('tension.theme.fryeLabel')}</span>
+            <Link
+              className="tn-frye-badge"
+              data-mode={theme.frye_mythos}
+              to="/methodology?framework=frye_mythos"
+            >
+              <span className="tn-frye-dot" />
+              {t(`tension.frye.${theme.frye_mythos}`, { defaultValue: theme.frye_mythos })}
+            </Link>
+          </span>
         )}
         {theme.booker_plot && (
-          <Link className="tn-booker-badge" to="/methodology?framework=booker_plots">
-            {t(`tension.booker.${theme.booker_plot}`, { defaultValue: theme.booker_plot })}
-          </Link>
+          <span className="tn-chip-group">
+            <span className="tn-chip-label">{t('tension.theme.bookerLabel')}</span>
+            <Link className="tn-booker-badge" to="/methodology?framework=booker_plots">
+              {t(`tension.booker.${theme.booker_plot}`, { defaultValue: theme.booker_plot })}
+            </Link>
+          </span>
         )}
       </div>
 
       {editing ? (
         <div className="tn-hero-editor">
           <textarea
-            className="tn-input serif"
+            className="tn-input is-serif"
             rows={4}
+            aria-label={t('tension.modifyProposition')}
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
           />
-          <div className="tn-editor-actions">
-            <button type="button" className="tn-act-ghost" onClick={() => setEditing(false)}>
+          <div className="tn-actions-end">
+            <button type="button" className="ss-btn ss-btn-sm ss-btn-ghost" onClick={() => setEditing(false)}>
               {t('tension.theme.cancel')}
             </button>
             <button
               type="button"
-              className="tn-act-primary"
+              className="ss-btn ss-btn-sm ss-btn-primary"
               onClick={() => {
                 onModify(draft);
                 setEditing(false);
@@ -136,16 +154,17 @@ export function TensionThemeHero({
         <p className="tn-hero-proposition">{theme.proposition}</p>
       )}
 
+      {/* A quality warning, separate from the provenance line below. */}
       {unreviewedAtSynth > 0 && (
-        <div className="tn-hero-warn">
-          <b>{t('tension.theme.incompleteHead', { count: unreviewedAtSynth })}</b>
-          {t('tension.theme.incompleteBody')}
+        <div className="tn-note is-warning tn-hero-warn">
+          <strong>{t('tension.theme.incompleteHead', { count: unreviewedAtSynth })}</strong>
+          <span>{t('tension.theme.incompleteBody')}</span>
         </div>
       )}
 
       {supporting.length > 0 && (
         <div className="tn-hero-lines">
-          <span className="tn-hero-lines-label">{t('tension.theme.supporting')}</span>
+          <span className="tn-chip-label">{t('tension.theme.supporting')}</span>
           {supporting.map((line) => (
             <button
               key={line.id}
@@ -153,7 +172,7 @@ export function TensionThemeHero({
               className="tn-hero-line-pill"
               onClick={() => onOpenLine(line.id)}
             >
-              <i data-band={scale(line.intensity_summary).bucket} />
+              <i data-band={scale(line.intensity_summary).bucket} aria-hidden="true" />
               {line.canonical_pole_a}
               <span className="tn-vs">vs</span>
               {line.canonical_pole_b}
@@ -163,26 +182,28 @@ export function TensionThemeHero({
       )}
 
       <div className="tn-hero-foot">
-        <button type="button" className="tn-act-ghost" onClick={onResynthesize}>
-          <Sparkles size={12} />
-          {t('tension.theme.resynthesizeShort')}
-        </button>
-        {/* Theme review is absent from the design canvas; kept because #14j
-            works and dropping a functioning control needs its own decision. */}
-        <button type="button" className="tn-act-ghost" onClick={onApprove} disabled={pending}>
-          {pending ? <Loader2 size={12} className="tn-spin" /> : <CheckCircle size={12} />}
+        <Tooltip label={busyReason ?? ''} disabled={!busyReason}>
+          <button
+            type="button"
+            className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+            onClick={onResynthesize}
+            disabled={!!busyReason}
+          >
+            {t('tension.theme.resynthesizeShort')}
+          </button>
+        </Tooltip>
+        <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary" onClick={onApprove} disabled={pending}>
           {t('tension.approve')}
         </button>
-        <button type="button" className="tn-act-ghost" onClick={() => setEditing(true)}>
-          <Edit3 size={12} />
+        <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary" onClick={() => setEditing(true)}>
           {t('tension.modifyProposition')}
         </button>
-        <button type="button" className="tn-act-ghost" onClick={onReject} disabled={pending}>
-          <XCircle size={12} />
+        <button type="button" className="ss-btn ss-btn-sm ss-btn-ghost" onClick={onReject} disabled={pending}>
           {t('tension.reject')}
         </button>
-        <span className="tn-toolbar-spacer" />
-        <span className="tn-state-meta">
+        <TriggerNote busyReason={busyReason} />
+        <span className="tn-spacer" />
+        <span className="tn-meta-mono">
           {meta}
           {total != null && reviewed != null
             ? ` · ${t('tension.theme.builtFrom', { reviewed, total })}`
@@ -191,10 +212,7 @@ export function TensionThemeHero({
       </div>
 
       {theme.review_status === 'rejected' && (
-        <div className="tn-hero-warn">
-          <AlertTriangle size={12} />
-          {t('tension.status.rejected')}
-        </div>
+        <div className="tn-note is-warning">{t('tension.status.rejected')}</div>
       )}
     </section>
   );

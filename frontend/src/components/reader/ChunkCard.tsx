@@ -1,16 +1,17 @@
 import { useMemo } from 'react';
 import { SegmentRenderer, type EntityMarkClickPayload } from './SegmentRenderer';
 import { KeywordTags } from './KeywordTags';
+import { isSeparatorText, keywordsWithoutEntities } from './readerModel';
 import type { Chunk, Segment, EntityType } from '@/api/types';
 
 const pillClass: Record<EntityType, string> = {
-  character: 'pill-char',
-  location: 'pill-loc',
-  organization: 'pill-org',
-  object: 'pill-obj',
-  concept: 'pill-con',
-  other: 'pill-other',
-  event: 'pill-evt',
+  character: 'ss-pill-character',
+  location: 'ss-pill-location',
+  organization: 'ss-pill-organization',
+  object: 'ss-pill-object',
+  concept: 'ss-pill-concept',
+  other: 'ss-pill-other',
+  event: 'ss-pill-event',
 };
 
 /** Deduplicate entities from segments by entityId, preserving first occurrence order. */
@@ -29,34 +30,44 @@ function extractEntities(segments: Segment[]) {
 export function ChunkCard({
   chunk,
   onEntityClick,
+  markTerms,
 }: {
   readonly chunk: Chunk;
   readonly onEntityClick?: (payload: EntityMarkClickPayload) => void;
+  /** Words to mark in the text (see SegmentRenderer). */
+  readonly markTerms?: readonly string[];
 }) {
   const entities = useMemo(() => extractEntities(chunk.segments), [chunk.segments]);
+  const keywords = useMemo(
+    () =>
+      keywordsWithoutEntities(chunk.keywords, [
+        ...entities.map((e) => e.name),
+        ...chunk.segments.filter((seg) => seg.entity).map((seg) => seg.text),
+      ]),
+    [chunk.keywords, chunk.segments, entities],
+  );
+
+  // A bare scene break keeps its #order (it is still a locatable chunk) but
+  // reads as a rule, not as a card of its own.
+  if (entities.length === 0 && isSeparatorText(chunk.content)) {
+    return (
+      <div data-chunk-card className="rd-chunk rd-chunk-sep">
+        <span className="rd-chunk-order">#{chunk.order}</span>
+        <span className="rd-chunk-sep-rule" role="separator" aria-label={chunk.content.trim()} />
+      </div>
+    );
+  }
 
   return (
-    <div
-      data-chunk-card
-      style={{
-        backgroundColor: 'var(--bg-primary)',
-        border: '1px solid var(--border)',
-        borderRadius: 10,
-        padding: '14px 16px',
-        marginBottom: 10,
-        boxShadow: 'var(--shadow-sm)',
-      }}
-    >
-      <div className="flex items-center justify-between mb-2">
-        <span className="text-xs" style={{ color: 'var(--fg-muted)' }}>
-          #{chunk.order}
-        </span>
+    <div data-chunk-card className="rd-chunk">
+      <div className="rd-chunk-head">
+        <span className="rd-chunk-order">#{chunk.order}</span>
         {entities.length > 0 && (
-          <div className="flex gap-1 flex-wrap chunk-chips">
+          <div className="chunk-chips">
             {entities.map((e) => (
               <span
                 key={e.entityId}
-                className={`pill ${pillClass[e.type]}`}
+                className={`ss-pill ${pillClass[e.type]}`}
                 style={onEntityClick ? { cursor: 'pointer' } : undefined}
                 role={onEntityClick ? 'button' : undefined}
                 tabIndex={onEntityClick ? 0 : undefined}
@@ -87,22 +98,19 @@ export function ChunkCard({
                     : undefined
                 }
               >
-                <span className="pill-dot" />
+                <span className="ss-pill-dot" />
                 {e.name}
               </span>
             ))}
           </div>
         )}
       </div>
-      <p
-        className="text-sm leading-relaxed"
-        style={{ fontFamily: 'var(--font-serif)', color: 'var(--fg-primary)', fontSize: 'var(--reader-fs, inherit)', lineHeight: 'var(--reader-lh, inherit)' }}
-      >
-        <SegmentRenderer segments={chunk.segments} />
+      <p className="rd-chunk-text">
+        <SegmentRenderer segments={chunk.segments} markTerms={markTerms} />
       </p>
-      {chunk.keywords.length > 0 && (
-        <div className="mt-2">
-          <KeywordTags keywords={chunk.keywords} limit={6} />
+      {keywords.length > 0 && (
+        <div className="rd-chunk-kw">
+          <KeywordTags keywords={keywords} limit={6} />
         </div>
       )}
     </div>

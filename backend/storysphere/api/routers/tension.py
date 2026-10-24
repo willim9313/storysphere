@@ -10,25 +10,30 @@ POST /api/v1/tension/theme/synthesize      — start TensionTheme synthesis (asy
 GET  /api/v1/tension/theme/synthesize/{task_id} — poll synthesis result
 GET  /api/v1/tension/theme?book_id={id}    — retrieve cached TensionTheme
 PATCH /api/v1/tension/theme/{id}/review    — update HITL review status
+GET  /api/v1/tension/running?book_id={id}  — the tension run going for a book (#14k)
 """
 
 from __future__ import annotations
 
 from uuid import uuid4
 
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Query
+from fastapi.responses import JSONResponse
 
-from storysphere.api import task_runner
+from storysphere.api import batch_guard, task_runner
 from storysphere.api.deps import DocServiceDep, KGServiceDep, TensionServiceDep
-from storysphere.api.schemas.common import TaskStatus
+from storysphere.api.llm_guard import require_llm_provider
+from storysphere.api.schemas.common import ErrorResponse, TaskStatus
 from storysphere.api.schemas.tension import (
     AnalyzeBookTensionsRequest,
     AssignTEURequest,
     Carrier,
     GroupTensionLinesRequest,
+    RunningTensionResponse,
     SynthesizeThemeRequest,
     TensionLineDetail,
     TensionLineReviewRequest,
+    TensionOp,
     TensionThemeResponse,
     TensionThemeReviewRequest,
     TEUDetail,
@@ -37,8 +42,55 @@ from storysphere.api.schemas.tension import (
 from storysphere.api.store import get_task, task_store
 from storysphere.domain.narrative_runs import group_narrative_runs
 from storysphere.domain.scene_groups import group_scenes
+from storysphere.domain.tension import TensionLine, TensionTheme
 
 router = APIRouter(prefix="/tension", tags=["tension"])
+
+
+# ── One tension run per book ──────────────────────────────────────────────────
+#
+# Assembly writes the TEUs grouping reads, and grouping writes the lines
+# synthesis reads. Two runs on one book either pay the LLM twice for the same
+# step or build on the other's half-written output (a theme synthesised from the
+# lines a regroup is about to replace). So the three share one lock per book:
+# the op is held as batch_guard's item_id, and any live item blocks every op.
+
+_GUARD_KIND = "tension"
+
+
+def _running_op(book_id: str) -> tuple[TensionOp, str] | None:
+    """``(op, task_id)`` of the tension run going for *book_id*, or None."""
+    for op, task_id in batch_guard.running_items(_GUARD_KIND, book_id).items():
+        return op, task_id  # type: ignore[return-value]
+    return None
+
+
+def _busy(book_id: str) -> JSONResponse | None:
+    """409 ``batch_running`` when any tension run is going for the book."""
+    running = _running_op(book_id)
+    if running is None:
+        return None
+    body = ErrorResponse(
+        detail=f"A tension {running[0]} run is already going for book '{book_id}'",
+        code="batch_running",
+    )
+    return JSONResponse(status_code=409, content=body.model_dump())
+
+
+async def _require_book(doc_service, book_id: str) -> None:
+    """404 for a book that does not exist — not an empty answer or a task
+    that "succeeds" on nothing."""
+    if await doc_service.get_document(book_id) is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
+
+
+async def _tension_task(task_id: str) -> TaskStatus:
+    """The task behind a tension poll endpoint; 404 for an unknown id or a
+    task of another kind (these endpoints used to hand back any task)."""
+    task = await get_task(task_id)
+    if task is None or task.kind != "tension":
+        raise HTTPException(status_code=404, detail=f"Task '{task_id}' not found")
+    return task
 
 
 # ── Grouping (async) ───────────────────────────────────────────────────────────
@@ -63,24 +115,31 @@ async def group_tension_lines(
     req: GroupTensionLinesRequest,
     tension_service: TensionServiceDep,
     kg_service: KGServiceDep,
-) -> TaskStatus:
+    doc_service: DocServiceDep,
+) -> TaskStatus | JSONResponse:
     """Start TensionLine grouping for a book.
 
     Returns 202 with ``task_id``.  Poll ``GET /tension/lines/group/{task_id}``
     until ``status`` is ``"done"`` or ``"error"``.
+
+    404 for an unknown book; 409 (``code: batch_running``) while another tension
+    run is going for the book (#14k).
     """
+    await _require_book(doc_service, req.document_id)
+    # No await between the check and the claim (see batch_guard).
+    if (busy := _busy(req.document_id)) is not None:
+        return busy
+    require_llm_provider()
     task_id = str(uuid4())
     task_store.create(task_id, kind="tension", title="張力線分組")
     task_runner.launch(task_id, _group_lines(task_id, req, tension_service, kg_service))
+    batch_guard.hold(_GUARD_KIND, req.document_id, task_id, item_id="group")
     return TaskStatus(task_id=task_id, status="pending")
 
 
 @router.get("/lines/group/{task_id}", response_model=TaskStatus)
 async def get_group_tension_lines(task_id: str) -> TaskStatus:
-    task = await get_task(task_id)
-    if task is None:
-        raise HTTPException(status_code=404, detail=f"Task '{task_id}' not found")
-    return task
+    return await _tension_task(task_id)
 
 
 # ── Carrier resolution ─────────────────────────────────────────────────────────
@@ -120,14 +179,17 @@ async def list_tension_lines(
     book_id: str,
     tension_service: TensionServiceDep,
     kg_service: KGServiceDep,
+    doc_service: DocServiceDep,
 ) -> list[TensionLineDetail]:
     """Return cached TensionLines for a book, with constituent TEUs embedded.
 
     Each line includes a ``teus`` list (chapter, intensity, description, evidence,
     typed carriers and stance per pole) so the UI can render evidence inline
     without a second request. Returns an empty list if grouping has not been run
-    yet — trigger grouping first with ``POST /tension/lines/group``.
+    yet — trigger grouping first with ``POST /tension/lines/group``; 404 for an
+    unknown book.
     """
+    await _require_book(doc_service, book_id)
     rows = await tension_service.get_lines_with_teus(book_id)
     types_by_id = await _entity_types(kg_service, book_id)
     result: list[TensionLineDetail] = []
@@ -185,8 +247,9 @@ async def list_teus(
     ``line_id`` is null when no TensionLine claims the TEU. Grouping runs as a
     single LLM call that may silently omit TEUs, so this is the only way to see
     what Step 1 produced but Step 2 dropped. Returns an empty list if TEU
-    assembly has not been run yet.
+    assembly has not been run yet; 404 for an unknown book.
     """
+    await _require_book(doc_service, book_id)
     teus = await tension_service.get_teus(book_id)
     lines = await tension_service.get_lines(book_id)
     types_by_id = await _entity_types(kg_service, book_id)
@@ -222,7 +285,7 @@ async def list_teus(
     ]
 
 
-@router.patch("/teus/{teu_id}/assign")
+@router.patch("/teus/{teu_id}/assign", response_model=TensionLine)
 async def assign_teu(
     teu_id: str,
     req: AssignTEURequest,
@@ -263,7 +326,7 @@ async def assign_teu(
 # ── HITL Review ────────────────────────────────────────────────────────────────
 
 
-@router.patch("/lines/{line_id}/review")
+@router.patch("/lines/{line_id}/review", response_model=TensionLine)
 async def review_tension_line(
     line_id: str,
     req: TensionLineReviewRequest,
@@ -325,27 +388,33 @@ async def analyze_book_tensions(
     tension_service: TensionServiceDep,
     kg_service: KGServiceDep,
     doc_service: DocServiceDep,
-) -> TaskStatus:
+) -> TaskStatus | JSONResponse:
     """Start full-book TEU assembly (Mode A).
 
     Assembles TEUs for all events with ``tension_signal != "none"``.
     Returns 202 with ``task_id``.  Poll ``GET /tension/analyze/{task_id}``
     for progress and final result.
+
+    404 for an unknown book; 409 (``code: batch_running``) while another tension
+    run is going for the book (#14k).
     """
+    await _require_book(doc_service, req.document_id)
+    # No await between the check and the claim (see batch_guard).
+    if (busy := _busy(req.document_id)) is not None:
+        return busy
+    require_llm_provider()
     task_id = str(uuid4())
     task_store.create(task_id, kind="tension", title="張力曲線分析")
     task_runner.launch(
         task_id, _analyze_book(task_id, req, tension_service, kg_service, doc_service)
     )
+    batch_guard.hold(_GUARD_KIND, req.document_id, task_id, item_id="analyze")
     return TaskStatus(task_id=task_id, status="pending")
 
 
 @router.get("/analyze/{task_id}", response_model=TaskStatus)
 async def get_analyze_book_tensions(task_id: str) -> TaskStatus:
-    task = await get_task(task_id)
-    if task is None:
-        raise HTTPException(status_code=404, detail=f"Task '{task_id}' not found")
-    return task
+    return await _tension_task(task_id)
 
 
 # ── TensionTheme synthesis (B-029) ────────────────────────────────────────────
@@ -369,25 +438,32 @@ async def _synthesize_theme(task_id: str, req: SynthesizeThemeRequest, tension_s
 async def synthesize_tension_theme(
     req: SynthesizeThemeRequest,
     tension_service: TensionServiceDep,
-) -> TaskStatus:
+    doc_service: DocServiceDep,
+) -> TaskStatus | JSONResponse:
     """Start TensionTheme synthesis for a book.
 
     Requires TensionLines to be generated first (``POST /tension/lines/group``).
     Returns 202 with ``task_id``.  Poll ``GET /tension/theme/synthesize/{task_id}``
     until ``status`` is ``"done"`` or ``"error"``.
+
+    404 for an unknown book; 409 (``code: batch_running``) while another tension
+    run is going for the book (#14k).
     """
+    await _require_book(doc_service, req.document_id)
+    # No await between the check and the claim (see batch_guard).
+    if (busy := _busy(req.document_id)) is not None:
+        return busy
+    require_llm_provider()
     task_id = str(uuid4())
     task_store.create(task_id, kind="tension", title="張力主題綜合")
     task_runner.launch(task_id, _synthesize_theme(task_id, req, tension_service))
+    batch_guard.hold(_GUARD_KIND, req.document_id, task_id, item_id="synthesize")
     return TaskStatus(task_id=task_id, status="pending")
 
 
 @router.get("/theme/synthesize/{task_id}", response_model=TaskStatus)
 async def get_synthesize_tension_theme(task_id: str) -> TaskStatus:
-    task = await get_task(task_id)
-    if task is None:
-        raise HTTPException(status_code=404, detail=f"Task '{task_id}' not found")
-    return task
+    return await _tension_task(task_id)
 
 
 @router.get("/theme", response_model=TensionThemeResponse)
@@ -407,18 +483,21 @@ async def get_tension_theme(
     re-extracted, the lines the theme was built from describe a book that no
     longer exists.
 
-    Returns 404 if synthesis has not been run yet.
+    Returns 404 if synthesis has not been run yet (or the book does not exist —
+    the two differ only in ``detail``).
     Trigger synthesis first with ``POST /tension/theme/synthesize``.
     """
+    doc = await doc_service.get_document(book_id)
+    if doc is None:
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
     theme = await tension_service.get_theme(book_id)
     if theme is None:
         raise HTTPException(
             status_code=404,
             detail=f"No TensionTheme found for book '{book_id}'. Run synthesis first.",
         )
-    doc = await doc_service.get_document(book_id)
     is_stale, stale_reason = await tension_service.theme_staleness(
-        book_id, theme, pipeline_status=doc.pipeline_status if doc else None
+        book_id, theme, pipeline_status=doc.pipeline_status
     )
     return TensionThemeResponse(
         id=theme.id,
@@ -437,7 +516,7 @@ async def get_tension_theme(
     )
 
 
-@router.patch("/theme/{theme_id}/review")
+@router.patch("/theme/{theme_id}/review", response_model=TensionTheme)
 async def review_tension_theme(
     theme_id: str,
     req: TensionThemeReviewRequest,
@@ -459,3 +538,22 @@ async def review_tension_theme(
             detail=f"TensionTheme '{theme_id}' not found for document '{req.document_id}'",
         )
     return updated.model_dump()
+
+
+# ── Running run (sync) ────────────────────────────────────────────────────────
+
+
+@router.get("/running", response_model=RunningTensionResponse)
+async def get_running_tension(
+    book_id: str = Query(..., description="Book identifier"),
+) -> dict:
+    """The assembly / grouping / synthesis run going for this book (#14k).
+
+    Read-only: lets the page pick a run back up after a remount (or from
+    another tab) instead of offering to start one the POSTs would refuse with 409.
+    """
+    running = _running_op(book_id)
+    if running is None:
+        return RunningTensionResponse().model_dump(by_alias=True)
+    op, task_id = running
+    return RunningTensionResponse(op=op, task_id=task_id).model_dump(by_alias=True)

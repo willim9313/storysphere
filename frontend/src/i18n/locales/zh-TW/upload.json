@@ -19,6 +19,7 @@
   "confirmUpload": "確認上傳",
   "processingSection": "處理中",
   "duplicateTitleWarning": "已有同名書籍《{{title}}》，本次上傳仍會繼續進行。",
+  "pollDisconnected": "暫時連不上伺服器，正在重新連線；這本書可能仍在背景處理，不需要重新上傳。",
   "dropzone": {
     "dragText": "拖曳檔案至此，或點擊選擇檔案",
     "supportText": "支援 .pdf、.docx、.txt、.epub 格式，可多選 · 檔案大小上限 50 MB",
@@ -31,7 +32,7 @@
     "chapterLabel": "第 {{n}} 章",
     "chapterBadge": "章",
     "chapterTitlePlaceholder": "（章標題）",
-    "paraCount": "{{n}} 段",
+    "paraCount": "{{count}} 段",
     "splitHere": "在此分章",
     "splitSelection": "✂ 切分為新段落",
     "splitBanner": "已於選取處切出新段落，可用段落間的「＋」在此分章",
@@ -62,12 +63,24 @@
     "discard": "放棄上傳",
     "discardConfirm": "刪除整本書並放棄上傳？此動作無法復原。",
     "discardConfirmBtn": "確定放棄",
-    "errorLoad": "無法載入章節資料，請稍後再試。",
+    "discardFailed": "刪除失敗，這本書還在。請稍後再試。",
     "errorSubmit": "提交失敗，請稍後再試。",
     "spineTitle": "全書結構脊",
     "spineSummary": "{{total}} 段 · {{body}} 正文章 / {{nonBody}} 非正文 · 點一段即跳到該章",
     "spineToggle": "收合／展開全書結構",
     "railHint": "各章段落長度比例（點一下跳到該章）",
+    "crumb": "章節審閱",
+    "spineModeChapter": "逐章",
+    "spineModeOverview": "總覽",
+    "conflict": {
+      "gotoUpload": "前往上傳 & 處理進度",
+      "submittedTitle": "這本書的章節審閱已經送出",
+      "submittedBody": "審閱結果已寫入，pipeline 已繼續往下跑。這一頁的編輯不會再被接受。",
+      "closedTitle": "這本書的處理已終止",
+      "closedBody": "審閱視窗已關閉，這一頁的編輯不會被接受。",
+      "notOpenTitle": "這本書目前不在章節審閱階段",
+      "notOpenBody": "這一頁的編輯不會被接受。"
+    },
     "infoRow": "左側結構脊可標記章節角色、每段右側選單可標記段落角色 · 角色定義見右側對照表",
     "suggestRoles": "邊界輔助辨識",
     "suggesting": "偵測中…",
@@ -113,6 +126,12 @@
       "notBody": "非正文",
       "empty": "這段文字解析不出章節清單，可能不是標準目錄格式。這不影響你繼續審核。",
       "error": "AI 解析暫時無法使用，請稍後再試。"
+    },
+    "a11y": {
+      "spineMode": "結構脊檢視方式",
+      "chapterTitle": "{{ch}}標題",
+      "chapterRole": "{{ch}}角色",
+      "paraRole": "{{ch}}第 {{n}} 段角色"
     }
   },
   "steps": {
@@ -123,6 +142,12 @@
     "knowledgeGraph": "知識圖譜",
     "symbolExploration": "符號探索",
     "dataStorage": "資料儲存"
+  },
+  "stepState": {
+    "done": "（已完成）",
+    "running": "（進行中）",
+    "pending": "（尚未開始）",
+    "error": "（失敗）"
   },
   "notify": {
     "doneTitle": "《{{title}}》分析完成",
@@ -141,5 +166,49 @@
   "queueTitle": "待上傳佇列 · 逐本填寫",
   "queueWaiting": "等待上傳",
   "langDetected": "已自動偵測：{{lang}} · 可修改",
-  "retry": "重試 · 沿用原書名/作者，只需重新選檔"
+  "retry": "重試 · 沿用原書名/作者，只需重新選檔",
+  "terminate": {
+    "title": "終止處理《{{title}}》？",
+    "message": "以下內容會被移除，無法復原。",
+    "itemTask": "目前的處理任務",
+    "itemBook": "已寫入書庫的這本書（若已建立）",
+    "confirm": "終止處理"
+  },
+  "murmurEmpty": "等待系統開始處理…",
+  "card": {
+    "rerun": "重跑",
+    "rerunning": "重跑中…",
+    "rerunRetry": "再試",
+    "rerunDoneTitle": "{{step}} 重跑完成",
+    "rerunDoneBody": "結果已補齊，可前往書庫查看。",
+    "rerunFailedTitle": "{{step}} 重跑失敗",
+    "tryAgain": "請再試一次。",
+    "rerunQueuedTitle": "重跑已排入任務中心",
+    "rerunQueuedBody": "重跑本身也是一個任務，可於任務中心追蹤。",
+    "partialBadge": "部分完成",
+    "partialLead": "書籍已儲存，但以下步驟未能完成 · 可直接重跑",
+    "allResolved": "所有步驟皆已補齊。",
+    "reviewSubmitFailed": "章節審閱提交失敗，pipeline 可能已中斷，請刪除此書並重新上傳。",
+    "gotoBook": "前往《{{title}}》→",
+    "awaitingReview": "等待審閱",
+    "gateTitle": "系統偵測到章節結構，請確認是否正確",
+    "gateSub": "這是送出前最後一道人工閘門",
+    "acceptDetected": "接受系統判斷",
+    "startReview": "開始審閱 →",
+    "elapsed": "已處理 {{time}}",
+    "processingBook": "書籍處理中"
+  },
+  "failedKind": {
+    "encrypted": "這份 PDF 設有開啟密碼，系統無法讀取。請先移除密碼再上傳；同一個檔案重試不會成功。",
+    "unreadable": "檔案無法解析，可能已損毀，或不是有效的 PDF／DOCX／EPUB。請換一份檔案；同一個檔案重試不會成功。",
+    "no_text": "檔案裡抽不到任何文字，可能是掃描檔（只有圖片、沒有文字層）。請先做文字辨識（OCR），或改用有文字的版本；同一個檔案重試不會成功。",
+    "interrupted": "伺服器重新啟動，處理被中斷。可以直接重試。",
+    "internal": "處理時發生未預期的錯誤，可以重試一次；若再次失敗，請把技術細節回報給我們。"
+  },
+  "stepFailedKind": {
+    "rate_limited": "LLM 供應商的額度或頻率已達上限。請稍後再重跑；馬上重跑多半會再失敗。",
+    "blocked": "LLM 供應商拒絕處理部分內容（內容審查）。重跑多半會得到相同結果。",
+    "timeout": "LLM 回應逾時。可以直接重跑。",
+    "other": "發生未預期的錯誤，可以重跑一次。"
+  }
 }

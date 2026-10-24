@@ -11,8 +11,8 @@
   "onboarding": {
     "eyebrow": "Knowledge Graph",
     "title": "No nodes to show yet",
-    "intro": "The knowledge graph is built from entities and relations extracted from each chapter. This book has no nodes yet — make sure processing has finished, or re-upload it.",
-    "cta": "Go to Upload"
+    "intro": "The knowledge graph is built from entities and relations extracted from each chapter. This book has no nodes yet — check the knowledge-graph step in Build overview, or run it again.",
+    "cta": "Go to Build overview"
   },
   "timeline": {
     "modal": {
@@ -39,7 +39,6 @@
       "modeStory": "Story"
     }
   },
-  "stats": "{{nodes}} nodes · {{edges}} relations",
   "statsInferred": "+{{n}} inferred",
   "statsNodeLabel": "nodes",
   "statsEdgeLabel": "relations",
@@ -49,7 +48,6 @@
   "panel": {
     "deepAnalysis": "Deep Analysis",
     "relatedParagraphs": "Related Paragraphs",
-    "eventInfo": "Event Info",
     "participants": "Participants",
     "eventAnalysis": "Event Analysis",
     "bookmark": "Bookmark",
@@ -63,7 +61,11 @@
     "statFirstChapter": "First Chapter",
     "addToCompare": "Add to Compare",
     "comparePending": "Pick one more",
-    "chunkRef": "Ch.{{chapter}} · Chunk {{order}}"
+    "chunkRef": "Ch.{{chapter}} · Chunk {{order}}",
+    "current": "Showing · {{name}}",
+    "chainInferred": "Inferred relation review",
+    "chainEntity": "Entity details",
+    "chainEvent": "Event details"
   },
   "entity": {
     "triggerFailed": "Failed to trigger analysis. Please try again later.",
@@ -112,13 +114,13 @@
         "community": "Community"
       },
       "overview": "Cluster overview",
+      "overviewIn": "Cluster overview · {{lens}}",
       "drillInTitle": "{{typeName}} cluster · {{n}} members",
       "drillInFactionTitle": "{{name}} · {{n}} members",
       "members": "{{n}} members",
       "sortImportance": "By importance",
       "sortName": "By name",
       "back": "Back",
-      "toggleSort": "Toggle sort",
       "unaffiliated": "Unaffiliated ({{n}})",
       "communityScope": {
         "heading": "Scope of this view",
@@ -136,7 +138,23 @@
         "algorithm": "Algorithm",
         "resolution": "Resolution",
         "minSize": "Min cluster size",
-        "recompute": "Recompute"
+        "recompute": "Recompute",
+        "zeroCost": "No cost"
+      },
+      "communityRowCount": "{{n}} members · {{composition}}",
+      "cohesion": "Cohesion {{score}}",
+      "compositionAbbr": {
+        "character": "Ch",
+        "location": "Loc",
+        "concept": "Con",
+        "event": "Ev",
+        "organization": "Org",
+        "object": "Obj",
+        "other": "Oth"
+      },
+      "rel": {
+        "cooperation": "Cooperation {{score}}",
+        "rivalry": "Rivalry {{score}}"
       }
     },
     "search": {
@@ -243,7 +261,9 @@
       "noBookmarks": "No bookmarked entities",
       "removeBookmark": "Remove bookmark",
       "bookmarkAggregateNote": "Aggregated view: clicking a bookmark switches back to the individual view and selects that entity.",
-      "bookmarkStorageNote": "Stored in this browser (localStorage)"
+      "bookmarkStorageNote": "Stored in this browser (localStorage)",
+      "expand": "Expand lens card",
+      "collapse": "Collapse lens card"
     },
     "orphan": {
       "button": "Unlinked entities",
@@ -266,8 +286,67 @@
       "noPath": "No path connects these two entities."
     }
   },
+  "mode": {
+    "subtitle": {
+      "node": "How a single entity connects",
+      "type": "What the 7 types look like grouped",
+      "community": "Which factions the algorithm finds on its own"
+    }
+  },
+  "legend": {
+    "currentLens": "Current lens · {{mode}}",
+    "typeToggleHint": "Type toggles are in the toolbar above"
+  },
+  "inference": {
+    "noTokenCostInline": "No token cost",
+    "forceRerunTitle": "Force rerun inference"
+  },
   "guide": {
     "prefix": "Researcher guide:",
     "body": "Three lenses onto one graph: <strong>individual</strong> for how a single entity connects, <strong>type</strong> for grouping by character / place / object, and <strong>community</strong> for algorithmically detected factions; <strong>the legend changes with the lens</strong>. \"Run inference\" uses a common-neighbours score to propose relationships the text implies but never states; it calls no LLM and costs no tokens, <strong>but inferred edges need human confirmation before they enter the graph</strong>."
+  },
+  "inferredType": {
+    "potential_ally": "Possible ally",
+    "potential_enemy": "Possible enemy",
+    "potential_friendship": "Possible friendship",
+    "potential_associate": "Possible association",
+    "unknown": "Undetermined"
+  },
+  "searchA11y": {
+    "inputLabel": "Search entities or chapters",
+    "listLabel": "Search results"
+  },
+  "a11y": {
+    "close": "Close panel",
+    "zoomIn": "Zoom in",
+    "zoomOut": "Zoom out",
+    "decrease": "Decrease",
+    "increase": "Increase",
+    "lensTabs": "Lens tabs"
+  },
+  "relations": {
+    "title": "Relations",
+    "count": "{{count}}",
+    "empty": "No confirmed relations",
+    "showAll": "Show all {{count}}",
+    "showLess": "Show fewer",
+    "offCanvas": "(hidden on canvas)",
+    "cooperative": "Cooperative",
+    "hostile": "Hostile",
+    "canvasSummary": "Knowledge graph: {{nodes}} nodes, {{edges}} relations",
+    "types": {
+      "family": "Family",
+      "friendship": "Friendship",
+      "romance": "Romance",
+      "enemy": "Enemy",
+      "ally": "Ally",
+      "subordinate": "Subordinate",
+      "located_in": "Located in",
+      "member_of": "Member of",
+      "owns": "Owns",
+      "other": "Other",
+      "unknown": "Unclassified",
+      "participates_in": "Takes part in"
+    }
   }
 }

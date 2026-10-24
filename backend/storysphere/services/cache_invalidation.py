@@ -99,9 +99,13 @@ _ORPHANED_CACHES: dict[str, tuple[str, ...]] = {
 
 # Entries keyed by book id — still readable afterwards, kept and reported stale.
 _STALED_CACHES: dict[str, tuple[str, ...]] = {
-    # Chapter summaries feed the Hero's Journey mapping.
+    # Chapter summaries feed the Hero's Journey mapping, and the LLM refinement
+    # of Kernel/Satellite reads them as context. GET /narrative dates the
+    # `narrative_structure:` entry, not `hero_journey:`, so that key has to be
+    # named here too or a summarization rerun never shows as stale on the page.
     "summarization": (
         "hero_journey:{book}",
+        "narrative_structure:{book}",
     ),
     # B-111 settled the question B-108 left open. These do age with a re-run:
     # `AnalysisService` builds EEP text evidence from a vector search

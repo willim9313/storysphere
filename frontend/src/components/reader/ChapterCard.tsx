@@ -1,18 +1,18 @@
-
 import { ChevronDown } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { KeywordTags } from './KeywordTags';
 import type { EntityMarkClickPayload } from './SegmentRenderer';
 import type { Chapter, EntityType } from '@/api/types';
 
 const pillClass: Record<EntityType, string> = {
-  character: 'pill-char',
-  location: 'pill-loc',
-  organization: 'pill-org',
-  object: 'pill-obj',
-  concept: 'pill-con',
-  other: 'pill-other',
-  event: 'pill-evt',
+  character: 'ss-pill-character',
+  location: 'ss-pill-location',
+  organization: 'ss-pill-organization',
+  object: 'ss-pill-object',
+  concept: 'ss-pill-concept',
+  other: 'ss-pill-other',
+  event: 'ss-pill-event',
 };
 
 interface ChapterCardProps {
@@ -48,22 +48,18 @@ export function ChapterCard({
     onToggleExpand();
   };
 
+  const classes = ['rd-chapter', isSelected && 'is-selected', dimmed && 'is-dimmed']
+    .filter(Boolean)
+    .join(' ');
+
   return (
-    <div
-      style={{
-        borderRadius: 'var(--card-radius)',
-        border: isSelected ? '1px solid var(--accent)' : '1px solid var(--border)',
-        boxShadow: isSelected ? 'inset 0 0 0 1px var(--accent)' : 'none',
-        backgroundColor: 'var(--bg-primary)',
-        opacity: dimmed ? 0.4 : 1,
-        transition: 'opacity var(--transition-fast)',
-      }}
-    >
-      <div className="flex items-start gap-1" style={{ padding: '10px 8px 10px 12px' }}>
+    <div className={classes}>
+      <div className="rd-chapter-top">
         {/* Left click target = navigate (read this chapter in column 3) */}
         <div
           role="button"
           tabIndex={0}
+          aria-current={isSelected ? 'true' : undefined}
           onClick={onSelect}
           onKeyDown={(e) => {
             if (e.key === 'Enter' || e.key === ' ') {
@@ -71,127 +67,165 @@ export function ChapterCard({
               onSelect();
             }
           }}
-          style={{ cursor: 'pointer', flex: 1, minWidth: 0 }}
+          className="rd-chapter-nav"
         >
-          <h4
-            className="truncate"
-            style={{
-              fontFamily: 'var(--font-serif)',
-              fontSize: 'var(--font-size-base)',
-              fontWeight: 600,
-              color: 'var(--fg-primary)',
-              margin: 0,
-            }}
-          >
-            {chapter.title}
-          </h4>
-          <div className="mt-0.5 text-xs" style={{ color: 'var(--fg-muted)' }}>
+          <h4 className="rd-chapter-name truncate">{chapter.title}</h4>
+          <div className="rd-chapter-meta">
             {chapter.chunkCount} chunks · {t('chapter.entities', { count: chapter.entityCount })}
           </div>
         </div>
 
-        {/* Right chevron = expand/collapse this card only, independent of navigation */}
-        <button
-          onClick={handleToggleExpand}
-          aria-label={t('chapter.toggleExpand')}
-          aria-expanded={isExpanded}
-          title={t('chapter.toggleExpand')}
-          style={{
-            flexShrink: 0,
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'var(--fg-muted)',
-            padding: 3,
-            display: 'flex',
-            transition: 'transform var(--transition-fast)',
-            transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)',
-          }}
-        >
-          <ChevronDown size={15} />
-        </button>
+        {/* Right chevron = expand/collapse this card only, independent of
+            navigation; the 1px inner divider is its border-left. */}
+        <Tooltip label={t('chapter.toggleExpand')}>
+          <button
+            onClick={handleToggleExpand}
+            aria-label={t('chapter.toggleExpand')}
+            aria-expanded={isExpanded}
+            className={isExpanded ? 'rd-chapter-chev is-open' : 'rd-chapter-chev'}
+          >
+            <ChevronDown
+              size={14}
+              style={{ transform: isExpanded ? 'rotate(0deg)' : 'rotate(-90deg)' }}
+            />
+          </button>
+        </Tooltip>
       </div>
 
       {isExpanded && (
-        <div style={{ padding: '0 12px 12px' }}>
-          {chapter.summary && (
-            <p
-              style={{
-                fontFamily: 'var(--font-serif)',
-                fontSize: 'var(--font-size-xs)',
-                lineHeight: 1.65,
-                color: 'var(--fg-secondary)',
-                margin: '0 0 12px',
-                paddingBottom: 12,
-                borderBottom: '1px solid var(--border)',
-              }}
-            >
-              {chapter.summary}
-            </p>
-          )}
+        <div className="rd-chapter-body">
+          {chapter.summary && <p className="rd-chapter-summary">{chapter.summary}</p>}
 
           {chapter.keywords && Object.keys(chapter.keywords).length > 0 && (
-            <div>
-              <div className="text-xs mb-1.5" style={{ color: 'var(--fg-muted)' }}>
-                {t('chapter.keywords')}
-              </div>
-              <KeywordTags keywords={chapter.keywords} limit={8} />
-            </div>
+            <KeywordTags keywords={chapter.keywords} limit={8} />
           )}
 
           {chapter.topEntities && chapter.topEntities.length > 0 && (
             <>
-              <div style={{ height: 1, background: 'var(--border)', margin: '12px 0' }} />
-              <div className="text-xs mb-1.5" style={{ color: 'var(--fg-muted)' }}>
+              <span className="rd-chapter-meta">
                 {t('chapter.entityCount', { count: chapter.topEntities.length })}
-              </div>
-              <div className="flex flex-wrap gap-1">
-                {chapter.topEntities.map((e) => (
-                  <span
-                    key={e.id}
-                    className={`pill ${pillClass[e.type]}`}
-                    style={onEntityClick ? { cursor: 'pointer' } : undefined}
-                    role={onEntityClick ? 'button' : undefined}
-                    tabIndex={onEntityClick ? 0 : undefined}
-                    onClick={
-                      onEntityClick
-                        ? (ev) => {
-                            ev.stopPropagation();
-                            onEntityClick({
-                              entityId: e.id,
-                              name: e.name,
-                              type: e.type,
-                              rect: ev.currentTarget.getBoundingClientRect(),
-                            });
-                          }
-                        : undefined
-                    }
-                    onKeyDown={
-                      onEntityClick
-                        ? (ev) => {
-                            if (ev.key === 'Enter' || ev.key === ' ') {
-                              ev.preventDefault();
+              </span>
+              <div className="rd-chips">
+                {chapter.topEntities.map((e) => {
+                  const payload = (el: HTMLElement) => ({
+                    entityId: e.id,
+                    name: e.name,
+                    type: e.type,
+                    rect: el.getBoundingClientRect(),
+                  });
+                  return (
+                    <span
+                      key={e.id}
+                      className={`ss-pill ${pillClass[e.type]}`}
+                      style={onEntityClick ? { cursor: 'pointer' } : undefined}
+                      role={onEntityClick ? 'button' : undefined}
+                      tabIndex={onEntityClick ? 0 : undefined}
+                      onClick={
+                        onEntityClick
+                          ? (ev) => {
                               ev.stopPropagation();
-                              onEntityClick({
-                                entityId: e.id,
-                                name: e.name,
-                                type: e.type,
-                                rect: ev.currentTarget.getBoundingClientRect(),
-                              });
+                              onEntityClick(payload(ev.currentTarget));
                             }
-                          }
-                        : undefined
-                    }
-                  >
-                    <span className="pill-dot" />
-                    {e.name}
-                  </span>
-                ))}
+                          : undefined
+                      }
+                      onKeyDown={
+                        onEntityClick
+                          ? (ev) => {
+                              if (ev.key === 'Enter' || ev.key === ' ') {
+                                ev.preventDefault();
+                                ev.stopPropagation();
+                                onEntityClick(payload(ev.currentTarget));
+                              }
+                            }
+                          : undefined
+                      }
+                    >
+                      <span className="ss-pill-dot" />
+                      {e.name}
+                    </span>
+                  );
+                })}
               </div>
             </>
           )}
         </div>
       )}
+    </div>
+  );
+}
+
+interface ChapterMatterGroupProps {
+  /** 卷首 (before chapter 1) or 卷末 (after the last chapter). */
+  position: 'front' | 'back';
+  chapters: readonly Chapter[];
+  isOpen: boolean;
+  onToggle: () => void;
+  selectedChapterId: string | null;
+  /** Ids matching the active search, or null when no search is active. */
+  matchedChapterIds: ReadonlySet<string> | null;
+  onSelect: (chapterId: string) => void;
+}
+
+/**
+ * Non-body matter as a collapsible group (UI_SPEC §3.3 卷首／卷末). Read-only
+ * single-row cards: the pipeline never summarises or extracts these chapters,
+ * so there is nothing to expand. Cards deliberately carry no
+ * `data-chapter-card` — BezierConnectors indexes body chapters only.
+ */
+export function ChapterMatterGroup({
+  position,
+  chapters,
+  isOpen,
+  onToggle,
+  selectedChapterId,
+  matchedChapterIds,
+  onSelect,
+}: ChapterMatterGroupProps) {
+  const { t } = useTranslation('reader');
+  const { t: tu } = useTranslation('upload');
+  if (chapters.length === 0) return null;
+
+  return (
+    <div className="rd-matter">
+      <button
+        type="button"
+        onClick={onToggle}
+        aria-expanded={isOpen}
+        className="rd-matter-head"
+      >
+        <ChevronDown
+          size={12}
+          style={{ transform: isOpen ? 'rotate(0deg)' : 'rotate(-90deg)' }}
+        />
+        <span className="rd-matter-mark" aria-hidden="true" />
+        {t(position === 'front' ? 'matter.front' : 'matter.back', { count: chapters.length })}
+      </button>
+      {isOpen &&
+        chapters.map((chapter) => {
+          const role = tu(`review.chapterType.${chapter.role}`);
+          const classes = [
+            'rd-chapter',
+            'rd-chapter-matter',
+            selectedChapterId === chapter.id && 'is-selected',
+            matchedChapterIds !== null && !matchedChapterIds.has(chapter.id) && 'is-dimmed',
+          ]
+            .filter(Boolean)
+            .join(' ');
+          return (
+            <button
+              key={chapter.id}
+              type="button"
+              onClick={() => onSelect(chapter.id)}
+              aria-current={selectedChapterId === chapter.id ? 'true' : undefined}
+              className={classes}
+            >
+              <span className="rd-chapter-name truncate">
+                {chapter.title ? `${role} · ${chapter.title}` : role}
+              </span>
+              <span className="rd-chapter-meta">{t('matter.paragraphs', { count: chapter.chunkCount })}</span>
+            </button>
+          );
+        })}
     </div>
   );
 }

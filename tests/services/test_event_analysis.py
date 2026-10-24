@@ -302,3 +302,22 @@ class TestAnalyzeEventFull:
         assert result.title == event.title
         assert result.analyzed_at is not None
         assert "changed everything" in result.summary.summary
+
+    @pytest.mark.asyncio
+    async def test_progress_callback_gets_step_keys_in_order(self):
+        llm = AsyncMock()
+        llm.ainvoke = AsyncMock(
+            side_effect=lambda messages: MagicMock(content=json.dumps(_make_eep_llm_response()))
+        )
+        kg = AsyncMock()
+        kg.get_event = AsyncMock(return_value=_make_event(participants=[]))
+        kg.get_entity_timeline = AsyncMock(return_value=[])
+        seen: list[tuple[int, str | None]] = []
+
+        def _cb(pct, stage, **kwargs):
+            seen.append((pct, kwargs.get("step_key")))
+
+        svc = AnalysisService(llm=llm, kg_service=kg)
+        await svc.analyze_event("evt-1", "doc-1", progress_callback=_cb)
+
+        assert seen == [(5, "eep"), (30, "causality"), (75, "summary"), (95, "coverage")]

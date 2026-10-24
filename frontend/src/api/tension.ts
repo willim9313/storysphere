@@ -1,13 +1,19 @@
 import { apiFetch } from './client';
 import type { components } from './generated';
-import type { TaskStatus, TensionLine, TensionTheme } from './types';
+import type { TaskStatus } from './types';
 
 /** Response shape of #14e — generated, so it carries `flipped`, `edit` and the
- *  grouping provenance that the hand-written TensionLine in types.ts predates. */
+ *  grouping provenance that a hand-written type would fall behind on. */
 type TensionLineDetail = components['schemas']['TensionLineDetail'];
 type TEUDetail = components['schemas']['TEUDetail'];
 /** #14i — generated, so it carries reviewed_line_count / total_line_count. */
 type TensionThemeResponse = components['schemas']['TensionThemeResponse'];
+/** What #14d-3 and #14f return: the stored line, without the embedded TEUs. */
+type TensionLine = components['schemas']['TensionLine'];
+/** What #14j returns: the stored theme, without the staleness fields of #14i. */
+type TensionTheme = components['schemas']['TensionTheme'];
+export type RunningTension = components['schemas']['RunningTensionResponse'];
+export type TensionOp = NonNullable<RunningTension['op']>;
 
 // ── Mode A: Full-book TEU assembly ──────────────────────────────
 
@@ -25,6 +31,14 @@ export function triggerTensionAnalysis(
 
 export function fetchTensionAnalysisTask(taskId: string): Promise<TaskStatus> {
   return apiFetch<TaskStatus>(`/tension/analyze/${taskId}`);
+}
+
+// ── The run going for a book (#14k) ─────────────────────────────
+
+/** Assembly, grouping and synthesis share one lock per book; this names the
+ *  one holding it, so the page can follow it instead of offering a second. */
+export function fetchRunningTension(bookId: string): Promise<RunningTension> {
+  return apiFetch<RunningTension>(`/tension/running?book_id=${bookId}`);
 }
 
 // ── TensionLine grouping ─────────────────────────────────────────

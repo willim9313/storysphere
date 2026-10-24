@@ -1,5 +1,6 @@
 import { Loader } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 interface Props {
   /** Citation text rendered inline (evidence line / quote body). */
@@ -21,18 +22,21 @@ export function SourceJumpText({ text, pending, onJump, className }: Readonly<Pr
   const { t } = useTranslation('analysis');
   const label = pending ? t('character.sourceJump.locating') : t('character.sourceJump.cta');
   return (
-    <button
-      type="button"
-      className={`ca-srcjump${className ? ` ${className}` : ''}`}
-      onClick={onJump}
-      disabled={pending}
-      title={label}
-      aria-label={label}
-    >
-      {text}
-      {pending && (
-        <Loader size={11} className="ca-srcjump-spinner animate-spin" aria-hidden="true" />
-      )}
-    </button>
+    <span className="ca-srcjump-wrap">
+      <Tooltip label={label}>
+        <button
+          type="button"
+          className={`ca-srcjump${className ? ` ${className}` : ''}`}
+          onClick={onJump}
+          disabled={pending}
+          aria-label={label}
+        >
+          {text}
+          {pending && (
+            <Loader size={11} className="ca-srcjump-spinner animate-spin" aria-hidden="true" />
+          )}
+        </button>
+      </Tooltip>
+    </span>
   );
 }

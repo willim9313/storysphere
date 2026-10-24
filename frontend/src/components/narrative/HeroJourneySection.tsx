@@ -1,16 +1,19 @@
-// Hero's Journey — main section: header + book-level HITL + layout switcher.
+// Hero's Journey — main section: header + book-level review + layout switcher
+// + the active chart beside a sticky stage-detail column.
 import { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
+import { ChevronDown, ChevronUp } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Check, RefreshCw, X } from 'lucide-react';
 import type { HeroJourneyStage, NarrativeReviewStatus } from '@/api/narrative';
+import { Tooltip } from '@/components/ui/Tooltip';
 import type { LayoutId, StageTheory } from './heroJourney';
-import { LAYOUT_IDS, STAGE_ORDER, stageState } from './heroJourney';
-import { ReviewBadge } from './atoms';
-import { LayoutBand, LayoutColumns, LayoutRing, LayoutTrack, type LayoutProps } from './layouts';
-import type { EventInfo } from './StageDetail';
+import { LAYOUT_IDS, STAGE_ORDER, stagePhase, stageState } from './heroJourney';
+import { ReviewBadge, StateBadge } from './atoms';
+import { LayoutBand, LayoutColumns, LayoutRing, LayoutTrack, type VizProps } from './layouts';
+import { StageDetail, type EventInfo } from './StageDetail';
+import { nextReviewStatus } from './narrativeModel';
 
-const LAYOUTS: Record<LayoutId, (p: LayoutProps) => React.JSX.Element> = {
+const LAYOUTS: Record<LayoutId, (p: VizProps) => React.JSX.Element> = {
   track: LayoutTrack,
   columns: LayoutColumns,
   ring: LayoutRing,
@@ -23,94 +26,196 @@ interface HeroJourneySectionProps {
   events: Record<string, EventInfo>;
   chapterCount: number;
   reviewStatus: NarrativeReviewStatus;
-  onReview: (status: 'approved' | 'rejected') => void;
+  /** The status to send — already resolved by the toggle (pressing a lit button gives `pending`). */
+  onReview: (status: NarrativeReviewStatus) => void;
   reviewPending: boolean;
   onRerun: () => void;
   rerunning: boolean;
+  /** What the run is doing now, already localized. Not a percentage: the
+   *  backend's 10/20/90 sat at 20 for the whole LLM call and read as measured. */
+  runningLabel: string;
+  /** Set when the chapter-summary gate blocks a re-run; carries the reason. */
+  rerunBlockedReason: string | null;
   kernelChapters: number[];
-  lastKernelChapter: number;
   bookId: string;
 }
 
-export function HeroJourneySection({ stages, theory, events, chapterCount, reviewStatus, onReview, reviewPending, onRerun, rerunning, kernelChapters, lastKernelChapter, bookId }: HeroJourneySectionProps) {
+export function HeroJourneySection({
+  stages,
+  theory,
+  events,
+  chapterCount,
+  reviewStatus,
+  onReview,
+  reviewPending,
+  onRerun,
+  rerunning,
+  runningLabel,
+  rerunBlockedReason,
+  kernelChapters,
+  bookId,
+}: Readonly<HeroJourneySectionProps>) {
   const { t } = useTranslation('analysis');
-  const [layout, setLayout] = useState<LayoutId>(LAYOUT_IDS[0]);
-  const ActiveLayout = LAYOUTS[layout];
+  // Layout and stage live in the URL (?layout=…&stage=…) so a reload keeps
+  // them and a researcher can cite or share one view. replace, not push: a
+  // click through the stages should not fill the back history.
+  const [params, setParams] = useSearchParams();
+  const urlLayout = params.get('layout') as LayoutId | null;
+  const layout: LayoutId = urlLayout && LAYOUT_IDS.includes(urlLayout) ? urlLayout : LAYOUT_IDS[0];
+  const urlStage = params.get('stage');
+  const sel =
+    (urlStage && stages.some((s) => s.stage_id === urlStage) ? urlStage : null) ??
+    stages.find((s) => s.stage_id === 'ordeal')?.stage_id ??
+    stages[0]?.stage_id ??
+    '';
+  const setParam = (key: 'layout' | 'stage', value: string) =>
+    setParams(
+      (prev) => {
+        const next = new URLSearchParams(prev);
+        next.set(key, value);
+        return next;
+      },
+      { replace: true },
+    );
+  const setLayout = (id: LayoutId) => setParam('layout', id);
+  // Under 1100px the detail is pinned to the viewport bottom (#213). It starts
+  // folded to one line so the chart is visible on arrival, and opens when a
+  // stage is picked — the click #213 made visible still is; a shared link that
+  // names a stage arrives open. Above 1100px the detail is a side column and
+  // the fold control is hidden by CSS.
+  const [detailOpen, setDetailOpen] = useState(() => !!urlStage);
+  const selectStage = (id: string) => {
+    setParam('stage', id);
+    setDetailOpen(true);
+  };
+  const Chart = LAYOUTS[layout];
+  const selStage = stages.find((s) => s.stage_id === sel) ?? stages[0];
 
   const mapped = useMemo(() => stages.filter((s) => stageState(s) !== 'absent').length, [stages]);
   const absent = STAGE_ORDER.length - mapped;
 
-  const hitlBtn = (active: boolean, activeColor: string): React.CSSProperties => ({
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 5,
-    cursor: reviewPending ? 'wait' : 'pointer',
-    opacity: reviewPending ? 0.6 : 1,
-    fontFamily: 'var(--font-sans)',
-    fontSize: 'var(--font-size-2xs)',
-    fontWeight: 600,
-    padding: '5px 11px',
-    borderRadius: 'var(--radius-md)',
-    borderWidth: 'var(--border-width)',
-    borderStyle: 'var(--border-style)',
-    borderColor: active ? activeColor : 'var(--border)',
-    background: active ? activeColor : 'var(--bg-primary)',
-    color: active ? 'var(--bg-primary)' : 'var(--fg-secondary)',
-    transition: 'background-color var(--transition-fast), color var(--transition-fast)',
-  });
+  // Radio-group keyboard model: one Tab stop (the checked item), arrows move
+  // and select, Home/End jump.
+  const onLayoutKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
+    const last = LAYOUT_IDS.length - 1;
+    const i = LAYOUT_IDS.indexOf(layout);
+    let next: number;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') next = i === last ? 0 : i + 1;
+    else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') next = i === 0 ? last : i - 1;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = last;
+    else return;
+    e.preventDefault();
+    setLayout(LAYOUT_IDS[next]);
+    e.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]')[next]?.focus();
+  };
+
+  const approvedOn = reviewStatus === 'approved';
+  const rejectedOn = reviewStatus === 'rejected';
+
+  const rerunBtn = (
+    <button
+      type="button"
+      id="nl-hero-run"
+      className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+      disabled={rerunning || rerunBlockedReason !== null}
+      onClick={onRerun}
+    >
+      {rerunning ? runningLabel : t('narrative.rerun')}
+    </button>
+  );
 
   return (
-    <section className="nl-card" id="nl-hero" style={{ flex: 1, minHeight: 0 }}>
-      {/* header */}
-      <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-        <div style={{ minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap' }}>
-            <h2 style={{ margin: 0, fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-2xl)', fontWeight: 700, color: 'var(--fg-primary)', letterSpacing: '-0.01em' }}>{t('narrative.heroJourney')}</h2>
+    <section className="nl-card" id="nl-hero">
+      <div className="nl-hj-head">
+        <div className="nl-hj-title">
+          <div className="nl-hj-title-line">
+            <h2 className="nl-h2">{t('narrative.heroJourney')}</h2>
             {/* The framework name doubles as the way out to its full
                 description, so the terms need no explaining here. */}
             <Link className="nl-term-link" to="/methodology?framework=hero_journey">
               {t('narrative.hjSub')}
             </Link>
           </div>
-          <div style={{ marginTop: 6, display: 'flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)', flexWrap: 'wrap' }}>
-            <span style={{ whiteSpace: 'nowrap' }}>
-              <b style={{ color: 'var(--accent)', fontWeight: 700 }}>{t('narrative.coverage', { mapped })}</b> {t('narrative.ofTotal', { total: STAGE_ORDER.length })}
-            </span>
-          </div>
+          <span className="nl-hj-cov">
+            <b>{t('narrative.coverage', { mapped })}</b> {t('narrative.ofTotal', { total: STAGE_ORDER.length })}
+          </span>
         </div>
 
-        {/* book-level HITL */}
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-          <button
-            type="button"
-            disabled={rerunning}
-            style={{ ...hitlBtn(false, 'var(--accent)'), cursor: rerunning ? 'wait' : 'pointer', opacity: rerunning ? 0.6 : 1 }}
-            onClick={onRerun}
-          >
-            <RefreshCw size={12} /> {rerunning ? t('narrative.rerunning') : t('narrative.rerun')}
-          </button>
-          <button disabled={reviewPending} style={hitlBtn(reviewStatus === 'approved', 'var(--color-success)')} onClick={() => onReview('approved')}>
-            <Check size={12} /> {t('narrative.approve')}
-          </button>
-          <button disabled={reviewPending} style={hitlBtn(reviewStatus === 'rejected', 'var(--fg-secondary)')} onClick={() => onReview('rejected')}>
-            <X size={12} /> {t('narrative.markNA')}
-          </button>
+        {/* Book-level review: three values, no "modified". Pressing a lit
+            button again withdraws it. Only re-analysis spends tokens. */}
+        <div className="nl-hj-actions">
           <ReviewBadge status={reviewStatus} />
+          {rerunBlockedReason ? (
+            <Tooltip label={rerunBlockedReason}>{rerunBtn}</Tooltip>
+          ) : (
+            rerunBtn
+          )}
+          <Tooltip label={approvedOn ? t('narrative.review.withdrawApproved') : ''} disabled={!approvedOn}>
+            <button
+              type="button"
+              className="ss-btn ss-btn-sm ss-btn-secondary nl-review-btn"
+              aria-pressed={approvedOn}
+              disabled={reviewPending}
+              onClick={() => onReview(nextReviewStatus(reviewStatus, 'approved'))}
+            >
+              {t('narrative.approve')}
+            </button>
+          </Tooltip>
+          <Tooltip label={rejectedOn ? t('narrative.review.withdrawRejected') : ''} disabled={!rejectedOn}>
+            <button
+              type="button"
+              className="ss-btn ss-btn-sm ss-btn-ghost nl-review-btn"
+              aria-pressed={rejectedOn}
+              disabled={reviewPending}
+              onClick={() => onReview(nextReviewStatus(reviewStatus, 'rejected'))}
+            >
+              {t('narrative.markNA')}
+            </button>
+          </Tooltip>
         </div>
       </div>
 
-      {/* What each view is for, stated on the control itself: a first-time
-          reader will not hover something they don't yet know differs. */}
-      <div className="nl-views">
+      {/* Why re-analysis waits, as text: the disabled button cannot be focused
+          to show its tooltip. */}
+      {rerunBlockedReason && !rerunning && (
+        <p className="nl-busy-note" role="status">
+          {rerunBlockedReason}
+        </p>
+      )}
+
+      {rerunning && (
+        <div className="nl-progress" role="status">
+          <div className="nl-progress-line">
+            <span className="nl-progress-spin" aria-hidden="true" />
+            {runningLabel}
+          </div>
+          <div className="ss-progress nl-progress-indet" aria-hidden="true">
+            <div className="ss-progress-fill" />
+          </div>
+        </div>
+      )}
+
+      {/* What each view is for, on the control itself: a first-time reader will
+          not hover something they don't yet know differs. */}
+      <div
+        className="ss-seg nl-seg"
+        role="radiogroup"
+        aria-label={t('narrative.heroJourney')}
+        onKeyDown={onLayoutKeyDown}
+      >
         {LAYOUT_IDS.map((id) => (
           <button
             key={id}
             type="button"
-            className={layout === id ? 'nl-view is-active' : 'nl-view'}
+            role="radio"
+            aria-checked={layout === id}
+            tabIndex={layout === id ? 0 : -1}
+            className={layout === id ? 'ss-seg-item nl-seg-item active' : 'ss-seg-item nl-seg-item'}
             onClick={() => setLayout(id)}
           >
-            <span className="nl-view-name">{t(`narrative.layout.${id}`)}</span>
-            <span className="nl-view-hint">{t(`narrative.viewHint.${id}`)}</span>
+            <span className="nl-seg-name">{t(`narrative.layout.${id}`)}</span>
+            <span className="nl-seg-hint">{t(`narrative.viewHint.${id}`)}</span>
           </button>
         ))}
       </div>
@@ -125,7 +230,51 @@ export function HeroJourneySection({ stages, theory, events, chapterCount, revie
         </div>
       )}
 
-      <ActiveLayout stages={stages} theory={theory} events={events} chapterCount={chapterCount} kernelChapters={kernelChapters} lastKernelChapter={lastKernelChapter} bookId={bookId} />
+      {/* Chart left, detail right and sticky; the track puts it full width below. */}
+      <div className={`nl-hj-body is-${layout}`}>
+        <div className="nl-hj-viz">
+          <Chart
+            stages={stages}
+            theory={theory}
+            sel={selStage?.stage_id ?? ''}
+            onSelect={selectStage}
+            chapterCount={chapterCount}
+            kernelChapters={kernelChapters}
+          />
+        </div>
+        <aside className={detailOpen ? 'nl-detail' : 'nl-detail is-folded'}>
+          {selStage && (
+            <button
+              type="button"
+              className="nl-detail-fold"
+              aria-expanded={detailOpen}
+              aria-controls="nl-detail-body"
+              onClick={() => setDetailOpen((o) => !o)}
+            >
+              <span className="nl-sd-phase">{t(`narrative.phase.${stagePhase(selStage.stage_id)}`)}</span>
+              <span className="nl-detail-fold-name">{theory[selStage.stage_id]?.name ?? selStage.stage_name}</span>
+              <StateBadge stage={selStage} />
+              <span className="nl-detail-fold-act">
+                {detailOpen ? t('narrative.detailFold.close') : t('narrative.detailFold.open')}
+                {detailOpen ? <ChevronDown size={14} aria-hidden="true" /> : <ChevronUp size={14} aria-hidden="true" />}
+              </span>
+            </button>
+          )}
+          {selStage && (
+            <div id="nl-detail-body" className="nl-detail-body">
+              <StageDetail
+                stage={selStage}
+                theory={theory}
+                events={events}
+                allStages={stages}
+                bookId={bookId}
+                kernelChapters={kernelChapters}
+                wide={layout === 'track'}
+              />
+            </div>
+          )}
+        </aside>
+      </div>
     </section>
   );
 }

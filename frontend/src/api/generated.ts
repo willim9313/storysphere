@@ -72,6 +72,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/books/{book_id}/opened": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Mark Book Opened
+         * @description Stamp ``lastOpenedAt``. Called by the frontend once when a book route is entered.
+         */
+        post: operations["mark_book_opened_api_v1_books__book_id__opened_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/books/{book_id}/rerun/{step}": {
         parameters: {
             query?: never;
@@ -84,6 +104,9 @@ export interface paths {
         /**
          * Rerun Pipeline Step
          * @description Trigger a rerun of a single failed pipeline step for a book.
+         *
+         *     409 (``code: batch_running``) while another rerun or concept inference is
+         *     going for the book — they share one lock (#19c).
          */
         post: operations["rerun_pipeline_step_api_v1_books__book_id__rerun__step__post"];
         delete?: never;
@@ -214,8 +237,34 @@ export interface paths {
          * @description Trigger temporal timeline computation for a book.
          *
          *     Requires EEP (event analysis) to have been run first for best results.
+         *     409 (``code: batch_running``) while a computation is already going for the
+         *     book — #13c hands back its task id.
          */
         post: operations["compute_book_timeline_api_v1_books__book_id__timeline_compute_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/timeline/running": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Running Timeline Tasks
+         * @description The #13b and #21h runs going for this book (#13c).
+         *
+         *     Read-only: lets the timeline page pick a run back up after a remount (or
+         *     from another tab) instead of offering to start one the POSTs would refuse
+         *     with 409.
+         */
+        get: operations["get_running_timeline_tasks_api_v1_books__book_id__timeline_running_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -234,8 +283,10 @@ export interface paths {
          * @description List chapters for a book.
          *
          *     Non-body chapters (table of contents, prefaces, afterwords) are front/
-         *     back matter, not part of the reading flow — they're excluded here even
-         *     though they remain stored (e.g. for a future cross-book lookup).
+         *     back matter, not part of the reading flow — excluded by default. The
+         *     reader passes ``include_non_body`` to show them read-only as 卷首／卷末;
+         *     the pipeline never summarises or extracts them, so their summary,
+         *     keywords and entity fields stay empty.
          */
         get: operations["list_chapters_api_v1_books__book_id__chapters_get"];
         put?: never;
@@ -276,6 +327,9 @@ export interface paths {
         /**
          * Get Entity Chunks
          * @description Get all chunks (paragraphs) where a specific entity appears.
+         *
+         *     Only body chapters count, matching #4: a chunk from front/back matter
+         *     would point at a chapter the chapter list doesn't contain.
          */
         get: operations["get_entity_chunks_api_v1_books__book_id__entities__entity_id__chunks_get"];
         put?: never;
@@ -409,6 +463,9 @@ export interface paths {
          *
          *     Asynchronous because it makes an LLM call — unlike the graph-algorithm
          *     inference above, which returns its results inline.
+         *
+         *     409 (``code: batch_running``) while a pipeline rerun or another inference
+         *     is going for the book — they share one lock (#19c).
          */
         post: operations["run_concept_inference_api_v1_books__book_id__inferred_concepts_run_post"];
         delete?: never;
@@ -611,6 +668,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/books/{book_id}/entities/analyze-all/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Active Character Batch
+         * @description The character batch currently running for this book, or ``taskId: null``.
+         *
+         *     Read-only: lets a page that remounts mid-run pick the batch back up instead
+         *     of offering to start a second one (which ``…/analyze-all`` refuses with 409).
+         */
+        get: operations["get_active_character_batch_api_v1_books__book_id__entities_analyze_all_active_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/books/{book_id}/entities/{entity_id}/voice": {
         parameters: {
             query?: never;
@@ -627,15 +707,15 @@ export interface paths {
          *
          *     ``cached_only=true``: only reads the cache, never triggers generation —
          *     404 if no cached profile exists yet.
+         *
+         *     ``force=true``: skip the cache, regenerate, and overwrite the cache only if
+         *     generation succeeds. Any failure (LLM error, timeout, unparsable output)
+         *     answers 502 and leaves the existing cached profile untouched.
          */
         get: operations["get_entity_voice_profile_api_v1_books__book_id__entities__entity_id__voice_get"];
         put?: never;
         post?: never;
-        /**
-         * Delete Entity Voice Profile
-         * @description Invalidate the cached voice profile so the next GET recomputes it.
-         */
-        delete: operations["delete_entity_voice_profile_api_v1_books__book_id__entities__entity_id__voice_delete"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -698,6 +778,54 @@ export interface paths {
          *     ``mode='full'`` forces a complete re-analysis.
          */
         post: operations["trigger_event_analysis_api_v1_books__book_id__events__event_id__analyze_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/events/analyses/running": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Running Event Analyses
+         * @description Single-event analyses (#7e) still running for this book.
+         *
+         *     Read-only: lets the page show a generation started before a remount (or in
+         *     another tab) instead of offering to start it again, which #7e refuses with 409.
+         */
+        get: operations["get_running_event_analyses_api_v1_books__book_id__events_analyses_running_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/events/{event_id}/quote-sources": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Event Quote Sources
+         * @description Pin each cached key quote (#7d ``eep.keyQuotes``) to its paragraph.
+         *
+         *     Deterministic text matching against the book, no LLM and no embedding: the
+         *     quotes are meant to be verbatim, and a semantic nearest neighbour lands on
+         *     the wrong paragraph about half the time. Unmatched quotes come back with
+         *     ``paragraphId: null`` and stay plain text on the page.
+         */
+        get: operations["get_event_quote_sources_api_v1_books__book_id__events__event_id__quote_sources_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -772,6 +900,29 @@ export interface paths {
          *     Returns a task_id for progress tracking.
          */
         post: operations["trigger_batch_event_analysis_api_v1_books__book_id__events_analyze_all_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/events/analyze-all/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Active Event Batch
+         * @description The event batch currently running for this book, or ``taskId: null``.
+         *
+         *     Read-only: lets a page that remounts mid-run pick the batch back up instead
+         *     of offering to start a second one (which ``…/analyze-all`` refuses with 409).
+         */
+        get: operations["get_active_event_batch_api_v1_books__book_id__events_analyze_all_active_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -961,6 +1112,29 @@ export interface paths {
          *     ``kg_event``, ``symbols``. Other nodes are omitted from the response.
          */
         get: operations["get_chapter_distribution_api_v1_books__book_id__unraveling_chapter_distribution_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/books/{book_id}/unraveling/running": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The rerun / concept-inference run going for a book
+         * @description The pipeline rerun or concept inference going for this book (#19c).
+         *
+         *     Read-only: lets the page pick a run back up after a remount (or from
+         *     another tab) instead of offering to start one the POSTs would refuse with 409.
+         */
+        get: operations["get_running_unraveling_api_v1_books__book_id__unraveling_running_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1169,6 +1343,9 @@ export interface paths {
          *     is genuinely nothing — a run no longer resets weights it cannot reproduce —
          *     but a task that "succeeds" having done nothing is not an answer, so the
          *     caller is told instead of watching a no-op complete.
+         *
+         *     Also 409 (``code: batch_running``) while another narrative run is going for
+         *     the book — see ``_busy``. 404 for a book that does not exist.
          */
         post: operations["classify_narrative_api_v1_narrative_classify_post"];
         delete?: never;
@@ -1209,6 +1386,9 @@ export interface paths {
          *
          *     By default refines all satellite events. Supply ``event_ids`` to target
          *     specific events. Requires heuristic classification to have run first.
+         *
+         *     409 (``code: batch_running``) while another narrative run is going for the
+         *     book; 404 for a book that does not exist.
          */
         post: operations["refine_narrative_api_v1_narrative_refine_post"];
         delete?: never;
@@ -1248,6 +1428,9 @@ export interface paths {
          * @description Start Campbell's Hero's Journey stage mapping for a book.
          *
          *     Returns 202 with ``task_id``. Poll ``GET /narrative/hero-journey/{task_id}``.
+         *
+         *     409 (``code: batch_running``) while another narrative run is going for the
+         *     book; 404 for a book that does not exist.
          */
         post: operations["map_hero_journey_api_v1_narrative_hero_journey_post"];
         delete?: never;
@@ -1273,6 +1456,29 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/narrative/running": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Running Narrative
+         * @description The classify / refine / hero-journey run going for this book (#21m).
+         *
+         *     Read-only: lets the page pick a run back up after a remount (or from
+         *     another tab) instead of offering to start one the POSTs would refuse with 409.
+         */
+        get: operations["get_running_narrative_api_v1_narrative_running_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/narrative/temporal/coverage": {
         parameters: {
             query?: never;
@@ -1285,7 +1491,7 @@ export interface paths {
          * @description Check story_time_hint coverage for a book.
          *
          *     Returns coverage fraction and whether it meets the 60% threshold
-         *     required to run temporal analysis.
+         *     required to run temporal analysis. 404 for a book that does not exist.
          */
         get: operations["temporal_coverage_api_v1_narrative_temporal_coverage_get"];
         put?: never;
@@ -1311,6 +1517,8 @@ export interface paths {
          *
          *     Requires story_time_hint coverage ≥ 60% (check with GET /narrative/temporal/coverage).
          *     Returns 202 with ``task_id``. Poll ``GET /narrative/temporal/{task_id}``.
+         *     404 for a book that does not exist; 409 (``code: batch_running``) while a
+         *     temporal analysis is already going for the book.
          */
         post: operations["analyze_temporal_api_v1_narrative_temporal_post"];
         delete?: never;
@@ -1347,8 +1555,8 @@ export interface paths {
          * Get Kernel Spine
          * @description Return kernel events (plot spine) sorted by chapter and narrative position.
          *
-         *     Runs heuristic classification automatically if events have not been
-         *     classified yet.
+         *     Read-only: a book nothing has classified yet gets ``[]`` — the page offers
+         *     POST /narrative/classify for that. 404 for a book that does not exist.
          */
         get: operations["get_kernel_spine_api_v1_narrative_kernel_spine_get"];
         put?: never;
@@ -1376,7 +1584,8 @@ export interface paths {
          *     Hero's Journey stage is resolved from the kernel spine. All three are
          *     derived per request and never persisted.
          *
-         *     Returns 404 if neither classify nor hero-journey has been run yet.
+         *     Returns 404 for a book that does not exist, and 404 when neither classify
+         *     nor hero-journey has been run yet (the page treats that as "not analyzed").
          */
         get: operations["get_narrative_structure_api_v1_narrative_get"];
         put?: never;
@@ -1404,7 +1613,7 @@ export interface paths {
          * Review Narrative Structure
          * @description Update the review_status of a NarrativeStructure.
          *
-         *     ``review_status``: "approved" or "rejected".
+         *     ``review_status``: "approved", "rejected", or "pending" (back to unreviewed).
          */
         patch: operations["review_narrative_structure_api_v1_narrative__document_id__review_patch"];
         trace?: never;
@@ -1424,6 +1633,9 @@ export interface paths {
          *
          *     Returns 202 with ``task_id``.  Poll ``GET /tension/lines/group/{task_id}``
          *     until ``status`` is ``"done"`` or ``"error"``.
+         *
+         *     404 for an unknown book; 409 (``code: batch_running``) while another tension
+         *     run is going for the book (#14k).
          */
         post: operations["group_tension_lines_api_v1_tension_lines_group_post"];
         delete?: never;
@@ -1463,7 +1675,8 @@ export interface paths {
          *     Each line includes a ``teus`` list (chapter, intensity, description, evidence,
          *     typed carriers and stance per pole) so the UI can render evidence inline
          *     without a second request. Returns an empty list if grouping has not been run
-         *     yet — trigger grouping first with ``POST /tension/lines/group``.
+         *     yet — trigger grouping first with ``POST /tension/lines/group``; 404 for an
+         *     unknown book.
          */
         get: operations["list_tension_lines_api_v1_tension_lines_get"];
         put?: never;
@@ -1488,7 +1701,7 @@ export interface paths {
          *     ``line_id`` is null when no TensionLine claims the TEU. Grouping runs as a
          *     single LLM call that may silently omit TEUs, so this is the only way to see
          *     what Step 1 produced but Step 2 dropped. Returns an empty list if TEU
-         *     assembly has not been run yet.
+         *     assembly has not been run yet; 404 for an unknown book.
          */
         get: operations["list_teus_api_v1_tension_teus_get"];
         put?: never;
@@ -1567,6 +1780,9 @@ export interface paths {
          *     Assembles TEUs for all events with ``tension_signal != "none"``.
          *     Returns 202 with ``task_id``.  Poll ``GET /tension/analyze/{task_id}``
          *     for progress and final result.
+         *
+         *     404 for an unknown book; 409 (``code: batch_running``) while another tension
+         *     run is going for the book (#14k).
          */
         post: operations["analyze_book_tensions_api_v1_tension_analyze_post"];
         delete?: never;
@@ -1608,6 +1824,9 @@ export interface paths {
          *     Requires TensionLines to be generated first (``POST /tension/lines/group``).
          *     Returns 202 with ``task_id``.  Poll ``GET /tension/theme/synthesize/{task_id}``
          *     until ``status`` is ``"done"`` or ``"error"``.
+         *
+         *     404 for an unknown book; 409 (``code: batch_running``) while another tension
+         *     run is going for the book (#14k).
          */
         post: operations["synthesize_tension_theme_api_v1_tension_theme_synthesize_post"];
         delete?: never;
@@ -1653,7 +1872,8 @@ export interface paths {
          *     re-extracted, the lines the theme was built from describe a book that no
          *     longer exists.
          *
-         *     Returns 404 if synthesis has not been run yet.
+         *     Returns 404 if synthesis has not been run yet (or the book does not exist —
+         *     the two differ only in ``detail``).
          *     Trigger synthesis first with ``POST /tension/theme/synthesize``.
          */
         get: operations["get_tension_theme_api_v1_tension_theme_get"];
@@ -1685,6 +1905,29 @@ export interface paths {
          *     Optionally override ``proposition`` when ``review_status`` is ``"modified"``.
          */
         patch: operations["review_tension_theme_api_v1_tension_theme__theme_id__review_patch"];
+        trace?: never;
+    };
+    "/api/v1/tension/running": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Running Tension
+         * @description The assembly / grouping / synthesis run going for this book (#14k).
+         *
+         *     Read-only: lets the page pick a run back up after a remount (or from
+         *     another tab) instead of offering to start one the POSTs would refuse with 409.
+         */
+        get: operations["get_running_tension_api_v1_tension_running_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/v1/symbols/": {
@@ -1824,6 +2067,52 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/symbols/analyze-all/active": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Active Symbol Batch
+         * @description The symbol batch currently running for this book, or ``taskId: null``.
+         *
+         *     Read-only: lets the page pick a running batch back up after a remount
+         *     instead of offering to start a second one (which #15j refuses with 409).
+         */
+        get: operations["get_active_symbol_batch_api_v1_symbols_analyze_all_active_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/symbols/analyses/running": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Running Symbol Analyses
+         * @description Single-symbol interpretations (#15e) still running for this book (#15l).
+         *
+         *     Read-only: lets the page show a generation started before a remount (or in
+         *     another tab) instead of offering to start it again, which #15e refuses with 409.
+         */
+        get: operations["get_running_symbol_analyses_api_v1_symbols_analyses_running_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v1/symbols/analyze-all": {
         parameters: {
             query?: never;
@@ -1887,9 +2176,9 @@ export interface paths {
         head?: never;
         /**
          * Review Symbol Interpretation
-         * @description Update the review_status (and optionally theme/polarity) of a SymbolInterpretation.
+         * @description Update the review_status (and optionally theme/evidence_summary/polarity) of a SymbolInterpretation.
          *
-         *     Optionally override ``theme`` / ``polarity`` when
+         *     Optionally override ``theme`` / ``evidence_summary`` / ``polarity`` when
          *     ``review_status`` is ``"modified"``.
          */
         patch: operations["review_symbol_interpretation_api_v1_symbols__imagery_id__interpretation_patch"];
@@ -2109,6 +2398,14 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * ActiveBatchResponse
+         * @description The batch of one kind currently running for a book (``…/analyze-all/active``).
+         */
+        ActiveBatchResponse: {
+            /** Taskid */
+            taskId?: string | null;
+        };
         /** AnalysisItem */
         AnalysisItem: {
             /** Id */
@@ -2388,6 +2685,21 @@ export interface components {
              */
             pipelineStatus: components["schemas"]["PipelineStatusResponse"];
         };
+        /** BookUsage */
+        BookUsage: {
+            /** Prompttokens */
+            promptTokens: number;
+            /** Completiontokens */
+            completionTokens: number;
+            /** Totaltokens */
+            totalTokens: number;
+            /** Calls */
+            calls: number;
+            /** Bookid */
+            bookId: string | null;
+            /** Title */
+            title: string | null;
+        };
         /**
          * Carrier
          * @description An entity embodying one pole of a tension.
@@ -2482,6 +2794,12 @@ export interface components {
             title: string;
             /** Order */
             order: number;
+            /**
+             * Role
+             * @default body
+             * @enum {string}
+             */
+            role: "body" | "toc" | "preface" | "afterword" | "other";
             /**
              * Chunkcount
              * @default 0
@@ -2703,10 +3021,31 @@ export interface components {
             /** Imagery Type */
             imagery_type: string;
         };
+        /**
+         * ConfirmInferredConceptResponse
+         * @description The Concept entity an adopted proposition became (#10g).
+         */
+        ConfirmInferredConceptResponse: {
+            /** Entityid */
+            entityId: string;
+        };
         /** ConfirmInferredRequest */
         ConfirmInferredRequest: {
             /** Relationtype */
             relationType?: string | null;
+        };
+        /** DailyUsage */
+        DailyUsage: {
+            /** Prompttokens */
+            promptTokens: number;
+            /** Completiontokens */
+            completionTokens: number;
+            /** Totaltokens */
+            totalTokens: number;
+            /** Calls */
+            calls: number;
+            /** Date */
+            date: string;
         };
         /** DetectLanguageResponse */
         DetectLanguageResponse: {
@@ -2872,8 +3211,17 @@ export interface components {
             }[];
             /** Misbeliefs */
             misbeliefs: components["schemas"]["MisbeliefItemSchema"][];
+            /** Misbeliefsinferred */
+            misbeliefsInferred: boolean;
             /** Datacomplete */
             dataComplete: boolean;
+        };
+        /** ErrorResponse */
+        ErrorResponse: {
+            /** Detail */
+            detail: string;
+            /** Code */
+            code?: string | null;
         };
         /** EventAnalysisFullResponse */
         EventAnalysisFullResponse: {
@@ -2976,6 +3324,25 @@ export interface components {
             name: string;
             /** Type */
             type: string;
+        };
+        /** EventQuoteSource */
+        EventQuoteSource: {
+            /** Text */
+            text: string;
+            /** Paragraphid */
+            paragraphId?: string | null;
+            /** Chapternumber */
+            chapterNumber?: number | null;
+        };
+        /**
+         * EventQuoteSourcesResponse
+         * @description Where each of an analyzed event's key quotes sits in the book (#7m).
+         */
+        EventQuoteSourcesResponse: {
+            /** Eventid */
+            eventId: string;
+            /** Quotes */
+            quotes?: components["schemas"]["EventQuoteSource"][];
         };
         /** EventSourcePassage */
         EventSourcePassage: {
@@ -3350,7 +3717,7 @@ export interface components {
          * KernelSpineEvent
          * @description One kernel event in the plot spine (response shape for #21j).
          *
-         *     Mirrors the dict assembled in ``get_kernel_spine``. Field names stay
+         *     Mirrors the dict assembled in the ``get_kernel_spine`` route. Field names stay
          *     snake_case (no camel alias) to match the existing JSON contract.
          */
         KernelSpineEvent: {
@@ -3467,7 +3834,7 @@ export interface components {
              * Review Status
              * @enum {string}
              */
-            review_status: "approved" | "rejected";
+            review_status: "approved" | "rejected" | "pending";
         };
         /**
          * NarrativeStructure
@@ -3720,6 +4087,86 @@ export interface components {
             forceRefresh: boolean;
         };
         /**
+         * RunningEventAnalysesResponse
+         * @description Single-event analyses (#7e) currently running for a book (#7l).
+         */
+        RunningEventAnalysesResponse: {
+            /** Running */
+            running?: components["schemas"]["RunningEventAnalysis"][];
+        };
+        /** RunningEventAnalysis */
+        RunningEventAnalysis: {
+            /** Eventid */
+            eventId: string;
+            /** Taskid */
+            taskId: string;
+        };
+        /**
+         * RunningNarrativeResponse
+         * @description The narrative run going for a book (#21m), or both fields null.
+         */
+        RunningNarrativeResponse: {
+            /** Op */
+            op?: ("classify" | "refine" | "heroJourney") | null;
+            /** Taskid */
+            taskId?: string | null;
+        };
+        /**
+         * RunningSymbolAnalysesResponse
+         * @description Single-symbol interpretations (#15e) currently running for a book (#15l).
+         */
+        RunningSymbolAnalysesResponse: {
+            /** Running */
+            running?: components["schemas"]["RunningSymbolAnalysis"][];
+        };
+        /**
+         * RunningSymbolAnalysis
+         * @description One single-symbol interpretation (#15e) still running (#15l).
+         *
+         *     camelCase, unlike the rest of this module: it sits next to #15k
+         *     (``ActiveBatchResponse``) and mirrors #7l, and the page reads all three the
+         *     same way.
+         */
+        RunningSymbolAnalysis: {
+            /** Imageryid */
+            imageryId: string;
+            /** Taskid */
+            taskId: string;
+        };
+        /**
+         * RunningTensionResponse
+         * @description The tension run going for a book (#14k), or both fields null.
+         */
+        RunningTensionResponse: {
+            /** Op */
+            op?: ("analyze" | "group" | "synthesize") | null;
+            /** Taskid */
+            taskId?: string | null;
+        };
+        /**
+         * RunningTimelineTasksResponse
+         * @description The timeline page's two token-spending runs going for a book (#13c).
+         *
+         *     ``compute_task_id`` is #13b (story order), ``temporal_task_id`` is #21h
+         *     (analepsis / prolepsis); each is null when that run is not going.
+         */
+        RunningTimelineTasksResponse: {
+            /** Computetaskid */
+            computeTaskId?: string | null;
+            /** Temporaltaskid */
+            temporalTaskId?: string | null;
+        };
+        /**
+         * RunningUnravelingResponse
+         * @description The build-overview run going for a book (#19c), or both fields null.
+         */
+        RunningUnravelingResponse: {
+            /** Op */
+            op?: ("summarization" | "feature-extraction" | "knowledge-graph" | "symbol-discovery" | "concepts") | null;
+            /** Taskid */
+            taskId?: string | null;
+        };
+        /**
          * SEP
          * @description Symbol Evidence Profile — structured evidence for an imagery entity.
          *
@@ -3886,6 +4333,10 @@ export interface components {
             primaryLlmProvider: string;
             /** Primarymodel */
             primaryModel: string;
+            /** Primaryproviderready */
+            primaryProviderReady: boolean;
+            /** Primarycredentialenv */
+            primaryCredentialEnv: string;
             /** Analysistemperature */
             analysisTemperature: number;
             /** Chatagenttemperature */
@@ -4068,6 +4519,8 @@ export interface components {
             review_status: "approved" | "modified" | "rejected";
             /** Theme */
             theme?: string | null;
+            /** Evidence Summary */
+            evidence_summary?: string | null;
             /** Polarity */
             polarity?: ("positive" | "negative" | "neutral" | "mixed") | null;
         };
@@ -4337,12 +4790,16 @@ export interface components {
             } | null;
             /** Error */
             error?: string | null;
+            /** Errorkind */
+            errorKind?: ("encrypted" | "unreadable" | "no_text" | "interrupted" | "internal" | "rate_limited" | "llm_unconfigured" | "blocked" | "timeout" | "other") | null;
             /** Kind */
             kind?: string | null;
             /** Title */
             title?: string | null;
             /** Createdat */
             createdAt?: string | null;
+            /** Finishedat */
+            finishedAt?: string | null;
             /**
              * Murmurevents
              * @default []
@@ -4421,6 +4878,63 @@ export interface components {
             confidence: number;
         };
         /**
+         * TensionLine
+         * @description Cross-scene tension pattern — grouping of related TEUs.
+         *
+         *     Stub model; full assembly logic implemented in B-027.
+         */
+        TensionLine: {
+            /** Id */
+            id?: string;
+            /** Document Id */
+            document_id: string;
+            /** Teu Ids */
+            teu_ids?: string[];
+            /**
+             * Canonical Pole A
+             * @description Canonical label for pole A
+             * @default
+             */
+            canonical_pole_a: string;
+            /**
+             * Canonical Pole B
+             * @description Canonical label for pole B
+             * @default
+             */
+            canonical_pole_b: string;
+            /**
+             * Intensity Summary
+             * @default 0
+             */
+            intensity_summary: number;
+            /** Chapter Range */
+            chapter_range?: number[];
+            /**
+             * Thematic Note
+             * @description Optional: the broader theme this line serves (LLM-suggested at grouping time)
+             */
+            thematic_note?: string | null;
+            /**
+             * Review Status
+             * @default pending
+             * @enum {string}
+             */
+            review_status: "pending" | "approved" | "modified" | "rejected";
+            /** @description Set once a reviewer has rewritten the pole labels */
+            edit?: components["schemas"]["TensionLineEdit"] | null;
+            /**
+             * Assembled By
+             * @description Version tag of the grouping step that produced this line
+             * @default tension_grouper_v1
+             */
+            assembled_by: string;
+            /**
+             * Assembled At
+             * @description When grouping produced this line; None for pre-provenance cache entries
+             */
+            assembled_at?: string | null;
+        };
+        /**
          * TensionLineDetail
          * @description A TensionLine with its constituent TEUs embedded for in-page review.
          */
@@ -4463,6 +4977,38 @@ export interface components {
             teus?: components["schemas"]["TEUSummary"][];
         };
         /**
+         * TensionLineEdit
+         * @description What a human changed when they rewrote a TensionLine's pole labels.
+         *
+         *     ``canonical_pole_a`` / ``_b`` on the line always hold the labels currently in
+         *     force; this preserves what grouping originally proposed, which the review
+         *     drawer shows alongside them. Editing a second time refreshes the note and
+         *     timestamp but leaves the originals alone — "original" means the model's
+         *     wording, not the previous edit's.
+         */
+        TensionLineEdit: {
+            /**
+             * Original Pole A
+             * @description Pole A label as grouping produced it
+             */
+            original_pole_a: string;
+            /**
+             * Original Pole B
+             * @description Pole B label as grouping produced it
+             */
+            original_pole_b: string;
+            /**
+             * Note
+             * @description Why the reviewer rewrote the labels
+             */
+            note?: string | null;
+            /**
+             * Edited At
+             * Format: date-time
+             */
+            edited_at?: string;
+        };
+        /**
          * TensionLineEditResponse
          * @description What a reviewer changed, for the drawer's "human edit" note.
          *
@@ -4496,6 +5042,60 @@ export interface components {
             canonical_pole_b?: string | null;
             /** Note */
             note?: string | null;
+        };
+        /**
+         * TensionTheme
+         * @description Book-level tension proposition — synthesised from TensionLines (B-029).
+         */
+        TensionTheme: {
+            /** Id */
+            id?: string;
+            /** Document Id */
+            document_id: string;
+            /** Tension Line Ids */
+            tension_line_ids?: string[];
+            /**
+             * Proposition
+             * @description The book-level thematic claim
+             * @default
+             */
+            proposition: string;
+            /**
+             * Frye Mythos
+             * @description Frye mythos id
+             */
+            frye_mythos?: string | null;
+            /**
+             * Booker Plot
+             * @description Booker plot id
+             */
+            booker_plot?: string | null;
+            /**
+             * Assembled By
+             * @default tension_synthesizer_v1
+             */
+            assembled_by: string;
+            /**
+             * Assembled At
+             * Format: date-time
+             */
+            assembled_at?: string;
+            /**
+             * Review Status
+             * @default pending
+             * @enum {string}
+             */
+            review_status: "pending" | "approved" | "modified" | "rejected";
+            /**
+             * Reviewed Line Count
+             * @description TensionLines already reviewed when this theme was synthesised
+             */
+            reviewed_line_count?: number | null;
+            /**
+             * Total Line Count
+             * @description TensionLines that existed when this theme was synthesised
+             */
+            total_line_count?: number | null;
         };
         /** TensionThemeResponse */
         TensionThemeResponse: {
@@ -4735,6 +5335,44 @@ export interface components {
              */
             isBody: boolean;
         };
+        /** TokenBucket */
+        TokenBucket: {
+            /** Prompttokens */
+            promptTokens: number;
+            /** Completiontokens */
+            completionTokens: number;
+            /** Totaltokens */
+            totalTokens: number;
+            /** Calls */
+            calls: number;
+        };
+        /** TokenUsageResponse */
+        TokenUsageResponse: {
+            summary: components["schemas"]["TokenUsageSummary"];
+            /** Byservice */
+            byService: {
+                [key: string]: components["schemas"]["TokenBucket"];
+            };
+            /** Bymodel */
+            byModel: {
+                [key: string]: components["schemas"]["TokenBucket"];
+            };
+            /** Bybook */
+            byBook: components["schemas"]["BookUsage"][];
+            /** Daily */
+            daily: components["schemas"]["DailyUsage"][];
+        };
+        /** TokenUsageSummary */
+        TokenUsageSummary: {
+            /** Totalprompttokens */
+            totalPromptTokens: number;
+            /** Totalcompletiontokens */
+            totalCompletionTokens: number;
+            /** Totaltokens */
+            totalTokens: number;
+            /** Totalcalls */
+            totalCalls: number;
+        };
         /** ToneSegmentResponse */
         ToneSegmentResponse: {
             /** Label */
@@ -4927,6 +5565,35 @@ export interface operations {
         };
     };
     delete_book_api_v1_books__book_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    mark_book_opened_api_v1_books__book_id__opened_post: {
         parameters: {
             query?: never;
             header?: never;
@@ -5202,6 +5869,46 @@ export interface operations {
                     "application/json": components["schemas"]["TaskIdResponse"];
                 };
             };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_running_timeline_tasks_api_v1_books__book_id__timeline_running_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunningTimelineTasksResponse"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -5215,7 +5922,9 @@ export interface operations {
     };
     list_chapters_api_v1_books__book_id__chapters_get: {
         parameters: {
-            query?: never;
+            query?: {
+                include_non_body?: boolean;
+            };
             header?: never;
             path: {
                 book_id: string;
@@ -5561,9 +6270,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["ConfirmInferredConceptResponse"];
                 };
             };
             /** @description Validation Error */
@@ -5611,6 +6318,7 @@ export interface operations {
         parameters: {
             query: {
                 up_to_chapter: number;
+                cached_only?: boolean;
             };
             header?: never;
             path: {
@@ -5825,6 +6533,46 @@ export interface operations {
                     "application/json": components["schemas"]["TaskIdResponse"];
                 };
             };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_active_character_batch_api_v1_books__book_id__entities_analyze_all_active_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActiveBatchResponse"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -5840,6 +6588,7 @@ export interface operations {
         parameters: {
             query?: {
                 cached_only?: boolean;
+                force?: boolean;
             };
             header?: never;
             path: {
@@ -5858,36 +6607,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["VoiceProfileResponse"];
                 };
-            };
-            /** @description Validation Error */
-            422: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["HTTPValidationError"];
-                };
-            };
-        };
-    };
-    delete_entity_voice_profile_api_v1_books__book_id__entities__entity_id__voice_delete: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                book_id: string;
-                entity_id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Successful Response */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
             /** @description Validation Error */
             422: {
@@ -5986,6 +6705,78 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaskIdResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_running_event_analyses_api_v1_books__book_id__events_analyses_running_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunningEventAnalysesResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_event_quote_sources_api_v1_books__book_id__events__event_id__quote_sources_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+                event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EventQuoteSourcesResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6117,6 +6908,46 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaskIdResponse"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_active_event_batch_api_v1_books__book_id__events_analyze_all_active_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActiveBatchResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6375,6 +7206,37 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ChapterDistribution"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_running_unraveling_api_v1_books__book_id__unraveling_running_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunningUnravelingResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6697,6 +7559,15 @@ export interface operations {
                     "application/json": components["schemas"]["TaskStatus"];
                 };
             };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -6759,6 +7630,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaskStatus"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6825,6 +7705,15 @@ export interface operations {
                     "application/json": components["schemas"]["TaskStatus"];
                 };
             };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -6854,6 +7743,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaskStatus"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_running_narrative_api_v1_narrative_running_get: {
+        parameters: {
+            query: {
+                /** @description Book identifier */
+                book_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunningNarrativeResponse"];
                 };
             };
             /** @description Validation Error */
@@ -6918,6 +7839,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaskStatus"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Validation Error */
@@ -7206,9 +8136,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TensionLine"];
                 };
             };
             /** @description Validation Error */
@@ -7243,9 +8171,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TensionLine"];
                 };
             };
             /** @description Validation Error */
@@ -7439,9 +8365,39 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TensionTheme"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_running_tension_api_v1_tension_running_get: {
+        parameters: {
+            query: {
+                /** @description Book identifier */
+                book_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunningTensionResponse"];
                 };
             };
             /** @description Validation Error */
@@ -7648,6 +8604,79 @@ export interface operations {
                     "application/json": components["schemas"]["TaskStatus"];
                 };
             };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_active_symbol_batch_api_v1_symbols_analyze_all_active_get: {
+        parameters: {
+            query: {
+                /** @description Book identifier */
+                book_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ActiveBatchResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_running_symbol_analyses_api_v1_symbols_analyses_running_get: {
+        parameters: {
+            query: {
+                /** @description Book identifier */
+                book_id: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunningSymbolAnalysesResponse"];
+                };
+            };
             /** @description Validation Error */
             422: {
                 headers: {
@@ -7679,6 +8708,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TaskStatus"];
+                };
+            };
+            /** @description Conflict */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ErrorResponse"];
                 };
             };
             /** @description Validation Error */
@@ -8038,9 +9076,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": {
-                        [key: string]: unknown;
-                    };
+                    "application/json": components["schemas"]["TokenUsageResponse"];
                 };
             };
             /** @description Validation Error */

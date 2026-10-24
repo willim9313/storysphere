@@ -2,6 +2,7 @@ import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react';
 import cytoscape from 'cytoscape';
 import fcose from 'cytoscape-fcose';
 import { getCytoscapeStylesheet, layoutOptions } from '@/lib/cytoscapeConfig';
+import { placeLabels, type Box, type LabelCandidate } from '@/lib/labelPlacement';
 import { useTheme } from '@/contexts/ThemeContext';
 import {
   computeDegrees,
@@ -15,6 +16,8 @@ cytoscape.use(fcose);
 
 export interface ViewportSnapshot {
   viewport: { x1: number; y1: number; x2: number; y2: number };
+  /** cytoscape zoom level (1 = 100%) — read by the ± strip's percentage. */
+  zoom: number;
   nodes: { id: string; x: number; y: number; type: string }[];
   edges: { source: string; target: string }[];
 }
@@ -23,6 +26,8 @@ export interface GraphCanvasHandle {
   centerOn: (graphX: number, graphY: number) => void;
   panByGraph: (dxGraph: number, dyGraph: number) => void;
   fitView: () => void;
+  /** Multiply the current zoom by `factor` around the viewport centre. */
+  zoomBy: (factor: number) => void;
 }
 
 interface GraphCanvasProps {
@@ -34,11 +39,41 @@ interface GraphCanvasProps {
   readonly animationMode?: AnimationMode;
   readonly extraStylesheet?: cytoscape.StylesheetStyle[];
   readonly onViewportChange?: (snap: ViewportSnapshot) => void;
+  /** Screen-reader summary of what the canvas draws (it is a bitmap to AT). */
+  readonly summaryLabel?: string;
+  /** Width the right rail covers on top of the canvas; selection centring
+   *  keeps the node in the part still visible. */
+  readonly rightInset?: number;
 }
+
+// prefers-reduced-motion: camera moves, layout and fade-ins jump straight to
+// their end state instead of animating (UI_SPEC §3.6). Read per call so a
+// change in OS settings applies without a reload.
+const prefersReducedMotion = () =>
+  typeof window !== 'undefined' && !!window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+const motionMs = (ms: number) => (prefersReducedMotion() ? 0 : ms);
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const layout = (cy: cytoscape.Core, opts: Record<string, any>) =>
-  cy.layout({ ...layoutOptions, ...opts } as cytoscape.LayoutOptions).run();
+  cy
+    .layout({
+      ...layoutOptions,
+      ...opts,
+      ...(prefersReducedMotion() ? { animate: false } : {}),
+    } as cytoscape.LayoutOptions)
+    .run();
+
+/** Zoom to 1.4 on `node`, centred in the canvas area the right rail leaves
+ *  visible (`rightInset` px are covered by panels on the right). */
+const focusOnNode = (cy: cytoscape.Core, node: cytoscape.CollectionReturnValue, rightInset: number) => {
+  const zoom = 1.4;
+  const p = node.position();
+  const visibleWidth = Math.max(0, cy.width() - rightInset);
+  cy.animate(
+    { zoom, pan: { x: visibleWidth / 2 - p.x * zoom, y: cy.height() / 2 - p.y * zoom } },
+    { duration: motionMs(400) },
+  );
+};
 
 // ── Focus dim (KG redesign Phase 1) ─────────────────────────────────────
 // Stronger than the generic `.dimmed` class (opacity 0.35, defined in
@@ -55,20 +90,24 @@ const FOCUS_NODE_DIM_OPACITY = 0.13;
 const FOCUS_EDGE_DIM_OPACITY = 0.14;
 const FOCUS_DIM_TRANSITION_MS = 220;
 
-// ── Label density (KG redesign Phase 1) ─────────────────────────────────
-// Non-focus label visibility: shown once EITHER the view is zoomed in past
-// this threshold OR the node itself is large (high mention frequency).
-// The canvas reference used zoom >= 1.2, but that was demoed on a 36-node
-// mock — against the real 264-node book, 1.2 still fits ~100 labels in the
-// viewport (label soup). Recalibrated 2026-07-20 to show more by default:
-// size 20 ≈ chunkCount ≥ ~11 (was 24 ≈ ≥27); zoom lowered to 1.6 but kept
-// above the 1.4 select-zoom so selecting a node still won't flip all labels on.
-const ZOOM_LABEL_THRESHOLD = 1.6;
-const NODE_SIZE_LABEL_THRESHOLD = 20;
+// ── Label placement (UI_SPEC §3.6, 2026-10-09) ──────────────────────────
+// Outside focus mode, names are placed greedily by importance and skipped only
+// where they would touch another name, another node or a floating overlay
+// (lib/labelPlacement). The old rule — zoom ≥ 1.6 or size ≥ 20 — was tuned for
+// 100–264 nodes with events on; with events hidden by default it left three
+// quarters of a sparse canvas unnamed. An experiment on two books (current vs
+// node-count vs collision-aware) chose this: most names shown, zero overlaps.
+// Label size scales with zoom, so collisions only change when positions or
+// the overlays move; recomputing on viewport changes is for the overlays.
+const LABEL_FONT_PX = 13; // keep in step with cytoscapeConfig node font-size
+const LABEL_GAP_PX = 4; // cytoscapeConfig text-margin-y
+/** Floating chrome on the stage that labels must not sit under. */
+const LABEL_OBSTACLE_SELECTOR = '.ss-guidance, .kg-bl, .kg-br, .kg-rail, .kg-secondary';
 
 // Event nodes carry full sentence titles ("寇仲夜探塔頂密室與宋玉致相遇") that
 // would otherwise wrap or overflow — truncate to a single line (brief §9-1).
-const EVENT_LABEL_MAX_WIDTH = '120px';
+const EVENT_LABEL_MAX_WIDTH_PX = 120;
+const EVENT_LABEL_MAX_WIDTH = `${EVENT_LABEL_MAX_WIDTH_PX}px`;
 const staticGraphStylesheet: cytoscape.StylesheetStyle[] = [
   {
     selector: 'node[entityType = "event"]',
@@ -104,28 +143,63 @@ function toDegreeElements(elements: cytoscape.ElementDefinition[]): CytoscapeEle
   }));
 }
 
+function labelPriority(node: cytoscape.NodeSingular): number {
+  const type = node.data('entityType');
+  const size = Number(node.data('size')) || 0;
+  // Characters first (they are what readers look for), events last (long
+  // sentence titles that would crowd out entity names).
+  const bias = type === 'character' ? 8 : type === 'event' ? -12 : 0;
+  return size + node.degree(false) * 0.5 + bias;
+}
+
+function labelObstacles(cy: cytoscape.Core): Box[] {
+  const container = cy.container();
+  const stage = container?.closest('.kg-stage');
+  if (!container || !stage) return [];
+  const origin = container.getBoundingClientRect();
+  return Array.from(stage.querySelectorAll<HTMLElement>(LABEL_OBSTACLE_SELECTOR)).map((el) => {
+    const r = el.getBoundingClientRect();
+    return { x1: r.left - origin.left, x2: r.right - origin.left, y1: r.top - origin.top, y2: r.bottom - origin.top };
+  });
+}
+
 /**
- * Recomputes which nodes should show their label given the current focus
- * state and zoom level. `focusLabelIds === null` means "not focused" (use
- * the zoom/size threshold); a non-null set is the focus-mode allowlist
- * (focused node + top-N neighbors by degree).
+ * Which nodes show their name. `focusLabelIds` non-null = focus mode (the
+ * selected node + its top neighbours, fixed list); otherwise collision-aware
+ * placement over the whole canvas.
  */
 function applyLabelVisibility(cy: cytoscape.Core, focusLabelIds: Set<string> | null) {
+  const nodes = cy.nodes().filter((n) => !n.data('cluster')); // super-node labels always show
+  if (focusLabelIds) {
+    nodes.forEach((n) => {
+      n.style('text-opacity', focusLabelIds.has(n.id()) ? 1 : 0);
+    });
+    return;
+  }
   const zoom = cy.zoom();
-  cy.nodes().forEach((node) => {
-    if (node.data('cluster')) return; // cluster super-node labels are always shown
-    let show: boolean;
-    if (focusLabelIds) {
-      show = focusLabelIds.has(node.id());
-    } else {
-      const size = Number(node.data('size')) || 0;
-      show = zoom >= ZOOM_LABEL_THRESHOLD || size >= NODE_SIZE_LABEL_THRESHOLD;
-    }
-    node.style('text-opacity', show ? 1 : 0);
+  const fontPx = LABEL_FONT_PX * zoom;
+  const eventMaxPx = EVENT_LABEL_MAX_WIDTH_PX * zoom;
+  const candidates: LabelCandidate[] = (nodes.toArray() as cytoscape.NodeSingular[]).map((n) => {
+    const p = n.renderedPosition();
+    const textWidth = String(n.data('label') ?? '').length * fontPx;
+    return {
+      id: n.id(),
+      x: p.x,
+      y: p.y,
+      halfWidth: n.renderedWidth() / 2,
+      halfHeight: n.renderedHeight() / 2,
+      labelWidth: n.data('entityType') === 'event' ? Math.min(textWidth, eventMaxPx) : textWidth,
+      priority: labelPriority(n),
+    };
+  });
+  const shown = placeLabels(candidates, fontPx, labelObstacles(cy), LABEL_GAP_PX * zoom);
+  nodes.forEach((n) => {
+    n.style('text-opacity', shown.has(n.id()) ? 1 : 0);
   });
 }
 
 function animateIn(collection: cytoscape.Collection, mode: AnimationMode, delayMs = 0) {
+  if (prefersReducedMotion()) return; // elements are already at full opacity
   // Every animation MUST end by removing its opacity bypass — a leftover
   // inline `opacity: 1` permanently defeats stylesheet-level dims
   // (.dimmed / .focus-dimmed), which is exactly the latent bug that made
@@ -221,6 +295,8 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
     animationMode = 'fade',
     extraStylesheet = [],
     onViewportChange,
+    summaryLabel,
+    rightInset = 0,
   },
   ref,
 ) {
@@ -241,6 +317,11 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
   // focus-dim (applyHighlight) and label visibility so both use one source
   // of truth for "how connected is this node".
   const degreesRef = useRef<Map<string, number>>(new Map());
+  const pendingSelectRef = useRef<string | null>(null);
+  const rightInsetRef = useRef(rightInset);
+  useEffect(() => {
+    rightInsetRef.current = rightInset;
+  }, [rightInset]);
   // Current focus-mode label allowlist (null when not focused); read by the
   // cy 'zoom' handler above, which fires outside React's render cycle.
   const focusLabelIdsRef = useRef<Set<string> | null>(null);
@@ -263,7 +344,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
         const h = cy.height();
         cy.animate(
           { pan: { x: w / 2 - graphX * z, y: h / 2 - graphY * z } },
-          { duration: 250, easing: 'ease' },
+          { duration: motionMs(250), easing: 'ease' },
         );
       },
       panByGraph(dxGraph, dyGraph) {
@@ -275,7 +356,16 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
       fitView() {
         const cy = cyRef.current;
         if (!cy) return;
-        cy.animate({ fit: { eles: cy.elements(), padding: 48 } }, { duration: 300, easing: 'ease' });
+        cy.animate({ fit: { eles: cy.elements(), padding: 48 } }, { duration: motionMs(300), easing: 'ease' });
+      },
+      zoomBy(factor) {
+        const cy = cyRef.current;
+        if (!cy) return;
+        const level = Math.min(cy.maxZoom(), Math.max(cy.minZoom(), cy.zoom() * factor));
+        cy.animate(
+          { zoom: { level, renderedPosition: { x: cy.width() / 2, y: cy.height() / 2 } } },
+          { duration: motionMs(150), easing: 'ease' },
+        );
       },
     }),
     [],
@@ -301,6 +391,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
       }));
       cb({
         viewport: { x1: ext.x1, y1: ext.y1, x2: ext.x2, y2: ext.y2 },
+        zoom: cy.zoom(),
         nodes,
         edges,
       });
@@ -348,7 +439,14 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
     // Zoom changes the non-focus label visibility threshold (size/zoom
     // combo) — recompute on every zoom tick using the last-computed focus
     // allowlist (null outside focus mode).
-    cy.on('zoom', () => applyLabelVisibility(cy, focusLabelIdsRef.current));
+    // Positions settle after layout / drag; overlays stay put while the view
+    // pans and zooms — recompute on all of these, at most once per frame.
+    let labelFrame = 0;
+    const scheduleLabels = () => {
+      cancelAnimationFrame(labelFrame);
+      labelFrame = requestAnimationFrame(() => applyLabelVisibility(cy, focusLabelIdsRef.current));
+    };
+    cy.on('viewport layoutstop free resize', scheduleLabels);
 
     cyRef.current = cy;
 
@@ -361,6 +459,7 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
     return () => {
       ro.disconnect();
       if (viewportRafRef.current != null) cancelAnimationFrame(viewportRafRef.current);
+      cancelAnimationFrame(labelFrame);
       cy.destroy();
       cyRef.current = null;
       prevIdsRef.current = new Set();
@@ -474,10 +573,28 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
     const cy = cyRef.current;
     if (!cy || !selectedNodeId) return;
     const node = cy.getElementById(selectedNodeId);
-    if (!node.length) return;
+    if (!node.length) {
+      // Not drawn yet — its type is filtered off and GraphPage is turning it
+      // back on (events start hidden). The effect below finishes the job.
+      pendingSelectRef.current = selectedNodeId;
+      return;
+    }
+    pendingSelectRef.current = null;
     applyHighlight(cy, [selectedNodeId], degreesRef.current);
-    cy.animate({ center: { eles: node }, zoom: 1.4 }, { duration: 400 });
+    focusOnNode(cy, node, rightInsetRef.current);
   }, [selectedNodeId]);
+
+  // Finish a selection whose node only arrived with a later elements update.
+  useEffect(() => {
+    const cy = cyRef.current;
+    const id = pendingSelectRef.current;
+    if (!cy || !id || id !== selectedNodeId) return;
+    const node = cy.getElementById(id);
+    if (!node.length) return;
+    pendingSelectRef.current = null;
+    applyHighlight(cy, [id], degreesRef.current);
+    focusOnNode(cy, node, rightInsetRef.current);
+  }, [elements, selectedNodeId]);
 
   // Multi-select highlight (Scenario E)
   useEffect(() => {
@@ -526,6 +643,8 @@ export const GraphCanvas = forwardRef<GraphCanvasHandle, GraphCanvasProps>(funct
   return (
     <div
       ref={containerRef}
+      role="img"
+      aria-label={summaryLabel}
       className="absolute inset-0"
       style={{ backgroundColor: 'var(--bg-primary)' }}
     />

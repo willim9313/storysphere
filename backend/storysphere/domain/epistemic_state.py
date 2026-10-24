@@ -23,3 +23,7 @@ class CharacterEpistemicState(BaseModel):
     known_events: list[Event] = Field(default_factory=list)
     unknown_events: list[Event] = Field(default_factory=list)
     misbeliefs: list[MisbeliefItem] = Field(default_factory=list)
+    # False when the LLM misbelief step was skipped (cache-only read on a miss,
+    # or no provider), so an empty ``misbeliefs`` means "not inferred" rather
+    # than "none". Cached rows predate the field and were all inferred.
+    misbeliefs_inferred: bool = True

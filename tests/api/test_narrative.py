@@ -46,11 +46,19 @@ class TestWithRepresentativeEvents:
         out = self._resolve([_stage("ordinary_world", [1, 2])], kernels)
         assert out[0]["representative_event_ids"] == ["a", "b"]
 
-    def test_range_is_a_span_not_a_membership_list(self):
-        # [2, 4] means chapters 2 through 4 — chapter 3 counts.
-        kernels = [_kernel("a", 2), _kernel("b", 3), _kernel("c", 4), _kernel("d", 5)]
-        out = self._resolve([_stage("refusal_of_call", [2, 4])], kernels)
-        assert out[0]["representative_event_ids"] == ["a", "b", "c"]
+    def test_range_is_a_membership_list_not_a_span(self):
+        # [1, 2, 5, 8] names four chapters; the kernels in 3-7 are not its own.
+        kernels = [
+            _kernel("a", 1), _kernel("b", 2), _kernel("x3", 3), _kernel("x4", 4),
+            _kernel("c", 5), _kernel("x6", 6), _kernel("x7", 7), _kernel("d", 8),
+        ]
+        out = self._resolve([_stage("refusal_of_call", [1, 2, 5, 8])], kernels)
+        assert out[0]["representative_event_ids"] == ["a", "b", "c", "d"]
+
+    def test_unsorted_duplicated_range_still_resolves(self):
+        kernels = [_kernel("a", 2), _kernel("b", 3), _kernel("c", 5)]
+        out = self._resolve([_stage("refusal_of_call", [5, 2, 5, 2])], kernels)
+        assert out[0]["representative_event_ids"] == ["a", "c"]
 
     def test_caps_at_four_keeping_the_earliest(self):
         kernels = [_kernel(f"e{i}", 1) for i in range(7)]
@@ -113,6 +121,14 @@ def narrative_client(mock_kg, mock_doc, mock_vector, mock_analysis_agent, mock_c
 
     app.router.lifespan_context = _noop_lifespan
 
+    # Narrative routes 404 an unknown book; these tests use several ids, so
+    # every id is a book except the one that stands for a missing one. The
+    # routes only test the document for None.
+    def _get_doc(doc_id):
+        return None if doc_id == "no-such-book" else object()
+
+    mock_doc.get_document.side_effect = _get_doc
+
     mock_narrative = AsyncMock()
     mock_narrative.structure_staleness.return_value = (False, None)
     # Concrete, so the background classify task has a real structure to dump.
@@ -162,11 +178,27 @@ class TestGetNarrativeStructure:
         assert stages[0]["representative_event_ids"] == ["ev-1", "ev-2"]
         assert stages[1]["representative_event_ids"] == []
 
-    def test_reads_kernels_without_the_auto_classify_path(self, narrative_client):
+    def test_reads_kernels_without_classifying(self, narrative_client):
         narrative_client.get("/api/v1/narrative?book_id=book-1")
-        # get_kernel_spine() can write to the KG; a read must not reach it.
         narrative_client.mock_narrative.get_kernel_events.assert_awaited_once()
-        narrative_client.mock_narrative.get_kernel_spine.assert_not_awaited()
+        narrative_client.mock_narrative.classify_from_eep.assert_not_awaited()
+
+
+class TestKernelSpineIsReadOnly:
+    """#21j used to classify an unclassified book on GET — a write outside the
+    narrative run lock (#21m). The first classification is now an explicit POST."""
+
+    def test_returns_kernels_without_classifying(self, narrative_client):
+        resp = narrative_client.get("/api/v1/narrative/kernel-spine", params={"book_id": "book-1"})
+        assert resp.status_code == 200
+        assert [e["id"] for e in resp.json()] == ["ev-1", "ev-2", "ev-3"]
+        narrative_client.mock_narrative.classify_from_eep.assert_not_awaited()
+
+    def test_unclassified_book_gets_an_empty_spine(self, narrative_client):
+        narrative_client.mock_narrative.get_kernel_events.return_value = []
+        resp = narrative_client.get("/api/v1/narrative/kernel-spine", params={"book_id": "book-1"})
+        assert resp.json() == []
+        narrative_client.mock_narrative.classify_from_eep.assert_not_awaited()
 
     def test_skips_the_kernel_lookup_when_there_are_no_stages(self, narrative_client):
         narrative_client.mock_narrative.get_cached_structure.return_value = (
@@ -189,6 +221,27 @@ class TestGetNarrativeStructure:
         body = narrative_client.get("/api/v1/narrative?book_id=book-1").json()
         assert body["is_stale"] is True
         assert body["stale_reason"] == "event_analysis"
+
+
+class TestReviewEndpoint:
+    def test_accepts_pending(self, narrative_client):
+        narrative_client.mock_narrative.update_review.return_value = NarrativeStructure(
+            document_id="book-1", review_status="pending"
+        )
+        resp = narrative_client.patch(
+            "/api/v1/narrative/book-1/review", json={"review_status": "pending"}
+        )
+        assert resp.status_code == 200
+        assert resp.json()["review_status"] == "pending"
+        narrative_client.mock_narrative.update_review.assert_awaited_once_with(
+            "book-1", "pending"
+        )
+
+    def test_rejects_unknown_status(self, narrative_client):
+        resp = narrative_client.patch(
+            "/api/v1/narrative/book-1/review", json={"review_status": "bogus"}
+        )
+        assert resp.status_code == 422
 
 
 # ── Classify guard ───────────────────────────────────────────────────────────
@@ -218,7 +271,7 @@ class TestWeightsArePersisted:
     """分類結果要落盤 —— B-097。
 
     `Event.narrative_weight` 存在 KG 裡，而每個消費端都當它是耐久的：
-    `get_kernel_spine` 每次進頁面讀它、`unraveling_manifest` 數它、
+    核心事件骨幹每次進頁面讀它、`unraveling_manifest` 數它、
     `_rebuild_structure_from_kg` 更是**從它重建**遺失的 NarrativeStructure ——
     最後那個只有在權重活得比 process 久的時候才誠實。
 
@@ -494,6 +547,32 @@ class TestUpdateReview:
         assert result.classification_source == "llm_classified"
 
     @pytest.mark.asyncio
+    async def test_approved_back_to_pending_restores_the_llm_source(self):
+        svc = self._service("human_verified", ["llm_classified", "summary_heuristic"])
+        result = await svc.update_review("book-1", "pending")
+        assert result.review_status == "pending"
+        assert result.classification_source == "llm_classified"
+
+    @pytest.mark.asyncio
+    async def test_approved_back_to_pending_falls_back_to_the_heuristic(self):
+        svc = self._service("human_verified", ["summary_heuristic"])
+        result = await svc.update_review("book-1", "pending")
+        assert result.classification_source == "summary_heuristic"
+
+    @pytest.mark.asyncio
+    async def test_rejected_to_pending_leaves_the_source_alone(self):
+        svc = self._service("llm_classified", ["llm_classified"])
+        result = await svc.update_review("book-1", "pending")
+        assert result.review_status == "pending"
+        assert result.classification_source == "llm_classified"
+
+    @pytest.mark.asyncio
+    async def test_pending_to_approved_advances_to_human_verified(self):
+        svc = self._service("summary_heuristic", ["summary_heuristic"])
+        result = await svc.update_review("book-1", "approved")
+        assert result.classification_source == "human_verified"
+
+    @pytest.mark.asyncio
     async def test_returns_none_when_nothing_is_cached(self):
         from storysphere.services.narrative_service import NarrativeService
 
@@ -501,6 +580,71 @@ class TestUpdateReview:
         cache.get_as.return_value = None
         svc = NarrativeService(AsyncMock(), AsyncMock(), cache)
         assert await svc.update_review("no-such-book", "approved") is None
+
+
+class TestHeroRerunResetsReview:
+    """A fresh mapping replaces the card the review buttons sit on."""
+
+    def _service(self, review_status: str, source: str):
+        from types import SimpleNamespace
+
+        from storysphere.services.narrative_service import NarrativeService
+
+        structure = NarrativeStructure(
+            document_id="book-1", review_status=review_status, classification_source=source
+        )
+        kg = AsyncMock()
+        kg.get_events.return_value = [
+            Event(
+                id="e1",
+                title="e1",
+                event_type=EventType.PLOT,
+                description="…",
+                chapter=1,
+                narrative_weight="kernel",
+                narrative_weight_source="llm_classified",
+            )
+        ]
+        doc = AsyncMock()
+        doc.get_document.return_value = SimpleNamespace(
+            chapters=[SimpleNamespace(summary="ch1 summary")]
+        )
+        cache = AsyncMock()
+        cache.get_as.return_value = structure
+        svc = NarrativeService(kg, doc, cache)
+        svc._call_hero_journey_llm = AsyncMock(
+            return_value=[
+                HeroJourneyStage(
+                    stage_id="ordinary_world",
+                    stage_name="Ordinary World",
+                    chapter_range=[1],
+                    confidence=0.9,
+                )
+            ]
+        )
+        return svc, structure
+
+    @pytest.mark.asyncio
+    async def test_forced_rerun_sends_an_approval_back_to_pending(self):
+        svc, structure = self._service("approved", "human_verified")
+        await svc.map_hero_journey("book-1", force=True)
+        assert structure.review_status == "pending"
+        assert structure.classification_source == "llm_classified"
+
+    @pytest.mark.asyncio
+    async def test_forced_rerun_clears_a_rejection(self):
+        svc, structure = self._service("rejected", "llm_classified")
+        await svc.map_hero_journey("book-1", force=True)
+        assert structure.review_status == "pending"
+        assert structure.classification_source == "llm_classified"
+
+    @pytest.mark.asyncio
+    async def test_pending_stays_pending_without_touching_the_kg(self):
+        svc, structure = self._service("pending", "summary_heuristic")
+        await svc.map_hero_journey("book-1", force=True)
+        assert structure.review_status == "pending"
+        assert structure.classification_source == "summary_heuristic"
+        svc._kg.get_events.assert_not_awaited()
 
 
 # ── Background tasks are cancellable ─────────────────────────────────────────
@@ -557,3 +701,193 @@ class TestCancellation:
         assert status["status"] == "error"
         assert status["error"] == "KG 掛了"
 
+
+
+# ── One narrative run per book (#21a / #21c / #21e 409, #21m) ─────────────────
+
+
+class TestNarrativeRunGuard:
+    """Classify, refine and hero-journey share one lock per book.
+
+    All three read-modify-write the cached NarrativeStructure; two at once
+    overwrite each other, and a second LLM run pays twice.
+    """
+
+    @pytest.fixture(autouse=True)
+    def _provider_configured(self, monkeypatch):
+        monkeypatch.setattr("storysphere.api.llm_guard._primary_config_error", lambda: None)
+
+    def _post(self, client, op: str):
+        path = {"classify": "classify", "refine": "refine", "heroJourney": "hero-journey"}[op]
+        return client.post(f"/api/v1/narrative/{path}", json={"document_id": "book-1"})
+
+    def _hang_all(self, client):
+        client.mock_narrative.eep_coverage.return_value = (12, 38, 47)
+        client.mock_narrative.classify_from_eep.side_effect = hanging_call()
+        client.mock_narrative.refine_with_llm.side_effect = hanging_call()
+        client.mock_narrative.map_hero_journey.side_effect = hanging_call()
+
+    @pytest.mark.parametrize("first", ["classify", "refine", "heroJourney"])
+    @pytest.mark.parametrize("second", ["classify", "refine", "heroJourney"])
+    def test_any_run_blocks_every_op(self, narrative_client, first, second):
+        self._hang_all(narrative_client)
+        task_id = self._post(narrative_client, first).json()["taskId"]
+
+        resp = self._post(narrative_client, second)
+        assert resp.status_code == 409
+        assert resp.json()["code"] == "batch_running"
+
+        narrative_client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+    def test_other_book_is_not_blocked(self, narrative_client):
+        self._hang_all(narrative_client)
+        first = self._post(narrative_client, "heroJourney").json()["taskId"]
+
+        resp = narrative_client.post(
+            "/api/v1/narrative/hero-journey", json={"document_id": "book-2"}
+        )
+        assert resp.status_code == 202
+
+        narrative_client.post(f"/api/v1/tasks/{first}/cancel")
+        narrative_client.post(f"/api/v1/tasks/{resp.json()['taskId']}/cancel")
+
+    def test_running_names_the_op_and_task(self, narrative_client):
+        self._hang_all(narrative_client)
+        task_id = self._post(narrative_client, "refine").json()["taskId"]
+
+        resp = narrative_client.get("/api/v1/narrative/running", params={"book_id": "book-1"})
+        assert resp.status_code == 200
+        assert resp.json() == {"op": "refine", "taskId": task_id}
+
+        narrative_client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+    def test_running_is_null_once_the_run_ends(self, narrative_client):
+        self._hang_all(narrative_client)
+        task_id = self._post(narrative_client, "classify").json()["taskId"]
+        narrative_client.post(f"/api/v1/tasks/{task_id}/cancel")
+        poll_until_terminal(narrative_client, task_id)
+
+        resp = narrative_client.get("/api/v1/narrative/running", params={"book_id": "book-1"})
+        assert resp.json() == {"op": None, "taskId": None}
+        assert self._post(narrative_client, "classify").status_code == 202
+
+    def test_refused_classify_does_not_hold_the_lock(self, narrative_client):
+        """The nothing-to-classify 409 launches nothing, so nothing is held."""
+        narrative_client.mock_narrative.eep_coverage.return_value = (0, 0, 47)
+        assert self._post(narrative_client, "classify").status_code == 409
+
+        resp = narrative_client.get("/api/v1/narrative/running", params={"book_id": "book-1"})
+        assert resp.json() == {"op": None, "taskId": None}
+
+
+# ── One temporal analysis per book (#21h 409, read back by #13c) ─────────────
+
+
+class TestTemporalRunGuard:
+    """#21h has its own lock: a second run on one book pays the LLM twice, but
+    it never blocks (or is blocked by) classify / refine / hero-journey."""
+
+    @pytest.fixture(autouse=True)
+    def _provider_configured(self, monkeypatch):
+        monkeypatch.setattr("storysphere.api.llm_guard._primary_config_error", lambda: None)
+
+    def _post(self, client, book_id="book-1"):
+        return client.post("/api/v1/narrative/temporal", json={"document_id": book_id})
+
+    def test_second_run_is_refused_while_one_runs(self, narrative_client):
+        narrative_client.mock_narrative.analyze_temporal_order.side_effect = hanging_call()
+        task_id = self._post(narrative_client).json()["taskId"]
+
+        resp = self._post(narrative_client)
+        assert resp.status_code == 409
+        assert resp.json()["code"] == "batch_running"
+
+        narrative_client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+    def test_timeline_running_names_the_task(self, narrative_client):
+        narrative_client.mock_narrative.analyze_temporal_order.side_effect = hanging_call()
+        task_id = self._post(narrative_client).json()["taskId"]
+
+        resp = narrative_client.get("/api/v1/books/book-1/timeline/running")
+        assert resp.json() == {"computeTaskId": None, "temporalTaskId": task_id}
+
+        narrative_client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+    def test_lock_is_released_once_the_run_ends(self, narrative_client):
+        narrative_client.mock_narrative.analyze_temporal_order.side_effect = hanging_call()
+        task_id = self._post(narrative_client).json()["taskId"]
+        narrative_client.post(f"/api/v1/tasks/{task_id}/cancel")
+        poll_until_terminal(narrative_client, task_id)
+
+        resp = narrative_client.get("/api/v1/books/book-1/timeline/running")
+        assert resp.json()["temporalTaskId"] is None
+        second = self._post(narrative_client)
+        assert second.status_code == 202
+        narrative_client.post(f"/api/v1/tasks/{second.json()['taskId']}/cancel")
+
+    def test_does_not_share_the_narrative_lock(self, narrative_client):
+        narrative_client.mock_narrative.analyze_temporal_order.side_effect = hanging_call()
+        narrative_client.mock_narrative.map_hero_journey.side_effect = hanging_call()
+        temporal = self._post(narrative_client).json()["taskId"]
+
+        hero = narrative_client.post(
+            "/api/v1/narrative/hero-journey", json={"document_id": "book-1"}
+        )
+        assert hero.status_code == 202
+
+        narrative_client.post(f"/api/v1/tasks/{temporal}/cancel")
+        narrative_client.post(f"/api/v1/tasks/{hero.json()['taskId']}/cancel")
+
+    def test_unknown_book_404s_without_a_task(self, narrative_client):
+        resp = self._post(narrative_client, "no-such-book")
+        assert resp.status_code == 404
+        narrative_client.mock_narrative.analyze_temporal_order.assert_not_awaited()
+        running = narrative_client.get("/api/v1/books/no-such-book/timeline/running")
+        assert running.json() == {"computeTaskId": None, "temporalTaskId": None}
+
+
+# ── Unknown book / foreign task → 404 ────────────────────────────────────────
+
+
+class TestUnknownBookAndForeignTask:
+    @pytest.fixture(autouse=True)
+    def _provider_configured(self, monkeypatch):
+        monkeypatch.setattr("storysphere.api.llm_guard._primary_config_error", lambda: None)
+
+    @pytest.mark.parametrize(
+        "path",
+        ["/api/v1/narrative", "/api/v1/narrative/kernel-spine", "/api/v1/narrative/temporal/coverage"],
+    )
+    def test_reads_404_an_unknown_book(self, narrative_client, path):
+        resp = narrative_client.get(path, params={"book_id": "no-such-book"})
+        assert resp.status_code == 404
+        assert "no-such-book" in resp.json()["detail"]
+
+    @pytest.mark.parametrize("path", ["classify", "refine", "hero-journey"])
+    def test_triggers_404_an_unknown_book_without_a_task(self, narrative_client, path):
+        resp = narrative_client.post(
+            f"/api/v1/narrative/{path}", json={"document_id": "no-such-book"}
+        )
+        assert resp.status_code == 404
+        running = narrative_client.get(
+            "/api/v1/narrative/running", params={"book_id": "no-such-book"}
+        )
+        assert running.json() == {"op": None, "taskId": None}
+
+    @pytest.mark.parametrize("path", ["classify", "refine", "hero-journey", "temporal"])
+    def test_poll_404s_a_task_of_another_kind(self, narrative_client, path):
+        from uuid import uuid4
+
+        from storysphere.api.store import task_store
+
+        task_id = str(uuid4())
+        task_store.create(task_id, kind="symbol", title="other")
+        resp = narrative_client.get(f"/api/v1/narrative/{path}/{task_id}")
+        assert resp.status_code == 404
+
+    def test_poll_still_returns_a_narrative_task(self, narrative_client):
+        narrative_client.mock_narrative.eep_coverage.return_value = (12, 38, 47)
+        task_id = narrative_client.post(
+            "/api/v1/narrative/classify", json={"document_id": "book-1"}
+        ).json()["taskId"]
+        assert poll_until_terminal(narrative_client, task_id)["status"] == "done"

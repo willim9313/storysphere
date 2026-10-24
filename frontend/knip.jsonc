@@ -1,0 +1,19 @@
+{
+  // 常設閘門（CLAUDE.md「程式碼品質」第 6 道）：只擋「沒人 import 的檔案」與「package.json 裡沒用到的套件」。
+  // export 層級（有 export 但只在檔內使用）刻意不擋：本身有在用、雜訊多，修正只是拿掉 export 關鍵字。
+  // CSS class 與 i18n key 不在 knip 偵測範圍，仍需人工清點。
+  "$schema": "https://unpkg.com/knip@5/schema-jsonc.json",
+  "ignore": [
+    // 型別宣告檔：cytoscape-fcose 沒附型別，GraphCanvas 的 import 靠這份宣告才能過 tsc；knip 看不到這層使用。
+    "src/types/*.d.ts"
+  ],
+  "rules": {
+    "exports": "off",
+    "types": "off",
+    "nsExports": "off",
+    "nsTypes": "off",
+    "enumMembers": "off",
+    "classMembers": "off",
+    "duplicates": "off"
+  }
+}

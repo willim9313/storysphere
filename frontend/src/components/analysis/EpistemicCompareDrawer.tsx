@@ -1,9 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { X, Loader } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { useEpistemicState } from '@/hooks/useEpistemicState';
 import { useSourceJump } from '@/hooks/useSourceJump';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useDialogFocus } from '@/hooks/useDialogFocus';
+import { Tooltip } from '@/components/ui/Tooltip';
 import type { EpistemicStateResponse } from '@/api/graph';
 import { ChapterTimeline } from './ChapterTimeline';
 import { getChapter, getId, getTitle } from './epistemicEventUtils';
@@ -28,13 +30,21 @@ interface Props {
 
 const DEBOUNCE_MS = 200;
 
+interface KnownEvent {
+  title: string;
+  chapter: number;
+  /** The event's own id, when the payload carries one (shown mono on each row). */
+  eventId: string | null;
+}
+
 function buildKnownMap(state: EpistemicStateResponse | undefined, cursor: number) {
-  const map = new Map<string, { title: string; chapter: number }>();
+  const map = new Map<string, KnownEvent>();
   if (!state) return map;
   (state.knownEvents as Record<string, unknown>[]).forEach((ev, i) => {
     const ch = getChapter(ev);
     if (ch == null || ch > cursor) return;
-    map.set(getId(ev, i), { title: getTitle(ev), chapter: ch });
+    const own = ev.id ?? ev.eventId;
+    map.set(getId(ev, i), { title: getTitle(ev), chapter: ch, eventId: own == null ? null : String(own) });
   });
   return map;
 }
@@ -83,12 +93,23 @@ export function EpistemicCompareDrawer({
   }, [displayedChapter, queriedChapter]);
 
   useEscapeKey(open, onClose);
+  const dialogRef = useDialogFocus(open);
+  const titleId = useId();
 
-  const { data: stateA } = useEpistemicState(bookId, characterAId, queriedChapter);
+  // Hooks run before the `!open` early return below, so gate the ids on `open`.
+  // The drawer only diffs known events, so it reads cache-only: an uncached
+  // (character, chapter) pair would otherwise make the backend call the LLM.
+  const { data: stateA } = useEpistemicState(
+    bookId,
+    open ? characterAId : null,
+    queriedChapter,
+    { cachedOnly: true },
+  );
   const { data: stateB, isFetching: isFetchingB } = useEpistemicState(
     bookId,
-    characterBId || null,
+    open && characterBId ? characterBId : null,
     queriedChapter,
+    { cachedOnly: true },
   );
 
   const characterBName = roster.find((r) => r.id === characterBId)?.name ?? '';
@@ -150,6 +171,7 @@ export function EpistemicCompareDrawer({
             pendingKey={pendingKey}
           />
         </div>
+        <p className="ca-epicompare-note">{t('character.epistemicCompare.matchNote')}</p>
       </>
     );
   }
@@ -157,10 +179,18 @@ export function EpistemicCompareDrawer({
   return (
     <>
       <div className="ca-compare-backdrop" onClick={onClose} />
-      <aside className="ca-compare-drawer ca-compare-drawer-wide" role="dialog" aria-modal="true">
+      <aside
+        ref={dialogRef}
+        className="ca-compare-drawer ca-compare-drawer-wide"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+      >
         <header className="ca-compare-head">
-          <h3>{t('character.epistemicCompare.title')}</h3>
-          <button className="ca-btn ca-btn-ghost" onClick={onClose}>
+          <h3 id={titleId} tabIndex={-1}>
+            {t('character.epistemicCompare.title')}
+          </h3>
+          <button type="button" className="ss-btn ss-btn-sm ss-btn-ghost" onClick={onClose}>
             <X size={14} /> {t('character.compare.close')}
           </button>
         </header>
@@ -197,7 +227,7 @@ function CompareColumn({
 }: Readonly<{
   title: string;
   colorVar: string;
-  items: [string, { title: string; chapter: number }][];
+  items: [string, KnownEvent][];
   jump: (key: string, text: string, opts?: { chapter?: number }) => Promise<boolean>;
   pendingKey: string | null;
 }>) {
@@ -215,24 +245,27 @@ function CompareColumn({
             const key = `cmp-${id}`;
             const pending = pendingKey === key;
             return (
-              <button
-                key={id}
-                type="button"
-                className="ca-epicompare-item clickable"
-                disabled={pending}
-                title={t('character.sourceJump.cta')}
-                onClick={() => void jump(key, ev.title, { chapter: ev.chapter })}
-              >
-                <span className="ca-epicompare-item-ch">Ch.{ev.chapter}</span>
-                <span className="ca-epicompare-item-title">{ev.title}</span>
-                {pending && (
-                  <Loader
-                    size={10}
-                    className="ca-srcjump-spinner animate-spin"
-                    aria-label={t('character.sourceJump.locating')}
-                  />
-                )}
-              </button>
+              <Tooltip key={id} label={t('character.sourceJump.cta')}>
+                <button
+                  type="button"
+                  className="ca-epicompare-item clickable"
+                  disabled={pending}
+                  onClick={() => void jump(key, ev.title, { chapter: ev.chapter })}
+                >
+                  <span className="ca-epicompare-item-main">
+                    <span className="ca-epicompare-item-ch">Ch.{ev.chapter}</span>
+                    <span className="ca-epicompare-item-title">{ev.title}</span>
+                    {pending && (
+                      <Loader
+                        size={10}
+                        className="ca-srcjump-spinner animate-spin"
+                        aria-label={t('character.sourceJump.locating')}
+                      />
+                    )}
+                  </span>
+                  {ev.eventId && <span className="ca-epicompare-item-id">{ev.eventId}</span>}
+                </button>
+              </Tooltip>
             );
           })}
         </div>

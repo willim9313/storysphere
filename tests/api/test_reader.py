@@ -327,6 +327,66 @@ class TestListChapters:
         titles = [ch["title"] for ch in resp.json()]
         assert titles == ["Chapter One"]
 
+    def test_include_non_body_lists_all_chapters_with_role(self, client, mock_doc):
+        """The reader shows front/back matter read-only as 卷首／卷末, so it
+        asks for every chapter, in document order, tagged with its role."""
+        from storysphere.domain.documents import ChapterRole
+
+        para = _make_paragraph(
+            "p-pre", "Alice in the preface.",
+            entities=[ParagraphEntity(entity_id="ent-alice", entity_name="Alice",
+                                      entity_type="character", start=0, end=5)],
+        )
+        doc = _make_document(
+            chapters=[
+                Chapter(number=0, title="序", role=ChapterRole.preface,
+                        summary="stale", paragraphs=[para]),
+                Chapter(number=1, title="Chapter One", paragraphs=[]),
+                Chapter(number=2, title="後記", role=ChapterRole.afterword, paragraphs=[]),
+            ],
+            doc_id="book-with-matter",
+        )
+
+        def _get(did):
+            return doc if did == "book-with-matter" else None
+
+        mock_doc.get_document.side_effect = _get
+
+        resp = client.get("/api/v1/books/book-with-matter/chapters?include_non_body=true")
+        assert resp.status_code == 200
+        chapters = resp.json()
+        assert [(c["title"], c["role"]) for c in chapters] == [
+            ("序", "preface"), ("Chapter One", "body"), ("後記", "afterword"),
+        ]
+        # Non-body matter is never analysed: no summary or entity data leaks
+        # through even when stale stored values exist.
+        preface = chapters[0]
+        assert preface["chunkCount"] == 1
+        assert preface["entityCount"] == 0
+        assert preface["summary"] is None
+        assert preface["topEntities"] is None
+
+    def test_untitled_non_body_has_empty_title(self, client, mock_doc):
+        """「Chapter 0」would read as a story chapter number; the reader shows
+        the role name instead, so an untitled non-body chapter gets ''."""
+        from storysphere.domain.documents import ChapterRole
+
+        doc = _make_document(
+            chapters=[
+                Chapter(number=0, title=None, role=ChapterRole.toc, paragraphs=[]),
+                Chapter(number=1, title=None, paragraphs=[]),
+            ],
+            doc_id="book-untitled-matter",
+        )
+        mock_doc.get_document.side_effect = lambda did: doc if did == "book-untitled-matter" else None
+
+        resp = client.get("/api/v1/books/book-untitled-matter/chapters?include_non_body=true")
+        assert [c["title"] for c in resp.json()] == ["", "Chapter 1"]
+
+    def test_default_role_is_body(self, client):
+        resp = client.get("/api/v1/books/doc-1/chapters")
+        assert {ch["role"] for ch in resp.json()} == {"body"}
+
     def test_kg_fallback_when_no_stored_entities(self, client, mock_doc, mock_kg):
         """When paragraphs have no stored entities, falls back to KG text matching."""
         paras = [
@@ -468,6 +528,40 @@ class TestGetChapterChunks:
         assert set(keywords) == {"mystery", "journey"}
 
 
+# ── GET /books/:bookId/entities/:entityId/chunks ──────────────────────────────
+
+
+class TestGetEntityChunks:
+    def test_excludes_non_body_chapters(self, client, mock_doc):
+        """A preface chunk would point at a chapter #4 doesn't list — the reader
+        then jumps into a chapter with no title, card or next-chapter link."""
+        from storysphere.domain.documents import ChapterRole
+
+        preface_para = _make_paragraph("p-pre", "Alice in the preface.")
+        body_para = _make_paragraph("p-body", "Alice in chapter one.")
+        preface = Chapter(number=0, title="序", role=ChapterRole.preface, paragraphs=[preface_para])
+        body = Chapter(number=1, title="Chapter One", paragraphs=[body_para])
+        doc = _make_document(chapters=[preface, body], doc_id="book-preface")
+
+        def _get(did):
+            return doc if did == "book-preface" else None
+
+        def _by_entity(did, eid):
+            return [
+                (preface.id, 0, preface.title, preface_para),
+                (body.id, 1, body.title, body_para),
+            ]
+
+        mock_doc.get_document.side_effect = _get
+        mock_doc.get_paragraphs_by_entity.side_effect = _by_entity
+
+        resp = client.get("/api/v1/books/book-preface/entities/ent-alice/chunks")
+        assert resp.status_code == 200
+        data = resp.json()
+        assert [c["id"] for c in data["chunks"]] == ["p-body"]
+        assert data["total"] == 1
+
+
 # ── GET /books/:bookId/entities/:entityId/epistemic-state ─────────────────────
 
 
@@ -503,8 +597,35 @@ class TestEpistemicStateEndpoint:
         )
         assert resp.status_code == 200
         data = resp.json()
-        for field in ("characterId", "characterName", "upToChapter", "knownEvents", "unknownEvents", "misbeliefs", "dataComplete"):
+        for field in ("characterId", "characterName", "upToChapter", "knownEvents", "unknownEvents", "misbeliefs", "misbeliefsInferred", "dataComplete"):
             assert field in data, f"Missing field: {field}"
+
+    def test_cached_only_defaults_to_false(self, epistemic_client):
+        epistemic_client.get(
+            "/api/v1/books/doc-1/entities/ent-alice/epistemic-state?up_to_chapter=3"
+        )
+        kwargs = epistemic_client._mock_epistemic.get_character_knowledge.await_args.kwargs
+        assert kwargs["cached_only"] is False
+
+    def test_cached_only_is_passed_to_the_service(self, epistemic_client):
+        epistemic_client._mock_epistemic.get_character_knowledge.return_value = (
+            CharacterEpistemicState(
+                character_id="ent-alice",
+                character_name="Alice",
+                up_to_chapter=3,
+                misbeliefs_inferred=False,
+            )
+        )
+
+        resp = epistemic_client.get(
+            "/api/v1/books/doc-1/entities/ent-alice/epistemic-state"
+            "?up_to_chapter=3&cached_only=1"
+        )
+
+        assert resp.status_code == 200
+        kwargs = epistemic_client._mock_epistemic.get_character_knowledge.await_args.kwargs
+        assert kwargs["cached_only"] is True
+        assert resp.json()["misbeliefsInferred"] is False
 
     def test_data_complete_false_when_all_events_public(self, epistemic_client, mock_kg):
         """data_complete is False when no event has a non-public visibility."""

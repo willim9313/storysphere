@@ -2,7 +2,11 @@
 
 from __future__ import annotations
 
+import re
+
 import pytest
+from sqlalchemy import text as sa_text
+from sqlalchemy.ext.asyncio import create_async_engine
 from storysphere.domain.documents import (
     Chapter,
     ChapterRole,
@@ -251,3 +255,125 @@ class TestDocumentServiceIdempotency:
 
         docs = await service.list_documents()
         assert len(docs) == 1
+
+
+class TestDocumentServiceLastOpened:
+    @pytest.mark.asyncio
+    async def test_never_opened_is_none(self, service):
+        doc = _make_document()
+        await service.save_document(doc)
+        assert (await service.get_document(doc.id)).last_opened_at is None
+        assert (await service.list_documents())[0].last_opened_at is None
+
+    @pytest.mark.asyncio
+    async def test_mark_opened_is_returned_by_get_and_list(self, service):
+        doc = _make_document()
+        await service.save_document(doc)
+        assert await service.mark_opened(doc.id) is True
+        stamp = (await service.get_document(doc.id)).last_opened_at
+        assert re.fullmatch(r"\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ", stamp)
+        assert (await service.list_documents())[0].last_opened_at == stamp
+
+    @pytest.mark.asyncio
+    async def test_mark_opened_unknown_document_returns_false(self, service):
+        assert await service.mark_opened("no-such-doc") is False
+
+    @pytest.mark.asyncio
+    async def test_resaving_document_keeps_last_opened_at(self, service):
+        doc = _make_document()
+        await service.save_document(doc)
+        await service.mark_opened(doc.id)
+        stamp = (await service.get_document(doc.id)).last_opened_at
+        await service.save_document(doc)
+        assert (await service.get_document(doc.id)).last_opened_at == stamp
+
+    @pytest.mark.asyncio
+    async def test_init_db_adds_column_to_old_schema(self, tmp_path):
+        url = f"sqlite+aiosqlite:///{tmp_path}/old.db"
+        engine = create_async_engine(url)
+        async with engine.begin() as conn:
+            await conn.execute(
+                sa_text(
+                    "CREATE TABLE documents (id TEXT PRIMARY KEY, title TEXT NOT NULL, "
+                    "author TEXT, file_path TEXT NOT NULL, file_type TEXT NOT NULL, "
+                    "processed_at TEXT, summary TEXT, keywords_json TEXT)"
+                )
+            )
+            await conn.execute(
+                sa_text(
+                    "INSERT INTO documents (id, title, file_path, file_type) "
+                    "VALUES ('old-1', 'Old', '/x.pdf', 'pdf')"
+                )
+            )
+        await engine.dispose()
+
+        svc = DocumentService(database_url=url)
+        await svc.init_db()
+        assert await svc.mark_opened("old-1") is True
+        assert (await svc.list_documents())[0].last_opened_at is not None
+
+
+def _make_text_document(texts: list[str]) -> Document:
+    paragraphs = [
+        Paragraph(text=t, chapter_number=1, position=i) for i, t in enumerate(texts)
+    ]
+    return Document(
+        title="Search Novel",
+        file_path="/tmp/search.pdf",
+        file_type=FileType.PDF,
+        chapters=[Chapter(number=1, title="Ch 1", paragraphs=paragraphs)],
+    )
+
+
+class TestDocumentServiceSearchText:
+    async def _search(self, service, texts: list[str], query: str):
+        doc = _make_text_document(texts)
+        await service.save_document(doc)
+        return await service.search_paragraphs_by_text(query, document_id=doc.id)
+
+    @pytest.mark.asyncio
+    async def test_like_wildcards_match_literally(self, service):
+        results = await self._search(service, ["snake_case here", "no underscore", "100% sure"], "_")
+        assert [r.text for r in results] == ["snake_case here"]
+        results = await service.search_paragraphs_by_text("%")
+        assert [r.text for r in results] == ["100% sure"]
+
+    @pytest.mark.asyncio
+    async def test_backslash_matches_literally(self, service):
+        results = await self._search(service, [r"a\b", "ab"], "\\")
+        assert [r.text for r in results] == [r"a\b"]
+
+    @pytest.mark.asyncio
+    async def test_duplicate_tokens_counted_once(self, service):
+        results = await self._search(service, ["a A a"], "A a")
+        assert results[0].score == 3.0
+
+    @pytest.mark.asyncio
+    async def test_overlapping_tokens_prefer_longest(self, service):
+        # 「名字」 counts once, not as 名 + 名字; the lone 名 counts once.
+        results = await self._search(service, ["名字與名"], "名 名字")
+        assert results[0].score == 2.0
+
+    @pytest.mark.asyncio
+    async def test_all_tokens_required(self, service):
+        results = await self._search(service, ["海與風", "只有海"], "海 風")
+        assert [r.text for r in results] == ["海與風"]
+
+    @pytest.mark.asyncio
+    async def test_non_body_chapters_excluded(self, service):
+        doc = Document(
+            title="Matter Novel",
+            file_path="/tmp/matter.pdf",
+            file_type=FileType.PDF,
+            chapters=[
+                Chapter(number=0, title="序", role=ChapterRole.preface,
+                        paragraphs=[Paragraph(text="序裡的海", chapter_number=0, position=0)]),
+                Chapter(number=1, title="Ch 1",
+                        paragraphs=[Paragraph(text="正文的海", chapter_number=1, position=0)]),
+                Chapter(number=2, title="後記", role=ChapterRole.afterword,
+                        paragraphs=[Paragraph(text="後記的海", chapter_number=2, position=0)]),
+            ],
+        )
+        await service.save_document(doc)
+        results = await service.search_paragraphs_by_text("海", document_id=doc.id)
+        assert [r.text for r in results] == ["正文的海"]

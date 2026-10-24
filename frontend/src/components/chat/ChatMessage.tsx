@@ -9,25 +9,8 @@ export function ChatMessage({ message }: Props) {
   const isUser = message.role === 'user';
 
   return (
-    <div
-      style={{
-        display: 'flex',
-        justifyContent: isUser ? 'flex-end' : 'flex-start',
-      }}
-    >
-      <div
-        style={{
-          maxWidth: '85%',
-          padding: '8px 12px',
-          borderRadius: isUser ? '12px 12px 0 12px' : '12px 12px 12px 0',
-          background: isUser ? 'var(--accent)' : 'var(--bg-secondary)',
-          color: isUser ? 'white' : 'var(--fg-primary)',
-          fontSize: 'var(--font-size-sm)',
-          fontFamily: 'var(--font-sans)',
-          lineHeight: 1.5,
-          wordBreak: 'break-word',
-        }}
-      >
+    <div className={`ss-chat-row${isUser ? ' is-user' : ''}`}>
+      <div className={`ss-chat-msg${isUser ? ' is-user' : ''}`}>
         {isUser ? (
           message.content
         ) : (

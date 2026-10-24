@@ -226,6 +226,7 @@ class Document(BaseModel):
     processed_at: datetime | None = None
     timeline_config: TimelineConfig | None = None
     pipeline_status: PipelineStatus = Field(default_factory=PipelineStatus)
+    last_opened_at: str | None = None  # UTC ISO-8601 with trailing "Z"; set by mark_opened
 
     @property
     def total_chapters(self) -> int:

@@ -51,121 +51,29 @@ export function SplashScreen({ onDone }: SplashScreenProps) {
       tabIndex={0}
       onClick={dismiss}
       onKeyDown={e => (e.key === 'Enter' || e.key === ' ') && dismiss()}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        zIndex: 9999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'flex-start',
-        paddingLeft: 'clamp(2rem, 8vw, 8rem)',
-        background: 'var(--bg-primary)',
-        opacity,
-        transition: 'opacity 0.4s ease',
-        cursor: 'pointer',
-        overflow: 'hidden',
-        outline: 'none',
-      }}
+      className="splash-root"
+      style={{ opacity }}
     >
       {/* Background imagery — full bleed, faded, behind content */}
       {pick && (
-        <div
-          style={{
-            position: 'absolute',
-            inset: 0,
-            zIndex: 0,
-            pointerEvents: 'none',
-          }}
-        >
-          <img
-            src={pick.src}
-            alt=""
-            className="splash-bg-img"
-            draggable={false}
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              display: 'block',
-              userSelect: 'none',
-            }}
-          />
-          {/* Radial vignette — keeps centre calm so wordmark dominates */}
-          <div
-            style={{
-              position: 'absolute',
-              inset: 0,
-              background:
-                'radial-gradient(ellipse at center, transparent 30%, var(--bg-primary) 100%)',
-            }}
-          />
+        <div className="splash-bg">
+          <img src={pick.src} alt="" className="splash-bg-img" draggable={false} />
+          {/* 暈影只護住字標那一側（左），右側讓插畫自己呼吸 */}
+          <div className="splash-vignette" />
         </div>
       )}
 
       {/* Foreground: wordmark + subtitle + loader */}
-      <div
-        style={{
-          position: 'relative',
-          zIndex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'flex-start',
-          textAlign: 'left',
-          gap: '14px',
-        }}
-      >
-        <h1
-          className="splash-wordmark"
-          style={{
-            fontFamily: 'var(--font-serif)',
-            fontSize: 'clamp(2.5rem, 6vw, 4rem)',
-            fontWeight: 700,
-            lineHeight: 1,
-            color: 'var(--fg-primary)',
-            letterSpacing: '-0.01em',
-            margin: 0,
-            userSelect: 'none',
-          }}
-        >
-          StorySphere
-        </h1>
-        <p
-          style={{
-            fontFamily: 'var(--font-sans)',
-            fontSize: '13px',
-            color: 'var(--fg-secondary)',
-            letterSpacing: '0.14em',
-            textTransform: 'uppercase',
-            margin: 0,
-            userSelect: 'none',
-          }}
-        >
-          小說文本分析 · Literary analysis
-        </p>
+      <div className="splash-fg">
+        <h1 className="splash-wordmark">StorySphere</h1>
+        <p className="splash-subtitle">小說文本分析 · Literary analysis</p>
         <div className="splash-loader-track">
           <div className="splash-loader-bar" />
         </div>
       </div>
 
       {/* Image credit */}
-      {pick && (
-        <span
-          style={{
-            fontFamily: 'var(--font-sans)',
-            fontSize: '10px',
-            color: 'var(--fg-muted)',
-            letterSpacing: '0.04em',
-            position: 'absolute',
-            right: '14px',
-            bottom: '12px',
-            zIndex: 2,
-            opacity: 0.7,
-            userSelect: 'none',
-          }}
-        >
-          {pick.credit}
-        </span>
-      )}
+      {pick && <span className="splash-credit">{pick.credit}</span>}
     </div>
   );
 }

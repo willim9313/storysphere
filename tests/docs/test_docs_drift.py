@@ -1,11 +1,12 @@
 """文件漂移檢查 —— 讓契約文件與實作的落差在 CI 就爆掉，而不是靠人工比對。
 
-涵蓋六項：
+涵蓋七項：
 
 * ``docs/API_CONTRACT.md`` —— 每個 ``/api/v1`` 路由都必須要嘛有規格、要嘛被明確
   列進「未納入契約的端點」表。反向也檢查：文件寫了但程式碼沒有的端點。
 * 契約的「**UI 使用頁面**」欄位 —— 宣告了頁面的端點，前端必須真的呼叫得到它。
 * ``docs/DESIGN_TOKENS.md`` —— ``tokens.css`` 的每個 token 都必須在對照表裡找得到。
+* 根目錄 ``DESIGN.md`` 的 frontmatter —— 每個值都必須與 ``tokens.css`` 相同。
 * ``docs/plans/README.md`` —— 索引與目錄內容一致（雙向）。
 * 全文件的**相對連結**都指向存在的檔案。
 * 全文件**反引號裡的 ``docs/**.md`` 路徑**都指向存在的檔案 —— 文件之間多半是用
@@ -26,6 +27,7 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 API_CONTRACT = REPO_ROOT / "docs" / "API_CONTRACT.md"
 DESIGN_TOKENS = REPO_ROOT / "docs" / "DESIGN_TOKENS.md"
 TOKENS_CSS = REPO_ROOT / "frontend" / "src" / "styles" / "tokens.css"
+DESIGN_MD = REPO_ROOT / "DESIGN.md"
 PLANS_DIR = REPO_ROOT / "docs" / "plans"
 PLANS_INDEX = PLANS_DIR / "README.md"
 
@@ -319,6 +321,76 @@ class TestDesignTokenCoverage:
         )
 
 
+class TestDesignMdSync:
+    """根目錄 DESIGN.md 的 frontmatter 是 tokens.css 的摘要副本，值必須逐一相同。
+
+    鍵名即 token 名（去掉 ``--``）；``colors`` 的 ``-ink`` 後綴取 Ink 區塊的值，
+    Ink 沒覆寫時退回 ``:root``。``typography`` 只比對 fontFamily / fontSize ——
+    字重、行高不是 token。``components`` 的 ``{group.key}`` 參照必須能解析。
+    """
+
+    @staticmethod
+    def _frontmatter() -> dict:
+        import yaml
+
+        text = DESIGN_MD.read_text(encoding="utf-8")
+        match = re.match(r"^---\n(.*?)\n---\n", text, re.DOTALL)
+        assert match, "DESIGN.md 缺少 YAML frontmatter"
+        return yaml.safe_load(match.group(1))
+
+    @staticmethod
+    def _css_block(selector: str) -> dict[str, str]:
+        css = TOKENS_CSS.read_text(encoding="utf-8")
+        match = re.search(re.escape(selector) + r"\s*\{(.*?)\n\}", css, re.DOTALL)
+        assert match, f"tokens.css 找不到 {selector} 區塊"
+        return {
+            name: value.strip()
+            for name, value in re.findall(r"(--[a-z0-9-]+)\s*:\s*([^;]+);", match.group(1))
+        }
+
+    def _expected(self, key: str) -> str | None:
+        root = self._css_block(":root")
+        if key.endswith("-ink"):
+            name = "--" + key.removesuffix("-ink")
+            return self._css_block('[data-theme="ink"]').get(name, root.get(name))
+        return root.get("--" + key)
+
+    def test_scalar_tokens_match_css(self) -> None:
+        fm = self._frontmatter()
+        drift = []
+        for group in ("colors", "rounded", "spacing"):
+            for key, value in fm.get(group, {}).items():
+                expected = self._expected(key)
+                if expected is None or str(value).lower() != expected.lower():
+                    drift.append(f"{group}.{key}: DESIGN.md={value!r} tokens.css={expected!r}")
+        assert not drift, (
+            "DESIGN.md frontmatter 與 tokens.css 不一致（以 tokens.css 為準）：\n  "
+            + "\n  ".join(drift)
+        )
+
+    def test_typography_uses_token_values(self) -> None:
+        root = self._css_block(":root")
+        families = {v for k, v in root.items() if k.startswith("--font-") and "size" not in k}
+        sizes = {v for k, v in root.items() if k.startswith("--font-size-")}
+        bad = []
+        for role, spec in self._frontmatter().get("typography", {}).items():
+            if "fontFamily" in spec and spec["fontFamily"] not in families:
+                bad.append(f"{role}.fontFamily={spec['fontFamily']!r}")
+            if "fontSize" in spec and spec["fontSize"] not in sizes:
+                bad.append(f"{role}.fontSize={spec['fontSize']!r}")
+        assert not bad, "DESIGN.md typography 用了 tokens.css 沒有的值：\n  " + "\n  ".join(bad)
+
+    def test_component_refs_resolve(self) -> None:
+        fm = self._frontmatter()
+        broken = []
+        for comp, props in fm.get("components", {}).items():
+            for prop, value in props.items():
+                for group, key in re.findall(r"\{(\w+)\.([\w-]+)\}", str(value)):
+                    if key not in fm.get(group, {}):
+                        broken.append(f"{comp}.{prop} → {{{group}.{key}}}")
+        assert not broken, "DESIGN.md components 參照了不存在的 token：\n  " + "\n  ".join(broken)
+
+
 FENCE_RE = re.compile(r"^\s*(```|~~~)")
 INLINE_CODE_RE = re.compile(r"`[^`\n]*`")
 LINK_RE = re.compile(r"\[[^\]]*\]\(([^)\s]+)(?:\s+\"[^\"]*\")?\)")
@@ -464,7 +536,7 @@ class TestPlansIndex:
         )
 
 
-@pytest.mark.parametrize("path", [API_CONTRACT, DESIGN_TOKENS, TOKENS_CSS, PLANS_INDEX])
+@pytest.mark.parametrize("path", [API_CONTRACT, DESIGN_TOKENS, DESIGN_MD, TOKENS_CSS, PLANS_INDEX])
 def test_source_files_exist(path: Path) -> None:
     """路徑寫死在本檔，檔案搬家時要立刻知道，而不是讓檢查悄悄變成空集合。"""
     assert path.is_file(), f"找不到 {path}，本檢查已失效"

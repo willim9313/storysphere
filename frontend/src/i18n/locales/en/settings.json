@@ -6,13 +6,13 @@
     "groupOther": "Other",
     "appearance": "Appearance",
     "language": "Language",
+    "guidance": "Researcher guidance",
     "llm": "LLM",
     "env": "Environment",
     "shortcuts": "Shortcuts",
     "experimental": "Experimental",
     "about": "About & version",
     "badgeDev": "Developer",
-    "badgeMerged": "Merged",
     "badgePlanned": "Planned"
   },
   "appearance": {
@@ -27,7 +27,6 @@
   },
   "language": {
     "title": "Language",
-    "sub": "Interface language and analysis output language",
     "uiLanguage": "Interface language",
     "uiLanguageHint": "Affects all UI text. Does not change book content or analysis results.",
     "outputLanguage": "Analysis output language",
@@ -42,13 +41,16 @@
     "title": "LLM",
     "sub": "Current model settings (read-only). Editing requires changing .env and a restart.",
     "sectionTitle": "Current settings",
+    "status": "Status",
+    "ready": "Ready",
+    "unset": "Not configured",
+    "unsetHint": "Set {{env}} in .env and restart the service.",
     "provider": "Provider",
     "primaryModel": "Primary model",
     "analysisTemp": "Analysis temperature",
     "chatTemp": "Chat temperature",
     "localModel": "Local LLM",
-    "note": "A full LLM settings UI is deferred to its own ticket. This version shows status only.",
-    "loadError": "Unable to load settings"
+    "loadError": "Unable to load LLM settings"
   },
   "common": {
     "loading": "Loading…"
@@ -77,19 +79,20 @@
     "entities": "Entities",
     "relations": "Relations",
     "events": "Events",
-    "stWarn": "Switching to Standard requires editing .env and restarting. The fields below are a preview. Migrate before switching.",
+    "stWarn": "The fields below preview Standard and are not saved. To switch: ① set DEPLOY_MODE in .env and restart the service ② switch the KG backend to Neo4j ③ run the data migration.",
+    "switchFailed": "Switch failed: ",
     "qdrantSvcTitle": "Qdrant Service",
     "qdrantUrl": "QDRANT_URL",
     "qdrantKey": "QDRANT_API_KEY",
     "qdrantKeyOpt": "(optional)",
     "qdrantHint": "Run a Qdrant service yourself (docker run qdrant/qdrant)",
     "kgBackendTitle": "Knowledge graph backend",
-    "kgLiveFlag": "live",
-    "restartFlag": "restart",
+    "kgLiveFlag": "Live",
+    "restartFlag": "Restart required",
     "neoUrl": "NEO4J_URL",
     "neoUser": "NEO4J_USER",
     "neoPass": "NEO4J_PASSWORD",
-    "neoNote": "Neo4j switching is the runtime exception (POST /api/v1/kg/switch) — no restart needed.",
+    "neoNote": "When deployed in Standard mode, switching the KG backend takes effect immediately — no restart needed.",
     "kgGapsNow": "The current backend cannot provide:",
     "kgGapsIfSwitch": "Switching to {{mode}} disables:",
     "kgFeature": {
@@ -111,11 +114,16 @@
     "loadError": "Unable to load status",
     "migrating": "Migrating…",
     "refresh": "Refresh status",
-    "currentTag": "(current)"
+    "currentTag": "(current)",
+    "previewTag": "Previewing",
+    "gateNote": "Requirement not met: deployed in Standard mode · KG backend set to Neo4j",
+    "runMigration": "Run migration",
+    "neoSectionTitle": "Neo4j connection",
+    "kgFeatureUnknown": "Other features",
+    "migDone": "Migration complete · Entities {{entities}}, Relations {{relations}}, Events {{events}}"
   },
   "about": {
     "title": "About & version",
-    "sub": "Version information and key package list",
     "frontend": "Frontend packages",
     "backend": "Backend packages",
     "paths": "Data paths",
@@ -143,10 +151,17 @@
     "colCompletion": "Completion",
     "colTotal": "Total",
     "colCalls": "Calls",
+    "dailyNote": "Bar length is relative to this period (relative to <mono>{{value}}</mono> on <mono>{{date}}</mono>), not an absolute scale; lengths cannot be compared across time ranges.",
+    "byBookScope": "This table always shows all books — click another row to switch.",
     "byBook": "Usage by Book",
     "allBooks": "All books",
     "unattributed": "Unattributed",
     "deletedBook": "Deleted book · {{id}}",
+    "bookNoData": "No usage for {{title}} in this time range",
+    "scopeOnly": "Showing only {{title}}",
+    "showAllBooks": "Show all books",
+    "bookFilter": "Filter by book",
+    "rangeLabel": "Time range",
     "services": {
       "analysis": "Deep Analysis",
       "chat": "Chat",
@@ -157,5 +172,12 @@
       "imagery": "Imagery",
       "ingestion": "Ingestion"
     }
+  },
+  "guidance": {
+    "title": "Researcher guidance",
+    "hint": "Show the researcher guidance you dismissed at the top of each page again. Block notes and field provenance can never be dismissed and are not affected.",
+    "reset": "Reset all guidance",
+    "count": "{{n}} dismissed",
+    "countNone": "No guidance is dismissed right now"
   }
 }

@@ -1,20 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import type { TimelineEvent } from '@/api/types';
 import {
-  BEESWARM_SPACING,
   LANE_GAP_MIN,
-  MATRIX_HEIGHT,
   OUTLIER_THRESHOLD,
   STAVE_MID,
   STAVE_SCALE,
   STAVE_TARGET_PER_ROW,
-  beeswarmOffset,
   buildLane,
-  buildMatrixPoints,
-  buildMatrixUnranked,
   buildStaveRows,
+  sparseLabels,
   buildTimelineData,
-  chapterCentrePct,
   chapterList,
   coPresence,
   deriveMode,
@@ -175,6 +170,18 @@ describe('buildStaveRows', () => {
     expect(row.hasUnranked).toBe(true);
   });
 
+  it('compare off puts ranked events on the midline with no outliers or notes', () => {
+    const data = buildTimelineData([
+      makeEvent({ id: 'a', chronologicalRank: 1 }),
+      makeEvent({ id: 'b', chronologicalRank: 0 }),
+      makeEvent({ id: 'c', chronologicalRank: null }),
+    ]);
+    const [row] = buildStaveRows(data, () => true, false);
+    expect(row.points.every((p) => p.yPx === STAVE_MID && !p.outlier)).toBe(true);
+    expect(row.annotations).toEqual([]);
+    expect(row.unranked.map((u) => u.id)).toEqual(['c']);
+  });
+
   it('annotates a judged event geometry would not have flagged', () => {
     // Dead on the diagonal — no deviation at all — but #21h called it a
     // flashback. Without the verdict this row would carry no annotation.
@@ -299,72 +306,6 @@ describe('buildStaveRows', () => {
   });
 });
 
-describe('beeswarmOffset', () => {
-  it('alternates around the column centre', () => {
-    const offsets = [0, 1, 2, 3, 4].map((k) => beeswarmOffset(k, BEESWARM_SPACING));
-    expect(offsets).toEqual([0, -7, 7, -14, 14]);
-  });
-
-  it('never repeats an offset within a chapter, so points stay clickable', () => {
-    const offsets = Array.from({ length: 11 }, (_, k) =>
-      beeswarmOffset(k, BEESWARM_SPACING),
-    );
-    expect(new Set(offsets).size).toBe(11);
-  });
-});
-
-describe('matrix', () => {
-  it('maps rank 1 to the top and rank 0 to the bottom', () => {
-    const data = buildTimelineData([
-      makeEvent({ id: 'top', chronologicalRank: 1 }),
-      makeEvent({ id: 'bottom', chronologicalRank: 0 }),
-    ]);
-    const pts = buildMatrixPoints(data, [1]);
-    expect(pts.find((p) => p.id === 'top')!.yPx).toBe(0);
-    expect(pts.find((p) => p.id === 'bottom')!.yPx).toBe(MATRIX_HEIGHT);
-  });
-
-  it('excludes unranked events from the plot', () => {
-    const data = buildTimelineData([
-      makeEvent({ id: 'a', chronologicalRank: 0.5 }),
-      makeEvent({ id: 'b', chronologicalRank: null }),
-    ]);
-    expect(buildMatrixPoints(data, [1]).map((p) => p.id)).toEqual(['a']);
-  });
-
-  it('counts the beeswarm index per chapter, not globally', () => {
-    const events = [
-      makeEvent({ id: 'a1', chapter: 1, chronologicalRank: 0.1 }),
-      makeEvent({ id: 'a2', chapter: 1, chronologicalRank: 0.2 }),
-      makeEvent({ id: 'b1', chapter: 2, chronologicalRank: 0.3 }),
-    ];
-    const pts = buildMatrixPoints(buildTimelineData(events), [1, 2]);
-    // First point of each chapter must sit at offset 0.
-    expect(pts.find((p) => p.id === 'a1')!.offsetPx).toBe(0);
-    expect(pts.find((p) => p.id === 'b1')!.offsetPx).toBe(0);
-    expect(pts.find((p) => p.id === 'a2')!.offsetPx).not.toBe(0);
-  });
-
-  it('offsets the unranked band per chapter too', () => {
-    const events = [
-      makeEvent({ id: 'a1', chapter: 1 }),
-      makeEvent({ id: 'a2', chapter: 1 }),
-      makeEvent({ id: 'b1', chapter: 2 }),
-    ];
-    const un = buildMatrixUnranked(buildTimelineData(events), [1, 2]);
-    expect(un.find((p) => p.id === 'a1')!.offsetPx).toBe(0);
-    expect(un.find((p) => p.id === 'b1')!.offsetPx).toBe(0);
-    expect(un.find((p) => p.id === 'a2')!.offsetPx).not.toBe(0);
-  });
-
-  it('spaces chapter columns evenly from the actual chapter list', () => {
-    expect(chapterCentrePct(1, [1, 2])).toBe(25);
-    expect(chapterCentrePct(2, [1, 2])).toBe(75);
-    // Chapter numbers need not be contiguous.
-    expect(chapterCentrePct(9, [3, 9])).toBe(75);
-  });
-});
-
 describe('buildLane', () => {
   const cast = (ids: string[]) =>
     ids.map((id) => ({ id, name: id, type: 'character' as const }));
@@ -481,5 +422,57 @@ describe('chapterList', () => {
   it('returns sorted unique chapters', () => {
     const events = [3, 1, 3, 2].map((chapter, i) => makeEvent({ id: 'e' + i, chapter }));
     expect(chapterList(buildTimelineData(events))).toEqual([1, 2, 3]);
+  });
+});
+
+describe('sparseLabels', () => {
+  it('shows everything when there is room', () => {
+    expect(sparseLabels([0, 25, 50, 75, 100], 1000, [40, 40, 40, 40, 40])).toEqual([
+      true, true, true, true, true,
+    ]);
+  });
+
+  it('keeps first and last and drops what would collide', () => {
+    // 200px wide, 40px labels: 0 / 50 / 100 / 150 / 200px.
+    expect(sparseLabels([0, 25, 50, 75, 100], 200, [40, 40, 40, 40, 40])).toEqual([
+      true, true, true, true, true,
+    ]);
+    // 100px wide: 0 / 25 / 50 / 75 / 100px — every other one fits.
+    expect(sparseLabels([0, 25, 50, 75, 100], 100, [40, 40, 40, 40, 40])).toEqual([
+      true, false, true, false, true,
+    ]);
+  });
+
+  it('drops the last label rather than overprint the one before it', () => {
+    expect(sparseLabels([0, 10], 100, [40, 40])).toEqual([true, false]);
+  });
+
+  it('shows all labels until the width is measured', () => {
+    expect(sparseLabels([0, 50, 100], 0, [40, 40, 40])).toEqual([true, true, true]);
+  });
+});
+
+describe('annotations against a measured width', () => {
+  it('drops labels that collide at their real width', () => {
+    // Two adjacent chapters, both displaced: at the default 17% they clear
+    // each other (points are ~33% apart); at 40% each they do not.
+    const events = [
+      makeEvent({ id: 'a', chapter: 1, chronologicalRank: 0.6 }),
+      makeEvent({ id: 'b', chapter: 1, chronologicalRank: 0.33 }),
+      makeEvent({ id: 'c', chapter: 2, chronologicalRank: 0 }),
+      makeEvent({ id: 'd', chapter: 2, chronologicalRank: 1 }),
+    ];
+    const data = buildTimelineData(events);
+    expect(buildStaveRows(data)[0].annotations.length).toBe(2);
+    expect(buildStaveRows(data, () => true, true, () => 40)[0].annotations.length).toBe(1);
+  });
+
+  it('skips a label that fits on neither side of its point', () => {
+    const data = buildTimelineData([
+      makeEvent({ id: 'a', chronologicalRank: 1 }),
+      makeEvent({ id: 'b', chronologicalRank: 0.5 }),
+      makeEvent({ id: 'c', chronologicalRank: 0 }),
+    ]);
+    expect(buildStaveRows(data, () => true, true, () => 120)[0].annotations).toEqual([]);
   });
 });

@@ -1,5 +1,6 @@
-import { useReducer } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useEffect, useReducer } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { ApiError } from '@/api/client';
 import { fetchTaskStatus } from '@/api/ingest';
 import type { MurmurEvent, TaskStatus } from '@/api/types';
 import {
@@ -10,12 +11,26 @@ import {
 } from '@/store/murmurStore';
 import { qk } from '@/api/queryKeys';
 
+/** The status endpoint answered 404: the task is gone for good. */
+export function isGone(err: unknown): boolean {
+  return err instanceof ApiError && err.status === 404;
+}
+
 export function useTaskPolling(
   taskId: string | null,
   fetcher?: (id: string, after: number) => Promise<TaskStatus>,
 ) {
   // Triggers re-render when murmur store is updated
   const [, forceUpdate] = useReducer((x: number) => x + 1, 0);
+
+  // Every page that starts a background task polls it through here, so this is
+  // the one place to wake the global task list: useTaskNotifications stops
+  // polling once nothing is in flight, and without this nudge the sidebar badge
+  // and Task Center would not see a task started from an analysis page.
+  const queryClient = useQueryClient();
+  useEffect(() => {
+    if (taskId) void queryClient.invalidateQueries({ queryKey: qk.tasks.list() });
+  }, [taskId, queryClient]);
 
   const query = useQuery<TaskStatus>({
     queryKey: qk.tasks.one(taskId),
@@ -31,7 +46,11 @@ export function useTaskPolling(
       return result;
     },
     enabled: !!taskId,
+    // 404 = the task no longer exists (memory store restarted, or the 30-day
+    // cleanup removed it). Retrying or polling it again cannot change that.
+    retry: (count, err) => !isGone(err) && count < 3,
     refetchInterval: (query) => {
+      if (isGone(query.state.error)) return false;
       const status = query.state.data?.status;
       if (status === 'done' || status === 'error') return false;
       return 2000;

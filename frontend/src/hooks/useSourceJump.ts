@@ -22,11 +22,10 @@ export interface SourceJumpOptions {
  * One difference from the in-reader panel: that panel's "no exact passage,
  * but we know the chapter" fallback just flips `viewingChapterId` locally,
  * because it's already inside ReaderPage. This hook instead navigates across
- * routes to `/books/:bookId`, and ReaderPage's location.state deep-link
- * contract only acts when `paragraphId` is present (see the jump effects in
- * ReaderPage.tsx) — a bare `{ chapterNumber }` state is a silent no-op there.
- * So instead of a no-op navigate, a chapter-scoped miss retries once with a
- * wider net (topK 30) before giving up and surfacing a toast.
+ * routes to `/books/:bookId`. A bare `{ chapterNumber }` state would only open
+ * the chapter at its top (see the jump effects in ReaderPage.tsx), not the
+ * cited passage — so a chapter-scoped miss retries once with a wider net
+ * (topK 30) before giving up and surfacing a toast.
  */
 export function useSourceJump(bookId: string | undefined) {
   const navigate = useNavigate();

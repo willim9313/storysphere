@@ -4,10 +4,10 @@
    Prefix: .tl-*  ·  every colour and size comes from a token.
 
    Fixed here (design brief §4.0a): the old page-level `.tl button`
-   reset (specificity 0,1,1) beat `.tl-btn` (0,1,0), so the toolbar's
-   buttons had no border and no background at rest and only looked
-   clickable on hover. The reset is now scoped to unclassed buttons,
-   so `.tl-btn` actually applies.
+   reset (specificity 0,1,1) beat single-class button styles (0,1,0), so
+   the toolbar's buttons had no border and no background at rest and only
+   looked clickable on hover. The reset is now scoped to unclassed buttons,
+   so classed buttons (kit `.ss-btn`) keep their own look.
    ───────────────────────────────────────────────────────────── */
 
 /* ── Reset / base ─────────────────────────────────────────── */
@@ -15,6 +15,8 @@
 .tl * {
   box-sizing: border-box;
 }
+/* B 檢視 (24 / 16 / 12 / 8): the page scrolls as a whole, content is a
+   max-w 1280 column with 32 under it. */
 .tl {
   font-family: var(--font-sans);
   color: var(--fg-primary);
@@ -24,11 +26,18 @@
   line-height: 1.45;
   width: 100%;
   height: 100%;
-  display: grid;
-  grid-template-rows: auto auto 1fr;
-  overflow: hidden;
+  overflow-y: auto;
 }
-/* Scoped so it cannot swallow `.tl-btn`'s own border/background. */
+.tl-inner {
+  container: tl-inner / inline-size;
+  max-width: var(--page-width-wide);
+  margin: 0 auto;
+  padding: var(--space-7) var(--space-7) var(--fab-clearance);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+}
+/* Scoped so it cannot swallow a classed button's own border/background. */
 .tl button:not([class]) {
   font: inherit;
   color: inherit;
@@ -42,74 +51,68 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
+  gap: var(--space-5);
+  min-height: 50vh;
 }
 
 /* ── Buttons ──────────────────────────────────────────────── */
-.tl-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  padding: 5px 10px;
-  border: var(--btn-border-width) var(--border-style) var(--border);
-  border-radius: var(--btn-radius);
-  background: var(--bg-primary);
-  color: var(--fg-primary);
-  cursor: pointer;
-  white-space: nowrap;
-  transition:
-    background-color var(--transition-fast),
-    color var(--transition-fast),
-    box-shadow var(--transition-fast);
-}
-.tl-btn:hover:not(:disabled) {
-  background: var(--bg-tertiary);
-}
-.tl-btn:disabled {
-  background: var(--bg-tertiary);
-  color: var(--fg-muted);
-  cursor: not-allowed;
-}
-.tl-btn-accent {
-  border-color: var(--accent);
-  color: var(--accent);
-}
 /* Marks a button that spends LLM tokens. Sits one step back from the label so
    it reads as a property of the action, not as part of its name. */
-.tl-btn-ai {
-  flex: none;
-  opacity: 0.75;
+
+/* ── Toolbar ──────────────────────────────────────────────── */
+/* Left = 看什麼 (free), right = 跑什麼 (spends tokens), one solid rule between:
+   side by side they read as the same kind of control otherwise. */
+.tl-toolbar {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  padding-bottom: var(--space-6);
+  border-bottom: var(--border-width) var(--border-style) var(--border);
 }
-.tl-btn-primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-fg);
+.tl-toolbar-left {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+  padding-right: var(--space-6);
+  border-right: var(--border-width) solid var(--border);
 }
-.tl-btn-on {
-  border-color: var(--fg-primary);
+.tl-toolbar-right {
+  container: tl-actions / inline-size;
+  flex: 1;
+  /* A blocked row now spans the panel's width, so the panel can sit beside the
+     left clusters a little narrower than the 420 it needed before. */
+  min-width: 360px;
 }
-.tl-btn-on-solid {
-  background: var(--fg-primary);
-  border-color: var(--fg-primary);
-  color: var(--accent-fg);
+.tl-cluster {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-3);
 }
-.tl-btn-ghost {
-  border-style: dashed;
+.tl-cluster-label {
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+}
+.tl-cluster-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+}
+/* One line, muted, follows the selected filterMode. */
+.tl-cluster-hint {
+  font-size: var(--font-size-xs);
   color: var(--fg-secondary);
+  white-space: nowrap;
+}
+.tl-filter-anchor {
+  position: relative;
+}
+.tl-toolbar-match {
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  white-space: nowrap;
 }
 .tl-badge {
   font-family: var(--font-mono);
@@ -117,232 +120,142 @@
   background: var(--accent);
   color: var(--accent-fg);
   border-radius: var(--badge-radius);
-  padding: 0 5px;
+  padding: 0 var(--space-3);
 }
 
-/* ── View tabs ────────────────────────────────────────────── */
-.tl-tabs {
-  display: flex;
-  align-items: stretch;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-primary);
-}
-.tl-tab {
-  flex: 1;
+/* ── 分析動作面板 ────────────────────────────────────────── */
+.tl-actions {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 6px 16px 7px;
-  text-align: left;
-  border: none;
-  border-right: 1px solid var(--border);
-  background: transparent;
-  cursor: pointer;
-  transition: background-color var(--transition-fast);
-}
-.tl-tab.active {
-  background: var(--bg-secondary);
-  box-shadow: inset 0 -2px 0 var(--fg-primary);
-}
-.tl-tab-name {
-  font-family: var(--font-serif);
-  font-size: var(--font-size-base);
-  font-weight: 400;
-  color: var(--fg-secondary);
-}
-.tl-tab.active .tl-tab-name {
-  font-weight: 600;
-  color: var(--fg-primary);
-}
-.tl-tab-sub {
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-}
-.tl-tabs-keys {
-  align-self: center;
-  padding: 0 14px;
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-  white-space: nowrap;
-}
-
-/* ── Toolbar ──────────────────────────────────────────────── */
-.tl-toolbar {
-  display: flex;
-  align-items: stretch;
-  padding: 7px 14px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-primary);
-}
-.tl-toolbar-seg {
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  padding: 0 14px;
-  border-right: 1px solid var(--border);
-}
-.tl-toolbar-seg:first-child {
-  padding-left: 0;
-}
-.tl-toolbar-seg:last-child {
-  border-right: none;
-  padding-right: 0;
-}
-.tl-toolbar-seg-label {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-  letter-spacing: 0.05em;
-}
-.tl-toolbar-seg-note {
-  color: var(--accent);
-  letter-spacing: 0;
-}
-.tl-toolbar-filter {
-  position: relative;
-  display: flex;
-  align-items: center;
-  gap: 9px;
-}
-.tl-toolbar-match {
-  display: flex;
-  align-items: baseline;
-  gap: 7px;
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-  white-space: nowrap;
-}
-.tl-toolbar-mode {
-  color: var(--accent);
-}
-/* The two expensive actions get the remaining width — their status text
-   needs two full lines and must not be truncated. */
-.tl-toolbar-actions {
-  flex: 1;
+  gap: var(--space-3);
   min-width: 0;
 }
-
-/* ── Action rows (expensive, irreversible LLM runs) ───────── */
+.tl-actions-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+}
+.tl-actions-title {
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+}
+.tl-actions-note {
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+}
+/* 動作 / 目前狀態 / 成本或阻擋原因 / 按鈕 — the status and cost share the
+   middle column as two stacked lines. */
 .tl-action-row {
-  position: relative;
+  display: grid;
+  grid-template-columns: 110px 1fr auto;
+  gap: var(--space-5);
+  align-items: start;
+  padding: var(--space-4) 0;
+  border-top: var(--border-width) var(--border-style) var(--border);
+}
+.tl-action-row.is-first {
+  border-top: none;
+}
+/* Blocked, beside the left clusters (a narrow panel): the button cannot run
+   anyway, so the reason — the status, the gate and the way out — gets the
+   row's full width instead of a narrow middle column (it folded into four
+   lines and pushed the stave down). A full-width panel keeps the one row. */
+@container tl-actions (max-width: 559px) {
+  .tl-action-row.is-blocked {
+    grid-template-areas:
+      "name . button"
+      "text text text";
+    row-gap: var(--space-3);
+  }
+  .tl-action-row.is-blocked > .tl-action-name { grid-area: name; }
+  .tl-action-row.is-blocked > .tl-action-text { grid-area: text; }
+  .tl-action-row.is-blocked > .ss-btn { grid-area: button; }
+}
+.tl-action-name {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 3px 8px;
-  border-radius: var(--btn-radius);
-  overflow: hidden;
+  gap: var(--space-3);
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+  min-height: 24px;
 }
-.tl-action-row.emphasis {
-  background: var(--bg-secondary);
-}
+/* Solid = can run, hollow = blocked. A shape, not a hue: Ink collapses the
+   status colours. */
 .tl-action-dot {
   flex: none;
   width: 7px;
   height: 7px;
   border-radius: 50%;
-  border: 1px solid var(--fg-muted);
+  background: var(--accent);
+}
+.tl-action-dot.is-hollow {
   background: transparent;
+  border: var(--border-width) var(--border-style) var(--fg-muted);
 }
-.tl-action-dot.on {
-  background: var(--fg-primary);
-  border-color: var(--fg-primary);
-}
-.tl-action-name {
-  flex: none;
-  width: 84px;
-  font-family: var(--font-serif);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  color: var(--fg-primary);
-}
-.tl-action-name.muted {
-  color: var(--fg-muted);
-}
-.tl-action-name-link {
-  color: inherit;
-  text-decoration: none;
-  border-bottom: 1px dotted var(--fg-muted);
-}
-.tl-action-name-link:hover {
-  color: var(--accent);
-  border-bottom-color: var(--accent);
-}
-/* Two lines, always. One line at ~314px truncates any real sentence.
-   `overflow: hidden` lets the text column absorb the squeeze so the action
-   button stays on screen instead of being pushed past the viewport edge. */
 .tl-action-text {
-  flex: 1;
-  min-width: 0;
-  overflow: hidden;
   display: flex;
   flex-direction: column;
-  line-height: 1.35;
-}
-.tl-action-row > .tl-btn {
-  flex: none;
+  gap: var(--space-2);
+  min-width: 0;
 }
 .tl-action-status {
-  font-size: var(--font-size-2xs);
-  color: var(--fg-secondary);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: var(--font-size-note);
+  color: var(--fg-primary);
+  line-height: 1.6;
+}
+/* Blocked is 沒跑, not 跑壞: the partial colour, never the error one. */
+.tl-action-status.is-blocked {
+  color: var(--status-partial-fg);
 }
 .tl-action-sub {
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
+  line-height: 1.6;
   text-align: left;
 }
-.tl-action-sub.blocked {
-  color: var(--accent);
-}
-.tl-action-sub.link {
+.tl-action-sub.is-link {
   border: none;
   background: none;
   padding: 0;
+  font-family: inherit;
+  color: var(--accent);
+  text-decoration: underline;
   cursor: pointer;
 }
-/* Solid rail, not a translucent wash: under Ink `--accent` is near-black
-   and a 35% overlay drops muted text to ~1.4:1 contrast. */
 .tl-action-progress {
-  position: absolute;
-  left: 0;
-  bottom: 0;
-  height: 3px;
-  background: var(--accent);
+  margin-top: var(--space-2);
+  max-width: 280px;
 }
-
-/* ── Segmented control ────────────────────────────────────── */
-.tl-segmented {
-  display: inline-flex;
-  border: var(--btn-border-width) var(--border-style) var(--border);
-  border-radius: var(--btn-radius);
-  overflow: hidden;
+/* 倒敘與預敘 未進行 — a gate not met, so partial, and dismissible. */
+.tl-skipped {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  background: var(--bg-primary);
+  border: var(--card-border-width) var(--border-style) var(--status-partial-border);
+  border-radius: var(--card-radius);
 }
-.tl-segmented-item {
-  border: none;
-  background: transparent;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  padding: 5px 10px;
+.tl-skipped-head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  color: var(--status-partial-fg);
+}
+.tl-skipped-title {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-base);
+  font-weight: 700;
+  color: var(--fg-primary);
+}
+.tl-skipped-desc {
+  margin: 0;
+  font-size: var(--font-size-note);
+  line-height: 1.7;
   color: var(--fg-secondary);
-  cursor: pointer;
-  white-space: nowrap;
-  transition:
-    background-color var(--transition-fast),
-    color var(--transition-fast);
-}
-.tl-segmented-item + .tl-segmented-item {
-  border-left: 1px solid var(--border);
-}
-.tl-segmented-item.active {
-  background: var(--fg-primary);
-  color: var(--accent-fg);
+  text-wrap: pretty;
 }
 
 /* ── Filter popover ───────────────────────────────────────── */
@@ -374,11 +287,6 @@
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
   letter-spacing: 0.05em;
-}
-.tl-filter-mode-hint {
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-  line-height: 1.5;
 }
 .tl-filter-chips {
   display: flex;
@@ -433,7 +341,11 @@
   opacity: 1;
 }
 
-.tl-filter-chip:hover {
+.tl-filter-chip:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.tl-filter-chip:hover:not(:disabled) {
   background: var(--bg-secondary);
 }
 .tl-filter-chip.active {
@@ -453,69 +365,209 @@
 }
 .tl-filter-search-icon {
   position: absolute;
-  left: 8px;
+  left: var(--space-5);
   display: flex;
   color: var(--fg-muted);
 }
+/* 收斂到共用輸入框（components-inputs Search 列）：--input-* token、search 內距 space-3 × space-5。
+   左內距 = icon 左位 space-5 + icon 寬 12 + 間距 space-3 */
 .tl-filter-search input {
   width: 100%;
   font-family: var(--font-sans);
   font-size: var(--font-size-xs);
-  padding: 4px 8px 4px 24px;
-  border: 1px solid var(--border);
-  border-radius: var(--control-radius);
-  background: var(--bg-primary);
+  padding: var(--space-3) var(--space-5) var(--space-3) calc(var(--space-5) + 12px + var(--space-3));
+  border: var(--input-border-width) var(--border-style) var(--border);
+  border-radius: var(--input-radius);
+  background: var(--input-bg);
   color: var(--fg-primary);
 }
-.tl-filter-sheet-foot {
+.tl-filter-sheet-head {
   display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  padding-top: 4px;
-  border-top: 1px solid var(--border);
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: var(--space-4);
+  border-bottom: 1px solid var(--border);
+}
+.tl-filter-sheet-title {
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+}
+.tl-filter-sheet-clear {
+  padding: 0;
+  border: none;
+  background: none;
+  font-family: inherit;
+  font-size: var(--font-size-2xs);
+  color: var(--accent);
+  cursor: pointer;
+}
+.tl-filter-sheet-clear:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
 }
 
 /* ── Main layout ──────────────────────────────────────────── */
 .tl-main {
   display: grid;
-  grid-template-columns: 1fr;
-  min-height: 0;
-  overflow: hidden;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--space-7);
+  align-items: start;
 }
+/* The panel takes its own 320 and the stave narrows — it never covers it. */
 .tl-main.with-panel {
-  grid-template-columns: 1fr 320px;
+  grid-template-columns: minmax(0, 1fr) 320px;
+}
+/* …except where narrowing would leave the stave unusable (720 with the panel
+   open left it 228px): below 880 the panel becomes a drawer over the right of
+   the canvas, sticky like the side panel, and the stave keeps its full width. */
+@container tl-inner (max-width: 879px) {
+  .tl-main.with-panel {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tl-main.with-panel > .tl-canvas,
+  .tl-main.with-panel > .tl-panel {
+    grid-area: 1 / 1;
+  }
+  .tl-main.with-panel > .tl-panel {
+    justify-self: end;
+    width: min(320px, 100%);
+    z-index: 6;
+    box-shadow: var(--shadow-lg);
+  }
 }
 .tl-canvas {
-  position: relative;
   display: flex;
   flex-direction: column;
+  gap: var(--space-6);
   min-width: 0;
-  min-height: 0;
-  overflow-y: auto;
-}
-.tl-refreshing {
-  position: absolute;
-  top: 8px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 12;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  font-size: var(--font-size-2xs);
-  color: var(--fg-secondary);
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-radius: var(--badge-radius);
-  padding: 3px 10px;
 }
 
-/* ── View header ──────────────────────────────────────────── */
+/* ── 底圖標題 + 對照開關 ─────────────────────────────────── */
+.tl-base-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-6);
+  flex-wrap: wrap;
+}
+.tl-base-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+  flex: 1 1 420px;
+}
+.tl-base-title {
+  font-family: var(--font-serif);
+  font-size: var(--font-size-xl);
+  font-weight: 700;
+  margin: 0;
+}
+.tl-base-sub {
+  margin: 0;
+  font-size: var(--font-size-xs);
+  line-height: 1.6;
+  color: var(--fg-secondary);
+}
+.tl-compare {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: var(--space-2);
+  flex-shrink: 0;
+}
+.tl-compare-note {
+  font-size: var(--font-size-note);
+  color: var(--fg-muted);
+}
+/* disabled / off / on. On is the accent outline and track; disabled is dimmed
+   and not-allowed, with the reason in the card right below. */
+.tl-switch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  font-family: inherit;
+  color: var(--fg-primary);
+  background: transparent;
+  border-radius: var(--control-radius);
+  border: var(--border-width) var(--border-style) var(--border);
+  cursor: pointer;
+}
+.tl-switch.is-on {
+  border-color: var(--accent);
+}
+.tl-switch.is-disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.tl-switch-track {
+  position: relative;
+  flex: none;
+  width: 26px;
+  height: 15px;
+  border-radius: 9px;
+  background: var(--bg-tertiary);
+  border: var(--border-width) var(--border-style) var(--border);
+}
+.tl-switch.is-on .tl-switch-track {
+  background: var(--accent);
+}
+.tl-switch-knob {
+  position: absolute;
+  top: 1px;
+  left: 1px;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: var(--fg-muted);
+  transition: left var(--transition-fast);
+}
+.tl-switch.is-on .tl-switch-knob {
+  left: 12px;
+  background: var(--accent-fg);
+}
+.tl-switch-label {
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.tl-compare-blocked {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+}
+.tl-compare-blocked-title {
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+  color: var(--status-partial-fg);
+}
+.tl-compare-blocked-desc {
+  margin: 0;
+  max-width: 86ch;
+  font-size: var(--font-size-xs);
+  line-height: 1.7;
+  color: var(--fg-secondary);
+  text-wrap: pretty;
+}
+.tl-compare-blocked-hint {
+  border: none;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* ── View header (headline, shown only when comparing) ──── */
 .tl-view-head {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 10px 18px 4px;
+  gap: var(--space-1);
 }
 .tl-view-headline {
   font-family: var(--font-serif);
@@ -530,94 +582,88 @@
   color: var(--fg-muted);
   margin: 0;
 }
+.tl-view-legend { font-size: var(--font-size-note); }
 /* Legend lines carry a `.tl-legend-dot` sample, and that shared mark is sized
-   with width/height — it needs a flex row to lay out against, the way the
-   matrix legend's `li` does. Text-only legend lines are unaffected. */
+   with width/height — it needs a flex row to lay out against. */
 .tl-view-legend {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 5px;
+  gap: var(--space-3);
 }
-/* Analysis coverage — the count behind the dot marks. Sits in the view head
-   rather than the toolbar's action segment because it explains what the stave
-   is showing, and the run it offers is the fix for what the marks reveal. */
-/* Owns its horizontal inset: it is a sibling of .tl-view-head, not a child,
-   so it cannot inherit that padding. Keep the 18px in step with it. */
+.tl-legend {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+}
+
+/* 前置：事件分析 d / t — its own row, between the note and the stave. EEP
+   coverage is independent of whether story order was ever computed. */
 .tl-coverage {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding: 2px 18px 6px;
+  gap: var(--space-5);
   flex-wrap: wrap;
 }
-.tl-coverage-text {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-  font-size: var(--font-size-2xs);
-}
 .tl-coverage-label {
-  color: var(--fg-secondary);
-}
-.tl-coverage-count {
-  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
   color: var(--fg-muted);
 }
-/* Fixed width, not `flex: 1`: a rail that restretches as the run progresses
-   reads as the bar moving backwards. */
+/* Fixed width, not `flex: 1`: a rail that restretches reads as moving backwards. */
 .tl-coverage-rail {
-  position: relative;
   width: 168px;
-  height: 3px;
-  background: var(--border);
-  border-radius: 2px;
-  overflow: hidden;
 }
-.tl-coverage-fill {
-  position: absolute;
-  left: 0;
-  top: 0;
-  height: 100%;
-  background: var(--accent);
-  transition: width var(--transition-normal);
+.tl-link {
+  font-size: var(--font-size-2xs);
+  color: var(--accent);
+  text-decoration: underline;
+  cursor: pointer;
 }
-
-/* Stands in for .tl-view-head when the stave has nothing to plot. */
-.tl-prompt {
+/* 時序分析已過期 — not an error, the data and the verdicts disagree. The old
+   verdicts stay on screen; this band says so. */
+.tl-stale {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 6px;
-  margin: 10px 18px 4px;
-  padding: 10px 14px;
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-md);
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-4) var(--space-5);
   background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-2xs);
+  line-height: 1.6;
+  color: var(--status-partial-fg);
 }
-.tl-prompt-title {
-  font-family: var(--font-serif);
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  color: var(--fg-primary);
-  margin: 0;
-}
-.tl-prompt-desc {
-  font-size: var(--font-size-xs);
-  color: var(--fg-muted);
-  max-width: 68ch;
-  margin: 0;
+.tl-stale svg {
+  flex: none;
 }
 
 /* ── Stave ────────────────────────────────────────────────── */
 .tl-stave {
   display: flex;
   flex-direction: column;
-  padding: 0 18px;
 }
 .tl-stave-row {
   position: relative;
   border-bottom: 1px solid var(--border);
+}
+/* 44px 左欄放「未排序」，繪圖區從右欄起算（稿：grid 44px | 1fr，欄距 space-4） */
+.tl-stave-plot {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: calc(44px + var(--space-4));
+  right: 0;
+}
+.tl-stave-gutter-label {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 44px;
+  display: flex;
+  align-items: center;
+  font-size: var(--font-size-2xs);
+  line-height: 1;
+  color: var(--fg-muted);
+  white-space: nowrap;
 }
 .tl-stave-band {
   position: absolute;
@@ -630,7 +676,36 @@
   transition: background-color var(--transition-fast);
 }
 .tl-stave-band.active {
-  background: var(--bg-tertiary);
+  background: var(--bg-secondary);
+}
+/* 選中章節的小黑標：左下角，fg-primary 底（稿 12 提案 A 區 stave()） */
+.tl-stave-band-tag {
+  position: absolute;
+  left: var(--space-4);
+  bottom: var(--space-2);
+  z-index: 2;
+  padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm);
+  background: var(--fg-primary);
+  color: var(--bg-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 400;
+  white-space: nowrap;
+  pointer-events: none;
+}
+/* Whole book unranked: the plot area is only as tall as the chapter labels,
+   so the selected chapter's tag takes its label's place instead of sitting
+   under it (the tag already names the chapter). */
+.tl-stave.is-collapsed .tl-stave-band-tag {
+  top: 2px;
+  bottom: auto;
+  left: 2px;
+  padding-block: 0;
+  line-height: 16px;
+}
+.tl-stave.is-collapsed .tl-stave-band.active .tl-stave-band-label {
+  visibility: hidden;
 }
 .tl-stave-band-label {
   position: absolute;
@@ -661,6 +736,7 @@
 }
 .tl-stave-link.outlier {
   stroke: var(--accent);
+  stroke-width: var(--tl-outlier-link-width);
 }
 .tl-stave-dot.analyzed {
   fill: var(--fg-primary);
@@ -677,31 +753,48 @@
   stroke-width: 1;
   stroke-dasharray: 2 1.6;
 }
+/* Displacement and analysis are independent axes: an outlier recolours the
+   mark, it does not refill it — an unanalysed outlier keeps its dashed hollow. */
 .tl-stave-dot.outlier {
-  fill: var(--accent);
   stroke: var(--accent);
+}
+.tl-stave-dot.outlier.analyzed {
+  fill: var(--accent);
+}
+/* Ink: accent and the plain mark are both near-black, so an outlier is said by
+   a ring around it instead (--tl-outlier-halo-display). */
+.tl-stave-halo {
+  display: var(--tl-outlier-halo-display);
+  fill: none;
+  stroke: var(--accent);
+  stroke-width: 1;
+}
+.tl-stave-halo.dim {
+  opacity: 0.18;
 }
 .tl-stave-dot.selected {
   stroke: var(--timeline-selected-ring);
   stroke-width: 3;
 }
-.tl-stave-dot.dim,
-.tl-matrix-dot.dim {
+.tl-stave-dot.dim {
   opacity: 0.18;
 }
 .tl-stave-hit {
-  position: absolute;
+  display: block;
   width: 16px;
   height: 16px;
-  margin: -8px 0 0 -8px;
   border: none;
   border-radius: 50%;
   background: transparent;
   cursor: pointer;
+}
+/* Tooltip 錨點承接原本掛在按鈕上的絕對定位（left／top 以 inline 給） */
+.tl-stave-hit-anchor {
+  position: absolute;
+  margin: -8px 0 0 -8px;
   z-index: 3;
 }
-.tl-stave-hit:focus-visible,
-.tl-matrix-hit:focus-visible {
+.tl-stave-hit:focus-visible {
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: var(--focus-ring-offset);
 }
@@ -719,11 +812,30 @@
   font-weight: 600;
   border-bottom: 1px solid var(--accent);
 }
+/* Notes live in the strip under the plot (STAVE_NOTE_STRIP); a dotted hairline
+   runs up from the note's anchored edge to its point (--tl-note-tick). */
+.tl-stave-note {
+  line-height: 16px;
+}
+.tl-stave-note::before {
+  content: "";
+  position: absolute;
+  bottom: 100%;
+  height: var(--tl-note-tick, 0);
+  border-left: 1px dotted var(--accent);
+}
 .tl-stave-note.right {
-  transform: translate(9px, -7px);
+  padding-left: 4px;
+}
+.tl-stave-note.right::before {
+  left: 0;
 }
 .tl-stave-note.left {
-  transform: translate(-9px, -7px) translateX(-100%);
+  padding-right: 4px;
+  transform: translateX(-100%);
+}
+.tl-stave-note.left::before {
+  right: 0;
 }
 .tl-stave-unranked {
   position: absolute;
@@ -733,26 +845,41 @@
   border-top: 1px dotted var(--border);
   z-index: 2;
 }
-.tl-stave-unranked-label {
-  position: absolute;
-  left: 0;
-  top: 1px;
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-}
 .tl-stave-unranked-dot {
-  position: absolute;
-  top: 4px;
-  width: 5px;
-  height: 5px;
-  margin-left: -2.5px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
   padding: 0;
-  border: 1px solid var(--fg-muted);
+  border: none;
   border-radius: 50%;
-  background: var(--bg-primary);
+  background: transparent;
   cursor: pointer;
 }
-.tl-stave-unranked-dot.selected {
+/* The visible mark: same sizes and fills as the stave's own dots (r 3 / 4.5),
+   inside the 24px hit area. */
+.tl-stave-unranked-dot::before {
+  content: "";
+  box-sizing: border-box;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fg-primary);
+}
+.tl-stave-unranked-dot.kernel::before {
+  width: 9px;
+  height: 9px;
+}
+.tl-stave-unranked-dot.unanalyzed::before {
+  background: var(--bg-primary);
+  border: 1px dashed var(--fg-muted);
+}
+.tl-stave-unranked-anchor {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+.tl-stave-unranked-dot.selected::before {
   box-shadow: 0 0 0 3px var(--timeline-selected-ring);
 }
 .tl-stave-unranked-dot.dim {
@@ -771,22 +898,21 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  background: var(--timeline-chapter-bg);
-  padding: 8px 18px 12px;
+  gap: var(--space-4);
 }
 .tl-band-head {
   display: flex;
   align-items: baseline;
-  gap: 10px;
+  gap: var(--space-5);
+  flex-wrap: wrap;
 }
 .tl-band-title {
   display: flex;
   align-items: baseline;
-  gap: 7px;
+  gap: var(--space-4);
   font-family: var(--font-serif);
-  font-size: var(--font-size-base);
-  font-weight: 600;
+  font-size: var(--font-size-lg);
+  font-weight: 700;
   margin: 0;
 }
 .tl-band-chapter-title {
@@ -799,14 +925,14 @@
 }
 .tl-band-hint {
   margin-left: auto;
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   color: var(--fg-muted);
 }
 .tl-band-body {
   flex: 1;
   min-height: 0;
   display: flex;
-  gap: 14px;
+  gap: var(--space-6);
 }
 .tl-cards {
   flex: 1;
@@ -960,310 +1086,23 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 6px;
-  padding: 22px 0;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-sm);
 }
 .tl-band-empty-title {
-  font-family: var(--font-hand);
-  font-size: var(--font-size-xl);
+  font-family: var(--font-serif);
+  font-size: var(--font-size-base);
+  font-weight: 700;
   color: var(--fg-primary);
   margin: 0;
 }
 .tl-band-empty-desc {
-  font-size: var(--font-size-xs);
-  color: var(--fg-muted);
-  margin: 0;
-}
-
-/* ── Story order view ─────────────────────────────────────── */
-.tl-story {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 0 18px 12px;
-}
-.tl-story-cols {
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 14px;
-  overflow-y: auto;
-}
-.tl-story-col {
-  list-style: none;
-  margin: 0;
-  padding: 0 0 0 9px;
-  border-left: 1px solid var(--border);
-}
-.tl-story-row {
-  display: flex;
-  align-items: baseline;
-  gap: 7px;
-  width: 100%;
-  border: none;
-  background: transparent;
-  padding: 3px 6px;
-  border-radius: var(--radius-sm);
-  cursor: pointer;
-  text-align: left;
-}
-.tl-story-row.selected {
-  background: var(--bg-tertiary);
-}
-.tl-story-row.dim {
-  opacity: 0.3;
-}
-.tl-story-n {
-  flex: none;
-  width: 20px;
-  font-family: var(--font-mono);
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-}
-.tl-story-title {
-  flex: 1;
-  min-width: 0;
-  font-family: var(--font-serif);
-  font-size: var(--font-size-xs);
-  line-height: 1.5;
-  color: var(--fg-primary);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.tl-story-title.kernel {
-  font-weight: 600;
-}
-.tl-story-ch {
-  flex: none;
-  font-family: var(--font-mono);
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-}
-.tl-story-ch.outlier {
-  color: var(--accent);
-}
-.tl-story-tray {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  padding-top: 8px;
-  border-top: 1px dashed var(--accent);
-  overflow-x: auto;
-}
-.tl-story-tray-label {
-  flex: none;
-  font-size: var(--font-size-2xs);
-  color: var(--accent);
-  white-space: nowrap;
-}
-.tl-story-chip {
-  display: inline-flex;
-  align-items: baseline;
-  gap: 6px;
-  flex: none;
-  max-width: 168px;
-  padding: 3px 9px;
-  border: 1px dashed var(--border);
-  border-radius: var(--radius-sm);
-  background: transparent;
-  font-family: var(--font-serif);
-  font-size: var(--font-size-xs);
-  color: var(--fg-primary);
-  cursor: pointer;
-  overflow: hidden;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.tl-story-chip.selected {
-  background: var(--bg-tertiary);
-}
-.tl-story-chip-ch {
-  font-family: var(--font-mono);
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-}
-
-/* ── Matrix ───────────────────────────────────────────────── */
-.tl-matrix {
-  flex: 1;
-  min-height: 0;
-  display: flex;
-  gap: 20px;
-  padding: 12px 18px 16px;
-  overflow: auto;
-}
-.tl-matrix-main {
-  flex: 1;
-  min-width: 0;
-  padding-left: 34px;
-}
-.tl-matrix-plot {
-  position: relative;
-  border-left: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-}
-.tl-matrix-col {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  border: none;
-  border-right: 1px solid var(--border);
-  background: transparent;
-  cursor: pointer;
-  transition: background-color var(--transition-fast);
-}
-.tl-matrix-col:last-of-type {
-  border-right: none;
-}
-.tl-matrix-col.active {
-  background: var(--bg-tertiary);
-}
-.tl-matrix-col-label {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: calc(100% + 6px);
-  text-align: center;
-  font-family: var(--font-serif);
-  font-size: var(--font-size-xs);
-  color: var(--fg-muted);
-}
-.tl-matrix-col.active .tl-matrix-col-label {
-  font-weight: 600;
-  color: var(--fg-primary);
-}
-.tl-matrix-svg {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 2;
-}
-.tl-matrix-diagonal {
-  stroke: var(--border);
-  stroke-width: 1;
-  stroke-dasharray: 4 4;
-}
-.tl-matrix-dot.analyzed {
-  fill: var(--fg-primary);
-}
-.tl-matrix-dot.unanalyzed {
-  fill: var(--bg-primary);
-  stroke: var(--fg-muted);
-  stroke-width: 1;
-  stroke-dasharray: 2 1.6;
-}
-.tl-matrix-dot.outlier {
-  fill: var(--accent);
-}
-.tl-matrix-dot.selected {
-  stroke: var(--timeline-selected-ring);
-  stroke-width: 3;
-}
-.tl-matrix-hit {
-  position: absolute;
-  width: 16px;
-  height: 16px;
-  margin: -8px 0 0 -8px;
-  border: none;
-  border-radius: 50%;
-  background: transparent;
-  cursor: pointer;
-  z-index: 3;
-}
-.tl-matrix-tick {
-  position: absolute;
-  left: -34px;
-  width: 28px;
-  margin-top: -7px;
-  text-align: right;
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-}
-.tl-matrix-y-label {
-  position: absolute;
-  left: -34px;
-  top: 50%;
-  transform: rotate(-90deg) translateX(-50%);
-  transform-origin: left center;
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-  white-space: nowrap;
-}
-.tl-matrix-unranked {
-  position: relative;
-  margin-top: 30px;
-  border-top: 1px dashed var(--accent);
-}
-.tl-matrix-unranked-dot {
-  position: absolute;
-  top: 7px;
-  width: 7px;
-  height: 7px;
-  margin-left: -3.5px;
-  padding: 0;
-  border: 1px solid var(--fg-muted);
-  border-radius: 50%;
-  background: var(--bg-primary);
-  cursor: pointer;
-}
-.tl-matrix-unranked-dot.selected {
-  box-shadow: 0 0 0 3px var(--timeline-selected-ring);
-}
-.tl-matrix-unranked-dot.dim {
-  opacity: 0.25;
-}
-.tl-matrix-unranked-label {
-  position: absolute;
-  right: 0;
-  top: 3px;
-  font-size: var(--font-size-2xs);
-  color: var(--accent);
-}
-.tl-matrix-x-label {
-  margin-top: 10px;
-  text-align: center;
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-}
-.tl-matrix-legend {
-  flex: none;
-  width: 236px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.tl-matrix-legend-title {
-  font-family: var(--font-serif);
-  font-size: var(--font-size-base);
-  font-weight: 600;
-  margin: 0;
-}
-.tl-matrix-legend-desc,
-.tl-matrix-legend-foot {
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   line-height: 1.7;
-  color: var(--fg-muted);
-  margin: 0;
-}
-.tl-matrix-legend-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-  font-size: var(--font-size-2xs);
   color: var(--fg-secondary);
-}
-.tl-matrix-legend-list li {
-  display: flex;
-  align-items: center;
-  gap: 7px;
+  margin: 0;
 }
 
 /* ── Shared legend marks ──────────────────────────────────── */
@@ -1278,21 +1117,18 @@
   background: var(--bg-primary);
   border: 1px dashed var(--fg-muted);
 }
-/* The unranked strip's mark, so the legend can name it apart from 未分析. */
+/* The unranked strip itself (its dotted top edge), not a mark: the strip's
+   marks use the same solid / dashed vocabulary as the rest of the stave. */
 .tl-legend-dot.unranked {
-  width: 5px;
-  height: 5px;
-  background: var(--bg-primary);
-  border: 1px solid var(--fg-muted);
+  width: 14px;
+  height: 6px;
+  border-radius: 0;
+  background: transparent;
+  border-top: 1px dotted var(--fg-muted);
+  border-bottom: 1px solid var(--border);
 }
 .tl-legend-dot.outlier {
   background: var(--accent);
-}
-.tl-legend-line {
-  flex: none;
-  width: 16px;
-  height: 0;
-  border-top: 1px dashed var(--border);
 }
 .tl-legend-dash {
   flex: none;
@@ -1310,19 +1146,24 @@
 /* ── Character lanes ──────────────────────────────────────── */
 .tl-lanes {
   flex: none;
-  border-top: 1px solid var(--border);
-  background: var(--bg-secondary);
-  padding: 7px 14px 8px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  background: var(--bg-primary);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
+  padding: var(--space-6);
 }
 .tl-lanes-head {
   display: flex;
   align-items: center;
-  gap: 7px;
+  gap: var(--space-3);
   flex-wrap: wrap;
 }
 .tl-lanes-title {
-  font-size: var(--font-size-xs);
-  color: var(--fg-secondary);
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+  color: var(--fg-primary);
 }
 .tl-lanes-clear {
   font-family: var(--font-sans);
@@ -1368,19 +1209,18 @@
   cursor: pointer;
 }
 .tl-lanes-note {
-  margin-left: auto;
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
+  margin: 0;
+  font-size: var(--font-size-xs);
+  color: var(--fg-secondary);
 }
 .tl-lanes-empty {
-  margin: var(--space-sm) 0 0;
-  font-size: var(--font-size-2xs);
+  margin: 0;
+  font-size: var(--font-size-note);
   color: var(--fg-muted);
 }
 .tl-lanes-ticks {
   position: relative;
   height: 14px;
-  margin-left: 140px;
 }
 .tl-lanes-tick {
   position: absolute;
@@ -1391,18 +1231,22 @@
   color: var(--fg-muted);
 }
 .tl-lane {
-  display: grid;
-  grid-template-columns: 136px 1fr;
-  column-gap: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-5) 0;
+  border-top: var(--border-width) var(--border-style) var(--border);
 }
 .tl-lane-label {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-5);
+  flex-wrap: wrap;
 }
 .tl-lane-name {
   font-family: var(--font-serif);
-  font-size: var(--font-size-xs);
+  font-size: var(--font-size-base);
   font-weight: 600;
   color: var(--fg-primary);
 }
@@ -1430,48 +1274,55 @@
   border-top: 1px dashed var(--border);
 }
 .tl-lane-dot {
-  position: absolute;
-  top: 50%;
-  width: 6px;
-  height: 6px;
-  margin: -3px 0 0 -3px;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
   padding: 0;
   border: none;
   border-radius: 50%;
-  background: var(--fg-primary);
+  background: transparent;
   cursor: pointer;
+}
+/* The visible dot; the button around it is a 24px hit area. */
+.tl-lane-dot::before {
+  content: "";
+  box-sizing: border-box;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--fg-primary);
+}
+/* 錨點負責絕對定位與置中（點的大小隨 kernel 變，用 translate 而非固定 margin） */
+.tl-lane-dot-anchor {
+  position: absolute;
+  top: 50%;
+  transform: translate(-50%, -50%);
   z-index: 2;
 }
-.tl-lane-dot.kernel {
+.tl-lane-dot.kernel::before {
   width: 9px;
   height: 9px;
-  margin: -4.5px 0 0 -4.5px;
 }
-.tl-lane-dot.unanalyzed {
+.tl-lane-dot.unanalyzed::before {
   background: var(--bg-primary);
   border: 1px dashed var(--fg-muted);
 }
-.tl-lane-dot.selected {
+.tl-lane-dot.selected::before {
   box-shadow: 0 0 0 3px var(--timeline-selected-ring);
 }
-/* Absence captions live in their own strip so they never sit on the dots. */
-.tl-lane-notes {
-  position: relative;
-  grid-column: 2;
-  height: 16px;
+/* Absence captions are chips under the track, never on the dots. */
+.tl-lane-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
 }
-.tl-lane-note {
-  position: absolute;
-  top: 0;
-  padding-left: 3px;
-  border-left: 1px solid var(--border);
-  font-family: var(--font-hand);
-  font-size: var(--font-size-sm);
-  line-height: 16px;
-  color: var(--fg-muted);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+.tl-lane-chip {
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+  padding: var(--space-1) var(--space-4);
+  background: var(--bg-secondary);
+  border-radius: var(--badge-radius);
 }
 .tl-lane-together-mark {
   position: absolute;
@@ -1484,8 +1335,9 @@
 .tl-lanes-legend {
   list-style: none;
   display: flex;
-  gap: 14px;
-  margin: 4px 0 0;
+  flex-wrap: wrap;
+  gap: var(--space-6);
+  margin: 0;
   padding: 0;
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
@@ -1493,36 +1345,49 @@
 .tl-lanes-legend li {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-3);
 }
 
 /* ── Detail panel ─────────────────────────────────────────── */
 .tl-panel {
   display: flex;
   flex-direction: column;
+  position: sticky;
+  top: 0;
+  max-height: calc(100vh - var(--space-8) * 2);
   min-height: 0;
-  border-left: 1px solid var(--border);
   background: var(--bg-primary);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
 }
 .tl-panel-head {
   flex: none;
   display: flex;
-  align-items: center;
-  height: 40px;
-  padding: 0 12px 0 16px;
-  border-bottom: 1px solid var(--border);
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-6) var(--space-6) var(--space-4);
+}
+.tl-panel-head-text {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
 }
 .tl-panel-eyebrow {
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
+}
+.tl-panel-keys {
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
 }
 .tl-panel-close {
   margin-left: auto;
   display: inline-flex;
   border: none;
   background: none;
-  padding: 4px;
+  padding: var(--space-2);
   color: var(--fg-muted);
   cursor: pointer;
 }
@@ -1534,23 +1399,23 @@
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 14px 16px;
+  gap: var(--space-5);
+  padding: 0 var(--space-6) var(--space-6);
   overflow-y: auto;
 }
 .tl-panel-block {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-3);
 }
 .tl-panel-block.bordered {
-  border-top: 1px solid var(--border);
-  padding-top: 11px;
+  border-top: var(--border-width) var(--border-style) var(--border);
+  padding-top: var(--space-5);
 }
 .tl-panel-kicker {
   display: flex;
   align-items: baseline;
-  gap: 7px;
+  gap: var(--space-3);
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
 }
@@ -1560,18 +1425,19 @@
 .tl-panel-title {
   font-family: var(--font-serif);
   font-size: var(--font-size-xl);
-  font-weight: 600;
+  font-weight: 700;
   line-height: 1.35;
   color: var(--fg-primary);
   margin: 0;
 }
-.tl-panel-kind {
+/* 重要度未評 is a real state, not a gap: neutral grey. */
+.tl-panel-badge-neutral {
   align-self: flex-start;
-  font-size: var(--font-size-2xs);
-  color: var(--fg-secondary);
-}
-.tl-panel-kind.muted {
+  background: var(--bg-secondary);
   color: var(--fg-muted);
+}
+.tl-panel-block > .ss-badge {
+  align-self: flex-start;
 }
 .tl-panel-desc {
   font-family: var(--font-serif);
@@ -1602,7 +1468,6 @@
   gap: 8px;
 }
 .tl-panel-rank-value {
-  font-family: var(--font-mono);
   font-size: var(--font-size-2xs);
   color: var(--fg-primary);
 }
@@ -1617,6 +1482,10 @@
 .tl-panel-dev.outlier {
   color: var(--accent);
 }
+/* 需要故事時間提示 — same reason, same colour as the blocked toolbar row. */
+.tl-panel-dev.is-partial {
+  color: var(--status-partial-fg);
+}
 .tl-panel-verdict {
   font-size: var(--font-size-2xs);
   color: var(--fg-secondary);
@@ -1630,58 +1499,21 @@
   border-color: var(--accent);
   color: var(--accent);
 }
+/* Pinned to the bottom: these two are exits from the page and must not
+   scroll away with the content. */
 .tl-panel-actions {
-  margin-top: auto;
+  flex: none;
   display: flex;
   flex-direction: column;
-  gap: 7px;
+  gap: var(--space-3);
+  padding: var(--space-5) var(--space-6) var(--space-6);
+  border-top: var(--border-width) var(--border-style) var(--border);
 }
-.tl-panel-actions .tl-btn {
+.tl-panel-actions .ss-btn {
   justify-content: center;
 }
 
-/* ── Pills & narrative chips ──────────────────────────────── */
-.tl-pill {
-  display: inline-flex;
-  align-items: center;
-  font-size: var(--font-size-2xs);
-  padding: 2px 9px;
-  border-radius: var(--pill-radius);
-  border: var(--pill-border-width) var(--border-style) var(--entity-other-border);
-  background: var(--entity-other-bg);
-  color: var(--entity-other-fg);
-  white-space: nowrap;
-}
-.tl-pill-character {
-  border-color: var(--entity-char-border);
-  background: var(--entity-char-bg);
-  color: var(--entity-char-fg);
-}
-.tl-pill-location {
-  border-color: var(--entity-loc-border);
-  background: var(--entity-loc-bg);
-  color: var(--entity-loc-fg);
-}
-.tl-pill-organization {
-  border-color: var(--entity-org-border);
-  background: var(--entity-org-bg);
-  color: var(--entity-org-fg);
-}
-.tl-pill-object {
-  border-color: var(--entity-obj-border);
-  background: var(--entity-obj-bg);
-  color: var(--entity-obj-fg);
-}
-.tl-pill-concept {
-  border-color: var(--entity-con-border);
-  background: var(--entity-con-bg);
-  color: var(--entity-con-fg);
-}
-.tl-pill-event {
-  border-color: var(--entity-evt-border);
-  background: var(--entity-evt-bg);
-  color: var(--entity-evt-fg);
-}
+/* ── Pills ────────────────────────────────────────────────── */
 .tl-pill-overflow {
   border-style: dashed;
   border-color: var(--border);
@@ -1692,81 +1524,51 @@
   align-self: flex-start;
   font-size: var(--font-size-2xs);
   color: var(--fg-secondary);
-  padding: 2px 8px;
-  border-left: 2px solid var(--narrative-unknown-border);
+  padding: var(--space-1) var(--space-4);
   background: var(--narrative-unknown-bg);
-  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  border-radius: var(--radius-sm);
 }
 .tl-narrative-present {
-  border-left-color: var(--narrative-present-border);
   background: var(--narrative-present-bg);
 }
 .tl-narrative-flashback {
-  border-left-color: var(--narrative-flashback-border);
   background: var(--narrative-flashback-bg);
 }
 .tl-narrative-flashforward {
-  border-left-color: var(--narrative-flashforward-border);
   background: var(--narrative-flashforward-bg);
 }
 .tl-narrative-parallel {
-  border-left-color: var(--narrative-parallel-border);
   background: var(--narrative-parallel-bg);
 }
 
 /* ── Page-level states ────────────────────────────────────── */
 .tl-state {
-  flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  padding: 40px 24px;
-  text-align: center;
-}
-.tl-state-icon {
-  color: var(--color-error);
+  align-items: flex-start;
+  gap: var(--space-4);
+  padding: var(--space-6);
+  background: var(--bg-primary);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
 }
 .tl-state-title {
-  font-family: var(--font-hand);
-  font-size: var(--font-size-2xl);
+  font-family: var(--font-serif);
+  font-size: var(--font-size-base);
+  font-weight: 700;
   color: var(--fg-primary);
   margin: 0;
 }
 .tl-state-desc {
-  font-size: var(--font-size-xs);
-  color: var(--fg-muted);
+  font-size: var(--font-size-note);
+  line-height: 1.7;
+  color: var(--fg-secondary);
   max-width: 52ch;
   margin: 0;
-}
-.tl-state-chips {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
-  max-width: 72ch;
-}
-.tl-state-actions {
-  display: flex;
-  gap: 8px;
 }
 .tl-loading-text {
   font-size: var(--font-size-xs);
   color: var(--fg-secondary);
-}
-.tl-skeletons {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  width: min(680px, 80%);
-}
-.tl-skeleton {
-  height: 54px;
-  border-radius: var(--radius-md);
-  background: var(--bg-secondary);
-  animation: tl-pulse 1.4s ease-in-out infinite;
 }
 .tl-spinner {
   animation: spin 1s linear infinite;
@@ -1782,32 +1584,32 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .tl-spinner,
-  .tl-skeleton {
+  .tl-spinner {
     animation: none;
   }
 }
 
 /* ── Onboarding hero (empty book) ─────────────────────────── */
 .tl-hero {
-  max-width: 720px;
-  margin: 40px auto;
+  max-width: 1000px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-6);
+  text-align: center;
   background: var(--bg-primary);
-  border: 1px solid var(--border);
-  border-style: var(--border-style);
-  border-radius: var(--radius-lg);
-  padding: 28px 32px;
-  box-shadow: var(--shadow-sm);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
+  padding: var(--space-8);
 }
 .tl-hero-eyebrow {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-4);
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.14em;
-  margin-bottom: 16px;
+  letter-spacing: 0.08em;
 }
 .tl-hero-eyebrow-dot {
   width: 6px;
@@ -1817,61 +1619,276 @@
 }
 .tl-hero-intro {
   font-family: var(--font-serif);
-  font-size: var(--font-size-xl);
-  line-height: 1.45;
-  color: var(--fg-muted);
-  font-style: italic;
-  margin: 0 0 24px;
+  font-size: var(--font-size-lg);
+  line-height: 1.7;
+  color: var(--fg-primary);
+  margin: 0;
   text-wrap: pretty;
-  max-width: 80ch;
+  max-width: 62ch;
 }
 .tl-hero-steps {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 16px;
-  margin-bottom: 20px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  width: 100%;
+  text-align: left;
 }
 .tl-hero-step {
-  padding: 16px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border);
-  border-style: var(--border-style);
-  border-radius: var(--radius-md);
-  position: relative;
+  flex: 1 1 220px;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  padding: var(--space-6);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
 }
+/* The step number is already in the scope line ("STEP 01 · …"). */
 .tl-hero-step-num {
-  position: absolute;
-  top: 12px;
-  right: 14px;
-  font-family: var(--font-serif);
-  font-size: var(--font-size-2xl);
-  color: var(--fg-muted);
-  opacity: 0.3;
-  line-height: 1;
+  display: none;
 }
 .tl-hero-step-scope {
+  font-family: var(--font-mono);
   font-size: var(--font-size-2xs);
   color: var(--accent);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-bottom: 8px;
 }
 .tl-hero-step-name {
   font-family: var(--font-serif);
   font-size: var(--font-size-base);
+  font-weight: 700;
   color: var(--fg-primary);
-  margin-bottom: 4px;
 }
 .tl-hero-step-desc {
-  font-size: var(--font-size-xs);
-  color: var(--fg-secondary);
-  line-height: 1.5;
-}
-.tl-hero-cta {
-  margin-top: 4px;
+  font-size: var(--font-size-note);
+  color: var(--fg-muted);
+  line-height: 1.7;
 }
 @media (max-width: 640px) {
   .tl-hero-steps {
     grid-template-columns: 1fr;
   }
 }
+
+/* ── 密度矩陣（5-5）─────────────────────────────────────────
+   章 × rank 十分位的件數格。格色走 --symbol-density-* 四階（1/2/3/4+，絕對件數），
+   格內寫數字；對角格加粗框；選取格用實線外框（不用左緣／inset 強調）。 */
+.tl-compare-seg {
+  margin-top: var(--space-2);
+}
+.tl-mx {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+}
+.tl-mx-scroll {
+  overflow-x: auto;
+}
+.tl-mx-grid {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.tl-mx-ylabel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.tl-mx-ylabel span {
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  white-space: nowrap;
+  color: var(--fg-secondary);
+}
+/* CJK reads top-down with its glyphs upright; the rotation above (bottom-up,
+   for Latin) laid them on their side. */
+.tl-mx-ylabel.is-cjk span {
+  transform: none;
+  /* upright, not mixed: mixed turns the label's ↑ into → */
+  text-orientation: upright;
+}
+.tl-mx-ylabel-tick {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: var(--space-3);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-muted);
+}
+.tl-mx-xtick {
+  padding-top: var(--space-2);
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+  color: var(--fg-muted);
+}
+.tl-mx-cell {
+  /* 固定列高，不用正方形：B 檢視 1232 寬下 10 章的正方格會讓矩陣高過 1100px，
+     一屏看不完對角線。欄仍隨寬度等分（見 5-TL-5）。 */
+  height: calc(var(--space-8) + var(--space-6));
+  padding: 0;
+  border: var(--line-weight) solid var(--border);
+  border-radius: 2px;
+  background: transparent;
+  color: var(--fg-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+}
+.tl-mx-cell:disabled {
+  cursor: default;
+}
+.tl-mx-cell.is-diagonal {
+  border: 2px solid var(--fg-primary);
+}
+.tl-mx-cell.is-selected {
+  outline: 2px solid var(--fg-primary);
+  outline-offset: 1px;
+}
+.tl-mx-cell:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.tl-mx-cell.is-step-1,
+.tl-mx-swatch.is-step-1 { background: var(--symbol-density-low); }
+.tl-mx-cell.is-step-2,
+.tl-mx-swatch.is-step-2 { background: var(--symbol-density-mid); }
+.tl-mx-cell.is-step-3,
+.tl-mx-swatch.is-step-3 { background: var(--symbol-density-high); }
+.tl-mx-cell.is-step-4,
+.tl-mx-swatch.is-step-4 {
+  background: var(--symbol-density-peak);
+  /* Ink: 3 and 4+ are both black — 4+ gets a paper inner frame. */
+  box-shadow: inset 0 0 0 var(--density-peak-inset) var(--bg-primary);
+}
+.tl-mx-cell.is-step-3,
+.tl-mx-cell.is-step-4 {
+  color: var(--accent-fg);
+}
+.tl-mx-axis,
+.tl-mx-legend {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+}
+.tl-mx-axis {
+  justify-content: space-between;
+  padding-left: 88px;
+}
+.tl-mx-legend {
+  gap: var(--space-6);
+}
+.tl-mx-diag-key,
+.tl-mx-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.tl-mx-diag-swatch,
+.tl-mx-swatch {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+}
+.tl-mx-diag-swatch {
+  border: 2px solid var(--fg-primary);
+}
+.tl-mx-swatch {
+  border: var(--line-weight) solid var(--border);
+}
+.tl-mx-note {
+  color: var(--fg-muted);
+}
+.tl-mx-unranked {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+  padding: var(--space-4) var(--space-5);
+  background: var(--bg-secondary);
+  border-radius: var(--radius-md);
+}
+.tl-mx-sel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+  padding-top: var(--space-5);
+  border-top: var(--line-weight) var(--border-style) var(--border);
+}
+.tl-mx-sel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--space-5);
+}
+.tl-mx-sel-title {
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  color: var(--fg-primary);
+}
+/* 動作列（components-rows）：圓點 24 · 標題 · 中繼 · 12 尾欄 */
+.tl-mx-event {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) auto 12px;
+  gap: var(--space-4);
+  align-items: center;
+  width: 100%;
+  padding: var(--space-4) var(--space-5);
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  font-family: inherit;
+  font-size: var(--font-size-xs);
+  color: var(--fg-primary);
+  text-align: left;
+  cursor: pointer;
+}
+.tl-mx-event:hover {
+  background: var(--bg-secondary);
+}
+.tl-mx-event.is-selected {
+  background: var(--bg-secondary);
+  font-weight: 700;
+  color: var(--accent);
+}
+.tl-mx-event.is-dim {
+  opacity: 0.45;
+}
+.tl-mx-event-title {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  font-weight: inherit;
+}
+.tl-mx-event-meta {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  white-space: nowrap;
+}
+.tl-mx-dot {
+  justify-self: center;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--narrative-unknown-border);
+}
+/* Ink 下三色只差灰階：除了色，再用形狀分——當下＝實心圓、回敘＝空心圈、預敘＝實心方。 */
+.tl-mx-dot.is-present { background: var(--narrative-present-border); }
+.tl-mx-dot.is-flashback {
+  background: transparent;
+  box-sizing: border-box;
+  border: 2px solid var(--narrative-flashback-border);
+}
+.tl-mx-dot.is-flashforward {
+  background: var(--narrative-flashforward-border);
+  border-radius: 2px;
+}
+.tl-mx-dot.is-parallel { background: var(--narrative-parallel-border); }

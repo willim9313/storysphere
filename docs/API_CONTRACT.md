@@ -50,6 +50,17 @@
 - 單一用戶平台，所有 API 不帶用戶識別參數
 - 錯誤回傳格式統一：`{ "error": { "code": string, "message": string } }`
 - 時間欄位格式：ISO 8601 字串（`"2024-01-01T00:00:00Z"`）
+- **LLM provider 未設定 → `503`（DS v3 第 3 批）**：會實際呼叫 LLM 的觸發端點，在**既有的 404／409／422／400 驗證之後**、
+  建立背景任務**之前**檢查 `PRIMARY_LLM_PROVIDER` 指的 provider 是否已設定（對應的 `GEMINI_API_KEY`／`OPENAI_API_KEY`／
+  `ANTHROPIC_API_KEY`／`LOCAL_LLM_MODEL`）；未設定回 `503`，body `{ "detail": "LLM provider is not configured: PRIMARY_LLM_PROVIDER=gemini but GEMINI_API_KEY is not set. …" }`
+  （英文一句，指出要設哪個 env key），**不建立 task**。判準是「有應用層 JSON body 的 503」，與 gateway 的裸 503 區分（前端 `isLlmUnconfigured`）。
+  適用端點（各端點段落內亦有 `Response 503` 一行）：#7b、#7h、#7e、#7g、#8d（僅會用到 LLM 的步驟）、#12d、#15e、#15j、#16a（僅會生成時）；
+  **第 4 批追加**：#10e、#13b、#14a、#14c、#14g、#21h（#21h 例外：覆蓋率不足時任務不碰 LLM，見該端點）。
+  **第 5 批追加**：#21c、#21e。
+  章節審閱的 #22 系列另有自己的 503（見該節），語意相同。
+  **沒有 provider 時後端照常啟動**（零成本端點全部可用）：服務拿到一個「用到才報錯」的替身 LLM；
+  聊天 WebSocket `WS /ws/chat` 保持連線、每則訊息回 `{"type":"error","detail":"LLM provider is not configured: …"}`；
+  #12e 認知狀態照常回已知／未知，`misbeliefs` 為空陣列、`misbeliefsInferred: false` 且**不寫快取**（設定 provider 後重查即補上）。
 
 ---
 
@@ -75,15 +86,15 @@ interface PipelineStatus {
 interface Book {
   id: string;
   title: string;
-  author?: string;
+  author?: string;         // #1 不回傳（列表不查此欄）；只有 #2-a／#3 帶值。書庫刻意不顯示作者行
   // pipeline_status 推導：任一步 failed → error；四步全 done → analyzed；其餘 ready。
   // 沒有 'processing'：還在跑 ingestion 的書被 #1 濾掉（前端畫 ProcessingBookCard），
   // 且 StepStatus 沒有 running，後端分不出「正在跑」與「從沒跑過」。
   status: 'ready' | 'analyzed' | 'error';
   chapterCount: number;    // 只計 body 章；序/目次/後記不計入（與閱讀頁章節列表一致）
   entityCount?: number;
-  uploadedAt: string;
-  lastOpenedAt?: string;   // 後端尚未實作寫入，目前永遠為 undefined
+  uploadedAt: string;      // #1 固定為空字串（列表不查處理時間）；#2-a／#3 為處理完成時間
+  lastOpenedAt?: string;   // UTC ISO-8601（結尾 Z），由 #2-c 寫入；從未開啟則為 null。#1 / #2-a / #3 皆回傳
   pipelineStatus: PipelineStatus;
 }
 ```
@@ -104,6 +115,20 @@ interface Book {
 
 ---
 
+### #2-c POST /books/:bookId/opened
+
+蓋「最近開啟」時戳（`documents.last_opened_at`，UTC `YYYY-MM-DDTHH:MM:SSZ`）。
+前端進入任一書籍路由（`BookLayout`，依 `bookId`）時呼叫一次，fire-and-forget、失敗不提示；
+成功後前端 invalidate 書庫列表 query。GET 端點不會寫入此欄位。
+
+**Response 204**：成功，無 body
+
+**Response 404**：書籍不存在，`{ "detail": "Book '...' not found" }`
+
+**UI 使用頁面**：首頁「最近開啟」列（讀 `lastOpenedAt`）；寫入端為 `BookLayout`
+
+---
+
 ### #2-b DELETE /books/:bookId
 
 刪除書籍。若該書仍有進行中的 ingestion 任務（`running` / `awaiting_review`），
@@ -112,7 +137,9 @@ interface Book {
 
 **Response 204**：刪除成功，無 body
 
-**UI 使用頁面**：首頁（刪除操作，待實作）
+**Response 404**：書籍不存在
+
+**UI 使用頁面**：首頁書卡刪除兩段式（`BookCard`）、章節審閱頁「放棄」、上傳頁處理卡「終止」
 
 ---
 
@@ -143,6 +170,7 @@ language  (ISO 639-1 語言代碼，選填；省略時由後端自動偵測，�
 **Response 422**：非 .pdf / .docx / .txt / .epub 格式
 
 **說明**：取得 taskId 後，前端 polling `GET /tasks/:taskId/status`（見 #8）追蹤處理進度。流程中可能出現 `awaiting_review` 狀態（章節審閱暫停），見 #8「特殊狀態」說明。
+解析後抽不到任何段落（例如沒有文字層的掃描 PDF）時，任務於章節審閱前即 `status: error`、`errorKind: no_text`，**書不入庫**（2026-10-17 起；之前會完成成一本 0 章的空書）。
 
 **UI 使用頁面**：上傳頁 `/upload`
 
@@ -208,7 +236,13 @@ interface BookDetail extends Book {
 
 ### #4 GET /books/:bookId/chapters
 
-章節列表。只回傳 `role` 為 `body` 的章節——目錄、序、跋等非正文章節屬於前後附加內容，不算閱讀流程的一部分，會被排除（但仍保留在資料庫中，供未來跨書籍查閱功能使用）。
+章節列表。預設只回傳 `role` 為 `body` 的章節——目錄、序、跋等非正文章節屬於前後附加內容，不算閱讀流程的一部分，會被排除（但仍保留在資料庫中）。
+
+**Query**
+
+| 參數 | 說明 |
+|------|------|
+| `include_non_body` | `true` → 依文件順序回傳全部章節（含非正文），供閱讀頁的卷首／卷末唯讀呈現。非正文章的 `entityCount` 為 0、`summary`／`topEntities`／`keywords` 為 null（pipeline 不處理非正文）；無標題時 `title` 為空字串（不套「Chapter N」，因非正文的 `order` 不是故事章號） |
 
 **Response 200**
 ```ts
@@ -218,7 +252,8 @@ interface Chapter {
   id: string;
   bookId: string;
   title: string;
-  order: number;
+  order: number;      // 故事章號：body 1..N；卷首 ≤ 0、卷末 > N
+  role: 'body' | 'toc' | 'preface' | 'afterword' | 'other';
   chunkCount: number;
   entityCount: number;
   summary?: string;
@@ -231,7 +266,7 @@ interface Chapter {
 }
 ```
 
-**UI 使用頁面**：閱讀頁欄 2
+**UI 使用頁面**：閱讀頁欄 2（帶 `include_non_body=true`）
 
 ---
 
@@ -461,11 +496,14 @@ interface ArchetypeDetail {
 }
 
 interface ArcSegment {
-  chapterRange: string;
+  chapterRange: string;             // "a-b" 或單章 "n"
   phase: string;
   description: string;
 }
 ```
+
+`CepData`（見 generated.ts）的 `keyEvents` 是 LLM 產出的物件陣列（`event` / `chapter` / `significance`）。
+**`keyEvents[].chapter` 一律為 `number | null`**：LLM 常寫成字串 `"1"`，後端回應時轉成整數（快取中的舊結果同樣適用）；無法解析為整數章號時為 `null`。
 
 **Response 404**：尚未生成，前端顯示「未生成」引導按鈕
 
@@ -482,6 +520,8 @@ interface ArcSegment {
 - `retryFailed`：只重跑快取結果的 `failedParts`（沿用快取的 CEP 與已成功 part）。server 自行從快取推算 part，前端不需傳。
 
 **Response 200**：`{ taskId: string }`
+
+**Response 503**：未設定 LLM provider（見「通用規則」）；404（實體不存在）優先於 503
 
 **說明**：每次觸發**一律同時產生 Jung 與 Schmidt 兩種 archetype**，無需傳 framework 參數。前端的 framework 切換僅影響顯示，不影響 trigger 行為。
 
@@ -514,14 +554,34 @@ interface BatchAnalysisRequest {
 
 **Response 404**：書本不存在
 **Response 400**：書本內無 character 類型實體（含 `entityIds` 提供但子集內無任何有效角色的情況——視為同一種空結果）
+**Response 503**：未設定 LLM provider（見「通用規則」）；在 404／400 之後檢查
+**Response 409**：同一本書已有角色批次執行中 —— body `{ "detail": string, "code": "batch_running" }`，**不建立 task**。
+再開一輪會讓兩輪對同一批尚未寫入快取的項目各呼叫一次 LLM。在 404／400／503 之後檢查；前端改以 #7j 取回進行中的 taskId 接手。
 
-**說明**：TaskStatus.result 的進度格式與事件批次共用 `BatchEepResult`（見 #7g）；`total` 為實際執行的角色數（有 `entityIds` 時為子集大小，非全書角色數）。`entityIds` 中不存在的 id 直接排除，不計入任何統計欄位（不算 skipped/failed）。仍會 skip 已分析角色（cache hit）。polling #8。
+**說明**：TaskStatus.result 的進度格式與事件批次共用 `BatchEepResult`（見 #7g）；`total` 為實際執行的角色數（有 `entityIds` 時為子集大小，非全書角色數）。`entityIds` 中不存在的 id 直接排除，不計入任何統計欄位（不算 skipped/failed）。仍會 skip 已分析角色（cache hit）。polling #8。`stepKey`（`batch_progress`／`rate_limited`）語意同 #7g。
 
 **UI 使用頁面**：角色分析頁「一鍵生成全部角色分析」、分層批次「先生成前 10 位要角」（#11）
 
 ---
 
+### #7j GET /books/:bookId/entities/analyze-all/active
+
+取回這本書目前執行中的角色批次（#7h）的 taskId。唯讀、不花 token。
+
+**Response 200**：`{ taskId: string | null }` —— 沒有執行中的批次時為 `null`（不回 404）
+
+**說明**：頁面重新掛載時用它接手進行中的批次（繼續 polling #8），而不是再給一次「開始」；#7h 回 409 `batch_running` 時亦同。
+記錄存在後端進程內（與任務取消同一套 registry）：單一 worker 有效，後端重啟後為 `null`（背景任務本身也已中止）。
+
+**UI 使用頁面**：角色分析頁批次面板——進頁面時恢復「執行中」，觸發回 409 時接手（`useBatchTask` 的 `resume`）
+
+---
+
 ## 深度分析（事件層級）
+
+**章節欄位命名**：#6b、#7d 的章號欄位叫 `chapter`，#7m、#7i（`EventSourcePassage`）叫 `chapterNumber`，兩者同義（1-based 章號）；為避免 breaking change 不改名。
+
+**事件歸屬**：本節所有單件事件端點（#7d／#7e／#7f／#7i／#7m）對「事件存在但屬於別本書」一律回 404，與事件不存在無異。
 
 ### #7d GET /books/:bookId/events/:eventId/analysis
 
@@ -538,7 +598,7 @@ interface EventAnalysisDetail {
   summary: { summary: string };
   status: 'complete' | 'partial';   // partial = causality / impact 子步驟生成失敗
   failedParts: string[];            // 失敗 part，如 ['impact']
-  analyzedAt: string;
+  analyzedAt: string | null;
   chapter?: number | null;        // 事件所在章節
   chunk?: number | null;          // 事件在章節內的位置（目前對應 Event.narrative_position，未來改用 chunk_id 時不變動此欄位語意）
   narrativeMode?: string | null;  // present | flashback | flashforward | parallel | unknown
@@ -563,7 +623,7 @@ interface EventEvidenceProfile {
 }
 ```
 
-**Response 404**：尚未生成
+**Response 404**：事件不存在、不屬於這本書，或尚未生成
 
 **UI 使用頁面**：事件分析頁內容區
 
@@ -577,7 +637,58 @@ interface EventEvidenceProfile {
 
 **Response 200**：`{ taskId: string }`
 
+**Response 503**：未設定 LLM provider（見「通用規則」）；404（事件不存在或不屬於這本書）優先於 503
+
+**Response 409**：同一件事件已有分析在執行中（任一 `mode`）—— body `{ "detail": string, "code": "analysis_running" }`，**不建立 task**。
+兩輪會對同一件事件各呼叫一次 LLM。在 404／503 之後檢查；進行中的 taskId 由 #7l 取得。只擋同一件事件：別件事件、以及整本批次（#7g）都不互擋。
+
+**說明**：polling #8 時，`TaskStatus.stepKey` 依序為 `eep`（5%）→ `causality`（30%）→ `summary`（75%）→ `coverage`（95%）；`retryFailed` 沿用 cached EEP 時不經 `eep`。前端以 i18n 顯示階段名，`stage` 仍為英文字串供 log 使用。
+
 **UI 使用頁面**：事件分析頁「建立」按鈕
+
+---
+
+### #7l GET /books/:bookId/events/analyses/running
+
+這本書目前執行中的單件事件分析（#7e）。唯讀、不花 token。
+
+**Response 200**
+```ts
+{ running: Array<{ eventId: string; taskId: string }> }  // 沒有時為 []（不回 404）
+```
+
+**說明**：頁面重新掛載（或另一個分頁已開始）時用它接手進行中的生成，而不是再給一次「建立」；#7e 回 409 `analysis_running` 時亦同。
+回清單而非單筆：不同分頁可能同時在跑不同事件。記錄與 #7k 同一套進程內 registry：單一 worker 有效，後端重啟後為 `[]`。
+
+**UI 使用頁面**：事件分析頁——進頁面時恢復單件「生成中」（列上的生成中點），#7e 回 409 時接手
+
+---
+
+### #7m GET /books/:bookId/events/:eventId/quote-sources
+
+把已分析事件的關鍵引言（#7d `eep.keyQuotes`）逐句對到它在書中的段落。唯讀、不花 token（不呼叫 LLM、不用向量檢索）。
+
+**Response 200**
+```ts
+{
+  eventId: string;
+  quotes: Array<{
+    text: string;                  // 與 keyQuotes 同序、同字
+    paragraphId: string | null;    // 對不到唯一段落時為 null
+    chapterNumber: number | null;  // 該段落所在章（1-based）
+  }>;
+}
+```
+
+**Response 404**：事件不存在、不屬於這本書，或尚未分析（無 #7d 快取）
+
+**比對規則**（確定性文字比對）：
+- 引言與段落都先去掉空白（PDF 抽取會在 CJK 字中插空白）與引號 `「」『』"“”‘’`，引言再去掉結尾的 `…`／`.`／`—`。
+- 先找**整句**是段落原文一部分者；沒有時，引言長於 12 字才改用**前 12 字**再找一次。
+- 只收**唯一**的命中：事件所在章恰好一段，或該章沒有命中而全書恰好一段。命中多段一律回 `null`——連到錯的段落比沒有連結更糟。
+- 不用語意檢索：實測語意最近鄰約一半落在錯的段落（2026-10-10，名字的潮汐 18 句中 9 句）；本規則同書 240 句對到 221 句（92%），抽 5 句核對段落皆正確。
+
+**UI 使用頁面**：事件分析頁證據分頁——對到段落的關鍵引言可點擊跳至閱讀頁該段
 
 ---
 
@@ -587,7 +698,9 @@ interface EventEvidenceProfile {
 
 **Response 204**
 
-**UI 使用頁面**：事件分析頁「覆蓋重新生成」
+**Response 404**：事件不存在或不屬於這本書
+
+**UI 使用頁面**：無（前端已不呼叫；「覆蓋重新生成」改用 #7e `mode: 'full'`，新結果寫入前不先刪舊 EEP，避免生成失敗時新舊兩頭落空）
 
 ---
 
@@ -620,6 +733,8 @@ interface EventSourceResponse {
 > （`"{title} {description}"`）。UI 必須以「最相關段落」呈現，不得宣稱為原文出處。
 > 向量服務不可用時回傳空陣列而非錯誤。
 
+**Response 404**：事件不存在或不屬於這本書
+
 **UI 使用頁面**：事件分析頁未分析事件狀態
 
 ---
@@ -636,7 +751,11 @@ interface EventSourceResponse {
 
 **Response 202**：`{ taskId: string }`
 
-**說明**：TaskStatus.result 的進度格式見下方 BatchEepResult。polling #8。
+**Response 503**：未設定 LLM provider（見「通用規則」）；在 404／400 之後檢查
+**Response 409**：同一本書已有事件批次執行中 —— body `{ "detail": string, "code": "batch_running" }`，**不建立 task**。
+再開一輪會讓兩輪對同一批尚未寫入快取的項目各呼叫一次 LLM。在 404／400／503 之後檢查；前端改以 #7k 取回進行中的 taskId 接手。
+
+**說明**：TaskStatus.result 的進度格式見下方 BatchEepResult。polling #8。執行中 `stepKey = "batch_progress"`、`subProgress`／`subTotal` 為已處理／總件數；遇 rate limit 中止時先回報一次 `stepKey = "rate_limited"`（同帶件數）再讓任務 `status = "error"`，`stepKey` 與 `sub*` 在 error 後保留，前端據此以 i18n 組「已處理 N/M 件」，`error` 仍是後端中文字串。
 
 ```ts
 interface BatchEepResult {
@@ -657,6 +776,19 @@ interface BatchEepResult {
 `{ entity_id, name, reason }`，依 `name` 排序。
 
 **UI 使用頁面**：事件分析頁「一鍵生成全部 EEP」、批次子集（只生成本章 / 勾選多筆）
+
+---
+
+### #7k GET /books/:bookId/events/analyze-all/active
+
+取回這本書目前執行中的事件批次（#7g）的 taskId。唯讀、不花 token。
+
+**Response 200**：`{ taskId: string | null }` —— 沒有執行中的批次時為 `null`（不回 404）
+
+**說明**：頁面重新掛載時用它接手進行中的批次（繼續 polling #8），而不是再給一次「開始」；#7g 回 409 `batch_running` 時亦同。
+記錄存在後端進程內（與任務取消同一套 registry）：單一 worker 有效，後端重啟後為 `null`（背景任務本身也已中止）。
+
+**UI 使用頁面**：事件分析頁批次面板——進頁面時恢復「執行中」，觸發回 409 時接手（`useBatchTask` 的 `resume`）
 
 ---
 
@@ -697,18 +829,37 @@ interface TaskStatus {
                            // pdfParsing | languageDetect | summarization | featureExtraction
                            // | knowledgeGraph | symbolExploration | dataStorage
                            // 前端 ProcessingTimeline 優先以此判斷步驟狀態，缺省時 fallback 百分比區間
+                           // 批次分析任務（#7g／#7h／#15j）：batch_progress（逐件進度，帶 subProgress／subTotal）
+                           // | rate_limited（rate limit 中止，帶已處理／總數；任務隨後 status=error，stepKey 與 sub* 保留）
+                           // 事件單件分析（#7e）：eep | causality | summary | coverage
+                           // 有 stepKey 時前端以 i18n 組字顯示；stage／error 仍是後端中文，作為向後相容與 log 用
   subProgress?: number;    // 子任務進度（批次任務使用）
   subTotal?: number;
   subStage?: string;
   result?: {
     bookId?: string;        // 上傳完成 or awaiting_review 時提供，用於導向 /books/:bookId
-    failedSteps?: string[]; // 上傳任務：部分步驟失敗時回傳失敗描述列表
+    failedSteps?: string[]; // 上傳任務：部分步驟失敗時回傳失敗描述列表（"step_id: detail"；detail 空時為例外型別名，如 "TimeoutError"）
+    failedStepKinds?: Record<string, 'rate_limited' | 'llm_unconfigured' | 'blocked' | 'timeout' | 'other'>;
+                            // 2026-10-17 起，與 failedSteps 同一組 step_id（summarization／feature_extraction／kg_extraction／symbol_discovery）→ 失敗分類：
+                            // rate_limited＝供應商額度／頻率上限（稍後再跑）；llm_unconfigured＝未設定 LLM（設定前重跑必定再失敗）；
+                            // blocked＝供應商拒絕內容（重跑多半同樣被拒）；timeout＝逾時；other＝其他。
+                            // summarization 的「N/M chapters skipped」取第一個被略過章節的分類。舊任務無此欄位。
     [key: string]: unknown;
   };
   error?: string;
+  errorKind?: 'encrypted' | 'unreadable' | 'no_text' | 'interrupted' | 'internal'
+             | 'rate_limited' | 'llm_unconfigured' | 'blocked' | 'timeout' | 'other' | null;
+                           // status=error 時的失敗分類（2026-10-17 起；ingestion、重啟對帳、#8d 重跑寫入，其他任務為 null）。
+                           // 整本 ingestion 失敗：前五個。#8d 重跑失敗：後五個，語意同下方 result.failedStepKinds。
+                           // encrypted＝PDF 有開啟密碼；unreadable＝檔案損毀／空檔（PDF、DOCX、EPUB 解析失敗）；
+                           // no_text＝抽不到任何文字（掃描檔）；前三者是檔案性質，**同一個檔重試必定再失敗**。
+                           // interrupted＝伺服器重啟中斷；internal＝其他（可能重試即過）。
+                           // 使用者終止仍以 error === 'cancelled' 判斷，不設 errorKind。舊列為 null。
   kind?: string;           // 任務種類（如 'tension' / 'symbol' / 'ingestion'），任務中心據此導向；未提供則不可跳轉
   title?: string;          // 顯示標題；未提供時前端 fallback 用 stage
-  createdAt?: string;      // ISO 時間字串，任務中心排序用
+  createdAt?: string;      // 建立時間，UTC ISO-8601 帶尾端 Z（2026-10-01 起；兩個 task store 一致）。排序與上傳卡「已經過」計時用
+  finishedAt?: string;     // 進入 done / error 的時間，UTC ISO-8601 帶尾端 Z（如 2026-10-01T13:41:55Z）；
+                           // 未終態（pending / running / awaiting_review）為 null。任務中心「N 分鐘前完成」以此起算
   murmurEvents?: MurmurEvent[];  // delta slice（seq >= after 的事件）
 }
 ```
@@ -805,7 +956,15 @@ type TaskListResponse = TaskStatus[];  // TaskStatus 定義見 #8；murmurEvents
 
 **Response 422**：step 名稱無效
 
-**說明**：補跑完成後，對應 `pipelineStatus` 欄位更新為 `done` 或 `failed`。前端完成後需 invalidate `['book', bookId]` query 以重整書籍資料；若從建構概覽頁觸發，另需 invalidate `['buildOverview', bookId]`。
+**Response 409 `batch_running`**（2026-10-15 起）：同一本書已有重跑（任一 step）或 #10e 概念推論在執行（五者共用一把鎖，見 #19c）。body 為 `{ detail, code: "batch_running" }`，不建立 task。前端改以 #19c 取回進行中的 taskId 接手。422／404 優先於 409，409 優先於 503。
+
+**Response 503**：未設定 LLM provider（見「通用規則」）。**只有會用到 LLM 的步驟才檢查**：`summarization`（章節／全書摘要）、
+`knowledge-graph`（實體／關係／事件抽取）、`symbol-discovery`（意象抽取）。`feature-extraction`（embedding＋關鍵字）不呼叫 LLM，
+不檢查；唯一例外是 `KEYWORD_EXTRACTOR_TYPE` 設為 `llm` 或 `composite`（關鍵字抽取器本身走 LLM）時也檢查。422／404 優先於 503。
+
+**失敗**：任務 `status = error`，`error` 為後端細節，`errorKind` 為步驟失敗分類（`rate_limited | llm_unconfigured | blocked | timeout | other`，見 #8；2026-10-17 起）。
+
+**說明**：補跑完成後，對應 `pipelineStatus` 欄位更新為 `done` 或 `failed`。前端完成後需 invalidate `qk.book(bookId)`（`['books', bookId]`）以重整書籍資料；若從建構概覽頁觸發，另 invalidate `qk.buildOverview.manifest(bookId)`、`['narrative', bookId]`、`qk.symbols.overview(bookId)`（這三個 root 不在 books 樹下）。
 
 `summarization` 與 `feature-extraction` 的產物（章節摘要、章節關鍵字）寫在 Document 上，補跑會在步驟結束時落盤，**失敗時也會存下已完成的部分** —— summarization 會跳過已有摘要的章節，因此中斷後再次補跑是續跑而非重跑。`knowledge-graph` 與 `symbol-discovery` 的產物寫在 KG / symbol store，不經此路徑。
 | 事件深度分析（單一） | #7e |
@@ -864,7 +1023,7 @@ interface GraphEdge {
 
 ### #9b GET /books/:bookId/entities/:entityId/chunks
 
-取得特定實體出現的所有段落。
+取得特定實體出現的所有段落。只計正文章節（`role = body`），與 #4 相同：非正文（目錄、序、後記）的段落不列出，`total` 也不計入——否則出處會指向章節清單裡沒有的章。
 
 **Response 200**
 ```ts
@@ -886,7 +1045,7 @@ interface EntityChunkItem {
 }
 ```
 
-**UI 使用頁面**：知識圖譜頁「相關段落」面板
+**UI 使用頁面**：知識圖譜頁「相關段落」面板、閱讀頁實體卡「出現段落」
 
 ---
 
@@ -895,6 +1054,8 @@ interface EntityChunkItem {
 ### #10a POST /books/:bookId/inferred-relations/run
 
 執行 Common Neighbors + Adamic-Adar 演算法，計算候選推斷關係。
+
+**只提出角色 × 角色的配對**（2026-10-08）：共同鄰居仍在整張圖上計算（角色常經由地點、物品相連），但兩端都必須是 `character`——角色 × 地點之類的「潛在夥伴」沒有意義。每次執行都會刪除既有的、兩端不全是角色的 **PENDING** 記錄；CONFIRMED／REJECTED 是使用者的裁決，保留不動。
 
 **Request Body**
 ```ts
@@ -978,6 +1139,10 @@ interface InferredRelationsResponse {
 
 非同步（回 task id 輪詢），與 #10a 不同——#10a 是圖演算法、直接回結果。
 
+**Response 409 `batch_running`**（2026-10-15 起）：同一本書已有 #8d 重跑或另一次概念推論在執行（共用一把鎖，見 #19c）。body 為 `{ detail, code: "batch_running" }`，不建立 task。
+
+**Response 503**：未設定 LLM provider（見「通用規則」）；404（書不存在）優先於 409，409 優先於 503
+
 **UI 使用頁面**：建構概覽頁 `kg_concept_inferred` 節點的 CTA
 
 ---
@@ -1003,7 +1168,7 @@ interface InferredConceptsResponse {
 
 採用命題，寫入圖譜成為 Concept 節點。
 
-**Response 201**：`{ entityId: string }`
+**Response 201**：`ConfirmInferredConceptResponse` — `{ entityId: string }`（2026-10-16 起有 `response_model`，型別進 `generated.ts`；JSON 形狀不變）
 
 重複確認回傳既有 entity，不寫第二個節點。`conceptId` 不屬於該書時回 404。
 
@@ -1094,6 +1259,8 @@ interface EventDetail {
 
 **Response 202**：`{ taskId: string }`
 
+**Response 503**：未設定 LLM provider（見「通用規則」）；404（書不存在）優先於 503
+
 **說明**：polling #8。
 
 **UI 使用頁面**：知識圖譜頁 EpistemicOverlay（內部觸發）
@@ -1104,11 +1271,15 @@ interface EventDetail {
 
 取得角色在指定章節前的認知狀態。
 
-**Query Params**：`up_to_chapter=<number>`（必填）
+**Query Params**：
+- `up_to_chapter=<number>`（必填）
+- `cached_only` (boolean, optional, default `false`) — 該 (角色, 章) 無快取時，只回零成本的已知／未知，**不呼叫 LLM 推論誤信、不寫快取**；有快取時與一般行為相同。
+  `false`（省略）維持既有行為：無快取且有 provider 時會呼叫 LLM 推論誤信並寫快取（**會花 token**）。與 #16a 的 `cached_only` 不同，這裡快取未命中**不回 404**——已知／未知本來就不花錢，照常回。
 
-**Response 200**：`EpistemicStateResponse`（見 generated.ts）
+**Response 200**：`EpistemicStateResponse`（見 generated.ts）。`misbeliefsInferred: boolean`——`false` 表示誤信這一步沒有跑
+（`cached_only` 未命中快取，或未設定 provider），此時 `misbeliefs` 的空陣列代表「尚未推論」而非「沒有誤信」。
 
-**UI 使用頁面**：知識圖譜頁 EpistemicOverlay、閱讀頁 EpistemicSidePanel
+**UI 使用頁面**：知識圖譜頁 EpistemicOverlay、閱讀頁 EpistemicSidePanel、角色分析頁認知狀態分頁與認知對照抽屜
 
 ---
 
@@ -1118,7 +1289,7 @@ interface EventDetail {
 
 取得時間軸資料。
 
-**Query Params**：`order=narrative|chronological|matrix`
+**Query Params**：`order=narrative|chronological`（預設 `chronological`）。後端只認這兩值；其他值（含舊文件列的 `matrix`）**不報錯、照 `narrative` 排序回傳**——矩陣由前端用同一份 payload 畫，不另抓。
 
 **Response 200**
 ```ts
@@ -1187,9 +1358,40 @@ interface TimelineQuality {
 
 **Response 202**：`{ taskId: string }`
 
+**Response 400**：書沒有任何事件；**404**：書不存在
+
+**Response 503**：未設定 LLM provider（見「通用規則」）；在 404／400 之後檢查
+
+**Response 409 `batch_running`**（2026-10-13 起）：同一本書已有時序計算在執行。body 為 `{ detail, code: "batch_running" }`，不建立 task。
+pipeline 是先刪舊時序關係、再逐筆寫入（中間有 await），兩次交錯會讓每條關係重複一份，LLM 也付兩次。前端改以 #13c 取回進行中的 taskId 接手。
+在 404／400／503 之後檢查。
+
 **說明**：polling #8，完成後重新拉取 #13a。
 
+**成功才覆蓋（第 4 批）**：時序關係與 `chronological_rank` 只在 LLM 推論成功之後才清舊寫新。
+推論失敗時**不刪**既有時序關係與排序，任務狀態為 `error`（`error` 為可讀訊息），不再以 `done` 結束。
+
 **UI 使用頁面**：時間軸頁工具列「重新計算時序」
+
+---
+
+### #13c GET /books/:bookId/timeline/running
+
+這本書目前執行中的時間軸頁兩項花 token 任務。唯讀、不花 token。2026-10-13 新增。
+
+**Response 200**
+```ts
+{ computeTaskId: string | null; temporalTaskId: string | null }  // 沒有時皆為 null（不回 404）
+```
+
+- `computeTaskId`：#13b 時序計算
+- `temporalTaskId`：#21h 時序分析（倒敘與預敘）
+
+**說明**：兩項**各有一把鎖**，可以同時在跑（#13b 寫 KG 的時序關係與 `chronological_rank`，#21h 只寫自己的 `temporal_analysis` 快取，互不覆蓋）；
+同一項在同一本書上一次只跑一個，第二次觸發回 409 `batch_running`。頁面重新掛載（或另一個分頁已開始）時用它接手，而不是再給一次觸發鈕。
+記錄與 #7k／#15k／#21m 同一套進程內 registry：單一 worker 有效，後端重啟後為 null。
+
+**UI 使用頁面**：時間軸頁——進頁面時接手進行中的任務、任一 POST 回 409 `batch_running` 時接手（`fetchRunningTimelineTasks`，不走 react-query）
 
 ---
 
@@ -1206,13 +1408,19 @@ Step 1：觸發全書 TEU 組裝。
 ```ts
 {
   document_id: string;
-  language?: string;    // 'zh'（預設）
+  language?: string;    // 書的語言；省略時為 'en'（前端一律帶 book.language）
   force?: boolean;
   concurrency?: number; // 預設 5
 }
 ```
 
 **Response 202**：`TaskStatus`（含 taskId）
+
+**Response 404**：`document_id` 對應的書不存在（不建立 task）
+
+**Response 409 `batch_running`**：同一本書已有 #14a／#14c／#14g 其中一項在執行（三步共用一把鎖，見 #14k）。body 為 `{ detail, code: "batch_running" }`，不建立 task。前端改以 #14k 取回進行中的 taskId 接手。
+
+**Response 503**：未設定 LLM provider（見「通用規則」）
 
 ---
 
@@ -1221,6 +1429,8 @@ Step 1：觸發全書 TEU 組裝。
 Step 1 專用 polling endpoint。
 
 **Response 200**：`TaskStatus`（同 #8）
+
+**Response 404**：taskId 不存在，或不是張力類（`kind !== "tension"`）的 task。
 
 `status === 'done'` 時 `result` 的形狀（`TaskStatus.result` 是 `dict[str, Any]`，
 故不出現在 `generated.ts`，前端需自行 narrow）：
@@ -1252,12 +1462,18 @@ Step 2：觸發 TensionLine 聚合。
 ```ts
 {
   document_id: string;
-  language?: string;
+  language?: string;    // 省略時為 'en'
   force?: boolean;
 }
 ```
 
 **Response 202**：`TaskStatus`（含 taskId）
+
+**Response 404**：`document_id` 對應的書不存在（不建立 task）
+
+**Response 409 `batch_running`**：同一本書已有 #14a／#14c／#14g 其中一項在執行（三步共用一把鎖，見 #14k）。body 為 `{ detail, code: "batch_running" }`，不建立 task。前端改以 #14k 取回進行中的 taskId 接手。
+
+**Response 503**：未設定 LLM provider（見「通用規則」）
 
 ---
 
@@ -1266,6 +1482,8 @@ Step 2：觸發 TensionLine 聚合。
 Step 2 專用 polling endpoint。
 
 **Response 200**：`TaskStatus`
+
+**Response 404**：taskId 不存在，或不是張力類的 task。
 
 完成時 `result` 內容：
 
@@ -1299,6 +1517,8 @@ TensionLine 收錄。
 Step 2 丟掉」的管道。**
 
 **Query Params**：`book_id=<bookId>`（必填）
+
+**Response 404**：書不存在（尚未組裝則是 200 `[]`）。
 
 **Response 200**
 
@@ -1364,7 +1584,7 @@ interface TEUDetail {
 }
 ```
 
-**Response 200**：`TensionLine`（更新後，欄位同 `#14e` 但不含 `teus`）
+**Response 200**：`TensionLine`（更新後，欄位同 `#14e` 但不含 `teus`；`generated.ts` 的 `components["schemas"]["TensionLine"]`）
 
 | 狀態碼 | 情形 |
 |--------|------|
@@ -1397,6 +1617,8 @@ interface TEUDetail {
 
 **Query Params**：`book_id=<bookId>`（必填）
 
+**Response 404**：書不存在（尚未聚合則是 200 `[]`）。
+
 **Response 200**
 ```ts
 TensionLineDetail[]
@@ -1409,7 +1631,7 @@ interface TensionLineDetail {
   canonical_pole_a: string;
   canonical_pole_b: string;
   intensity_summary: number;            // 0–1
-  chapter_range: number[];              // [firstChapter, ..., lastChapter]
+  chapter_range: number[];              // [minChapter, maxChapter]（同 #14d-3）
   thematic_note?: string | null;        // LLM 在分組時提出的全線主題註記
   review_status: 'pending' | 'approved' | 'modified' | 'rejected';
   assembled_by: string;                 // 產生此線的聚合步驟版本（'tension_grouper_v1'）
@@ -1483,7 +1705,7 @@ interface Carrier {
 }
 ```
 
-**Response 200**：`TensionLine`（更新後，含 `edit`）
+**Response 200**：`TensionLine`（更新後，含 `edit`；`generated.ts` 的 `components["schemas"]["TensionLine"]`）
 
 > **`modified` 會留下 `edit` 紀錄。** `canonical_pole_a/b` 是原地覆寫，模型原本的
 > 用字若不另存就永久消失，而審核抽屜要同時顯示「現在的標籤」與「原始：舊 A vs 舊 B」。
@@ -1510,12 +1732,18 @@ Step 3：觸發 TensionTheme 合成。
 ```ts
 {
   document_id: string;
-  language?: string;
+  language?: string;    // 省略時為 'en'
   force?: boolean;
 }
 ```
 
 **Response 202**：`TaskStatus`（含 taskId）
+
+**Response 404**：`document_id` 對應的書不存在（不建立 task）
+
+**Response 409 `batch_running`**：同一本書已有 #14a／#14c／#14g 其中一項在執行（三步共用一把鎖，見 #14k）。body 為 `{ detail, code: "batch_running" }`，不建立 task。前端改以 #14k 取回進行中的 taskId 接手。
+
+**Response 503**：未設定 LLM provider（見「通用規則」）
 
 ---
 
@@ -1524,6 +1752,8 @@ Step 3：觸發 TensionTheme 合成。
 Step 3 專用 polling endpoint。
 
 **Response 200**：`TaskStatus`
+
+**Response 404**：taskId 不存在，或不是張力類的 task。
 
 ---
 
@@ -1549,7 +1779,7 @@ interface TensionTheme {
   assembled_at: string;
   review_status: 'pending' | 'approved' | 'modified' | 'rejected';
   is_stale: boolean;             // 主題是否已不反映目前的 TensionLine
-  stale_reason: 'no_lines' | 'lines_regrouped' | 'review_changed' | null;
+  stale_reason: 'pipeline_rerun' | 'no_lines' | 'lines_regrouped' | 'review_changed' | null;
   reviewed_line_count: number | null;  // 合成當下已審核的線數
   total_line_count: number | null;     // 合成當下的線總數
 }
@@ -1561,6 +1791,7 @@ interface TensionTheme {
 > - `lines_regrouped` — 完全沒有交集，代表 Step 2 重跑過、舊 id 全成孤兒
 > - `review_changed` — 有交集但集合不同，代表審核決定改變了輸入範圍
 > - `no_lines` — 已無任何 TensionLine
+> - `pipeline_rerun` — 事件在主題合成後重新抽取過；優先於其他三者（線描述的是已不存在的那一版書）
 >
 > **已知限制**：抓不到「線沒變、只有極點標籤被 `modified` 改寫」的情形——集合相同。
 >
@@ -1589,7 +1820,11 @@ interface TensionTheme {
 >
 > 前端據此以 id 查 i18n（`tension.frye.<id>`）與 CSS（`[data-mode="<id>"]`）。
 
-**UI 使用頁面**：張力分析頁 TensionThemePanel
+**Response 404**：兩種情形，以 `detail` 區分——
+- 尚未合成：`No TensionTheme found for book '…'. Run synthesis first.`（頁面視為「沒有主題」）
+- 書不存在：`Book '…' not found`
+
+**UI 使用頁面**：張力分析頁 TensionThemeHero
 
 ---
 
@@ -1606,9 +1841,27 @@ interface TensionTheme {
 }
 ```
 
-**Response 200**：`TensionTheme`（更新後）
+**Response 200**：`TensionTheme`（更新後；domain 原形，不含 #14i 的 `is_stale`／`stale_reason`；`generated.ts` 的 `components["schemas"]["TensionTheme"]`）
 
-**UI 使用頁面**：張力分析頁 TensionThemePanel 審核按鈕
+**UI 使用頁面**：張力分析頁 TensionThemeHero 審核按鈕
+
+---
+
+### #14k GET /tension/running
+
+同一本書正在執行的張力任務（#14a／#14c／#14g 三者共用一把鎖，同時最多一個）。唯讀，供頁面重掛載（換頁回來、另一個分頁）時接手進行中的 task，而不是提供一顆按了會被 409 的按鈕。
+
+**Query Params**：`book_id=<bookId>`（必填）
+
+**Response 200**（camelCase）
+```ts
+{
+  op: 'analyze' | 'group' | 'synthesize' | null;  // 分別對應 #14a／#14c／#14g
+  taskId: string | null;                           // 無進行中任務時兩者皆 null
+}
+```
+
+記錄與 #7k／#15k／#21m 同一套進程內 registry：單一 worker 有效，後端重啟後為 null。
 
 ---
 
@@ -1881,6 +2134,11 @@ interface SEP {
 
 **Response 202**：`TaskStatus`（含 taskId）
 
+**Response 404**：意象不存在，或不屬於 `book_id` 這本書（2026-10-10 起；先前會以該書的語言替別本書的意象生成並寫入快取）
+**Response 503**：未設定 LLM provider（見「通用規則」）；404 優先於 503
+**Response 409**：同一個意象的詮釋已在執行中 —— body `{ "detail": string, "code": "analysis_running" }`，**不建立 task**。
+在 404／503 之後檢查。只擋同一個意象：別的意象、以及 #15j 整本批次都不互擋（批次執行中的單件鈕由前端停用）。前端改以 #15l 取回進行中的 taskId 接手。
+
 **說明**：polling 走 #15f（不走 #8）。完成後結果存入快取，可由 #15g 取得。
 
 **UI 使用頁面**：象徵意象頁詳情區「生成詮釋」按鈕
@@ -1903,6 +2161,9 @@ interface SEP {
 
 **Response 202**：`TaskStatus`（含 `taskId`）
 **Response 400**：範圍內無任何意象（含 `imagery_ids` 提供但子集內無有效 id 的情況）
+**Response 503**：未設定 LLM provider（見「通用規則」）；在 400 之後檢查
+**Response 409**：同一本書已有象徵詮釋批次執行中 —— body `{ "detail": string, "code": "batch_running" }`，**不建立 task**。
+再開一輪會讓兩輪對同一批尚未寫入快取的項目各呼叫一次 LLM。在 400／503 之後檢查；前端改以 #15k 取回進行中的 taskId 接手。
 
 **說明**
 
@@ -1918,11 +2179,45 @@ interface SEP {
   這裡**只有 id 沒有名稱**——與事件／角色批次不同，這個迴圈拿到的就只有 id。
   rate limit 中止時回傳的摘要同樣帶著這份清單，那正是最需要知道「哪些已經跑掉」的時候。
 - 遇到 rate limit **整批中止**並回報已完成數，不繼續消耗額度。
+  進度 `stepKey = "batch_progress"`；中止前回報一次 `stepKey = "rate_limited"`（語意同 #7g），前端據此在地化。
 - `TaskStatus.result` 用與角色／事件批次共通的 `BatchEepResult`（見 #7g）；
   進度另填 `sub_progress` / `sub_total`，讓 BatchEepPanel 顯示件數而非百分比。
 - polling 走 **#8**（不是 #15f —— #15f 是單一意象的專用 polling）。
 
 **UI 使用頁面**：象徵意象頁全書意象地圖的批次按鈕與進度面板
+
+---
+
+### #15k GET /symbols/analyze-all/active
+
+取回這本書目前執行中的象徵詮釋批次（#15j）的 taskId。唯讀、不花 token。
+
+**Query**：`book_id`（必填）
+
+**Response 200**：`{ taskId: string | null }` —— 沒有執行中的批次時為 `null`（不回 404）
+
+**說明**：頁面重新掛載時用它接手進行中的批次（繼續 polling #8），而不是再給一次「開始」；#15j 回 409 `batch_running` 時亦同。
+記錄存在後端進程內（與任務取消同一套 registry）：單一 worker 有效，後端重啟後為 `null`（背景任務本身也已中止）。
+
+**UI 使用頁面**：象徵意象頁批次面板——進頁面時恢復「執行中」，觸發回 409 時接手（`useBatchTask` 的 `resume`）
+
+---
+
+### #15l GET /symbols/analyses/running
+
+這本書目前執行中的單件象徵詮釋（#15e）。唯讀、不花 token。
+
+**Query**：`book_id`（必填）
+
+**Response 200**
+```ts
+{ running: Array<{ imageryId: string; taskId: string }> }  // 沒有時為 []（不回 404）
+```
+
+**說明**：頁面重新掛載（或另一個分頁已開始）時用它接手進行中的生成，而不是再給一次「生成詮釋」；#15e 回 409 `analysis_running` 時亦同。
+回清單而非單筆：不同分頁可能同時在跑不同意象。記錄與 #15k 同一套進程內 registry：單一 worker 有效，後端重啟後為 `[]`。
+
+**UI 使用頁面**：象徵意象頁——進頁面時接手進行中的單件詮釋（選到該意象即顯示生成中），#15e 回 409 時接手（`useSymbolInterpretationTask`）
 
 ---
 
@@ -1976,6 +2271,7 @@ HITL 審核 / 修改 SymbolInterpretation。
   book_id: string;
   review_status: 'approved' | 'modified' | 'rejected';
   theme?: string;     // modified 時填入
+  evidence_summary?: string; // 選用；省略 = 不動既有值（第 5 批）
   polarity?: 'positive' | 'negative' | 'neutral' | 'mixed';
 }
 ```
@@ -1983,6 +2279,9 @@ HITL 審核 / 修改 SymbolInterpretation。
 **Response 200**：`SymbolInterpretation`（更新後）
 
 **Response 404**：interpretation 不存在
+
+**注意**：此端點走 `save_interpretation()` 寫回，會一併清掉該意象的 `symbol_analysis_block:`
+（`clear_block()`）。不收 `pending`（review_status 只收三值，否則 422）；`assembled_at` 不更新。
 
 **UI 使用頁面**：象徵意象頁詳情區「審核」按鈕
 
@@ -1998,6 +2297,10 @@ HITL 審核 / 修改 SymbolInterpretation。
 
 **Query Params**：
 - `cached_only` (boolean, optional, default `false`) — `true` 時只讀快取，絕不觸發生成：有快取 → 200（同一般行為）；無快取 → **404**（此時才代表「尚未生成」）。`false`（省略）維持既有 lazy 生成行為不變。
+- `force` (boolean, optional, default `false`) — **覆蓋重新生成，成功才覆蓋（ENG-001）**。`true` 時略過快取讀取、照常計算並呼叫 LLM，**取得結果後才寫入快取覆蓋舊 profile**；
+  任何失敗（LLM 錯誤、逾時、輸出無法解析）回 **502** 並**原封保留**舊快取（不會先刪）。與一般首次生成不同：首次生成逾時會退化成空的質性欄位並寫入快取（既有行為不變），
+  `force` 下這種空結果視為失敗、不覆蓋。與 `cached_only=true` 同時給時以 `cached_only` 為準（只讀快取，忽略 `force`）。
+  前端「覆蓋重新生成」呼叫它。原本先清快取的 #16b `DELETE /books/:bookId/entities/:entityId/voice` 已於 2026-10-02 隨 ENG-001 移除（無呼叫端）。
 
 **Response 200**：`VoiceProfileResponse`（見 generated.ts）
 
@@ -2022,17 +2325,11 @@ sentenceLengthHistogram: HistogramBucket[]; // 6 buckets；依實際句長分桶
 
 **Response 422**：entity 無對話段落可分析
 
+**Response 502**：`force=true` 且生成失敗；`detail` 為「Voice profile generation failed; the existing profile was kept: <原因>」。舊快取未被改動
+
+**Response 503**：未設定 LLM provider（見「通用規則」）。**只在會生成時檢查**：`cached_only=true`、以及非 `force` 且快取命中時都不檢查（不會呼叫 LLM）；404 優先於 503
+
 **UI 使用頁面**：角色分析頁 voice tab — VoiceProfilingPanel（ToneDistribution 堆疊條 + SentenceHistogram 直方圖）；`cached_only` 供 #8 伺服器判定生成狀態用（取代 localStorage gate）
-
----
-
-### #16b DELETE /books/:bookId/entities/:entityId/voice
-
-清除語音風格分析結果（搭配重新生成使用）。
-
-**Response 204**
-
-**UI 使用頁面**：角色分析頁 voice tab — VoiceProfilingPanel「重新生成」
 
 ---
 
@@ -2043,12 +2340,14 @@ sentenceLengthHistogram: HistogramBucket[]; // 6 buckets；依實際句長分桶
 取得 Token 用量統計。
 
 **Query Params**：
-- `range=today|7d|30d|all`
+- `range=today|7d|30d|all`（其他值 422）。**以後端主機本地時間的日曆日計**：`today` 自本地午夜起，
+  `7d`／`30d` 為今天加前 6／29 天（自該日本地午夜起），與 `daily` 的分組時鐘相同。
+  （本機自架，主機與瀏覽器通常同一台；2026-10-23 前 `today` 誤用 UTC 午夜、`7d`／`30d` 為滾動 168／720 小時。）
 - `bookId`（選填）：限定單一本書。傳 `__unattributed__` 代表歸不了書的呼叫
   （全站 chat、2026-08-19 歸因修正之前的舊記錄）。**篩選會作用在每一個區塊**
-  ——`summary`、`byService`、`byModel`、`daily` 全部跟著限定。
+  ——`summary`、`byService`、`byModel`、`daily` 全部跟著限定。空字串 422（2026-10-23 前會以 `book_id = ''` 篩選、回全 0）。
 
-**Response 200**
+**Response 200**：`TokenUsageResponse`（`api/schemas/token_usage.py`；前端型別取 generated.ts，不手寫）。形狀如下：
 ```ts
 interface TokenUsageResponse {
   summary: {
@@ -2079,6 +2378,9 @@ interface DailyUsage extends TokenBucket {
   date: string;   // 'YYYY-MM-DD'
 }
 ```
+
+`daily` **逐日連續、沒有呼叫的日子補 0 列**（趨勢不得藏空白日）：範圍起始日到今天；`all` 從第一筆記錄那天起。
+從未有記錄的 `all` 回 `[]`；有範圍但無記錄則是全 0 列（前端以 `summary.totalCalls === 0` 判空）。
 
 `byBook` 是陣列而非 `Record`：`bookId` 為 `null` 是有意義的一組，當不了物件的
 key。各列 `totalTokens` 相加等於 `summary.totalTokens`。
@@ -2113,6 +2415,9 @@ unsupportedByMode: {
 id 而非文案：翻譯歸前端，「哪個方法壞哪些功能」的對照歸後端，避免兩邊各存一份。
 來源是各後端類別的 `UNSUPPORTED` 宣告，由
 `tests/services/test_kg_backend_parity.py` 釘住其與原始碼實際會 raise 的成員相符。
+
+`vectorCount`：所有 Qdrant collection 的 `points_count` 加總（每個 point 一個未命名向量，故 points＝vectors）；
+取不到時為 `null` 並記 warning。qdrant-client 1.18 已移除 `vectors_count`，舊實作因此永遠回 `null`。
 
 **UI 使用頁面**：設定頁 `/settings`（KG 後端切換區）
 
@@ -2177,12 +2482,12 @@ interface UnravelingManifest {
 
 interface UnravelingNode {
   nodeId: string;
-  layer: number;             // 0 = Text / 1 = KG / 2 = Analysis
-  label: string;
+  layer: number;             // 0 = 文本 / 1 = 知識圖譜 / 2 = 分析中間產物 / 3 = 衍生分析 / 4 = 全書合成
+  label: string;             // 後端英文標籤（可含 \n）；前端以 i18n `unraveling.node.*` 顯示
   status: 'complete' | 'partial' | 'empty';
   counts: Record<string, number>;
-  meta: Record<string, string | number | boolean>;
-  parentId?: string;
+  meta: Record<string, unknown>;   // 目前只放純量（書名、作者、語言等）
+  parentId?: string | null;
 }
 
 interface UnravelingEdge {
@@ -2204,7 +2509,7 @@ interface UnravelingEdge {
 interface ChapterDistribution {
   bookId: string;
   totalChapters: number;   // 只計 body 章
-  // nodeId → 12-cell（依書籍實際 body 章節數）counts；
+  // nodeId → 每章一格的 counts，長度＝body 章節數（＝totalChapters）；
   // 不在此 map 中的 nodeId 表示該節點無 chapter-aware 資料
   distributions: Record<string, number[]>;
 }
@@ -2223,6 +2528,24 @@ interface ChapterDistribution {
 **404**：當 `bookId` 不存在。
 
 **UI 使用頁面**：建構概覽頁 `/books/:bookId/unraveling`（NodeDetail panel）
+
+---
+
+### #19c GET /books/:bookId/unraveling/running
+
+同一本書正在執行的建構任務：#8d 的四個重跑步驟與 #10e 概念推論共用一把鎖，同時最多一個（KG 重跑會改寫概念推論讀的事件與段落；同一步重跑兩次則付兩次 LLM）。唯讀，供頁面重掛載（換頁回來、另一個分頁）時接手進行中的 task，而不是提供一顆按了會被 409 的按鈕。
+
+**Response 200**（camelCase）
+```ts
+{
+  op: 'summarization' | 'feature-extraction' | 'knowledge-graph' | 'symbol-discovery' | 'concepts' | null;
+  taskId: string | null;   // 無進行中任務時兩者皆 null
+}
+```
+
+不驗書是否存在（未知書回兩者皆 null，同 #14k）。記錄與 #7k／#14k／#21m 同一套進程內 registry：單一 worker 有效，後端重啟後為 null。角色／事件批次（#7h／#7g）有各自的鎖，不在這把鎖內。
+
+**UI 使用頁面**：建構概覽頁 `/books/:bookId/unraveling`（進頁面與觸發被 409 時，連同 #7j／#7k 一起查，接手進行中的任務）
 
 ---
 
@@ -2307,25 +2630,21 @@ interface ChapterDistribution {
 
 **Response 202**：`TaskStatus`（含 taskId）
 
-**Response 409**：本次執行只會摧毀既有分類，拒絕啟動任務。
+**Response 409**：全書沒有任何事件命中 EEP 分析快取，本次執行不會改變任何東西，拒絕啟動任務。
 
-分類的唯一輸入是 `event:{document_id}:{event_id}` 快取（EEP 分析結果）；**沒有快取的
-事件一律被寫回 `narrative_weight="unclassified"`**。因此當快取全數遺失、而 KG 中仍有
-kernel/satellite 事件時，跑一次分類等於把既有分類全部抹成未分類——書庫兩本測試書的
-未分類比例（9/47、59/62）就是這樣來的。
+**Response 409 `batch_running`**：同一本書已有 #21a／#21c／#21e 其中一項在執行（三者共用一把鎖，見 #21m）。body 為 `{ detail, code: "batch_running" }`，不建立 task。前端改以 #21m 取回進行中的 taskId 接手。
 
-判定條件（最保守，只擋真正會損失資訊的情況）：
+分類的唯一輸入是 `event:{document_id}:{event_id}` 快取（EEP 分析結果）。B-096 之後 service 層
+不再把「沒有快取的事件」寫回 `unclassified`（既有權重一律保留），所以過去的「會抹除既有分類」
+守衛（`_would_wipe`）已刪除；409 現在**只在「EEP 命中數 == 0」時**發生，不論 KG 中有沒有已分類事件。
 
-> EEP 命中數 == 0 **且** KG 中至少有一個事件目前是 kernel/satellite
+`detail` 為英文一句（`Nothing to classify: none of the N events has an event-analysis (EEP) entry … Run event analysis first.`），
+帶出總事件數與目前已分類數；body 只有 `{ detail }`，沒有結構化欄位。`force` 參數對此檢查沒有作用。
 
-全新書（尚無任何分類）不受阻擋：拿 `unclassified` 覆寫 `unclassified` 不損失任何資訊。
+> `POST /narrative/refine` 在「全書皆未分類」時會先呼叫 `classify_from_eep`（在同一個 task 內，受 #21m 鎖保護）。
+> `GET /narrative/kernel-spine` 自 2026-10-12 起不再這麼做（見 #21j）。
 
-`detail` 會帶出實際數字（總事件數、將被抹除的已分類數），前端可直接顯示。
-
-> **同一守衛也存在於 service 層**（`classify_from_eep`），因為 `GET /narrative/kernel-spine`
-> 與 `POST /narrative/refine` 在「全書皆未分類」時會自動呼叫它——前者每次進敘事結構頁
-> 都會執行。service 層命中守衛時記 warning、回傳既有快取結構、**完全不寫 KG**，不拋例外
-> （一個 GET 不該因此讓整頁壞掉）。
+**Response 404**：書不存在（#21a／#21c／#21e 皆同，2026-10-12 起；先前 #21e 會建立 task 並「成功」回空結果）。在 409 之前檢查。
 
 **說明**：polling 走 #21b。
 
@@ -2336,6 +2655,9 @@ kernel/satellite 事件時，跑一次分類等於把既有分類全部抹成未
 #21a 專用 polling endpoint。
 
 **Response 200**：`TaskStatus`（`result` 為 NarrativeStructure）
+
+
+**Response 404**：taskId 不存在，或該 task 不是敘事類（`kind != "narrative"`；2026-10-12 起，先前會回任何 task）。
 
 ---
 
@@ -2355,6 +2677,12 @@ kernel/satellite 事件時，跑一次分類等於把既有分類全部抹成未
 
 **Response 202**：`TaskStatus`（含 taskId）
 
+**Response 404**：書不存在。
+
+**Response 409 `batch_running`**：同 #21a（三者共用一把鎖）。在 503 之前檢查。
+
+**Response 503**：未設定 LLM provider（見「通用規則」）；第 5 批新增，不建立 task
+
 **說明**：polling 走 #21d。
 
 ---
@@ -2364,6 +2692,9 @@ kernel/satellite 事件時，跑一次分類等於把既有分類全部抹成未
 #21c 專用 polling endpoint。
 
 **Response 200**：`TaskStatus`（`result` 為 NarrativeStructure）
+
+
+**Response 404**：taskId 不存在，或該 task 不是敘事類（`kind != "narrative"`；2026-10-12 起，先前會回任何 task）。
 
 ---
 
@@ -2382,6 +2713,14 @@ kernel/satellite 事件時，跑一次分類等於把既有分類全部抹成未
 
 **Response 202**：`TaskStatus`（含 taskId；`result.stages` 為 HeroJourneyStage[]）
 
+**副作用（審核）**：新映射寫回 NarrativeStructure 時，若 `review_status` 不是 `pending`，一律重設為 `pending`（已核可時 `classification_source` 依 #21l 撤回規則還原）——審核鈕就在英雄旅程卡上，重跑換掉了整張卡的內容。#21a／#21c 刻意**保留**審核狀態（只改部分事件權重）。
+
+**Response 404**：書不存在。
+
+**Response 409 `batch_running`**：同 #21a（三者共用一把鎖）。在 503 之前檢查。
+
+**Response 503**：未設定 LLM provider（見「通用規則」）；第 5 批新增，不建立 task
+
 **說明**：polling 走 #21f。
 
 ---
@@ -2392,6 +2731,9 @@ kernel/satellite 事件時，跑一次分類等於把既有分類全部抹成未
 
 **Response 200**：`TaskStatus`
 
+
+**Response 404**：taskId 不存在，或該 task 不是敘事類（`kind != "narrative"`；2026-10-12 起，先前會回任何 task）。
+
 ---
 
 ### #21g GET /narrative/temporal/coverage
@@ -2401,6 +2743,8 @@ kernel/satellite 事件時，跑一次分類等於把既有分類全部抹成未
 **Query Params**：`book_id=<bookId>`（必填）
 
 **Response 200**：`TemporalCoverageStats`（含覆蓋率 fraction 及是否達 60% 門檻）
+
+**Response 404**：書不存在（2026-10-12 起；先前回 200 全 0）。
 
 **說明**：覆蓋率 ≥ 60% 才能觸發 #21h。
 
@@ -2421,7 +2765,15 @@ kernel/satellite 事件時，跑一次分類等於把既有分類全部抹成未
 
 **Response 202**：`TaskStatus`（含 taskId）
 
-**說明**：polling 走 #21i。需先確認 #21g 覆蓋率 ≥ 60%。
+**Response 503**：未設定 LLM provider（見「通用規則」）。**例外**：覆蓋率不足（#21g `coverage_sufficient=false`）時任務不會呼叫 LLM、
+只回 `coverage_sufficient=false`，此時即使沒設定 provider 也照常 202；只有「會真的呼叫 LLM」才回 503。
+（僅在 provider 未設定時才多查一次覆蓋率；已設定時行為與先前完全相同。已有快取且未 `force` 的情形不特別判斷，仍回 503。）
+
+**Response 404**（2026-10-13 起）：書不存在。先前照樣建立 task 並把覆蓋率 0 的結果寫進快取。
+
+**Response 409 `batch_running`**（2026-10-13 起）：同一本書已有 #21h 在執行（自己一把鎖，不與 #21m 的分類／精煉／英雄旅程共用，見 #13c）。不建立 task。在 404／503 之後檢查。
+
+**說明**：polling 可走 #21i（只回敘事類 task）或通用的 #8——時間軸頁走 #8（`useTaskPolling`）。需先確認 #21g 覆蓋率 ≥ 60%。
 
 ---
 
@@ -2431,11 +2783,16 @@ kernel/satellite 事件時，跑一次分類等於把既有分類全部抹成未
 
 **Response 200**：`TaskStatus`
 
+
+**Response 404**：taskId 不存在，或該 task 不是敘事類（`kind != "narrative"`；2026-10-12 起，先前會回任何 task）。
+
 ---
 
 ### #21j GET /narrative/kernel-spine
 
-取得 Kernel 事件清單（情節骨幹），依章節和敘事位置排序。若尚未分類則自動觸發啟發式分類。
+取得 Kernel 事件清單（情節骨幹），依章節和敘事位置排序。**唯讀**（2026-10-12 起）：尚未分類的書回 `[]`，不再自動觸發分類——那是一次在 #21m 鎖之外的 KG 寫入；第一次分類改由敘事頁空態的「依 EEP 分類事件」明確呼叫 #21a。
+
+**Response 404**：書不存在。
 
 **Query Params**：`book_id=<bookId>`（必填）
 
@@ -2448,7 +2805,7 @@ kernel/satellite 事件時，跑一次分類等於把既有分類全部抹成未
   event_type: string;
   description: string;
   significance?: string;
-  narrative_weight: number;
+  narrative_weight: string;   // 'kernel' | 'satellite' | 'unclassified'
   narrative_weight_source: string;
   narrative_position: number;
 }[]
@@ -2468,12 +2825,14 @@ kernel/satellite 事件時，跑一次分類等於把既有分類全部抹成未
 {
   // …NarrativeStructure 既有欄位（snake_case，domain model）
   is_stale: boolean;          // 快取分析早於它所依賴的 pipeline 步驟最後一次執行
-  stale_reason: string | null; // 造成過期的步驟名，如 "feature-extraction"
+  stale_reason: string | null; // 造成過期的步驟名，如 "feature-extraction"、"summarization"
 }
 ```
 
 `is_stale` 每次請求即時推導（比對快取條目的寫入時間與 `PipelineStatus` 的步驟完成
-時間），**不寫入快取**。重跑 pipeline 步驟時，後端不再刪除本書層級的分析——包含
+時間），**不寫入快取**。本端點看的是 `narrative_structure:{book}` 條目，其過期來源為
+`feature-extraction`、`knowledge-graph` 與 `summarization`（第 5 批新增：章節摘要是 LLM 精煉與英雄旅程的輸入，
+重跑後本頁要顯示過期）。重跑 pipeline 步驟時，後端不再刪除本書層級的分析——包含
 `review_status`——而是留著並在此回報過期，由使用者決定要不要重跑。
 
 無法判定時一律回報 `false`：步驟沒有完成時間戳（代表它上次執行早於此機制引入）
@@ -2485,12 +2844,14 @@ kernel/satellite 事件時，跑一次分類等於把既有分類全部抹成未
 
 **`hero_journey_stages[].representative_event_ids` 亦為讀取時推導**，與 `is_stale`
 同類：欄位本身早已存在於 `HeroJourneyStage`，但生成端（`map_hero_journey`）從未寫入。
-本端點回傳前以每個階段的 `chapter_range`（取首尾為區間）與 kernel 骨幹取交集補上，
+本端點回傳前以每個階段的 `chapter_range`（**只取其實際列出的章**，先去重；`[1,2,5,8]` 不含第 3–7 章的事件，
+第 5 批起不再取首尾為區間）與 kernel 骨幹取交集補上，
 沿用 #21j 的章節遞增順序，每階段上限 4 筆。**不寫入快取**，因此既有快取無需 force
 重跑即生效，重複呼叫結果穩定。
 
-推導時讀 KG 事件但**不觸發自動分類**（`get_kernel_spine` 在全書皆未分類時會呼叫
-`classify_from_eep` 並寫回 KG；本端點走的是無副作用的讀取路徑）。
+推導時讀 KG 事件、不寫入（#21j 亦已改為唯讀，兩者共用 `get_kernel_events`）。
+
+**Response 404**：書不存在（`detail` 帶書 id）；或書存在但尚無 NarrativeStructure 且無法重建（`detail`：`No narrative structure for this book yet…`）——頁面把後者當「尚未分析」的空態。
 
 階段共用同一段 `chapter_range` 時會拿到相同的事件，落在 kernel 事件範圍之外的階段
 則為空陣列——階段是章節級、事件在章節內，兩者本就不是一對一。快取中若已帶有值，
@@ -2506,7 +2867,16 @@ kernel/satellite 事件時，跑一次分類等於把既有分類全部抹成未
 
 **Response 404**：書籍不存在
 
-**Response 409**：書籍目前不在 `awaiting_review` 狀態（包含已完成、尚未開始、重複呼叫）
+**Response 409**：書籍目前不在 `awaiting_review` 狀態（包含已完成、尚未開始、重複呼叫）。
+本節的 409 同時適用 #22a / #22b / #22c / #22d 四個審閱端點，body 為
+`{ "detail": string, "code": string }`（形狀同 `ErrorResponse`；`detail` 文字不變），
+前端依 `code` 區分：
+
+| `code` | 條件 | 意義 |
+|---|---|---|
+| `review_not_open` | 找不到任務；或任務尚在審閱點之前（`pending`，或 `running` 但 `result` 無 `bookId`） | 審閱從未開啟 |
+| `review_closed` | 任務 `status == "error"`（含使用者終止：`error: "cancelled"`） | 任務已終止，無可審閱 |
+| `review_submitted` | 任務 `running` / `done` 且 `result.bookId` 存在 | 已越過審閱點（已提交，含重複提交） |
 
 **Response 200**
 ```ts
@@ -2555,7 +2925,7 @@ kernel/satellite 事件時，跑一次分類等於把既有分類全部抹成未
 
 **Response 204**：無 body
 
-**409**：任務不在 `awaiting_review` 狀態（包含重複提交）
+**Response 409**：任務不在 `awaiting_review` 狀態（包含重複提交，`code` 通常為 `review_submitted`）；body 與 `code` 定義見 #22a
 
 ---
 
@@ -2574,7 +2944,7 @@ kernel/satellite 事件時，跑一次分類等於把既有分類全部抹成未
 
 **Response 404**：書籍不存在
 
-**Response 409**：書籍目前不在 `awaiting_review` 狀態
+**Response 409**：書籍目前不在 `awaiting_review` 狀態；body 含 `code`，定義見 #22a
 
 **Response 503**：未設定可用的 LLM provider（AI 判讀不可用）
 
@@ -2612,7 +2982,7 @@ LLM 讀取偵測到的目錄段落文字，抽出**書本自己聲明的章節�
 
 **Response 404**：書籍不存在（僅 fallback 讀檔路徑；有帶 `tocText` 時不讀檔）
 
-**Response 409**：書籍目前不在 `awaiting_review` 狀態
+**Response 409**：書籍目前不在 `awaiting_review` 狀態；body 含 `code`，定義見 #22a
 
 **Response 503**：未設定可用的 LLM provider（AI 解析不可用）
 
@@ -2633,12 +3003,12 @@ LLM 讀取偵測到的目錄段落文字，抽出**書本自己聲明的章節�
 
 ### #21l PATCH /narrative/:documentId/review
 
-HITL 審核 NarrativeStructure（approved / rejected）。
+HITL 審核 NarrativeStructure（approved / rejected / pending）。
 
 **Request Body**
 ```ts
 {
-  review_status: 'approved' | 'rejected';
+  review_status: 'approved' | 'rejected' | 'pending'; // pending = 回到未審閱（第 5 批）
 }
 ```
 
@@ -2648,11 +3018,30 @@ HITL 審核 NarrativeStructure（approved / rejected）。
 `human_verified`。該列舉值一直存在於 domain model，但先前沒有任何寫入點，導致
 「已核可」與「未審閱」的分類在來源上無法區分。
 
-撤回核可（已是 `human_verified` 時改為 `rejected`）必須把來源放回去，而先前的值
+撤回核可（已是 `human_verified` 時改為 `rejected` 或 `pending`）必須把來源放回去，而先前的值
 從未被保存——改由事件自身的 `narrative_weight_source` 還原：任一事件為
 `llm_classified` 則回到 `llm_classified`，否則回到 `summary_heuristic`。
 
-未曾核可過的結構改為 `rejected` 時，`classification_source` 不變。
+未曾核可過的結構改為 `rejected` 或 `pending` 時，`classification_source` 不變；`pending` → `approved` 照常推進為 `human_verified`。
+
+---
+
+### #21m GET /narrative/running
+
+這本書目前執行中的敘事任務（#21a 分類／#21c 精煉／#21e 英雄旅程）。唯讀、不花 token。
+
+**Query**：`book_id`（必填）
+
+**Response 200**
+```ts
+{ op: 'classify' | 'refine' | 'heroJourney' | null; taskId: string | null }  // 沒有時兩者皆 null（不回 404）
+```
+
+**說明**：三者都會讀取、改寫同一份快取的 NarrativeStructure（分類與精煉還會改寫 KG 的 `narrative_weight`），同書並行會互相覆蓋，重複的精煉／英雄旅程則各付一次 LLM，所以**同一本書一次只跑一項**——任一項執行中，三個 POST 都回 409 `batch_running`。
+回單筆而非清單：鎖是書級的，同時至多一項。頁面重新掛載（或另一個分頁已開始）時用它接手，而不是再給一次觸發鈕。
+記錄與 #7k／#15k 同一套進程內 registry：單一 worker 有效，後端重啟後為 null。#21h（時序分析）不在這把鎖內（它有自己的鎖，執行中的 task 由 #13c 取回）。
+
+**UI 使用頁面**：敘事結構頁——進頁面時接手進行中的任務、任一 POST 回 409 `batch_running` 時接手（`fetchRunningNarrative`，不走 react-query）
 
 ---
 
@@ -2668,7 +3057,7 @@ HITL 審核 NarrativeStructure（approved / rejected）。
 {
   "query": "描述主角內心動搖的段落",
   "bookId": null,
-  "topK": 20,
+  "topK": 10,
   "mode": "fulltext"
 }
 ```
@@ -2676,8 +3065,8 @@ HITL 審核 NarrativeStructure（approved / rejected）。
 | 欄位 | 型別 | 說明 |
 |------|------|------|
 | `query` | `string` | 查詢字串 |
-| `bookId` | `string \| null` | `null` = 跨書；傳入 UUID = 限定單書 |
-| `topK` | `integer` | 回傳筆數，1–50，**後端預設 10**（前端一律明給 20） |
+| `bookId` | `string \| null` | `null` = 跨書；傳入 UUID = 限定單書。**前端一律逐書查詢**（每本書各發一次），不走 `null` |
+| `topK` | `integer` | 回傳筆數，1–50，後端預設 10。前端逐書查詢給 10（`PER_BOOK_LIMIT`），「顯示更多」重查該書給 50（`MORE_LIMIT`） |
 | `mode` | `'fulltext' \| 'semantic'` | 預設 `fulltext`。`fulltext` 走 SQLite 全文檢索（`DocumentService.search_paragraphs_by_text`）；`semantic` 走 Qdrant 向量檢索（`VectorService.search`） |
 
 > **`score` 的意義隨 `mode` 改變**，見下方 Response 說明——兩種模式的數值不可互相比較。
@@ -2701,14 +3090,26 @@ HITL 審核 NarrativeStructure（approved / rejected）。
 
 | 欄位 | 說明 |
 |------|------|
-| `score` | **語意隨 `mode` 改變**：`semantic` = Qdrant 相關度 0–1（前端顯示為百分比）；`fulltext` = 關鍵詞命中次數（整數，前端顯示為「N 次」） |
+| `score` | **語意隨 `mode` 改變**：`semantic` = Qdrant 相關度 0–1（前端顯示為百分比）；`fulltext` = 關鍵詞命中次數（整數，前端顯示為「N 次」）：以空白切出的詞不分大小寫去重、長詞優先，數**不重疊**的命中處，與前端 `<mark>` 高亮處數相同；每個詞都須出現（AND），`%`／`_` 依字面比對 |
 | `metadata.documentId` | 所屬書籍 UUID，對應 `GET /api/v1/books/` 的 `id` |
-| `metadata.chapterNumber` | 所在章節（1-based） |
-| `metadata.position` | 段落在章節內的位置（1-based） |
+| `metadata.chapterNumber` | 所在章節的故事章號（1-based）。**只回正文章節**（`role = body`）：全文模式排除序、目錄、後記等非正文段落，語意索引本來就只收正文——兩種模式查的是同一批文字 |
+| `metadata.position` | 段落在章節內的位置（**0-based**，與閱讀頁 `chunk.order` 同一個值；前端定位碼補零顯示為 `§00`） |
+
+**錯誤**（只在帶 `bookId` 時；檢查只在查詢失敗或回空時才做，正常路徑不多花一次查詢）：
+
+| 狀態 | 情況 |
+|------|------|
+| 404 | `bookId` 不存在（兩種模式相同；以前全文回 `[]`、語意回 500） |
+| 409 | 語意模式，書存在但**尚未建立語意索引**（Qdrant 無該書 collection；以前回 500） |
+| 500 | 其他失敗（如嵌入模型錯誤），原錯誤照拋 |
+
+跨書（`bookId: null`）的語意查詢會**靜默略過**查詢失敗的書（`VectorService.search` 只記 warning），聊天工具也共用這條路徑，所以未改；搜尋頁不走它。
+
+全文查詢**不加 SQL `LIMIT`**：排序依 Python 端算的不重疊命中數，先在 SQL 截斷會在排序前丟掉高分段落；實測（4 本書）跨全書 3ms 內。
 
 **前端封裝**：`frontend/src/api/search.ts`  
 **頁面**：`/search`（Sidebar Search 圖示）  
-**實作狀態（2026-06-13）**：已完整實作；`metadata` 欄位修復（原回傳空 `{}`）。
+**實作狀態（2026-06-13）**：已完整實作；`metadata` 欄位修復（原回傳空 `{}`）。2026-10-22：404／409 錯誤、只查正文章節、position 改正為 0-based 描述。
 
 ---
 
@@ -2758,6 +3159,8 @@ interface SettingsInfoResponse {
   appEnv: string;
   primaryLlmProvider: string;      // 'gemini' | 'openai' | 'anthropic' | 'local'
   primaryModel: string;            // 依 primaryLlmProvider 解析出的實際 model 名
+  primaryProviderReady: boolean;   // 主要 provider 可用＝與 503 pre-flight 同一判準（llm_guard.primary_config_error() is None）
+  primaryCredentialEnv: string;    // 讓主要 provider 可用的 .env 變數：'GEMINI_API_KEY' | 'OPENAI_API_KEY' | 'ANTHROPIC_API_KEY' | 'LOCAL_LLM_MODEL'
   analysisTemperature: number;
   chatAgentTemperature: number;
   localLlmModel: string;           // 未設定時為 '(none)'
@@ -2769,6 +3172,9 @@ interface SettingsInfoResponse {
   backendPackages: string[][];     // 同上；版本由 importlib.metadata 取得，取不到為 '(not installed)'
 }
 ```
+
+`primaryProviderReady`／`primaryCredentialEnv` 讓從 503「前往 LLM 設定 →」過來的人看得出主要 provider 是否可用、
+該設哪個變數；只回布林與變數名，**不回金鑰內容**。變數名對照是 `core/llm_client.py::CREDENTIAL_ENV`，503 訊息用同一份。
 
 **UI 使用頁面**：設定頁 `/settings`（`fetchSettingsInfo`）
 
@@ -2853,14 +3259,13 @@ response schema 與測試檔。
 ['books', bookId, 'entities', entityId, 'epistemic-state']  // #12e
 ['books', bookId, 'entities', entityId, 'voice']            // #16a
 ['books', bookId, 'unraveling']                             // #19
-['tension', 'lines', bookId]                                // #14e
-['tension', 'theme', bookId]                                // #14i
-['symbols', bookId]                                         // #15a
-['symbols', bookId, 'overview']                             // #15i
-['symbols', imageryId, 'timeline']                          // #15b
-['symbols', imageryId, 'co-occurrences']                    // #15c
-['symbols', imageryId, 'sep']                               // #15d
-['symbols', imageryId, 'interpretation']                    // #15g
+['books', bookId, 'tension', 'lines']                        // #14e
+['books', bookId, 'tension', 'teus']                        // #14d-2
+['books', bookId, 'tension', 'theme']                       // #14i
+['books', bookId, 'symbols']                                // #15a
+['symbols', bookId, 'overview']                             // #15i（例外：根在 symbols，見 queryKeys.ts）
+['books', bookId, 'symbols', imageryId, 'timeline']         // #15b
+['books', bookId, 'symbols', imageryId, 'interpretation']   // #15g
 ['narrative', bookId]                                       // #21k
 ['narrative', bookId, 'kernel-spine']                       // #21j
 ['narrative', bookId, 'temporal-coverage']                  // #21g
@@ -2878,6 +3283,12 @@ response schema 與測試檔。
 - [x] **TaskStatus 欄位**：`subProgress`、`subTotal`、`subStage` 已加入（批次任務使用）
 - [x] **#9 GraphEdge 推斷欄位**：`inferred`、`confidence`、`inferredId` 已加入
 - [x] **#14 張力分析系列**：專用 polling pattern 已實作（非走 #8）
+  - 2026-10-15：#14d-3／#14f／#14j 加 `response_model`（domain `TensionLine`／`TensionTheme`），回傳型別進 `generated.ts`；JSON 形狀不變。前端 `types.ts` 手寫的 `TensionLine`／`TensionTheme`／`StaleReason` 已刪。
+  - 2026-10-14：#14a／#14c／#14g 同書共用一把鎖，執行中回 409 `batch_running`，書不存在回 404；新增 #14k `GET /tension/running`；#14b／#14d／#14h 只回張力類 task；#14d-2／#14e／#14i 書不存在回 404。文件更正：`language` 省略時為 `'en'`、#14i `stale_reason` 補 `pipeline_rerun`、#14e `chapter_range` 為 `[min, max]`、query key、元件名 TensionThemeHero。
+- [x] **#19 建構概覽**
+  - 2026-10-15：#8d 與 #10e 同書共用一把鎖，執行中回 409 `batch_running`；新增 #19c `GET /books/:bookId/unraveling/running`。
+  - 2026-10-16：文件更正——#19 `layer` 為 0–4 五層、`meta` 為 `Record<string, unknown>`、`parentId` 可為 null（與 `generated.ts` 一致，前端 `api/buildOverview.ts` 改用 generated 型別）；#19b `distributions` 每格一章、長度＝body 章數。#10g 加 `response_model`（`ConfirmInferredConceptResponse`），JSON 不變。
+  - 2026-10-15：建構概覽頁接上 #19c；#8d 說明的 query key 更正（原寫單數 `['book', bookId]`，實際為 `['books', bookId]`）。
 - [x] **#15d-#15h 象徵意象進階分析**：SEP + LLM 詮釋 + HITL 審核已實作（`backend/storysphere/api/routers/symbols.py`）
 - [x] **#16a VoiceProfile**：GET lazy 生成（無 404 表示未生成），DELETE 清快取；無另外的 POST trigger
 - [x] **#18c KG 遷移**：直接回傳 TaskStatus，polling 走 #18d（非走 #8）
@@ -2886,7 +3297,12 @@ response schema 與測試檔。
   - 2026-06-01：#21k / #21l 加 `response_model=NarrativeStructure`，#21j 加 `response_model=list[KernelSpineEvent]`（新增 schema），讓 `generated.ts` 取得 `NarrativeStructure` / `HeroJourneyStage` / `KernelSpineEvent` 型別。回傳 JSON shape 不變（皆為既有 snake_case domain dump）。前端封裝於 `frontend/src/api/narrative.ts`，頁面為 `/books/:bookId/narrative`（B-045）。
   - 2026-08-12：#21k 的 `representative_event_ids` 改為讀取時推導（response schema 不變，欄位早已存在）。詳見 #21k 段落。
   - 2026-08-12：#21a 新增 409（分類會抹除既有分類時拒絕啟動），service 層同步加守衛。詳見 #21a 段落。
+  - 2026-10-04（DS v3 第 5 批）：#21c／#21e 補 503；#21l 開放 `pending`；#21k 過期來源加 `summarization`、代表事件改只取 `chapter_range` 實際列出的章；#21a 的 409 說明改為現況（`_would_wipe` 已於 B-096 刪除）；#21j `narrative_weight` 更正為 string；#15h 加選用 `evidence_summary`。
+  - 2026-10-12：#21j 改為唯讀（不再自動分類）；#21a／#21c／#21e／#21g／#21j／#21k 書不存在回 404；#21b／#21d／#21f／#21i 只回敘事類 task。
+  - 2026-10-12：#21e 新映射寫回時審核重設為 `pending`。
+  - 2026-10-12：#21a／#21c／#21e 同書共用一把鎖，執行中回 409 `batch_running`；新增 #21m `GET /narrative/running`。
+  - 2026-10-13：#21h 書不存在回 404、同書執行中回 409 `batch_running`（自己一把鎖）；#13b 同書執行中回 409；新增 #13c `GET /books/:bookId/timeline/running`。
   - 2026-08-12：#21l 核可時一併寫入 `classification_source='human_verified'`（撤回核可時由事件來源還原）。詳見 #21l 段落。
-- [ ] **#2-a / #3 lastOpenedAt**：後端尚未在開啟書籍時寫入此欄位
+- [x] **#2-a / #3 lastOpenedAt**：`POST /books/:bookId/opened`（#2-c）寫入，#1 / #2-a / #3 回傳 `lastOpenedAt`
 - [x] **#23a 跨書語意搜尋**：`POST /api/v1/search/`，metadata 欄位（`documentId`、`chapterNumber`、`position`）已修復；前端頁面 `/search` 已實作，Sidebar 圖示已啟用（2026-06-13）
 - [ ] **Document scoping**：KG 實體尚未按 document 分隔（單本書模式下無影響）

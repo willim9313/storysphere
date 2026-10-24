@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { apiFetch, apiDelete } from './client';
+import { apiFetch } from './client';
 import type { components } from './generated';
 import { qk } from './queryKeys';
 
@@ -18,9 +18,15 @@ export function fetchVoiceProfile(
   return apiFetch<VoiceProfile>(`/books/${bookId}/entities/${entityId}/voice${qs}`);
 }
 
-export function deleteVoiceProfile(bookId: string, entityId: string): Promise<void> {
-  return apiDelete(`/books/${bookId}/entities/${entityId}/voice`);
+/**
+ * ENG-001 `force=true`: regenerate and overwrite the cache only if generation
+ * succeeds. On failure the request throws and the existing profile is intact,
+ * so callers must keep showing it.
+ */
+export function regenerateVoiceProfile(bookId: string, entityId: string): Promise<VoiceProfile> {
+  return apiFetch<VoiceProfile>(`/books/${bookId}/entities/${entityId}/voice?force=true`);
 }
+
 
 /**
  * #8: server-judged generation status — probes the cache (cached_only=true)

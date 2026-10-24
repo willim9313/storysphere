@@ -18,6 +18,12 @@ def register(task_id: str, task: asyncio.Task) -> None:
     _registry[task_id] = task
 
 
+def is_live(task_id: str) -> bool:
+    """The task is registered and has not finished yet."""
+    task = _registry.get(task_id)
+    return task is not None and not task.done()
+
+
 def cancel(task_id: str) -> bool:
     """Cancel the running task. Returns False if not found or already done."""
     task = _registry.get(task_id)

@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from unittest.mock import AsyncMock, MagicMock
+from types import SimpleNamespace
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 from storysphere.services.voice_profiling_service import (
@@ -223,3 +224,155 @@ class TestLlmQualitativeLocalization:
         await service._llm_qualitative("Alice", [_para("Hello.")])
         system_msg = captured["messages"][0].content
         assert "Respond in English." in system_msg
+
+
+# ── force regeneration (ENG-001) ─────────────────────────────────────────────
+
+class TestForceRegeneration:
+    """``force=True`` overwrites the cache only once a profile was produced.
+
+    Real SQLite cache in ``tmp_path``; only the LLM is stubbed.
+    """
+
+    _GOOD = (
+        '{"speech_style": "new style", "distinctive_patterns": ["a"],'
+        ' "tone": "new tone", "representative_quotes": ["q"]}'
+    )
+
+    @pytest.fixture
+    def cache(self, tmp_path):
+        from storysphere.services.analysis_cache import AnalysisCache
+
+        return AnalysisCache(db_path=str(tmp_path / "cache.db"))
+
+    def _service(self, cache, llm):
+        kg = AsyncMock()
+        kg.get_entity = AsyncMock(
+            return_value=SimpleNamespace(document_id="doc-1", name="Alice")
+        )
+        doc = AsyncMock()
+        para = MagicMock()
+        para.text = "Hello there. How are you?"
+        doc.get_paragraphs_by_entity = AsyncMock(return_value=[("c", 1, "t", para)])
+        return VoiceProfilingService(kg_service=kg, doc_service=doc, llm=llm, cache=cache)
+
+    @staticmethod
+    def _llm(effect):
+        llm = MagicMock()
+        llm.ainvoke = AsyncMock(side_effect=effect)
+        return llm
+
+    @classmethod
+    def _ok(cls, _messages):
+        resp = MagicMock()
+        resp.content = cls._GOOD
+        return resp
+
+    async def _seed_old(self, cache):
+        from datetime import datetime, timezone
+
+        from storysphere.domain.voice_profile import VoiceProfile
+
+        old = VoiceProfile(
+            character_id="ent-alice", character_name="Alice", document_id="doc-1",
+            avg_sentence_length=1.0, question_ratio=0.0, exclamation_ratio=0.0,
+            lexical_diversity=0.0, paragraphs_analyzed=1, speech_style="OLD",
+            distinctive_patterns=[], tone="old", representative_quotes=[],
+            analyzed_at=datetime(2026, 1, 1, tzinfo=timezone.utc),
+        )
+        await cache.set("voice_profile:doc-1:ent-alice:en", old.model_dump(mode="json"))
+
+    async def _cached_style(self, cache):
+        raw = await cache.get("voice_profile:doc-1:ent-alice:en")
+        return raw["speech_style"]
+
+    @pytest.mark.asyncio
+    async def test_llm_error_keeps_old_profile(self, cache):
+        from storysphere.services.voice_profiling_service import VoiceGenerationError
+
+        def _boom(_m):
+            raise RuntimeError("provider down")
+
+        await self._seed_old(cache)
+        svc = self._service(cache, self._llm(_boom))
+
+        with pytest.raises(VoiceGenerationError, match="provider down"):
+            await svc.get_voice_profile("doc-1", "ent-alice", force=True)
+
+        assert await self._cached_style(cache) == "OLD"
+
+    @pytest.mark.asyncio
+    async def test_timeout_keeps_old_profile_instead_of_caching_empty(self, cache):
+        import asyncio
+
+        from storysphere.services import voice_profiling_service as mod
+        from storysphere.services.voice_profiling_service import VoiceGenerationError
+
+        async def _slow(_m):
+            await asyncio.sleep(1)
+
+        await self._seed_old(cache)
+        svc = self._service(cache, self._llm(_slow))
+
+        with patch.object(mod, "_LLM_TIMEOUT", 0.01), pytest.raises(VoiceGenerationError):
+            await svc.get_voice_profile("doc-1", "ent-alice", force=True)
+
+        assert await self._cached_style(cache) == "OLD"
+
+    @pytest.mark.asyncio
+    async def test_unparsable_output_after_retries_keeps_old_profile(self, cache):
+        """llm_retry(reraise=False) ends in tenacity.RetryError, not ValueError."""
+        from storysphere.services.voice_profiling_service import VoiceGenerationError
+
+        def _garbage(_m):
+            resp = MagicMock()
+            resp.content = "not json at all"
+            return resp
+
+        await self._seed_old(cache)
+        svc = self._service(cache, self._llm(_garbage))
+
+        with patch("tenacity.nap.time.sleep"), patch("asyncio.sleep", AsyncMock()):
+            with pytest.raises(VoiceGenerationError):
+                await svc.get_voice_profile("doc-1", "ent-alice", force=True)
+
+        assert await self._cached_style(cache) == "OLD"
+
+    @pytest.mark.asyncio
+    async def test_success_overwrites_old_profile(self, cache):
+        await self._seed_old(cache)
+        svc = self._service(cache, self._llm(self._ok))
+
+        profile = await svc.get_voice_profile("doc-1", "ent-alice", force=True)
+
+        assert profile.speech_style == "new style"
+        assert await self._cached_style(cache) == "new style"
+
+    @pytest.mark.asyncio
+    async def test_without_force_cache_hit_is_served_and_llm_untouched(self, cache):
+        llm = self._llm(self._ok)
+        await self._seed_old(cache)
+        svc = self._service(cache, llm)
+
+        profile = await svc.get_voice_profile("doc-1", "ent-alice")
+
+        assert profile.speech_style == "OLD"
+        llm.ainvoke.assert_not_awaited()
+
+    @pytest.mark.asyncio
+    async def test_first_generation_timeout_still_caches_empty_as_before(self, cache):
+        """Non-force behaviour is unchanged: a timeout degrades to empty fields."""
+        import asyncio
+
+        from storysphere.services import voice_profiling_service as mod
+
+        async def _slow(_m):
+            await asyncio.sleep(1)
+
+        svc = self._service(cache, self._llm(_slow))
+
+        with patch.object(mod, "_LLM_TIMEOUT", 0.01):
+            profile = await svc.get_voice_profile("doc-1", "ent-alice")
+
+        assert profile.speech_style == ""
+        assert await self._cached_style(cache) == ""

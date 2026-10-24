@@ -4,6 +4,7 @@
 import type { TFunction } from 'i18next';
 import { getFrameworks } from '@/data/frameworksData';
 import type { HeroJourneyStage } from '@/api/narrative';
+import { formatChapterRuns } from './narrativeModel';
 
 export type Phase = 'departure' | 'initiation' | 'return';
 export type StageState = 'filled' | 'low' | 'absent';
@@ -18,10 +19,10 @@ export const LAYOUT_IDS: LayoutId[] = ['band', 'track', 'columns', 'ring'];
 
 // Localized chapter-range label, e.g. "第 18–20 章" / "Ch. 18–20".
 export function formatChapters(range: number[] | undefined, t: TFunction): string {
-  if (!range || range.length === 0) return t('narrative.noChapters');
-  const a = range[0];
-  const b = range[range.length - 1];
-  return t('narrative.chapterLabel', { range: a === b ? `${a}` : `${a}–${b}` });
+  // The list is discrete (1, 2, 5, 8) — never collapse it to first–last.
+  const runs = formatChapterRuns(range);
+  if (!runs) return t('narrative.noChapters');
+  return t('narrative.chapterLabel', { range: runs });
 }
 
 // Vogler's 12 stages, in canonical order.
@@ -98,37 +99,6 @@ export function stageState(stage: HeroJourneyStage | undefined): StageState {
   if (!stage || !stage.chapter_range || stage.chapter_range.length === 0) return 'absent';
   if (stage.confidence < 0.6) return 'low';
   return 'filled';
-}
-
-// Confidence → accent fill intensity (%). Higher confidence = deeper fill.
-export function fillPct(confidence: number): number {
-  return Math.round(20 + confidence * 44);
-}
-
-export function discFill(stage: HeroJourneyStage): string {
-  if (stageState(stage) === 'absent') return 'transparent';
-  return `color-mix(in oklab, var(--accent) ${fillPct(stage.confidence)}%, var(--bg-primary))`;
-}
-
-export function discText(stage: HeroJourneyStage): string {
-  if (stageState(stage) === 'absent') return 'var(--fg-muted)';
-  return fillPct(stage.confidence) >= 48 ? 'var(--bg-primary)' : 'var(--fg-primary)';
-}
-
-export function phaseWash(phase: Phase, strong: boolean): string {
-  const pct =
-    phase === 'departure'
-      ? strong
-        ? 10
-        : 5
-      : phase === 'initiation'
-        ? strong
-          ? 16
-          : 9
-        : strong
-          ? 12
-          : 6;
-  return `color-mix(in oklab, var(--accent) ${pct}%, var(--bg-primary))`;
 }
 
 // ── Stage theory lookup (from frameworksData, localized) ───────────

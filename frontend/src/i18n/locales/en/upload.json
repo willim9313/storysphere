@@ -14,10 +14,12 @@
   "languageDe": "Deutsch",
   "languagePt": "Português",
   "languageRu": "Русский",
+  "titleHint": "Can be changed anytime in the library",
   "authorPlaceholder": "Leave blank to auto-detect from file metadata",
   "confirmUpload": "Confirm Upload",
   "processingSection": "Processing",
   "duplicateTitleWarning": "A book titled \"{{title}}\" already exists — this upload will still proceed.",
+  "pollDisconnected": "Can't reach the server right now — reconnecting. This book may still be processing in the background; no need to upload it again.",
   "dropzone": {
     "dragText": "Drag file here, or click to select",
     "supportText": ".pdf, .docx, .txt, .epub · multiple allowed · max 50 MB",
@@ -30,7 +32,8 @@
     "chapterLabel": "Chapter {{n}}",
     "chapterBadge": "Ch",
     "chapterTitlePlaceholder": "(Chapter title)",
-    "paraCount": "{{n}} paras",
+    "paraCount_one": "{{count}} para",
+    "paraCount_other": "{{count}} paras",
     "splitHere": "Split chapter here",
     "splitSelection": "✂ Split into new paragraph",
     "splitBanner": "New paragraph split off at selection — use the \"＋\" between paragraphs to start a chapter here",
@@ -61,12 +64,24 @@
     "discard": "Discard upload",
     "discardConfirm": "Delete the whole book and discard this upload? This cannot be undone.",
     "discardConfirmBtn": "Discard",
-    "errorLoad": "Failed to load chapter data. Please try again later.",
+    "discardFailed": "Couldn't delete the book — it's still here. Please try again later.",
     "errorSubmit": "Submission failed. Please try again later.",
     "spineTitle": "Book structure",
     "spineSummary": "{{total}} paras · {{body}} body / {{nonBody}} non-body · click a block to jump",
     "spineToggle": "Collapse / expand book structure",
     "railHint": "Chapter length by paragraph count (click to jump)",
+    "crumb": "Chapter review",
+    "spineModeChapter": "By chapter",
+    "spineModeOverview": "Overview",
+    "conflict": {
+      "gotoUpload": "Go to Upload & progress",
+      "submittedTitle": "This book's chapter review has already been submitted",
+      "submittedBody": "The review was saved and the pipeline has moved on. Edits on this page will no longer be accepted.",
+      "closedTitle": "Processing of this book was stopped",
+      "closedBody": "The review window is closed; edits on this page will not be accepted.",
+      "notOpenTitle": "This book is not in chapter review right now",
+      "notOpenBody": "Edits on this page will not be accepted."
+    },
     "infoRow": "Set chapter roles in the left spine, paragraph roles via the menu on each paragraph's right · role definitions in the guide on the right",
     "suggestRoles": "Detect boundaries",
     "suggesting": "Detecting…",
@@ -112,6 +127,12 @@
       "notBody": "non-body",
       "empty": "No chapter list could be parsed from this text — it may not be a standard contents page. This doesn't affect your review.",
       "error": "AI parsing is temporarily unavailable. Please try again later."
+    },
+    "a11y": {
+      "spineMode": "Spine view",
+      "chapterTitle": "{{ch}} title",
+      "chapterRole": "{{ch}} role",
+      "paraRole": "{{ch}}, paragraph {{n}} role"
     }
   },
   "steps": {
@@ -122,6 +143,12 @@
     "knowledgeGraph": "Knowledge Graph",
     "symbolExploration": "Symbol Exploration",
     "dataStorage": "Data Storage"
+  },
+  "stepState": {
+    "done": " (done)",
+    "running": " (in progress)",
+    "pending": " (not started)",
+    "error": " (failed)"
   },
   "notify": {
     "doneTitle": "《{{title}}》 analysis complete",
@@ -140,5 +167,49 @@
   "queueTitle": "Upload queue · fill in one by one",
   "queueWaiting": "Waiting to upload",
   "langDetected": "Auto-detected: {{lang}} · editable",
-  "retry": "Retry · keeps title/author, just re-pick the file"
+  "retry": "Retry · keeps title/author, just re-pick the file",
+  "terminate": {
+    "title": "Stop processing \"{{title}}\"?",
+    "message": "The following will be removed and cannot be undone.",
+    "itemTask": "The current processing task",
+    "itemBook": "This book in the library (if already created)",
+    "confirm": "Stop processing"
+  },
+  "murmurEmpty": "Waiting for processing to start…",
+  "card": {
+    "rerun": "Rerun",
+    "rerunning": "Rerunning…",
+    "rerunRetry": "Try again",
+    "rerunDoneTitle": "{{step}} rerun complete",
+    "rerunDoneBody": "The results are filled in — see them in the library.",
+    "rerunFailedTitle": "{{step}} rerun failed",
+    "tryAgain": "Please try again.",
+    "rerunQueuedTitle": "Rerun queued in the Task Center",
+    "rerunQueuedBody": "The rerun is a task of its own; track it in the Task Center.",
+    "partialBadge": "Partially complete",
+    "partialLead": "The book is saved, but these steps didn't finish · rerun them here",
+    "allResolved": "All steps are now complete.",
+    "reviewSubmitFailed": "Couldn't submit the chapter review. The pipeline may have stopped — delete this book and upload it again.",
+    "gotoBook": "Open \"{{title}}\" →",
+    "awaitingReview": "Awaiting review",
+    "gateTitle": "Chapter structure detected — please check it's right",
+    "gateSub": "This is the last human check before processing continues",
+    "acceptDetected": "Accept as detected",
+    "startReview": "Start review →",
+    "elapsed": "Elapsed {{time}}",
+    "processingBook": "Processing book"
+  },
+  "failedKind": {
+    "encrypted": "This PDF is password-protected and can't be read. Remove the password and upload it again — retrying the same file won't work.",
+    "unreadable": "The file couldn't be parsed — it may be damaged or not a valid PDF/DOCX/EPUB. Try another copy; retrying the same file won't work.",
+    "no_text": "No text could be extracted — this may be a scan (images only, no text layer). Run OCR or use a text version first; retrying the same file won't work.",
+    "interrupted": "The server restarted and processing was interrupted. You can simply retry.",
+    "internal": "Something unexpected went wrong while processing. You can retry once; if it fails again, please report the technical details to us."
+  },
+  "stepFailedKind": {
+    "rate_limited": "The LLM provider's quota or rate limit was reached. Rerun later — rerunning right away will likely fail again.",
+    "blocked": "The LLM provider refused part of the content (content filtering). Rerunning will likely give the same result.",
+    "timeout": "The LLM timed out. You can rerun right away.",
+    "other": "Something unexpected went wrong. You can rerun once."
+  }
 }

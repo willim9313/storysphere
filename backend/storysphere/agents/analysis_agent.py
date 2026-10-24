@@ -172,7 +172,7 @@ class AnalysisAgent:
         document_id: str,
         language: str = "en",
         force_refresh: bool = False,
-        progress_callback: Callable[[int, str], None] | None = None,
+        progress_callback: Callable[..., None] | None = None,
         retry_parts: list[str] | None = None,
     ) -> EventAnalysisResult:
         """Run event analysis with cache-first strategy.

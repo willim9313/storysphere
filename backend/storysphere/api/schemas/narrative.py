@@ -4,7 +4,8 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic.alias_generators import to_camel
 
 from storysphere.domain.narrative import NarrativeStructure
 
@@ -30,8 +31,20 @@ class HeroJourneyRequest(BaseModel):
     force: bool = False
 
 
+NarrativeOp = Literal["classify", "refine", "heroJourney"]
+
+
+class RunningNarrativeResponse(BaseModel):
+    """The narrative run going for a book (#21m), or both fields null."""
+
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+    op: NarrativeOp | None = None
+    task_id: str | None = None
+
+
 class NarrativeReviewRequest(BaseModel):
-    review_status: Literal["approved", "rejected"]
+    review_status: Literal["approved", "rejected", "pending"]
 
 
 class TemporalAnalysisRequest(BaseModel):
@@ -43,7 +56,7 @@ class TemporalAnalysisRequest(BaseModel):
 class KernelSpineEvent(BaseModel):
     """One kernel event in the plot spine (response shape for #21j).
 
-    Mirrors the dict assembled in ``get_kernel_spine``. Field names stay
+    Mirrors the dict assembled in the ``get_kernel_spine`` route. Field names stay
     snake_case (no camel alias) to match the existing JSON contract.
     """
 

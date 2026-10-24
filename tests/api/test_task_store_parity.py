@@ -9,14 +9,14 @@
 判準沿用 B-048（雙 KG 後端）那次學到的：**parity 測試要驗行為，不是驗結構**。
 方法名對得上不代表做同一件事，所以這裡每一項都是「做同一串操作、比對可觀察結果」。
 
-**兩處刻意不驗的差異**（2026-09-07 實測，生產路徑不會走到）:
+**刻意不驗的差異**（2026-09-07 實測，生產路徑不會走到）:
 
 * `create()` 對**已存在的 task_id**：Memory 覆寫、SQLite 是 `INSERT OR IGNORE`
   保留舊列。task_id 是 uuid4，生產上不會重用；把任一邊釘死等於凍結一個沒人
   依賴的偶然行為。
-* `create()` **回傳物件**的 `created_at`：Memory 有、SQLite 沒有（SQLite 的時間戳
-  由 DB 預設值產生，要 `get()` 才讀得到）。全 repo 沒有任何呼叫端使用 `create()`
-  的回傳值，八個呼叫點一律丟棄。
+
+（原本第二處——`create()` 回傳物件的 `created_at` 只有 Memory 有——已於 2026-10-01
+隨 created_at 改為兩邊都在 Python 端蓋 UTC 時間戳而消失，改由 TestTimestamps 驗。）
 """
 
 from __future__ import annotations
@@ -67,6 +67,13 @@ class TestLifecycle:
         store.set_failed("t1", "boom")
         task = store.get("t1")
         assert (task.status, task.stage, task.error) == ("error", "失敗", "boom")
+        assert task.error_kind is None
+
+    def test_failed_carries_the_error_kind(self, store):
+        store.create("t1")
+        store.set_failed("t1", "File has not been decrypted", "encrypted")
+        task = store.get("t1")
+        assert (task.error, task.error_kind) == ("File has not been decrypted", "encrypted")
 
     def test_setters_on_an_unknown_id_are_no_ops(self, store):
         """不存在的 task 不該炸，也不該被憑空建出來。"""
@@ -75,6 +82,57 @@ class TestLifecycle:
         store.set_completed("nope", {})
         store.set_failed("nope", "e")
         assert store.get("nope") is None
+
+
+
+class TestTimestamps:
+    """created_at / finished_at 兩邊都必須是 UTC、尾端 Z。
+
+    沒有時區標記的字串，前端 `Date.parse` 一律當本地時間：先前 Memory 寫本地時間、
+    SQLite 寫 UTC，兩者都沒有 Z——SQLite 下上傳卡的「已經過」計時器在 UTC+8 一開始
+    就顯示八小時。任務中心的「N 分鐘前完成」改讀 finished_at 後，也靠同一條格式。"""
+
+    _FORMAT = "%Y-%m-%dT%H:%M:%SZ"
+
+    def _assert_recent_utc(self, value):
+        from datetime import UTC, datetime, timedelta
+
+        assert value is not None
+        stamped = datetime.strptime(value, self._FORMAT).replace(tzinfo=UTC)
+        assert abs(datetime.now(UTC) - stamped) < timedelta(minutes=1)
+
+    def test_created_at_is_utc_on_create_and_get(self, store):
+        returned = store.create("t1")
+        self._assert_recent_utc(returned.created_at)
+        self._assert_recent_utc(store.get("t1").created_at)
+
+    def test_unset_until_the_task_ends(self, store):
+        store.create("t1")
+        assert store.get("t1").finished_at is None
+        store.set_running("t1")
+        store.set_progress("t1", 40, "x")
+        assert store.get("t1").finished_at is None
+
+    def test_awaiting_review_is_not_finished(self, store):
+        store.create("t1")
+        store.set_awaiting_review("t1", "book-1")
+        assert store.get("t1").finished_at is None
+
+    def test_completed_stamps_utc(self, store):
+        store.create("t1")
+        store.set_completed("t1", {})
+        self._assert_recent_utc(store.get("t1").finished_at)
+
+    def test_failed_stamps_utc(self, store):
+        store.create("t1")
+        store.set_failed("t1", "boom")
+        self._assert_recent_utc(store.get("t1").finished_at)
+
+    def test_list_carries_it(self, store):
+        store.create("t1")
+        store.set_completed("t1", {})
+        (task,) = store.list()
+        self._assert_recent_utc(task.finished_at)
 
 
 class TestProgress:

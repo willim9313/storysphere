@@ -1,6 +1,6 @@
 import { useState } from 'react';
-import { ChevronDown, ChevronRight, Sparkles } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { importanceClass, type Importance, type OverviewEvent } from './eventTypes';
 
 interface EventRankingViewProps {
@@ -8,6 +8,9 @@ interface EventRankingViewProps {
   onSelectEvent: (id: string) => void;
   onGenerate: (id: string) => void;
   generatingId: string | null;
+  /** Why no new generation can start right now (another event is generating,
+   *  or a batch is running), shown as the disabled button's tooltip; null = free. */
+  generateBlockedReason?: string | null;
 }
 
 const DEFAULT_ROWS = 11;
@@ -17,6 +20,7 @@ export function EventRankingView({
   onSelectEvent,
   onGenerate,
   generatingId,
+  generateBlockedReason = null,
 }: Readonly<EventRankingViewProps>) {
   const { t } = useTranslation('analysis');
   const [expanded, setExpanded] = useState(false);
@@ -41,115 +45,115 @@ export function EventRankingView({
   const maxParticipants = Math.max(1, ...events.map((e) => e.participants));
 
   return (
-    <>
-      <div className="ea-ov-caption">{t('event.overview.ranking.caption')}</div>
-
-      <div className="ea-ov-hero">
+    <div className="ea-ov-card">
+      <div className={'ea-ov-hero' + (hero.analyzed ? ' is-analyzed' : '')}>
         <span className="ea-ov-hero-rank">#1</span>
         <div className="ea-ov-hero-body">
           <div className="ea-ov-hero-title">
+            <Tooltip label={importanceLabel(hero.importance)}>
+              <span className={'ea-imp is-sm ' + importanceClass(hero.importance)}>
+                {importanceAbbr(hero.importance)}
+              </span>
+            </Tooltip>
             <span className="ea-ov-hero-name">{hero.title}</span>
-            <span
-              className={'ea-imp ' + importanceClass(hero.importance)}
-              title={importanceLabel(hero.importance)}
-            >
-              {importanceAbbr(hero.importance)}
-            </span>
           </div>
           <div className="ea-ov-hero-sub">
-            {t('event.overview.ranking.heroSub', {
-              chapter: hero.chapter ?? '—',
-              importance: importanceLabel(hero.importance),
-              participants: hero.participants,
-            })}
+            {t(
+              hero.analyzed
+                ? 'event.overview.ranking.heroSubAnalyzed'
+                : 'event.overview.ranking.heroSub',
+              {
+                chapter: hero.chapter ?? '—',
+                importance: importanceLabel(hero.importance),
+                participants: hero.participants,
+              },
+            )}
           </div>
         </div>
         {hero.analyzed ? (
           <button
             type="button"
-            className="ea-btn ea-btn-primary"
+            className="ss-btn ss-btn-sm ss-btn-secondary"
             onClick={() => onSelectEvent(hero.id)}
           >
             {t('event.overview.ranking.viewAnalysis')}
           </button>
         ) : (
-          <button
-            type="button"
-            className="ea-btn ea-btn-primary"
-            onClick={() => onGenerate(hero.id)}
-            disabled={generatingId === hero.id}
-          >
-            <Sparkles size={13} /> {t('event.overview.ranking.createHero')}
-          </button>
+          <Tooltip label={generateBlockedReason ?? ''} disabled={!generateBlockedReason}>
+            <button
+              type="button"
+              className="ss-btn ss-btn-sm ss-btn-primary ss-btn-llm"
+              onClick={() => onGenerate(hero.id)}
+              disabled={generatingId === hero.id || !!generateBlockedReason}
+            >
+              {t('event.overview.ranking.createHero')}
+            </button>
+          </Tooltip>
         )}
       </div>
 
       <div className="ea-ov-rank-list">
-        {shown.map((e, i) => (
-          <div
-            key={e.id}
-            className="ea-ov-rank-row"
-            role="button"
-            tabIndex={0}
-            onClick={() => onSelectEvent(e.id)}
-            onKeyDown={(ev) => {
-              if (ev.key === 'Enter' || ev.key === ' ') {
-                ev.preventDefault();
-                onSelectEvent(e.id);
-              }
-            }}
-          >
-            <span className="ea-ov-rank-n">{i + 2}</span>
-            <span
-              className={'ea-imp ' + importanceClass(e.importance)}
-              title={importanceLabel(e.importance)}
-            >
-              {importanceAbbr(e.importance)}
-            </span>
-            <span className={'ea-ov-rank-name' + (e.analyzed ? '' : ' muted')}>{e.title}</span>
-            {e.chapter !== null && (
-              <span className="ea-ov-rank-ch">
-                {t('event.list.chapterShort', { n: e.chapter })}
-              </span>
-            )}
-            <div className="ea-ov-rank-bar-track">
-              <div
-                className={'ea-ov-rank-bar-fill' + (e.analyzed ? '' : ' muted')}
-                style={{ width: `${(e.participants / maxParticipants) * 100}%` }}
-              />
-            </div>
-            <span className="ea-ov-rank-count">
-              {t('event.overview.ranking.participants', { count: e.participants })}
-            </span>
-            {!e.analyzed && (
-              <button
-                type="button"
-                className="ea-ov-rank-gen"
-                onClick={(ev) => {
-                  ev.stopPropagation();
-                  onGenerate(e.id);
-                }}
-                disabled={generatingId === e.id}
-              >
-                {generatingId === e.id ? '…' : t('generate')}
+        {shown.map((e, i) => {
+          const blocked = !!generateBlockedReason && generatingId !== e.id;
+          return (
+            <div key={e.id} className="ea-ov-rank-row">
+              <button type="button" className="ea-ov-rank-main" onClick={() => onSelectEvent(e.id)}>
+                <span className="ea-ov-rank-n">#{i + 2}</span>
+                <Tooltip label={importanceLabel(e.importance)}>
+                  <span className={'ea-imp is-sm ' + importanceClass(e.importance)}>
+                    {importanceAbbr(e.importance)}
+                  </span>
+                </Tooltip>
+                <span className={'ea-ov-rank-name' + (e.analyzed ? '' : ' muted')}>{e.title}</span>
+                {e.chapter !== null && (
+                  <span className="ea-ov-rank-ch">
+                    {t('event.list.chapterShort', { n: e.chapter })}
+                  </span>
+                )}
+                <span className="ea-ov-rank-bar-track">
+                  <span
+                    className={'ea-ov-rank-bar-fill' + (e.analyzed ? '' : ' muted')}
+                    style={{ width: `${(e.participants / maxParticipants) * 100}%` }}
+                  />
+                </span>
+                <span className="ea-ov-rank-count">
+                  {t('event.overview.ranking.participants', { count: e.participants })}
+                </span>
               </button>
-            )}
-          </div>
-        ))}
+              {/* Sibling of the select button. While blocked it stays focusable and
+                  clickable (aria-disabled): the click opens the event instead. */}
+              {!e.analyzed && (
+                <Tooltip label={generateBlockedReason ?? ''} disabled={!blocked}>
+                  <button
+                    type="button"
+                    className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+                    onClick={() => (blocked ? onSelectEvent(e.id) : onGenerate(e.id))}
+                    disabled={generatingId === e.id}
+                    aria-disabled={blocked || undefined}
+                  >
+                    {generatingId === e.id ? '…' : t('generate')}
+                  </button>
+                </Tooltip>
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {rest.length > DEFAULT_ROWS && (
         <button
           type="button"
-          className="ea-btn ea-ov-expand-btn"
+          className="ea-ov-expand-btn"
+          aria-expanded={expanded}
           onClick={() => setExpanded((v) => !v)}
         >
-          {expanded ? <ChevronDown size={13} /> : <ChevronRight size={13} />}
           {expanded
             ? t('event.overview.ranking.collapse')
             : t('event.overview.ranking.expand', { count: rest.length - DEFAULT_ROWS })}
         </button>
       )}
-    </>
+
+      <p className="ea-ov-caption">{t('event.overview.ranking.caption')}</p>
+    </div>
   );
 }

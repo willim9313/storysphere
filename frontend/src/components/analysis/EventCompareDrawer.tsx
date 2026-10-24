@@ -4,6 +4,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { fetchEventAnalysisDetail } from '@/api/analysis';
 import type { AnalysisItem, EventAnalysisDetail } from '@/api/types';
+import { useDialogFocus } from '@/hooks/useDialogFocus';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
 import { qk } from '@/api/queryKeys';
 
@@ -50,6 +51,8 @@ export function EventCompareDrawer({
   /* eslint-enable react-hooks/set-state-in-effect */
 
   useEscapeKey(open, onClose);
+  // Focus in on open, Tab kept inside, back to 「對比」 on close.
+  const dialogRef = useDialogFocus(open);
 
   const a = useEventDetail(bookId, open ? aId : null);
   const b = useEventDetail(bookId, open ? bId : null);
@@ -59,32 +62,62 @@ export function EventCompareDrawer({
   return (
     <>
       <div className="ea-compare-backdrop" onClick={onClose} />
-      <aside className="ea-compare-drawer" role="dialog" aria-modal="true">
+      <aside
+        ref={dialogRef}
+        className="ea-compare-drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="ea-compare-title"
+      >
         <header className="ea-compare-head">
           <div>
-            <h3 className="ea-compare-title">{t('event.compare.title')}</h3>
+            <h3 id="ea-compare-title" className="ea-compare-title" tabIndex={-1}>
+              {t('event.compare.title')}
+            </h3>
             <p className="ea-compare-sub">{t('event.compare.subtitle')}</p>
           </div>
-          <button type="button" className="ea-btn" onClick={onClose}>
-            <X size={14} /> {t('event.compare.close')}
+          <button
+            type="button"
+            className="ss-btn ss-btn-sm ss-btn-ghost"
+            aria-label={t('event.compare.close')}
+            onClick={onClose}
+          >
+            <X size={14} />
           </button>
         </header>
-        <div className="ea-compare-body">
-          <CompareColumn
-            side="A"
-            value={aId}
-            options={analyzed}
-            onChange={setAId}
-            detail={a.data}
-            loading={a.isLoading}
+        <div className="ea-compare-grid">
+          <div className="ea-compare-selrow">
+            <span />
+            <CompareSelect side="A" value={aId} options={analyzed} onChange={setAId} />
+            <CompareSelect side="B" value={bId} options={analyzed} onChange={setBId} />
+          </div>
+          <CompareRow
+            label={t('event.labels.before')}
+            a={a}
+            b={b}
+            render={(d) => d.eep.stateBefore}
           />
-          <CompareColumn
-            side="B"
-            value={bId}
-            options={analyzed}
-            onChange={setBId}
-            detail={b.data}
-            loading={b.isLoading}
+          <CompareRow
+            label={t('event.labels.after')}
+            a={a}
+            b={b}
+            render={(d) => d.eep.stateAfter}
+          />
+          <CompareRow
+            label={t('event.labels.participantImpacts')}
+            a={a}
+            b={b}
+            render={(d) =>
+              d.impact.participantImpacts.length > 0 ? (
+                <ul className="ea-compare-list">
+                  {d.impact.participantImpacts.map((i) => (
+                    <li key={i}>{i}</li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="ea-compare-empty">{t('event.compare.noImpact')}</p>
+              )
+            }
           />
         </div>
       </aside>
@@ -92,75 +125,61 @@ export function EventCompareDrawer({
   );
 }
 
-function CompareColumn({
+type DetailQuery = { data: EventAnalysisDetail | undefined; isLoading: boolean };
+
+function CompareSelect({
   side,
   value,
   options,
   onChange,
-  detail,
-  loading,
 }: Readonly<{
   side: string;
   value: string | null;
   options: AnalysisItem[];
   onChange: (id: string) => void;
-  detail: EventAnalysisDetail | undefined;
-  loading: boolean;
 }>) {
   const { t } = useTranslation('analysis');
   return (
-    <div className="ea-compare-col">
-      <select
-        className="ea-compare-select"
-        value={value ?? ''}
-        aria-label={t('event.compare.pick', { side })}
-        onChange={(e) => onChange(e.target.value)}
-      >
-        {options.map((o) => (
-          <option key={o.entityId} value={o.entityId}>
-            {o.chapter != null ? `Ch.${o.chapter} · ${o.title}` : o.title}
-          </option>
-        ))}
-      </select>
-
-      {loading && <div className="ea-compare-loading">{t('analyzing')}</div>}
-
-      {!loading && detail && (
-        <div className="ea-compare-card">
-          <div className="ea-compare-card-head">
-            <div className="ea-compare-card-title">{detail.title}</div>
-            <div className="ea-compare-card-meta">
-              {detail.chapter != null && t('event.list.chapterShort', { n: detail.chapter })}
-              {detail.eep.eventImportance && ` · ${detail.eep.eventImportance}`}
-            </div>
-          </div>
-          <div className="ea-compare-card-body">
-            <Field label={t('event.labels.before')} text={detail.eep.stateBefore} />
-            <Field label={t('event.labels.after')} text={detail.eep.stateAfter} accent />
-            <div>
-              <div className="ea-compare-field-label">{t('event.labels.participantImpacts')}</div>
-              {detail.impact.participantImpacts.length > 0 ? (
-                <ul className="ea-compare-list">
-                  {detail.impact.participantImpacts.map((i) => (
-                    <li key={i}>{i}</li>
-                  ))}
-                </ul>
-              ) : (
-                <p className="ea-compare-empty">{t('event.compare.noImpact')}</p>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </div>
+    <select
+      className="ea-compare-select"
+      value={value ?? ''}
+      aria-label={t('event.compare.pick', { side })}
+      onChange={(e) => onChange(e.target.value)}
+    >
+      {options.map((o) => (
+        <option key={o.entityId} value={o.entityId}>
+          {o.chapter != null ? `${t('event.list.chapterShort', { n: o.chapter })} · ${o.title}` : o.title}
+        </option>
+      ))}
+    </select>
   );
 }
 
-function Field({ label, text, accent }: Readonly<{ label: string; text: string; accent?: boolean }>) {
+/** One aligned row of the 72px · 1fr · 1fr grid — 之前／之後／影響 are the only
+ *  structures two events can be compared on side by side. */
+function CompareRow({
+  label,
+  a,
+  b,
+  render,
+}: Readonly<{
+  label: string;
+  a: DetailQuery;
+  b: DetailQuery;
+  render: (d: EventAnalysisDetail) => React.ReactNode;
+}>) {
+  const { t } = useTranslation('analysis');
+  const cell = (q: DetailQuery) =>
+    q.isLoading ? (
+      <span className="ea-compare-loading">{t('common:loading')}</span>
+    ) : q.data ? (
+      render(q.data)
+    ) : null;
   return (
-    <div>
-      <div className={'ea-compare-field-label' + (accent ? ' accent' : '')}>{label}</div>
-      <p className="ea-compare-field-text">{text}</p>
-    </div>
+    <>
+      <div className="ea-compare-rowlabel">{label}</div>
+      <div className="ea-compare-cell">{cell(a)}</div>
+      <div className="ea-compare-cell">{cell(b)}</div>
+    </>
   );
 }

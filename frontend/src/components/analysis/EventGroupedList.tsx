@@ -15,10 +15,25 @@ interface EventGroupedListProps {
   onSelect: (id: string) => void;
   onGenerate: (id: string) => void;
   generatingId: string | null;
+  /** Why no new generation can start right now (another event is generating,
+   *  or a batch is running), shown as the disabled button's tooltip; null = free. */
+  generateBlockedReason?: string | null;
   justDoneIds: Set<string>;
+  /** Items the last batch run failed on (still unanalyzed). Marked on their rows,
+   *  and offered as one more chip so the list can be narrowed to them. */
+  failedIds: readonly string[];
+  failedOnly: boolean;
+  onFailedOnlyChange: (on: boolean) => void;
+  /** Failure reason per event id; passed only while narrowed to failures. */
+  failureReasons?: ReadonlyMap<string, string>;
   checkMode: boolean;
   checked: Set<string>;
   onToggleChecked: (id: string) => void;
+  /** Check mode lives in the list (10 提案 C 區): header 取消勾選 · 已勾選 N, footer 生成已勾選. */
+  onExitCheckMode: () => void;
+  onGenerateChecked: () => void;
+  /** A batch is starting or running: the footer button waits. */
+  batchBusy: boolean;
 }
 
 type Row =
@@ -71,16 +86,43 @@ export function EventGroupedList({
   onSelect,
   onGenerate,
   generatingId,
+  generateBlockedReason = null,
   justDoneIds,
+  failedIds,
+  failedOnly,
+  onFailedOnlyChange,
+  failureReasons,
   checkMode,
   checked,
   onToggleChecked,
+  onExitCheckMode,
+  onGenerateChecked,
+  batchBusy,
 }: Readonly<EventGroupedListProps>) {
   const { t } = useTranslation('analysis');
   const [impFilter, setImpFilter] = useState<Set<ImportanceKey>>(new Set());
   const [modeFilter, setModeFilter] = useState<Set<ModeKey>>(new Set());
   const [groupBy, setGroupBy] = useState<GroupBy>('chapter');
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
+
+  const failedSet = useMemo(() => new Set(failedIds), [failedIds]);
+
+  // Whole-book counts behind each chip, so a filter that would match nothing
+  // (e.g. 衛星 S when every analysis came back kernel) says so before it's pressed.
+  const chipCounts = useMemo(() => {
+    const all: Row[] = [
+      ...evtData.analyzed.map<Row>((item) => ({ kind: 'analyzed', id: item.entityId, item })),
+      ...evtData.unanalyzed.map<Row>((item) => ({ kind: 'unanalyzed', id: item.id, item })),
+    ];
+    const counts = new Map<string, number>();
+    for (const row of all) {
+      const imp = rowImportance(row);
+      counts.set(imp, (counts.get(imp) ?? 0) + 1);
+      const mode = row.item.narrativeMode as string | null | undefined;
+      if (mode) counts.set(mode, (counts.get(mode) ?? 0) + 1);
+    }
+    return counts;
+  }, [evtData]);
 
   const groups = useMemo(() => {
     const all: Row[] = [
@@ -93,6 +135,7 @@ export function EventGroupedList({
       if (q && !rowTitle(row).toLowerCase().includes(q)) return false;
       if (impFilter.size && !impFilter.has(rowImportance(row))) return false;
       if (modeFilter.size && !modeFilter.has(row.item.narrativeMode as ModeKey)) return false;
+      if (failedOnly && !(row.kind === 'unanalyzed' && failedSet.has(row.id))) return false;
       return true;
     });
 
@@ -129,11 +172,23 @@ export function EventGroupedList({
       rows: g.rows,
       analyzedCount: g.rows.filter((r) => r.kind === 'analyzed').length,
     }));
-  }, [evtData, searchQuery, impFilter, modeFilter, groupBy, t]);
+  }, [evtData, searchQuery, impFilter, modeFilter, failedOnly, failedSet, groupBy, t]);
 
-  const hasFilters = impFilter.size > 0 || modeFilter.size > 0;
+  const hasFilters = impFilter.size > 0 || modeFilter.size > 0 || failedOnly;
 
   const chipClass = (active: boolean) => 'ea-chip' + (active ? ' active' : '');
+
+  // A book with no events at all: every filter and grouping is a no-op, and
+  // "no events match these filters" would blame a filter nobody set.
+  if (evtData.analyzed.length + evtData.unanalyzed.length === 0) {
+    return (
+      <div className="ea-list">
+        <div className="ea-list-empty">
+          <span>{t('event.list.empty')}</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <>
@@ -144,9 +199,12 @@ export function EventGroupedList({
               key={key}
               type="button"
               className={chipClass(impFilter.has(key))}
+              aria-pressed={impFilter.has(key)}
+              disabled={!chipCounts.get(key) && !impFilter.has(key)}
               onClick={() => setImpFilter((s) => toggle(s, key))}
             >
               {t(IMPORTANCE_CHIP_KEY[key] as string)}
+              <span className="ea-chip-count">{chipCounts.get(key) ?? 0}</span>
             </button>
           ))}
           {MODE_CHIPS.map((key) => (
@@ -154,32 +212,53 @@ export function EventGroupedList({
               key={key}
               type="button"
               className={chipClass(modeFilter.has(key))}
+              aria-pressed={modeFilter.has(key)}
+              disabled={!chipCounts.get(key) && !modeFilter.has(key)}
               onClick={() => setModeFilter((s) => toggle(s, key))}
             >
               {t(`event.narrative.${key}`)}
+              <span className="ea-chip-count">{chipCounts.get(key) ?? 0}</span>
             </button>
           ))}
+          {failedIds.length > 0 && (
+            <button
+              type="button"
+              className={chipClass(failedOnly)}
+              aria-pressed={failedOnly}
+              onClick={() => onFailedOnlyChange(!failedOnly)}
+            >
+              {t('batch.failedShort', { count: failedIds.length })}
+            </button>
+          )}
         </div>
-        <div className="ea-group-row">
-          <span className="ea-group-label">{t('event.list.groupLabel')}</span>
-          <div className="ea-seg">
-            <button
-              type="button"
-              className={'ea-seg-btn' + (groupBy === 'chapter' ? ' active' : '')}
-              onClick={() => setGroupBy('chapter')}
-            >
-              {t('event.list.groupByChapter')}
-            </button>
-            <button
-              type="button"
-              className={'ea-seg-btn' + (groupBy === 'importance' ? ' active' : '')}
-              onClick={() => setGroupBy('importance')}
-            >
-              {t('event.list.groupByImportance')}
-            </button>
-          </div>
+        <div className="ss-seg ea-seg-full">
+          <button
+            type="button"
+            className={'ss-seg-item' + (groupBy === 'chapter' ? ' active' : '')}
+            aria-pressed={groupBy === 'chapter'}
+            onClick={() => setGroupBy('chapter')}
+          >
+            {t('event.list.groupByChapter')}
+          </button>
+          <button
+            type="button"
+            className={'ss-seg-item' + (groupBy === 'importance' ? ' active' : '')}
+            aria-pressed={groupBy === 'importance'}
+            onClick={() => setGroupBy('importance')}
+          >
+            {t('event.list.groupByImportance')}
+          </button>
         </div>
       </div>
+
+      {checkMode && (
+        <div className="ea-check-head">
+          <button type="button" className="ea-check-cancel" onClick={onExitCheckMode}>
+            {t('batch.checkModeOff')}
+          </button>
+          <span className="ea-check-count">{t('event.list.checkedCount', { count: checked.size })}</span>
+        </div>
+      )}
 
       <div className="ea-list">
         {groups.map((g) => {
@@ -189,6 +268,7 @@ export function EventGroupedList({
               <button
                 type="button"
                 className="ea-list-group-head"
+                aria-expanded={open}
                 onClick={() => setCollapsed((s) => toggle(s, g.key))}
               >
                 <ChevronRight size={12} className={'ea-caret' + (open ? ' open' : '')} />
@@ -206,8 +286,6 @@ export function EventGroupedList({
                       isSelected={selectedEntityId === row.id}
                       onSelect={() => onSelect(row.id)}
                       justDone={justDoneIds.has(row.id)}
-                      showImportance
-                      showNarrative
                     />
                   ) : (
                     <div key={row.id} className="ea-row-wrap">
@@ -226,8 +304,9 @@ export function EventGroupedList({
                         onSelect={() => onSelect(row.id)}
                         onGenerate={() => onGenerate(row.id)}
                         isGenerating={generatingId === row.id}
-                        showImportance
-                        showNarrative
+                        generateBlockedReason={generateBlockedReason}
+                        failed={failedSet.has(row.id)}
+                        failureReason={failureReasons?.get(row.id)}
                       />
                     </div>
                   ),
@@ -239,14 +318,15 @@ export function EventGroupedList({
 
         {groups.length === 0 && (
           <div className="ea-list-empty">
-            <p>{t('event.list.noMatch')}</p>
+            <span>{t('event.list.noMatch')}</span>
             {hasFilters && (
               <button
                 type="button"
-                className="ea-btn"
+                className="ss-btn ss-btn-sm ss-btn-ghost"
                 onClick={() => {
                   setImpFilter(new Set());
                   setModeFilter(new Set());
+                  onFailedOnlyChange(false);
                 }}
               >
                 {t('event.list.clearFilters')}
@@ -255,6 +335,20 @@ export function EventGroupedList({
           </div>
         )}
       </div>
+
+      {checkMode && (
+        <div className="ea-check-foot">
+          <button
+            type="button"
+            className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm"
+            disabled={checked.size === 0 || batchBusy}
+            onClick={onGenerateChecked}
+          >
+            {t('batch.generateChecked')} ({checked.size})
+          </button>
+          <p className="ea-check-note">{t('event.list.checkNote')}</p>
+        </div>
+      )}
     </>
   );
 }

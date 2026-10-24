@@ -3,6 +3,7 @@
   "allBooks": "Library",
   "uploadNew": "Upload Book",
   "filters": {
+    "label": "Filter books",
     "all": "All",
     "analyzed": "Analyzed",
     "ready": "Ready",
@@ -10,24 +11,47 @@
   },
   "empty": {
     "title": "No books in library",
-    "description": "Drop in a PDF — the story starts here"
+    "description": "Upload a novel — the story starts here",
+    "processingTitle": "No uploads in progress",
+    "processingBody": "This filter only lists uploads that are still being processed.",
+    "processingAwaiting": "{{count}} more waiting for chapter review — see above.",
+    "filtered": {
+      "analyzed": "No analyzed books",
+      "ready": "No ready books"
+    },
+    "clearFilter": "Clear filter"
   },
   "card": {
-    "chapters": "ch",
+    "chapterCount_one": "{{count}} chapter",
+    "chapterCount_other": "{{count}} chapters",
     "entities": "entities",
-    "deleteBook": "Delete Book"
+    "deleteBook": "Delete \"{{title}}\"",
+    "deleteConfirm": "Delete?",
+    "deleteConfirmAnalyzed": "Delete? Its analysis will be deleted too.",
+    "deleteFailed": "Delete failed. Try again.",
+    "listSep": ", ",
+    "unavailableSteps": "<nw>Unavailable:</nw> {{steps}}"
   },
   "shortcuts": {
     "continueReading": "Continue Reading",
     "knowledgeGraph": "Knowledge Graph",
     "deepAnalysis": "Deep Analysis",
     "startReading": "Start Reading",
-    "triggerAnalysis": "Trigger Analysis",
+    "buildOverview": "Go to Build Overview",
     "viewError": "View Error"
   },
   "processing": {
     "awaitingReview": "Awaiting chapter review",
     "reviewChapters": "Review chapters",
-    "viewProgress": "View progress"
+    "viewProgress": "View progress",
+    "fallbackTitle": "Processing book"
+  },
+  "summary": {
+    "books_one": "{{count}} book",
+    "books_other": "{{count}} books",
+    "analyzed": "{{count}} analyzed",
+    "ready": "{{count}} ready",
+    "error_one": "{{count}} error",
+    "error_other": "{{count}} errors"
   }
 }

@@ -1,9 +1,12 @@
 import { useMemo, useState } from 'react';
-import { Sparkles, Target, BarChart3, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { Users } from 'lucide-react';
+import { EmptyState } from '@/components/ui/EmptyState';
 import type { AnalysisListResponse } from '@/api/types';
 import { useFactions } from '@/hooks/useFactions';
 import { useCharacterMetrics } from '@/hooks/useCharacterMetrics';
+import { rankFactions } from '../characterModel';
 import { QuadrantView } from './QuadrantView';
 import { RankingView } from './RankingView';
 import { applyFactionsAndMetrics, buildOverviewCharacters } from './types';
@@ -16,11 +19,6 @@ interface CharacterOverviewLandingProps {
   onSelectEntity: (id: string) => void;
   onGenerate: (id: string) => void;
   generatingId: string | null;
-  onOpenBatchModal: (mode: 'top10' | 'all') => void;
-  isBatchRunning: boolean;
-  batchProgressLabel?: string;
-  batchError?: string | null;
-  onDismissBatchError?: () => void;
 }
 
 export function CharacterOverviewLanding({
@@ -29,42 +27,57 @@ export function CharacterOverviewLanding({
   onSelectEntity,
   onGenerate,
   generatingId,
-  onOpenBatchModal,
-  isBatchRunning,
-  batchProgressLabel,
-  batchError,
-  onDismissBatchError,
-}: CharacterOverviewLandingProps) {
+}: Readonly<CharacterOverviewLandingProps>) {
   const { t } = useTranslation('analysis');
+  const navigate = useNavigate();
   const [view, setView] = useState<LandingView>('quadrant');
 
   const { data: factions } = useFactions(bookId);
-  const { data: metrics } = useCharacterMetrics(bookId);
+  const { data: metrics, isLoading: metricsLoading } = useCharacterMetrics(bookId);
 
   const characters = useMemo(() => {
     const base = buildOverviewCharacters(charData);
     return applyFactionsAndMetrics(base, factions, metrics);
   }, [charData, factions, metrics]);
 
+  // 派系依人數排名配色（最多 5 色，第 6 名起併入「其他」）。象限泡泡、圖例與排行點共用。
+  const rankedFactions = useMemo(() => rankFactions(factions?.factions ?? []), [factions]);
+
   const analyzedCount = charData.analyzed.length;
   const unanalyzedCount = charData.unanalyzed.length;
   const totalCount = analyzedCount + unanalyzedCount;
 
+  // No characters at all is not "metrics unavailable": the cast comes from the
+  // knowledge-graph extraction, so point at the build step instead of drawing
+  // an empty chart and an empty ranking.
+  if (totalCount === 0) {
+    return (
+      <>
+        <h1 className="sr-only">{t('character.overview.title')}</h1>
+        <EmptyState
+          weight="prerequisite"
+          icon={<Users size={26} aria-hidden="true" />}
+          title={t('character.overview.empty.title')}
+          description={t('character.overview.empty.description')}
+          action={
+            <button
+              type="button"
+              className="ss-btn ss-btn-md ss-btn-primary"
+              onClick={() => navigate(`/books/${bookId}/unraveling`)}
+            >
+              {t('graph:onboarding.cta')}
+            </button>
+          }
+        />
+      </>
+    );
+  }
+
   return (
     <div className="ca-ov-landing">
-      {batchError && (
-        <div className="ca-inline-banner">
-          <span>{batchError}</span>
-          {onDismissBatchError && (
-            <button type="button" className="ca-btn ca-btn-ghost" onClick={onDismissBatchError}>
-              <X size={12} />
-            </button>
-          )}
-        </div>
-      )}
       <div className="ca-ov-head">
-        <div>
-          <h1 className="ca-ov-title">{t('character.overview.title')}</h1>
+        <div className="ca-ov-head-main">
+          <h1 className="ss-page-title">{t('character.overview.title')}</h1>
           <div className="ca-ov-meta">
             <span>
               <strong>{totalCount}</strong> {t('character.overview.metaTotal')}
@@ -78,57 +91,39 @@ export function CharacterOverviewLanding({
           </div>
         </div>
         <div className="ca-ov-head-actions">
-          {isBatchRunning && batchProgressLabel && (
-            <span className="ca-ov-batch-progress">{batchProgressLabel}</span>
-          )}
-          <button
-            type="button"
-            className="ca-btn"
-            onClick={() => onOpenBatchModal('top10')}
-            disabled={isBatchRunning || unanalyzedCount === 0}
-          >
-            <Sparkles size={14} /> {t('character.overview.batchTop10')}
-          </button>
-          <button
-            type="button"
-            className="ca-btn ca-btn-primary"
-            onClick={() => onOpenBatchModal('all')}
-            disabled={isBatchRunning || unanalyzedCount === 0}
-          >
-            {t('character.overview.batchAll')}
-          </button>
+          {/* The batch buttons moved to the left-column panel (09·10); only the
+              view switch is left, and it is a zero-cost mode switch (no LLM glyph). */}
+          <div className="ss-seg">
+            <button
+              type="button"
+              className={'ss-seg-item' + (view === 'quadrant' ? ' active' : '')}
+              onClick={() => setView('quadrant')}
+            >
+              {t('character.overview.viewQuadrant')}
+            </button>
+            <button
+              type="button"
+              className={'ss-seg-item' + (view === 'ranking' ? ' active' : '')}
+              onClick={() => setView('ranking')}
+            >
+              {t('character.overview.viewRanking')}
+            </button>
+          </div>
         </div>
-      </div>
-
-      <div className="ca-ov-toggle-row">
-        <div className="ca-ov-toggle">
-          <button
-            type="button"
-            className={'ca-ov-toggle-btn' + (view === 'quadrant' ? ' active' : '')}
-            onClick={() => setView('quadrant')}
-          >
-            <Target size={14} /> {t('character.overview.viewQuadrant')}
-          </button>
-          <button
-            type="button"
-            className={'ca-ov-toggle-btn' + (view === 'ranking' ? ' active' : '')}
-            onClick={() => setView('ranking')}
-          >
-            <BarChart3 size={14} /> {t('character.overview.viewRanking')}
-          </button>
-        </div>
-        <span className="ca-ov-toggle-caption">
-          {view === 'quadrant'
-            ? t('character.overview.quadrantCaption')
-            : t('character.overview.rankingCaption')}
-        </span>
       </div>
 
       {view === 'quadrant' ? (
-        <QuadrantView characters={characters} factions={factions} onSelect={onSelectEntity} />
+        <QuadrantView
+          characters={characters}
+          factions={factions}
+          rankedFactions={rankedFactions}
+          metricsLoading={metricsLoading}
+          onSelect={onSelectEntity}
+        />
       ) : (
         <RankingView
           characters={characters}
+          rankedFactions={rankedFactions}
           onSelect={onSelectEntity}
           onGenerate={onGenerate}
           generatingId={generatingId}

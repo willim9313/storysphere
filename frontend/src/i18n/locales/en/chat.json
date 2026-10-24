@@ -13,7 +13,6 @@
     "chapterCharacters": "Key characters in this chapter?",
     "chapterEvents": "What events happened in this chapter?",
     "deepAnalysis": "Deep analysis of {{entity}}",
-    "archetype": "{{entity}}'s character archetype?",
-    "recommend": "Which book should I analyze first?"
+    "archetype": "{{entity}}'s character archetype?"
   }
 }

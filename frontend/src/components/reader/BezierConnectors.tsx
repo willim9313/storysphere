@@ -114,7 +114,7 @@ export function BezierConnectors({
   if (!visible) return null;
 
   return (
-    <div ref={containerRef} className="flex-shrink-0" style={{ width: 34, height: '100%' }}>
+    <div ref={containerRef} className="flex-shrink-0" style={{ width: 34, height: '100%', background: 'var(--bg-secondary)' }}>
       <svg
         width={34}
         height="100%"
@@ -132,6 +132,9 @@ export function BezierConnectors({
             fill="none"
             stroke="var(--accent)"
             strokeLinecap="round"
+            // The viewBox is stretched to the column height (preserveAspectRatio
+            // none); without this the stroke stretches with it into a blob.
+            vectorEffect="non-scaling-stroke"
           />
         ))}
       </svg>

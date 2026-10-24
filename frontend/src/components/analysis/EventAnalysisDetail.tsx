@@ -1,7 +1,19 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type KeyboardEvent, type ReactNode } from 'react';
 import { ArrowRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { fetchEventQuoteSources } from '@/api/analysis';
+import { qk } from '@/api/queryKeys';
 import { EventContextTab } from './EventContextTab';
+import { SourceJumpText } from './SourceJumpText';
+import {
+  causalityEmpty,
+  causeTabEmpty,
+  evidenceTabEmpty,
+  factorsEmpty,
+  impactEmpty,
+} from './eventDetailModel';
 import type {
   EventAnalysisDetail as EventAnalysisDetailType,
   ParticipantRole,
@@ -16,28 +28,26 @@ interface Props {
   /** Enables the 上下文位置 tab, which needs book-level adjacency data. */
   bookId?: string;
   onSelectEvent?: (id: string) => void;
+  /** Title row / meta / guidance ribbon — rendered above the tabs in one head block. */
+  header?: ReactNode;
 }
 
 function EventHero({ data }: { data: EventAnalysisDetailType }) {
   const { t } = useTranslation('analysis');
-  const imp = data.eep.eventImportance;
-  const isKernel = imp === 'KERNEL';
   if (!data.eep.thematicSignificance && !data.summary?.summary) return null;
   return (
-    <div className="ea-hero" data-importance={isKernel ? 'kernel' : 'satellite'}>
+    <div className="ea-hero">
       {data.eep.thematicSignificance && (
-        <>
-          <span className="ea-hero-thematic-label">
-            {t('event.labels.thematicSignificance')}
-          </span>
+        <div className="ea-hero-block">
+          <span className="ea-label">{t('event.labels.thematicSignificance')}</span>
           <p className="ea-hero-thematic">{data.eep.thematicSignificance}</p>
-        </>
+        </div>
       )}
       {data.summary?.summary && (
-        <>
-          <span className="ea-hero-summary-label">{t('event.labels.summaryLabel')}</span>
+        <div className="ea-hero-block">
+          <span className="ea-label">{t('event.labels.summaryLabel')}</span>
           <p className="ea-hero-summary">{data.summary.summary}</p>
-        </>
+        </div>
       )}
     </div>
   );
@@ -50,13 +60,8 @@ function StateSection({ data }: { data: EventAnalysisDetailType }) {
     return null;
   }
   return (
-    <div className="ea-section">
-      <div className="ea-section-head">
-        <div className="ea-section-titlewrap">
-          <h3 className="ea-section-title">{t('event.sections.stateChange')}</h3>
-          <span className="ea-section-sub">{t('event.labels.stateChangeSub')}</span>
-        </div>
-      </div>
+    <div className="ea-state-block">
+      <span className="ea-label">{t('event.sections.stateChange')}</span>
       {(eep.stateBefore || eep.stateAfter) && (
         <div className="ea-state-grid">
           <div className="ea-state before">
@@ -64,7 +69,7 @@ function StateSection({ data }: { data: EventAnalysisDetailType }) {
             <p className="ea-state-text">{eep.stateBefore}</p>
           </div>
           <div className="ea-state-arrow" aria-hidden="true">
-            <ArrowRight size={20} color="var(--accent)" />
+            <ArrowRight size={20} />
           </div>
           <div className="ea-state after">
             <span className="ea-state-label">{t('event.labels.after')}</span>
@@ -75,23 +80,23 @@ function StateSection({ data }: { data: EventAnalysisDetailType }) {
       {(eep.structuralRole || eep.eventImportance) && (
         <div className="ea-state-meta">
           {eep.structuralRole && (
-            <div className="ea-state-meta-item">
+            <div className="ea-state-meta-row">
               <span className="label">{t('event.sections.structuralRole')}</span>
-              <p className="value">{eep.structuralRole}</p>
+              <span className="value">{eep.structuralRole}</span>
               {/* Borrowed screenwriting vocabulary, not the Chatman kernel/satellite
-                  judgement sitting right next to it — say so, so the two don't
-                  read as the same tier of theoretical grounding. */}
-              <p className="hint">{t('event.sections.structuralRoleHint')}</p>
+                  judgement sitting right next to it — say so right after the value
+                  (not in a tooltip) so the two don't read as the same tier. */}
+              <span className="hint">{t('event.sections.structuralRoleHint')}</span>
             </div>
           )}
           {eep.eventImportance && (
-            <div className="ea-state-meta-item">
+            <div className="ea-state-meta-row">
               <span className="label">{t('event.sections.importance')}</span>
-              <p className="value">
+              <span className="value plain">
                 {eep.eventImportance === 'KERNEL'
                   ? t('event.importance.kernelTagline')
                   : t('event.importance.satelliteTagline')}
-              </p>
+              </span>
             </div>
           )}
         </div>
@@ -133,12 +138,12 @@ function ParticipantCard({ p }: { p: ParticipantRole }) {
   const cls = roleClass(p.role);
   const initial = p.entityName.charAt(0);
   return (
-    <div className="ea-participant">
+    <div className="ea-participant" data-role={cls}>
       <div className="ea-participant-avatar">{initial}</div>
       <div className="ea-participant-body">
         <div className="ea-participant-head">
           <span className="ea-participant-name">{p.entityName}</span>
-          <span className={'ea-participant-role ' + cls}>{roleLabel(p.role, t)}</span>
+          <span className="ea-participant-role">{roleLabel(p.role, t)}</span>
         </div>
         <p className="ea-participant-impact">{p.impactDescription}</p>
       </div>
@@ -148,43 +153,52 @@ function ParticipantCard({ p }: { p: ParticipantRole }) {
 
 /** Colour key for the role tags, listing only the roles this event actually
  *  uses — the backend emits a subset, and a fixed five-item key would show
- *  buckets that never appear. */
-function RoleLegend({ roles }: Readonly<{ roles: ParticipantRole[] }>) {
+ *  buckets that never appear. Hidden below two roles. */
+function RoleLegend({ roles, count }: Readonly<{ roles: ParticipantRole[]; count: number }>) {
   const { t } = useTranslation('analysis');
   const present = [...new Set(roles.map((p) => p.role.toLowerCase()))];
-  if (present.length < 2) return null;
   return (
     <div className="ea-role-legend">
-      <span className="ea-role-legend-head">{t('event.labels.roleLegend')}</span>
-      {present.map((role) => (
-        <span key={role} className="ea-role-legend-item">
-          <span className={'ea-role-legend-dot ' + roleClass(role)} />
-          {roleLabel(role, t)}
-        </span>
-      ))}
+      <span className="ea-label">{t('event.sections.participantRoles')}</span>
+      <span className="ea-label">{t('event.labels.participantsCount', { count })}</span>
+      {present.length >= 2 && (
+        <>
+          <span className="ea-label">{t('event.labels.roleLegend')}</span>
+          <div className="ea-role-legend-items">
+            {present.map((role) => (
+              <span key={role} className="ea-role-legend-item" data-role={roleClass(role)}>
+                <span className="ea-role-legend-dot" />
+                {roleLabel(role, t)}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
 function ParticipantsSection({ data }: { data: EventAnalysisDetailType }) {
-  const { t } = useTranslation('analysis');
   const roles = data.eep.participantRoles ?? [];
   if (roles.length === 0) return null;
   return (
-    <div className="ea-section">
-      <div className="ea-section-head">
-        <div className="ea-section-titlewrap">
-          <h3 className="ea-section-title">{t('event.sections.participantRoles')}</h3>
-          <span className="ea-section-sub">
-            {t('event.labels.participantsCount', { count: roles.length })}
-          </span>
-        </div>
-      </div>
-      <RoleLegend roles={roles} />
+    <div className="ea-participants-block">
+      <RoleLegend roles={roles} count={roles.length} />
       <div className="ea-participants">
         {roles.map((p) => (
           <ParticipantCard key={p.entityId} p={p} />
         ))}
+      </div>
+    </div>
+  );
+}
+
+function SectionHead({ title, sub }: Readonly<{ title: string; sub: string }>) {
+  return (
+    <div className="ea-section-head">
+      <div className="ea-section-titlewrap">
+        <h3 className="ea-section-title">{title}</h3>
+        <span className="ea-section-sub">{sub}</span>
       </div>
     </div>
   );
@@ -201,43 +215,31 @@ function CausalitySection({
 }) {
   const { t } = useTranslation('analysis');
   const c = data.causality;
-  const isEmpty = !c.rootCause && c.causalChain.length === 0 && !c.chainSummary;
+  const isEmpty = causalityEmpty(data);
   if (isEmpty && !failed) return null;
   if (isEmpty && failed) {
     return (
       <div className="ea-section">
-        <div className="ea-section-head">
-          <div className="ea-section-titlewrap">
-            <h3 className="ea-section-title">{t('event.sections.causality')}</h3>
-            <span className="ea-section-sub">{t('event.labels.causalitySub')}</span>
-          </div>
-        </div>
-        <p className="ea-section-failed" style={{ color: 'var(--color-warning)' }}>
-          {t('event.causalityFailed')}
-        </p>
+        <SectionHead title={t('event.sections.causality')} sub={t('event.labels.causalitySub')} />
+        <p className="ea-section-failed">{t('event.causalityFailed')}</p>
       </div>
     );
   }
   return (
     <div className="ea-section">
-      <div className="ea-section-head">
-        <div className="ea-section-titlewrap">
-          <h3 className="ea-section-title">{t('event.sections.causality')}</h3>
-          <span className="ea-section-sub">{t('event.labels.causalitySub')}</span>
-        </div>
-      </div>
+      <SectionHead title={t('event.sections.causality')} sub={t('event.labels.causalitySub')} />
       <div className={'ea-causal ' + variant}>
         {c.rootCause && (
-          <div className="ea-causal-root">
-            <span className="ea-causal-root-label">{t('event.labels.rootCauseLabel')}</span>
-            <p className="ea-causal-root-text">{c.rootCause}</p>
+          <div className="ea-section-block">
+            <span className="ea-label">{t('event.labels.rootCauseLabel')}</span>
+            <p className="ea-section-text">{c.rootCause}</p>
           </div>
         )}
         {c.causalChain.length > 0 && (
           <div className="ea-causal-chain">
             {c.causalChain.map((step, i) => (
               <div key={i} className="ea-causal-step">
-                <span className="ea-causal-step-marker">{i + 1}</span>
+                <span className="ea-causal-step-n">{String(i + 1).padStart(2, '0')}</span>
                 <p className="ea-causal-step-text">{step}</p>
               </div>
             ))}
@@ -252,50 +254,37 @@ function CausalitySection({
 function ImpactSection({ data, failed = false }: { data: { impact: ImpactAnalysis }; failed?: boolean }) {
   const { t } = useTranslation('analysis');
   const i = data.impact;
-  const isEmpty =
-    !i.impactSummary && i.participantImpacts.length === 0 && i.relationChanges.length === 0;
+  const isEmpty = impactEmpty(data);
   if (isEmpty && !failed) return null;
   if (isEmpty && failed) {
     return (
       <div className="ea-section">
-        <div className="ea-section-head">
-          <div className="ea-section-titlewrap">
-            <h3 className="ea-section-title">{t('event.sections.impact')}</h3>
-            <span className="ea-section-sub">{t('event.labels.impactSub')}</span>
-          </div>
-        </div>
-        <p className="ea-section-failed" style={{ color: 'var(--color-warning)' }}>
-          {t('event.impactFailed')}
-        </p>
+        <SectionHead title={t('event.sections.impact')} sub={t('event.labels.impactSub')} />
+        <p className="ea-section-failed">{t('event.impactFailed')}</p>
       </div>
     );
   }
   return (
     <div className="ea-section">
-      <div className="ea-section-head">
-        <div className="ea-section-titlewrap">
-          <h3 className="ea-section-title">{t('event.sections.impact')}</h3>
-          <span className="ea-section-sub">{t('event.labels.impactSub')}</span>
-        </div>
-      </div>
-      {i.impactSummary && <p className="ea-impact-summary">{i.impactSummary}</p>}
+      <SectionHead title={t('event.sections.impact')} sub={t('event.labels.impactSub')} />
+      {i.impactSummary && <p className="ea-section-text">{i.impactSummary}</p>}
       <div className="ea-impact-grid">
         <div className="ea-impact-col">
-          <div className="ea-impact-col-label">{t('event.labels.participantImpacts')}</div>
+          <span className="ea-label">{t('event.labels.participantImpacts')}</span>
           <ul className="ea-impact-list">
             {i.participantImpacts.map((p, idx) => (
               <li key={idx} className="ea-impact-item">
-                <span>{p}</span>
+                {p}
               </li>
             ))}
           </ul>
         </div>
         <div className="ea-impact-col">
-          <div className="ea-impact-col-label">{t('event.labels.relationChanges')}</div>
+          <span className="ea-label">{t('event.labels.relationChanges')}</span>
           <ul className="ea-impact-list">
             {i.relationChanges.map((r, idx) => (
               <li key={idx} className="ea-impact-item">
-                <span>{r}</span>
+                {r}
               </li>
             ))}
           </ul>
@@ -309,19 +298,17 @@ function FactorsSection({ data }: { data: EventAnalysisDetailType }) {
   const { t } = useTranslation('analysis');
   const factors = data.eep.causalFactors ?? [];
   const consequences = data.eep.consequences ?? [];
-  if (factors.length === 0 && consequences.length === 0) return null;
+  if (factorsEmpty(data)) return null;
   return (
     <div className="ea-section">
-      <div className="ea-section-head">
-        <div className="ea-section-titlewrap">
-          <h3 className="ea-section-title">{t('event.labels.factorsConsequences')}</h3>
-          <span className="ea-section-sub">{t('event.labels.factorsConsequencesSub')}</span>
-        </div>
-      </div>
+      <SectionHead
+        title={t('event.labels.factorsConsequences')}
+        sub={t('event.labels.factorsConsequencesSub')}
+      />
       <div className="ea-fc-grid">
         {factors.length > 0 && (
-          <div>
-            <div className="ea-fc-col-label">{t('event.labels.factorsLabel')}</div>
+          <div className="ea-fc-col">
+            <span className="ea-label">{t('event.labels.factorsLabel')}</span>
             <ul className="ea-bullets">
               {factors.map((f, i) => (
                 <li key={i}>{f}</li>
@@ -330,8 +317,8 @@ function FactorsSection({ data }: { data: EventAnalysisDetailType }) {
           </div>
         )}
         {consequences.length > 0 && (
-          <div>
-            <div className="ea-fc-col-label">{t('event.labels.consequencesLabel')}</div>
+          <div className="ea-fc-col">
+            <span className="ea-label">{t('event.labels.consequencesLabel')}</span>
             <ul className="ea-bullets consequences">
               {consequences.map((c, i) => (
                 <li key={i}>{c}</li>
@@ -344,26 +331,46 @@ function FactorsSection({ data }: { data: EventAnalysisDetailType }) {
   );
 }
 
-function QuotesSection({ data }: { data: EventAnalysisDetailType }) {
+function QuotesSection({ data, bookId }: { data: EventAnalysisDetailType; bookId?: string }) {
   const { t } = useTranslation('analysis');
+  const navigate = useNavigate();
   const quotes = data.eep.keyQuotes ?? [];
+  // #7m pins each quote to its paragraph by exact text; a quote it could not
+  // pin to exactly one paragraph stays plain text rather than jump somewhere wrong.
+  const { data: sources } = useQuery({
+    queryKey: qk.event.quoteSources(bookId, data.eventId),
+    queryFn: () => fetchEventQuoteSources(bookId!, data.eventId),
+    enabled: !!bookId && quotes.length > 0,
+  });
   if (quotes.length === 0) return null;
   return (
     <div className="ea-section">
-      <div className="ea-section-head">
-        <div className="ea-section-titlewrap">
-          <h3 className="ea-section-title">{t('event.sections.keyQuotes')}</h3>
-          <span className="ea-section-sub">
-            {t('event.labels.keyQuotesCount', { count: quotes.length })}
-          </span>
-        </div>
-      </div>
+      <SectionHead
+        title={t('event.sections.keyQuotes')}
+        sub={t('event.labels.keyQuotesCount', { count: quotes.length })}
+      />
       <div className="ea-quotes">
-        {quotes.map((q, i) => (
-          <div key={i} className="ea-quote">
-            {q}
-          </div>
-        ))}
+        {quotes.map((q, i) => {
+          const src = sources?.quotes?.[i];
+          const pinned = src?.text === q && src.paragraphId ? src : null;
+          return (
+            <p key={i} className="ea-quote">
+              {pinned ? (
+                <SourceJumpText
+                  text={q}
+                  pending={false}
+                  onJump={() =>
+                    navigate(`/books/${bookId}`, {
+                      state: { paragraphId: pinned.paragraphId, chapterNumber: pinned.chapterNumber },
+                    })
+                  }
+                />
+              ) : (
+                q
+              )}
+            </p>
+          );
+        })}
       </div>
     </div>
   );
@@ -381,12 +388,7 @@ function TermsSection({ data }: Readonly<{ data: EventAnalysisDetailType }>) {
   const max = terms[0][1] || 1;
   return (
     <div className="ea-section">
-      <div className="ea-section-head">
-        <div className="ea-section-titlewrap">
-          <h3 className="ea-section-title">{t('event.sections.topTerms')}</h3>
-          <span className="ea-section-sub">{t('event.labels.topTermsSub')}</span>
-        </div>
-      </div>
+      <SectionHead title={t('event.sections.topTerms')} sub={t('event.labels.topTermsSub')} />
       <div className="ea-terms">
         {terms.map(([term, weight]) => (
           <div key={term} className="ea-term-row">
@@ -404,7 +406,15 @@ function TermsSection({ data }: Readonly<{ data: EventAnalysisDetailType }>) {
 
 const TERM_LIMIT = 12;
 
+function TabEmpty() {
+  const { t } = useTranslation('analysis');
+  return <p className="ea-context-empty">{t('event.detail.tabEmpty')}</p>;
+}
+
 type DetailTab = 'overview' | 'cause' | 'context' | 'evidence';
+
+/** The event a 上下文位置 hop is heading to; see the tab-reset effect below. */
+let contextHopTarget: string | null = null;
 
 const DETAIL_TABS: { key: DetailTab; labelKey: string }[] = [
   { key: 'overview', labelKey: 'event.tabs.overview' },
@@ -419,64 +429,113 @@ export function EventAnalysisDetail({
   showHero = true,
   bookId,
   onSelectEvent,
+  header,
 }: Props) {
   const { t } = useTranslation('analysis');
   const failedParts = data.failedParts ?? [];
-  const [tab, setTab] = useState<DetailTab>('overview');
-
   // Switching events should land on the overview, not wherever the previous
-  // event was left.
+  // event was left — except when the hop came from the 上下文位置 tab itself,
+  // where staying put lets the reader walk the chain neighbour by neighbour.
+  // Module-level, keyed by the target event: the page unmounts this component
+  // while the next event's detail loads, so a ref or state would not survive.
+  const [tab, setTab] = useState<DetailTab>(() =>
+    contextHopTarget === data.eventId ? 'context' : 'overview',
+  );
   /* eslint-disable react-hooks/set-state-in-effect */
-  useEffect(() => setTab('overview'), [data.eventId]);
+  useEffect(() => {
+    if (contextHopTarget === data.eventId) {
+      setTab('context');
+    } else {
+      contextHopTarget = null;
+      setTab('overview');
+    }
+  }, [data.eventId]);
   /* eslint-enable react-hooks/set-state-in-effect */
+  const selectFromContext = onSelectEvent
+    ? (id: string) => {
+        contextHopTarget = id;
+        onSelectEvent(id);
+      }
+    : undefined;
+
+  const tabs = DETAIL_TABS.filter((dt) => dt.key !== 'context' || bookId);
+  // WAI-ARIA tabs (automatic activation, same as the graph LensCard): only the
+  // selected tab is in the Tab order; ←/→ wrap, Home/End jump.
+  const onTabKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    const i = tabs.findIndex((dt) => dt.key === tab);
+    let next = i;
+    if (e.key === 'ArrowRight') next = (i + 1) % tabs.length;
+    else if (e.key === 'ArrowLeft') next = (i - 1 + tabs.length) % tabs.length;
+    else if (e.key === 'Home') next = 0;
+    else if (e.key === 'End') next = tabs.length - 1;
+    else return;
+    e.preventDefault();
+    setTab(tabs[next].key);
+    document.getElementById(`ea-detail-tab-${tabs[next].key}`)?.focus();
+  };
 
   return (
     <>
-      <div className="ea-detail-tabs" role="tablist">
-        {DETAIL_TABS.filter((dt) => dt.key !== 'context' || bookId).map((dt) => (
-          <button
-            key={dt.key}
-            type="button"
-            role="tab"
-            aria-selected={tab === dt.key}
-            className={'ea-detail-tab' + (tab === dt.key ? ' active' : '')}
-            onClick={() => setTab(dt.key)}
-          >
-            {t(dt.labelKey)}
-          </button>
-        ))}
+      <div className="ea-detail-head">
+        {header}
+        <div className="ss-utabs" role="tablist" onKeyDown={onTabKeyDown}>
+          {tabs.map((dt) => (
+            <button
+              key={dt.key}
+              id={`ea-detail-tab-${dt.key}`}
+              type="button"
+              role="tab"
+              aria-selected={tab === dt.key}
+              aria-controls="ea-detail-panel"
+              tabIndex={tab === dt.key ? 0 : -1}
+              className={'ss-utab' + (tab === dt.key ? ' active' : '')}
+              onClick={() => setTab(dt.key)}
+            >
+              {t(dt.labelKey)}
+            </button>
+          ))}
+        </div>
       </div>
 
-      {tab === 'overview' && (
-        <>
-          {showHero && <EventHero data={data} />}
-          <StateSection data={data} />
-          <ParticipantsSection data={data} />
-        </>
-      )}
+      <div
+        className="ea-detail-body"
+        id="ea-detail-panel"
+        role="tabpanel"
+        aria-labelledby={`ea-detail-tab-${tab}`}
+      >
+        {tab === 'overview' && (
+          <>
+            {showHero && <EventHero data={data} />}
+            <StateSection data={data} />
+            <ParticipantsSection data={data} />
+          </>
+        )}
 
-      {tab === 'cause' && (
-        <>
-          <CausalitySection
-            data={data}
-            variant={causalVariant}
-            failed={failedParts.includes('causality')}
-          />
-          <ImpactSection data={data} failed={failedParts.includes('impact')} />
-          <FactorsSection data={data} />
-        </>
-      )}
+        {tab === 'cause' && (
+          <>
+            {causeTabEmpty(data, failedParts) && <TabEmpty />}
+            <CausalitySection
+              data={data}
+              variant={causalVariant}
+              failed={failedParts.includes('causality')}
+            />
+            <ImpactSection data={data} failed={failedParts.includes('impact')} />
+            <FactorsSection data={data} />
+          </>
+        )}
 
-      {tab === 'context' && bookId && (
-        <EventContextTab bookId={bookId} eventId={data.eventId} onSelectEvent={onSelectEvent} />
-      )}
+        {tab === 'context' && bookId && (
+          <EventContextTab bookId={bookId} eventId={data.eventId} onSelectEvent={selectFromContext} />
+        )}
 
-      {tab === 'evidence' && (
-        <>
-          <QuotesSection data={data} />
-          <TermsSection data={data} />
-        </>
-      )}
+        {tab === 'evidence' && (
+          <>
+            {evidenceTabEmpty(data) && <TabEmpty />}
+            <QuotesSection data={data} bookId={bookId} />
+            <TermsSection data={data} />
+          </>
+        )}
+      </div>
     </>
   );
 }

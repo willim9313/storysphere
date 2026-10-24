@@ -1,6 +1,6 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useEffect, useId, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
+import { Trans, useTranslation } from 'react-i18next';
 import { useQuery } from '@tanstack/react-query';
 import { X, Loader } from 'lucide-react';
 import { fetchEntityAnalysis } from '@/api/analysis';
@@ -9,18 +9,20 @@ import type { EntityType } from '@/api/types';
 import { qk } from '@/api/queryKeys';
 
 const pillClass: Record<EntityType, string> = {
-  character: 'pill-char',
-  location: 'pill-loc',
-  organization: 'pill-org',
-  object: 'pill-obj',
-  concept: 'pill-con',
-  other: 'pill-other',
-  event: 'pill-evt',
+  character: 'ss-pill-character',
+  location: 'ss-pill-location',
+  organization: 'ss-pill-organization',
+  object: 'ss-pill-object',
+  concept: 'ss-pill-concept',
+  other: 'ss-pill-other',
+  event: 'ss-pill-event',
 };
 
 const POPOVER_WIDTH = 320;
 const POPOVER_MARGIN = 16;
-const POPOVER_FLIP_THRESHOLD = 320;
+/** `.rd-ecard` max-height — the most the card can grow to once its lists load. */
+const POPOVER_MAX_VH = 0.6;
+const POPOVER_GAP = 8;
 
 interface EntityCardProps {
   readonly bookId: string;
@@ -37,6 +39,10 @@ export function EntityCard({ bookId, entityId, name, type, anchorRect, onClose, 
   const { t: tg } = useTranslation('graph');
   const navigate = useNavigate();
   const cardRef = useRef<HTMLDivElement>(null);
+  const nameId = useId();
+  // Whatever had focus when the card opened (the chip, for keyboard users).
+  // Captured once: by the first effect the card has already taken focus.
+  const openerRef = useRef<Element | null>(document.activeElement);
 
   const { data: chunksData, isLoading: chunksLoading, isError: chunksErrored } = useEntityChunks(bookId, entityId);
 
@@ -52,9 +58,23 @@ export function EntityCard({ bookId, entityId, name, type, anchorRect, onClose, 
     retry: false,
   });
 
+  // Explicit dismissals (Esc, ×) hand focus back to the opener. A jump or an
+  // outside click must not: the opener may be gone, or focus pulled away.
+  const closeAndRestoreFocus = () => {
+    onClose();
+    const opener = openerRef.current;
+    if (opener instanceof HTMLElement && opener.isConnected) opener.focus({ preventScroll: true });
+  };
+
+  // Move focus into the card so keyboard users reach its actions without
+  // tabbing through every chip that follows the opener in the DOM.
+  useEffect(() => {
+    cardRef.current?.focus({ preventScroll: true });
+  }, []);
+
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === 'Escape') closeAndRestoreFocus();
     };
     const handlePointerDown = (e: MouseEvent) => {
       if (cardRef.current && !cardRef.current.contains(e.target as Node)) onClose();
@@ -65,269 +85,177 @@ export function EntityCard({ bookId, entityId, name, type, anchorRect, onClose, 
       document.removeEventListener('keydown', handleKeyDown);
       document.removeEventListener('mousedown', handlePointerDown);
     };
+    // closeAndRestoreFocus only closes over onClose.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [onClose]);
 
-  // Anchored to the clicked mark's viewport rect; flips above the anchor
-  // when there isn't enough room below (same heuristic as the design
-  // reference: flip once the anchor bottom sits within 320px of the
-  // viewport's bottom edge).
+  // Anchored to the clicked mark's viewport rect. Flips above when the card's
+  // full height (60vh once its lists load) wouldn't fit below and there is
+  // more room above; either way max-height is clamped to the side it opens
+  // on, so the card never runs past the viewport edge. 320px wide / flex
+  // column live in `.rd-ecard`.
   const style = useMemo<React.CSSProperties>(() => {
+    const vh = window.innerHeight;
     const left = Math.max(8, Math.min(anchorRect.left, window.innerWidth - POPOVER_WIDTH - POPOVER_MARGIN));
-    const top = anchorRect.bottom + 8;
-    const flip = top > window.innerHeight - POPOVER_FLIP_THRESHOLD;
-    const base: React.CSSProperties = {
-      position: 'fixed',
-      left,
-      width: POPOVER_WIDTH,
-      maxHeight: '60vh',
-      zIndex: 40,
-      display: 'flex',
-      flexDirection: 'column',
-      backgroundColor: 'var(--bg-primary)',
-      border: '1px solid var(--border)',
-      borderRadius: 'var(--card-radius)',
-      boxShadow: 'var(--shadow-lg)',
-      animation: 'rd-pop .16s ease',
-    };
+    const spaceBelow = vh - anchorRect.bottom - POPOVER_GAP - POPOVER_MARGIN;
+    const spaceAbove = anchorRect.top - POPOVER_GAP - POPOVER_MARGIN;
+    const fullHeight = vh * POPOVER_MAX_VH;
+    const flip = spaceBelow < fullHeight && spaceAbove > spaceBelow;
+    const room = flip ? spaceAbove : spaceBelow;
+    const base: React.CSSProperties = { left, maxHeight: Math.min(fullHeight, room) };
     if (flip) {
-      base.bottom = window.innerHeight - anchorRect.top + 8;
+      base.bottom = vh - anchorRect.top + POPOVER_GAP;
     } else {
-      base.top = top;
+      base.top = anchorRect.bottom + POPOVER_GAP;
     }
     return base;
   }, [anchorRect]);
 
   const total = chunksData?.total;
   const chunks = chunksData?.chunks ?? [];
-  const archetypeLabels = analysis ? Array.from(new Set(analysis.archetypes.map((a) => a.primary))) : [];
+  // 「Jung · 照顧者」「Schmidt · 守護者」：框架前綴＋原型；Jung 用 info 色（08 D 區）。
+  const archetypeLabels = analysis
+    ? Array.from(
+        new Map(
+          analysis.archetypes.map((a) => {
+            const fw = a.framework === 'jung' ? 'Jung' : 'Schmidt';
+            const text = `${fw} · ${a.primary}`;
+            return [text, { text, info: a.framework === 'jung' }] as const;
+          }),
+        ).values(),
+      )
+    : [];
 
   return (
-    <div ref={cardRef} style={style}>
-      {/* Header */}
-      <div
-        style={{
-          display: 'flex',
-          alignItems: 'flex-start',
-          justifyContent: 'space-between',
-          gap: 10,
-          padding: '14px 16px',
-          borderBottom: '1px solid var(--border)',
-          flexShrink: 0,
-        }}
-      >
-        <div style={{ minWidth: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <h3
-              style={{
-                fontFamily: 'var(--font-serif)',
-                fontSize: 'var(--font-size-xl)',
-                fontWeight: 700,
-                margin: 0,
-                color: 'var(--fg-primary)',
-              }}
-            >
-              {name}
-            </h3>
-            <span className={`pill ${pillClass[type]}`}>
-              <span className="pill-dot" />
+    <div
+      ref={cardRef}
+      style={style}
+      className="rd-ecard"
+      role="dialog"
+      aria-labelledby={nameId}
+      tabIndex={-1}
+      // Tabbing out of the card closes it (no focus trap — it is a popover).
+      onBlur={(e) => {
+        const next = e.relatedTarget;
+        if (next instanceof Node && !e.currentTarget.contains(next)) onClose();
+      }}
+    >
+      <div className="rd-ecard-head">
+        <div className="rd-ecard-title-row">
+          <div className="rd-ecard-name-row">
+            <h3 id={nameId} className="rd-ecard-name">{name}</h3>
+            <span className={`ss-pill ${pillClass[type]}`}>
+              <span className="ss-pill-dot" />
               {tg(`entityTypes.${type}`)}
             </span>
           </div>
-          {total != null && (
-            <div style={{ marginTop: 4, fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}>
-              {t('entityCard.totalOccurrences', { count: total })}
-            </div>
-          )}
-        </div>
-        <button
-          onClick={onClose}
-          aria-label={t('entityCard.close')}
-          style={{
-            flexShrink: 0,
-            background: 'none',
-            border: 'none',
-            cursor: 'pointer',
-            color: 'var(--fg-muted)',
-            padding: 2,
-            display: 'flex',
-          }}
-        >
-          <X size={15} />
-        </button>
-      </div>
-
-      {/* Actions */}
-      <div
-        style={{
-          display: 'flex',
-          gap: 8,
-          padding: '10px 16px',
-          borderBottom: '1px solid var(--border)',
-          flexWrap: 'wrap',
-          flexShrink: 0,
-        }}
-      >
-        {isCharacter && (
-          <button
-            className="btn btn-primary"
-            style={{ padding: '5px 10px', fontSize: 'var(--font-size-2xs)' }}
-            onClick={() => navigate(`/books/${bookId}/characters`, { state: { selectId: entityId } })}
-          >
-            {t('entityCard.characterAnalysis')}
+          <button onClick={closeAndRestoreFocus} aria-label={t('entityCard.close')} className="rd-icon-btn">
+            <X size={15} />
           </button>
+        </div>
+        {total != null && (
+          <span className="rd-ecard-total">
+            <Trans
+              i18nKey="entityCard.totalOccurrences"
+              ns="reader"
+              values={{ count: total }}
+              components={{ strong: <strong /> }}
+            />
+          </span>
         )}
-        <button
-          className="btn btn-secondary"
-          style={{ padding: '5px 10px', fontSize: 'var(--font-size-2xs)' }}
-          onClick={() => navigate(`/books/${bookId}/graph?entity=${entityId}`)}
-        >
-          {t('entityCard.viewInGraph')}
-        </button>
+        <div className="rd-ecard-actions">
+          {isCharacter && (
+            <button
+              type="button"
+              className="ss-btn ss-btn-sm ss-btn-secondary"
+              onClick={() => navigate(`/books/${bookId}/characters`, { state: { selectId: entityId } })}
+            >
+              {t('entityCard.characterAnalysis')}
+            </button>
+          )}
+          <button
+            type="button"
+            className="ss-btn ss-btn-sm ss-btn-ghost"
+            onClick={() => navigate(`/books/${bookId}/graph?entity=${entityId}`)}
+          >
+            {t('entityCard.viewInGraph')}
+          </button>
+        </div>
       </div>
 
-      {/* Body */}
-      <div style={{ flex: 1, overflowY: 'auto', minHeight: 0, padding: '14px 16px' }}>
+      {/* Body — the occurrence list is the card's substance; it scrolls inside
+          the 60vh cap (no truncation, no fade mask). */}
+      <div className="rd-ecard-body">
         {chunksLoading ? (
-          <div
-            style={{
-              display: 'flex',
-              alignItems: 'center',
-              gap: 8,
-              color: 'var(--fg-muted)',
-              fontSize: 13,
-              padding: '20px 0',
-              justifyContent: 'center',
-            }}
-          >
-            <Loader size={16} className="animate-spin" />
+          <div className="rd-ecard-note">
+            <Loader size={12} className="animate-spin" />
             {t('entityCard.loadingAppearances')}
           </div>
         ) : (
           <>
-            {isCharacter && (
-              <div style={{ marginBottom: 14 }}>
-                {analysisLoading ? (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--fg-muted)', fontSize: 12 }}>
-                    <Loader size={12} className="animate-spin" />
-                    {t('entityCard.loadingAnalysis')}
-                  </div>
-                ) : analysis ? (
-                  <>
-                    <p
-                      style={{
-                        fontFamily: 'var(--font-serif)',
-                        fontSize: 'var(--font-size-sm)',
-                        lineHeight: 1.7,
-                        color: 'var(--fg-secondary)',
-                        margin: '0 0 8px',
-                      }}
-                    >
-                      {analysis.profileSummary}
-                    </p>
-                    {archetypeLabels.length > 0 && (
-                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5 }}>
-                        {archetypeLabels.map((label) => (
-                          <span
-                            key={label}
-                            style={{
-                              padding: '2px 8px',
-                              borderRadius: 'var(--badge-radius)',
-                              backgroundColor: 'var(--bg-tertiary)',
-                              color: 'var(--fg-secondary)',
-                              fontSize: 'var(--font-size-2xs)',
-                            }}
-                          >
-                            {label}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </>
-                ) : (
-                  <div
-                    style={{
-                      fontSize: 'var(--font-size-2xs)',
-                      color: 'var(--fg-muted)',
-                      padding: '8px 10px',
-                      backgroundColor: 'var(--bg-secondary)',
-                      borderRadius: 'var(--radius-sm)',
-                    }}
-                  >
-                    {t('entityCard.noAnalysis')}
-                  </div>
-                )}
-              </div>
-            )}
+            {isCharacter && <AnalysisBlock loading={analysisLoading} summary={analysis?.profileSummary} labels={archetypeLabels} />}
 
-            <div style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', marginBottom: 8, fontWeight: 600 }}>
-              {t('entityCard.appearances', { count: total ?? 0 })}
-            </div>
-            {chunksErrored && (
-              <p style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}>{t('entityCard.loadFailed')}</p>
-            )}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <div className="rd-ecard-divider" />
+            <span className="rd-label">{t('entityCard.appearances', { count: total ?? 0 })}</span>
+            {chunksErrored && <div className="rd-ecard-note is-error">{t('entityCard.loadFailed')}</div>}
+            <div className="rd-ecard-list">
               {chunks.map((chunk) => (
-                <button
-                  key={chunk.id}
-                  onClick={() => onJump(chunk.chapterId, chunk.id)}
-                  style={{
-                    textAlign: 'left',
-                    background: 'var(--bg-primary)',
-                    border: '1px solid var(--border)',
-                    borderRadius: 'var(--radius-sm)',
-                    padding: '9px 11px',
-                    cursor: 'pointer',
-                    fontFamily: 'inherit',
-                    width: '100%',
-                  }}
-                >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8, marginBottom: 3 }}>
-                    <span
-                      style={{
-                        fontFamily: 'var(--font-sans)',
-                        fontSize: 'var(--font-size-2xs)',
-                        fontWeight: 600,
-                        color: 'var(--fg-primary)',
-                      }}
-                    >
+                <button key={chunk.id} onClick={() => onJump(chunk.chapterId, chunk.id)} className="rd-ecard-row">
+                  <div className="rd-ecard-row-head">
+                    <span className="rd-ecard-row-chapter">
                       {chunk.chapterTitle
                         ? t('entityCard.chapterEntry', { number: chunk.chapterNumber, title: chunk.chapterTitle })
                         : t('entityCard.chapterNumber', { number: chunk.chapterNumber })}
                     </span>
-                    <span
-                      style={{
-                        fontFamily: 'var(--font-mono)',
-                        fontSize: 'var(--font-size-2xs)',
-                        color: 'var(--fg-muted)',
-                        flexShrink: 0,
-                      }}
-                    >
-                      #{chunk.order}
-                    </span>
+                    <span className="rd-chunk-order">#{chunk.order}</span>
                   </div>
-                  <div
-                    style={{
-                      fontFamily: 'var(--font-serif)',
-                      fontSize: 'var(--font-size-xs)',
-                      color: 'var(--fg-muted)',
-                      lineHeight: 1.5,
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                    }}
-                  >
-                    {chunk.content}
-                  </div>
+                  <p className="rd-ecard-row-text">{chunk.content}</p>
                 </button>
               ))}
               {!chunksErrored && chunks.length === 0 && (
-                <p style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}>{t('entityCard.noAppearances')}</p>
+                <div className="rd-ecard-note">{t('entityCard.noAppearances')}</div>
               )}
             </div>
           </>
         )}
       </div>
     </div>
+  );
+}
+
+/** profileSummary + archetype labels (two blocks above the occurrence list);
+ *  no analysis yet (404) reads as 「角色深度分析未生成」, not as an error. */
+function AnalysisBlock({
+  loading,
+  summary,
+  labels,
+}: {
+  readonly loading: boolean;
+  readonly summary: string | undefined;
+  readonly labels: { text: string; info: boolean }[];
+}) {
+  const { t } = useTranslation('reader');
+  if (loading) {
+    return (
+      <div className="rd-ecard-note">
+        <Loader size={12} className="animate-spin" />
+        {t('entityCard.loadingAnalysis')}
+      </div>
+    );
+  }
+  if (summary === undefined) return <div className="rd-ecard-note">{t('entityCard.noAnalysis')}</div>;
+  return (
+    <>
+      <p className="rd-ecard-summary">{summary}</p>
+      {labels.length > 0 && (
+        <div className="rd-chips">
+          {labels.map((label) => (
+            <span key={label.text} className={label.info ? 'ss-badge ss-badge-info' : 'ss-badge'}>
+              {label.text}
+            </span>
+          ))}
+        </div>
+      )}
+    </>
   );
 }

@@ -45,7 +45,6 @@ interface ChapterCardBandProps {
   onSelectEvent: (d: TimelineDatum) => void;
   onExpandRest: () => void;
   onClearFilters: () => void;
-  onAnalyzeChapter: () => void;
 }
 
 export function ChapterCardBand({
@@ -60,7 +59,6 @@ export function ChapterCardBand({
   onSelectEvent,
   onExpandRest,
   onClearFilters,
-  onAnalyzeChapter,
 }: ChapterCardBandProps) {
   const { t } = useTranslation('analysis');
 
@@ -101,7 +99,7 @@ export function ChapterCardBand({
           <p className="tl-band-empty-desc">
             {t('timeline.band.emptyFilteredDesc', { ch: chapter, n: all.length })}
           </p>
-          <button type="button" className="tl-btn tl-btn-accent" onClick={onClearFilters}>
+          <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary" onClick={onClearFilters}>
             {t('timeline.clearAll')}
           </button>
         </div>
@@ -111,9 +109,9 @@ export function ChapterCardBand({
           <p className="tl-band-empty-desc">
             {t('timeline.band.emptyUnanalyzedDesc', { ch: chapter, n: shown.length })}
           </p>
-          <button type="button" className="tl-btn tl-btn-accent" onClick={onAnalyzeChapter}>
-            {t('timeline.band.analyzeChapter', { n: shown.length })}
-          </button>
+          {/* The batch EEP button moved to the event analysis page: EEP is a
+              prerequisite of this page, not one of its actions. */}
+          <p className="tl-band-empty-desc">{t('timeline.band.analyzeElsewhere')}</p>
         </div>
       ) : (
         <div className="tl-band-body">
@@ -174,7 +172,7 @@ export function ChapterCardBand({
                   </li>
                 ))}
               </ul>
-              <button type="button" className="tl-btn tl-btn-ghost" onClick={onExpandRest}>
+              <button type="button" className="ss-btn ss-btn-sm ss-btn-ghost" onClick={onExpandRest}>
                 {rest.length > REST_VISIBLE
                   ? t('timeline.band.expandRest', { n: rest.length - REST_VISIBLE })
                   : t('timeline.band.expandAll')}

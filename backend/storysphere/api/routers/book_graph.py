@@ -16,8 +16,9 @@ from fastapi import (
     HTTPException,
     Query,
 )
+from fastapi.responses import JSONResponse
 
-from storysphere.api import task_runner
+from storysphere.api import batch_guard, task_runner
 from storysphere.api.deps import (
     ConceptInferenceServiceDep,
     DocServiceDep,
@@ -25,8 +26,11 @@ from storysphere.api.deps import (
     KGServiceDep,
     LinkPredictionServiceDep,
 )
+from storysphere.api.llm_guard import require_llm_provider
+from storysphere.api.routers.unraveling import UNRAVELING_GUARD_KIND
 from storysphere.api.schemas.book_graph import (
     ClassifyVisibilityResponse,
+    ConfirmInferredConceptResponse,
     ConfirmInferredRequest,
     EpistemicStateResponse,
     GraphDataResponse,
@@ -301,22 +305,32 @@ async def run_concept_inference(
     book_id: str,
     doc: DocServiceDep,
     ci: ConceptInferenceServiceDep,
-) -> dict:
+) -> dict | JSONResponse:
     """Infer thematic Concept candidates for a book; returns a task id.
 
     Asynchronous because it makes an LLM call — unlike the graph-algorithm
     inference above, which returns its results inline.
+
+    409 (``code: batch_running``) while a pipeline rerun or another inference
+    is going for the book — they share one lock (#19c).
     """
     document = await doc.get_document(book_id)
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
 
+    # Resolved before the lock check: the check and the claim must have no
+    # await between them (see batch_guard).
     language = await doc.get_document_language(book_id)
+    if (busy := batch_guard.op_conflict(UNRAVELING_GUARD_KIND, book_id)) is not None:
+        return busy
+    require_llm_provider()
+
     task_id = str(uuid4())
     task_store.create(task_id, kind="concept", title="概念推論")
     task_runner.launch(
         task_id, _run_concept_inference(task_id, book_id, ci, language)
     )
+    batch_guard.hold(UNRAVELING_GUARD_KIND, book_id, task_id, item_id="concepts")
     logger.info("Triggered concept inference: book=%s, task=%s", book_id, task_id)
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
 
@@ -352,7 +366,11 @@ async def list_inferred_concepts(
     )
 
 
-@router.post("/{book_id}/inferred-concepts/{concept_id}/confirm", status_code=201)
+@router.post(
+    "/{book_id}/inferred-concepts/{concept_id}/confirm",
+    response_model=ConfirmInferredConceptResponse,
+    status_code=201,
+)
 async def confirm_inferred_concept(
     book_id: str,
     concept_id: str,
@@ -375,7 +393,7 @@ async def confirm_inferred_concept(
         raise HTTPException(
             status_code=404, detail=f"InferredConcept '{concept_id}' not found"
         )
-    return {"entityId": entity.id}
+    return ConfirmInferredConceptResponse(entity_id=entity.id).model_dump(by_alias=True)
 
 
 @router.post("/{book_id}/inferred-concepts/{concept_id}/reject", status_code=204)
@@ -447,6 +465,7 @@ async def get_entity_epistemic_state(
     book_id: str,
     entity_id: str,
     up_to_chapter: int = Query(..., ge=1),
+    cached_only: bool = Query(False),
     epistemic_svc: EpistemicStateServiceDep = None,
     doc: DocServiceDep = None,
     kg: KGServiceDep = None,
@@ -464,6 +483,7 @@ async def get_entity_epistemic_state(
         character_id=entity_id,
         document_id=book_id,
         up_to_chapter=up_to_chapter,
+        cached_only=cached_only,
     )
 
     # data_complete = False when the book was ingested before F-03 added visibility.
@@ -487,6 +507,7 @@ async def get_entity_epistemic_state(
             )
             for m in state.misbeliefs
         ],
+        misbeliefs_inferred=state.misbeliefs_inferred,
         data_complete=data_complete,
     ).model_dump(by_alias=True)
 
@@ -525,6 +546,7 @@ async def classify_book_visibility(
     if document is None:
         raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
 
+    require_llm_provider()
     task_id = str(uuid4())
     task_store.create(task_id, title="可見性分類")
     task_runner.launch(task_id, _classify_visibility(task_id, book_id, epistemic_svc))

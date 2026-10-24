@@ -239,7 +239,7 @@ def compute_client(timeline_client, mock_doc):
 
     pipeline = AsyncMock()
     pipeline.run = AsyncMock(return_value=SimpleNamespace(
-        temporal_relations=3, events_ranked=2, cycles_resolved=0, errors=[],
+        temporal_relations=3, events_ranked=2, cycles_resolved=0, errors=[], failure=None,
     ))
     timeline_client.app.dependency_overrides[deps.get_temporal_pipeline] = lambda: pipeline
     timeline_client.pipeline = pipeline
@@ -294,3 +294,75 @@ class TestComputeCancellation:
         status = poll_until_terminal(compute_client, task_id)
         assert status["status"] == "error"
         assert status["error"] == "KG 讀取失敗"
+
+    def test_pipeline_failure_makes_the_task_error(self, compute_client):
+        """Inference failed and the old timeline was kept: the task must not report done."""
+        compute_client.pipeline.run = AsyncMock(return_value=SimpleNamespace(
+            temporal_relations=0, events_ranked=0, cycles_resolved=0,
+            errors=["TimelineAgent failed: quota"],
+            failure="Temporal inference failed, existing timeline kept: quota",
+        ))
+
+        task_id = self._start(compute_client)
+
+        status = poll_until_terminal(compute_client, task_id)
+        assert status["status"] == "error"
+        assert "existing timeline kept" in status["error"]
+
+
+# ── One computation per book (#13b 409, #13c) ────────────────────────────────
+
+
+class TestComputeGuard:
+    """The pipeline drops the book's temporal relations and re-adds them one by
+    one; two runs interleaved leave every relation in twice."""
+
+    @pytest.fixture(autouse=True)
+    def _provider_configured(self, monkeypatch):
+        monkeypatch.setattr("storysphere.api.llm_guard._primary_config_error", lambda: None)
+
+    def _running(self, client, book_id="book-1") -> dict:
+        resp = client.get(f"/api/v1/books/{book_id}/timeline/running")
+        assert resp.status_code == 200
+        return resp.json()
+
+    def test_second_compute_is_refused_while_one_runs(self, compute_client):
+        compute_client.pipeline.run = AsyncMock(side_effect=hanging_call())
+        task_id = compute_client.post("/api/v1/books/book-1/timeline/compute").json()["taskId"]
+
+        resp = compute_client.post("/api/v1/books/book-1/timeline/compute")
+        assert resp.status_code == 409
+        assert resp.json()["code"] == "batch_running"
+        assert compute_client.pipeline.run.await_count == 1
+
+        compute_client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+    def test_running_names_the_compute_task(self, compute_client):
+        compute_client.pipeline.run = AsyncMock(side_effect=hanging_call())
+        task_id = compute_client.post("/api/v1/books/book-1/timeline/compute").json()["taskId"]
+
+        assert self._running(compute_client) == {"computeTaskId": task_id, "temporalTaskId": None}
+
+        compute_client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+    def test_running_is_null_and_compute_allowed_once_it_ends(self, compute_client):
+        compute_client.pipeline.run = AsyncMock(side_effect=hanging_call())
+        task_id = compute_client.post("/api/v1/books/book-1/timeline/compute").json()["taskId"]
+        compute_client.post(f"/api/v1/tasks/{task_id}/cancel")
+        poll_until_terminal(compute_client, task_id)
+
+        assert self._running(compute_client) == {"computeTaskId": None, "temporalTaskId": None}
+        compute_client.pipeline.run = AsyncMock(return_value=SimpleNamespace(
+            temporal_relations=0, events_ranked=0, cycles_resolved=0, errors=[], failure=None,
+        ))
+        assert compute_client.post("/api/v1/books/book-1/timeline/compute").status_code == 202
+
+    def test_other_book_is_not_blocked(self, compute_client):
+        compute_client.pipeline.run = AsyncMock(side_effect=hanging_call())
+        first = compute_client.post("/api/v1/books/book-1/timeline/compute").json()["taskId"]
+
+        resp = compute_client.post("/api/v1/books/book-2/timeline/compute")
+        assert resp.status_code == 202
+
+        compute_client.post(f"/api/v1/tasks/{first}/cancel")
+        compute_client.post(f"/api/v1/tasks/{resp.json()['taskId']}/cancel")

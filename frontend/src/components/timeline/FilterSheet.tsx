@@ -6,12 +6,12 @@
  * 8 event types and 67 characters. The shell is new, the content is not.
  */
 
-import { useState } from 'react';
+import { useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Search } from 'lucide-react';
+import { useDialogFocus } from '@/hooks/useDialogFocus';
 import {
   createDefaultFilter,
-  type FilterMode,
   type FilterOptions,
   type FilterState,
 } from './filterState';
@@ -39,6 +39,9 @@ function FilterChip({
       }`}
       onClick={onClick}
       aria-pressed={active}
+      // Picking an option no event has can only empty the result. An active
+      // one stays clickable so it can be taken off again.
+      disabled={count === 0 && !active}
     >
       {label}
       {count !== undefined && <span className="tl-filter-chip-n">{count}</span>}
@@ -49,29 +52,27 @@ function FilterChip({
 export interface FilterSheetProps {
   filter: FilterState;
   onChange: (f: FilterState) => void;
-  onClose: () => void;
   options: FilterOptions;
   modeLabel: (mode: string) => string;
   eventTypeLabel: (type: string) => string;
   /** How many events each option value would match, keyed `section:value`. */
   counts: Map<string, number>;
-  mode: FilterMode;
-  onModeChange: (m: FilterMode) => void;
 }
 
 export function FilterSheet({
   filter,
   onChange,
-  onClose,
   options,
   modeLabel,
   eventTypeLabel,
   counts,
-  mode,
-  onModeChange,
 }: FilterSheetProps) {
   const { t } = useTranslation('analysis');
   const [charSearch, setCharSearch] = useState('');
+  // Mounted only while open: focus moves to the title, Tab stays inside, and
+  // closing hands focus back to the 篩選 button that opened it.
+  const dialogRef = useDialogFocus(true);
+  const titleId = useId();
 
   const toggleSet = (key: keyof FilterState, value: string) => {
     const next = { ...filter, [key]: new Set(filter[key]) };
@@ -89,34 +90,15 @@ export function FilterSheet({
   );
 
   return (
-    <div className="tl-filter-sheet" role="dialog" aria-label={t('timeline.filter')}>
-      {/* Both display modes are kept: dim preserves position on the stave, */}
-      {/* "only" makes a long book readable. Not an either/or. */}
-      <div className="tl-filter-sheet-section">
-        <div className="tl-filter-sheet-label">{t('timeline.filterModeLabel')}</div>
-        <div className="tl-segmented" role="group">
-          <button
-            type="button"
-            className={`tl-segmented-item${mode === 'dim' ? ' active' : ''}`}
-            onClick={() => onModeChange('dim')}
-            aria-pressed={mode === 'dim'}
-          >
-            {t('timeline.filterModeDim')}
-          </button>
-          <button
-            type="button"
-            className={`tl-segmented-item${mode === 'only' ? ' active' : ''}`}
-            onClick={() => onModeChange('only')}
-            aria-pressed={mode === 'only'}
-          >
-            {t('timeline.filterModeOnly')}
-          </button>
-        </div>
-        <div className="tl-filter-mode-hint">
-          {mode === 'dim' ? t('timeline.filterModeDimHint') : t('timeline.filterModeOnlyHint')}
-        </div>
+    <div className="tl-filter-sheet" role="dialog" aria-labelledby={titleId} ref={dialogRef}>
+      <div className="tl-filter-sheet-head">
+        <span className="tl-filter-sheet-title" id={titleId} tabIndex={-1}>
+          {t('timeline.toolbar.filter')}
+        </span>
+        <button type="button" className="tl-filter-sheet-clear" onClick={reset}>
+          {t('timeline.clearAll')}
+        </button>
       </div>
-
       <div className="tl-filter-sheet-section">
         <div className="tl-filter-sheet-label">{t('timeline.filterSections.eventTypes')}</div>
         <div className="tl-filter-chips">
@@ -132,21 +114,26 @@ export function FilterSheet({
         </div>
       </div>
 
-      <div className="tl-filter-sheet-section">
-        <div className="tl-filter-sheet-label">{t('timeline.filterSections.narrativeModes')}</div>
-        <div className="tl-filter-chips">
-          {options.narrativeModes.map((v) => (
-            <FilterChip
-              key={v}
-              label={modeLabel(v)}
-              count={countOf('narrativeModes', v)}
-              active={filter.narrativeModes.has(v)}
-              onClick={() => toggleSet('narrativeModes', v)}
-              variant={`narrative-${v}`}
-            />
-          ))}
+      {/* Modes are derived from story order, so a book without ranks has only
+          未明 — one option filters nothing, and the section stays hidden until
+          a second mode exists (same rule as an empty 地點). */}
+      {options.narrativeModes.length > 1 && (
+        <div className="tl-filter-sheet-section">
+          <div className="tl-filter-sheet-label">{t('timeline.filterSections.narrativeModes')}</div>
+          <div className="tl-filter-chips">
+            {options.narrativeModes.map((v) => (
+              <FilterChip
+                key={v}
+                label={modeLabel(v)}
+                count={countOf('narrativeModes', v)}
+                active={filter.narrativeModes.has(v)}
+                onClick={() => toggleSet('narrativeModes', v)}
+                variant={`narrative-${v}`}
+              />
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="tl-filter-sheet-section">
         <div className="tl-filter-sheet-label">{t('timeline.filterSections.importance')}</div>
@@ -214,15 +201,6 @@ export function FilterSheet({
           </div>
         </div>
       )}
-
-      <div className="tl-filter-sheet-foot">
-        <button type="button" className="tl-btn" onClick={reset}>
-          {t('timeline.reset')}
-        </button>
-        <button type="button" className="tl-btn tl-btn-primary" onClick={onClose}>
-          {t('timeline.apply')}
-        </button>
-      </div>
     </div>
   );
 }

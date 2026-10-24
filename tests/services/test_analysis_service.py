@@ -6,6 +6,7 @@ import json
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
+from storysphere.domain.events import Event, EventType
 from storysphere.services.analysis_models import (
     ArchetypeResult,
     ArcSegment,
@@ -100,14 +101,25 @@ class TestExtractCEP:
         kg.get_relations = AsyncMock(return_value=[
             MagicMock(source_id="ent-1", relation_type="KNOWS", target_id="ent-2"),
         ])
+        # A real Event, not a MagicMock: a mock with a made-up `chapter_number`
+        # attribute is what hid the bug where every event reached the LLM as
+        # "Ch.?" (Event's field is `chapter`), so key events and arc phases came
+        # back without chapter numbers.
         kg.get_entity_timeline = AsyncMock(return_value=[
-            MagicMock(chapter_number=1, description="Arrived in town"),
+            Event(
+                title="Arrival", event_type=EventType.OTHER,
+                description="Arrived in town", chapter=7, participants=["ent-1"],
+            ),
         ])
 
         svc = AnalysisService(llm=cep_llm, kg_service=kg)
         cep = await svc._extract_cep("Alice", "doc-1")
         assert len(cep.actions) == 2
         kg.get_entity_by_name.assert_awaited_once()
+
+        sent = str(cep_llm.ainvoke.await_args)
+        assert "Ch.7: Arrived in town" in sent
+        assert "Ch.?" not in sent
 
     @pytest.mark.asyncio
     async def test_extract_cep_with_vector(self, cep_llm):

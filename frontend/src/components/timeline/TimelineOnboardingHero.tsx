@@ -35,7 +35,7 @@ export function TimelineOnboardingHero({ bookId }: { readonly bookId: string }) 
       </div>
       <button
         type="button"
-        className="tl-btn tl-hero-cta"
+        className="ss-btn ss-btn-md ss-btn-primary"
         onClick={() => navigate(`/books/${bookId}/events`)}
       >
         {t('timeline.onboarding.cta')}

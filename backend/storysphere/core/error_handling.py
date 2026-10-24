@@ -98,3 +98,108 @@ def is_rate_limit_error(exc: Exception) -> bool:
         or "resource exhausted" in err_str
         or "overloaded" in err_str
     )
+
+
+# ── Whole-task failure kinds (TaskStatus.errorKind) ─────────────────────────
+#
+# Classified while the exception is still an object: `task.error` only keeps
+# str(exc), and the type is what tells "this file can never be read" from
+# "something went wrong this time". The front end words each kind and says
+# whether retrying the same file can help.
+
+TaskErrorKind = Literal["encrypted", "unreadable", "no_text", "interrupted", "internal"]
+
+
+class NoExtractableText(Exception):
+    """The file parsed, but not one paragraph of text came out of it.
+
+    A scanned PDF has no text layer: pypdf returns "" for every page without
+    raising, and the run would otherwise finish as an empty book with zero
+    chapters and no error at all.
+    """
+
+# Raised by the EPUB loader around whatever ebooklib threw; the prefix is the
+# only marker that survives (the original is its __cause__).
+_EPUB_PARSE_PREFIX = "Could not parse EPUB:"
+
+
+def _exception_chain(exc: BaseException) -> list[BaseException]:
+    chain: list[BaseException] = []
+    seen: set[int] = set()
+    cur: BaseException | None = exc
+    while cur is not None and id(cur) not in seen:
+        chain.append(cur)
+        seen.add(id(cur))
+        cur = cur.__cause__ or cur.__context__
+    return chain
+
+
+def classify_task_failure(exc: BaseException) -> TaskErrorKind:
+    """Kind of a whole-task failure, for TaskStatus.errorKind.
+
+    ``encrypted`` / ``unreadable`` are properties of the file — the same file
+    fails the same way every time. Everything else is ``internal``: it may
+    well pass on a retry. (``no_text`` and ``interrupted`` are set where they
+    are detected, not inferred from an exception.)
+    """
+    import zipfile  # noqa: PLC0415
+
+    try:
+        from pypdf.errors import FileNotDecryptedError, PdfReadError  # noqa: PLC0415
+    except ImportError:  # pragma: no cover — pypdf is a dependency
+        FileNotDecryptedError = PdfReadError = ()  # type: ignore[assignment,misc]
+    try:
+        from docx.opc.exceptions import PackageNotFoundError  # noqa: PLC0415
+    except ImportError:  # pragma: no cover — python-docx is a dependency
+        PackageNotFoundError = ()  # type: ignore[assignment,misc]
+
+    chain = _exception_chain(exc)
+    if any(isinstance(e, NoExtractableText) for e in chain):
+        return "no_text"
+    if any(isinstance(e, FileNotDecryptedError) for e in chain):
+        return "encrypted"
+    for e in chain:
+        if isinstance(e, (PdfReadError, PackageNotFoundError, zipfile.BadZipFile)):
+            return "unreadable"
+        if isinstance(e, ValueError) and str(e).startswith(_EPUB_PARSE_PREFIX):
+            return "unreadable"
+    return "internal"
+
+
+# ── Step failure kinds (result.failedStepKinds, rerun tasks' errorKind) ──────
+#
+# A step that fails inside an otherwise finished ingestion — or a rerun of one
+# — fails for reasons of the LLM call, not of the file. What the user can do
+# differs per kind: wait (rate_limited), configure a provider
+# (llm_unconfigured), expect the same refusal again (blocked), or just retry.
+
+StepErrorKind = Literal["rate_limited", "llm_unconfigured", "blocked", "timeout", "other"]
+
+# primary_config_error() is the single source of the "no provider" message;
+# _resolve_primary raises it as a plain RuntimeError, so the prefix is the marker.
+_LLM_UNCONFIGURED_PREFIX = "PRIMARY_LLM_PROVIDER="
+
+
+def classify_step_failure(exc: BaseException) -> StepErrorKind:
+    """Kind of a failed pipeline step, for result.failedStepKinds."""
+    import asyncio  # noqa: PLC0415
+
+    chain = _exception_chain(exc)
+    if any(isinstance(e, LLMResponseBlocked) for e in chain):
+        return "blocked"
+    if any(isinstance(e, Exception) and is_rate_limit_error(e) for e in chain):
+        return "rate_limited"
+    if any(isinstance(e, RuntimeError) and str(e).startswith(_LLM_UNCONFIGURED_PREFIX) for e in chain):
+        return "llm_unconfigured"
+    if any(isinstance(e, (TimeoutError, asyncio.TimeoutError)) for e in chain):
+        return "timeout"
+    return "other"
+
+
+def describe_exception(exc: BaseException) -> str:
+    """``str(exc)``, or the type name when that is empty.
+
+    ``asyncio.TimeoutError()`` stringifies to "" — stored as is, a timed-out
+    step showed a failure with no detail at all.
+    """
+    return str(exc) or type(exc).__name__

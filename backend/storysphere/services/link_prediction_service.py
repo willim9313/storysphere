@@ -12,6 +12,7 @@ import time
 
 import networkx as nx
 
+from storysphere.domain.entities import EntityType
 from storysphere.domain.inferred_relations import (
     InferenceStatus,
     InferredRelation,
@@ -42,6 +43,13 @@ class LinkPredictionService:
     ) -> list[InferredRelation]:
         """Run CN + Adamic-Adar on the full book graph and persist results.
 
+        Only character × character pairs are proposed. Neighbourhoods are still
+        measured on the full graph (characters usually meet through shared
+        events and places), but a pair like 角色 × 地點 yields a meaningless
+        「潛在夥伴」 — a degraded default the product refuses to show. PENDING
+        records left over from before this rule are dropped on every run;
+        CONFIRMED / REJECTED ones are the user's decisions and stay.
+
         Args:
             document_id: Book / document ID.
             max_candidates: Maximum number of candidates to persist.
@@ -57,6 +65,23 @@ class LinkPredictionService:
             return []
 
         entity_map = {e.id: e for e in entities}
+
+        def _is_character(entity_id: str) -> bool:
+            entity = entity_map.get(entity_id)
+            return entity is not None and entity.entity_type == EntityType.CHARACTER
+
+        existing_records = await self._store.list_by_document(document_id)
+        stale = [
+            ir.id
+            for ir in existing_records
+            if ir.status == InferenceStatus.PENDING
+            and not (_is_character(ir.source_id) and _is_character(ir.target_id))
+        ]
+        if stale:
+            await self._store.delete_ids(stale)
+            logger.info("LinkPrediction: dropped %d non-character pending pairs for %s.", len(stale), document_id)
+            stale_set = set(stale)
+            existing_records = [ir for ir in existing_records if ir.id not in stale_set]
 
         # Build undirected view for CN / AA computation
         g_directed: nx.MultiDiGraph = self._kg._graph
@@ -77,13 +102,12 @@ class LinkPredictionService:
         # Collect already-processed pairs (unless force_refresh)
         skip_pairs: set[tuple[str, str]] = set()
         if not force_refresh:
-            existing_records = await self._store.list_by_document(document_id)
             for ir in existing_records:
                 if ir.status in (InferenceStatus.PENDING, InferenceStatus.CONFIRMED, InferenceStatus.REJECTED):
                     skip_pairs.add((ir.source_id, ir.target_id))
 
-        # Generate candidate pairs (nodes with >= min_common_neighbors)
-        nodes = list(g_undirected.nodes())
+        # Generate candidate pairs (character × character, >= min_common_neighbors)
+        nodes = [n for n in g_undirected.nodes() if _is_character(n)]
         candidates: list[tuple[str, str]] = []
         for i, u in enumerate(nodes):
             for v in nodes[i + 1:]:

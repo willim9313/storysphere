@@ -150,8 +150,22 @@ class TestKnowledgeGraphStep:
 
         assert doc.pipeline_status.knowledge_graph == StepStatus.failed
         assert any("kg_extraction: boom" in e for e in result.errors)
+        assert result.failed_step_kinds == {"kg_extraction": "other"}
         # save() is only reached when the step succeeded
         assert kg_service.save.await_count == 0
+
+    @pytest.mark.asyncio
+    async def test_timeout_has_a_detail_and_a_kind(self):
+        """asyncio.TimeoutError() stringifies to "" — the detail must not be blank."""
+        import asyncio
+
+        doc = _make_doc()
+        wf = _make_workflow(doc, kg_error=asyncio.TimeoutError())
+
+        result = await _run(wf, doc.id)
+
+        assert "kg_extraction: TimeoutError" in result.errors
+        assert result.failed_step_kinds == {"kg_extraction": "timeout"}
 
     @pytest.mark.asyncio
     async def test_kg_save_failure_is_non_fatal(self):

@@ -200,3 +200,77 @@ class TestVisibleFromChapter:
         )
 
         assert result == 0
+
+
+# ── run_inference: character × character only ───────────────────────────────
+
+
+class _FakeKG:
+    """Just the three things run_inference reads off KGService."""
+
+    def __init__(self, entities: list[Entity], edges: list[tuple[str, str]]) -> None:
+        import networkx as nx
+
+        self._entities = entities
+        self._graph = nx.MultiDiGraph()
+        self._graph.add_nodes_from(e.id for e in entities)
+        self._graph.add_edges_from(edges)
+
+    async def list_entities(self, document_id: str) -> list[Entity]:
+        return self._entities
+
+    async def list_relations(self, document_id: str) -> list:
+        return []
+
+
+def _typed(entity_id: str, entity_type: EntityType) -> Entity:
+    return Entity(id=entity_id, name=entity_id, entity_type=entity_type, document_id=DOC)
+
+
+class TestRunInferenceCharacterPairs:
+    """A 角色 × 地點 「潛在夥伴」 is a degraded default (critique 2026-10-08):
+    only character pairs are proposed, though neighbourhoods span the whole graph."""
+
+    @pytest.fixture
+    def kg(self):
+        # Characters c1, c2 meet only through the location `harbour`; the
+        # location also shares that neighbour with c1, so without the rule it
+        # would be proposed too.
+        entities = [
+            _typed("c1", EntityType.CHARACTER),
+            _typed("c2", EntityType.CHARACTER),
+            _typed("c3", EntityType.CHARACTER),
+            _typed("harbour", EntityType.LOCATION),
+            _typed("salt", EntityType.OBJECT),
+        ]
+        edges = [("c1", "harbour"), ("c2", "harbour"), ("c1", "salt"), ("harbour", "salt"), ("c3", "salt")]
+        return _FakeKG(entities, edges)
+
+    @pytest.mark.asyncio
+    async def test_proposes_only_character_pairs(self, kg, tmp_path):
+        from storysphere.services.link_prediction_store import LinkPredictionStore
+
+        store = LinkPredictionStore(db_path=str(tmp_path / "ir.db"))
+        results = await LinkPredictionService(kg, store).run_inference(DOC)
+
+        pairs = {(ir.source_id, ir.target_id) for ir in results}
+        assert pairs, "c1/c2/c3 share neighbours and should yield candidates"
+        assert all(a.startswith("c") and b.startswith("c") for a, b in pairs)
+
+    @pytest.mark.asyncio
+    async def test_drops_stale_non_character_pending_but_keeps_decisions(self, kg, tmp_path):
+        from storysphere.domain.inferred_relations import InferenceStatus, InferredRelation
+        from storysphere.services.link_prediction_store import LinkPredictionStore
+
+        store = LinkPredictionStore(db_path=str(tmp_path / "ir.db"))
+        stale = InferredRelation(document_id=DOC, source_id="c3", target_id="harbour", confidence=0.5)
+        decided = InferredRelation(document_id=DOC, source_id="c2", target_id="salt", confidence=0.5)
+        await store.upsert(stale)
+        await store.upsert(decided)
+        await store.update_status(decided.id, InferenceStatus.REJECTED)
+
+        await LinkPredictionService(kg, store).run_inference(DOC)
+
+        assert await store.get(stale.id) is None
+        kept = await store.get(decided.id)
+        assert kept is not None and kept.status is InferenceStatus.REJECTED

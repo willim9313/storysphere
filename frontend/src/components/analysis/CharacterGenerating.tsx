@@ -1,4 +1,4 @@
-import { Sparkles, Check } from 'lucide-react';
+import { Loader, Check } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { TaskStatus } from '@/api/types';
 
@@ -63,25 +63,26 @@ export function CharacterGenerating({ task, name }: Readonly<Props>) {
   const { t } = useTranslation('analysis');
   const pct = Math.max(0, Math.min(100, task?.progress ?? 0));
   const stages = deriveStages(pct, task?.status === 'done');
-  const taskIdShort = task?.taskId ? task.taskId.slice(0, 8) : '—';
+  const taskId = task?.taskId ?? '—';
 
   return (
     <div className="ca-gen">
       <div className="ca-gen-card">
         <div className="ca-gen-head">
           <span className="ca-gen-spin">
-            <Sparkles size={16} />
+            <Loader size={16} />
           </span>
           <h2 className="ca-gen-title">{name}</h2>
           <span className="ca-gen-eyebrow">{t('character.generating.label')}</span>
+          <span className="ca-gen-pct">{pct}%</span>
         </div>
 
         <div className="ca-gen-task">
-          {t('character.generating.taskLabel')} · {taskIdShort}
+          {t('character.generating.taskLabel')} · {taskId}
         </div>
 
         <div className="ca-gen-progress-bar">
-          <div className="ca-gen-progress-fill" style={{ width: `${pct}%` }} />
+          <div className="ca-gen-progress-fill" style={{ transform: `scaleX(${pct / 100})` }} />
         </div>
 
         <ul className="ca-gen-stages">

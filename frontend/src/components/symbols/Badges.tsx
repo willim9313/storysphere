@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import type { ImageryType, SymbolReviewStatus } from '@/api/symbols';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { REVIEW_STYLE, typeStyle } from './tokens';
 
 export function TypePill({ type, withDot = true }: { type: ImageryType | string; withDot?: boolean }) {
@@ -26,16 +27,17 @@ export function TypePill({ type, withDot = true }: { type: ImageryType | string;
 export function BlockBadge() {
   const { t } = useTranslation('analysis');
   return (
-    <span
-      className="sym-review-badge"
-      style={{
-        background: 'var(--status-partial-bg)',
-        color: 'var(--status-partial-fg)',
-      }}
-      title={t('symbol.blocked.badgeTitle')}
-    >
-      {t('symbol.blocked.badge')}
-    </span>
+    <Tooltip label={t('symbol.blocked.badgeTitle')}>
+      <span
+        className="sym-review-badge"
+        style={{
+          background: 'var(--status-partial-bg)',
+          color: 'var(--status-partial-fg)',
+        }}
+      >
+        {t('symbol.blocked.badge')}
+      </span>
+    </Tooltip>
   );
 }
 

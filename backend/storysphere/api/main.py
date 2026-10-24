@@ -128,7 +128,7 @@ async def _reconcile_stale_tasks() -> None:
     for task in tasks:
         if task.status not in ("pending", "running"):
             continue
-        await set_task_failed(task.task_id, error="伺服器重啟，處理中斷")
+        await set_task_failed(task.task_id, error="伺服器重啟，處理中斷", error_kind="interrupted")
         if task.kind == "ingestion":
             await delete_ingestion_checkpoint(task.task_id)
         logger.warning(

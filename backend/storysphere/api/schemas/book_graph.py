@@ -73,6 +73,7 @@ class EpistemicStateResponse(BaseModel):
     known_events: list[dict[str, Any]]
     unknown_events: list[dict[str, Any]]
     misbeliefs: list[MisbeliefItemSchema]
+    misbeliefs_inferred: bool
     data_complete: bool
 
 
@@ -114,6 +115,14 @@ class InferredRelationsResponse(BaseModel):
 
     items: list[InferredRelationResponse] = []
     total: int = 0
+
+
+class ConfirmInferredConceptResponse(BaseModel):
+    """The Concept entity an adopted proposition became (#10g)."""
+
+    model_config = _CAMEL
+
+    entity_id: str
 
 
 class InferredConceptResponse(BaseModel):

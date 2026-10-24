@@ -13,6 +13,7 @@
  * is the primary one here, not an edge case.
  */
 
+import { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
 import { OUTLIER_THRESHOLD, type TimelineDatum } from '@/lib/timelineGeometry';
@@ -22,6 +23,8 @@ const PILL_LIMIT = 8;
 
 interface EventDetailPanelProps {
   datum: TimelineDatum;
+  /** Place in story order among the ranked events; null when unranked. */
+  storyPosition: { i: number; n: number } | null;
   totalEvents: number;
   unanalyzedCount: number;
   chapterTitle?: string;
@@ -30,10 +33,14 @@ interface EventDetailPanelProps {
   onClose: () => void;
   onJumpToSource: () => void;
   onOpenGraph: () => void;
+  /** Bumped when an event is picked by click / Enter: focus moves to the
+   *  title. Stepping with ← → leaves focus where it is. */
+  focusRequest: number;
 }
 
 export function EventDetailPanel({
   datum,
+  storyPosition,
   totalEvents,
   unanalyzedCount,
   chapterTitle,
@@ -42,8 +49,13 @@ export function EventDetailPanel({
   onClose,
   onJumpToSource,
   onOpenGraph,
+  focusRequest,
 }: EventDetailPanelProps) {
   const { t } = useTranslation('analysis');
+  const titleRef = useRef<HTMLHeadingElement>(null);
+  useEffect(() => {
+    if (focusRequest > 0) titleRef.current?.focus();
+  }, [focusRequest]);
 
   const participants = datum.event.participants;
   const visible = participants.slice(0, PILL_LIMIT);
@@ -59,11 +71,19 @@ export function EventDetailPanel({
       : datum.importance === 'SATELLITE'
         ? t('timeline.panel.satellite')
         : t('timeline.panel.unrated');
+  const kindClass =
+    datum.importance === 'KERNEL'
+      ? 'ss-badge ss-badge-info'
+      : datum.importance === 'SATELLITE'
+        ? 'ss-badge ss-badge-success'
+        : 'ss-badge tl-panel-badge-neutral';
 
   return (
     <aside className="tl-panel" aria-label={t('timeline.panel.region')}>
       <header className="tl-panel-head">
-        <span className="tl-panel-eyebrow">{t('timeline.panel.eyebrow')}</span>
+        <div className="tl-panel-head-text">
+          <span className="tl-panel-eyebrow">{t('timeline.panel.eyebrow')}</span>
+        </div>
         <button
           type="button"
           className="tl-panel-close"
@@ -81,12 +101,15 @@ export function EventDetailPanel({
             {chapterTitle && <span>{chapterTitle}</span>}
             <span>{eventTypeLabel(datum.event.eventType)}</span>
           </div>
-          <h2 className="tl-panel-title">{datum.title}</h2>
+          {/* Sits under the kicker, not in the toolbar: it is how you move
+              through the events this panel shows (稿 12 E：kicker → 鍵位 → 標題). */}
+          <span className="tl-panel-keys">{t('timeline.keyHint')}</span>
+          <h2 className="tl-panel-title" ref={titleRef} tabIndex={-1}>
+            {datum.title}
+          </h2>
           {/* Muting tracks the label it styles: the unrated state is the one
               that should read as absent, whether or not analysis ran. */}
-          <span className={`tl-panel-kind${datum.importance === null ? ' muted' : ''}`}>
-            {kind}
-          </span>
+          <span className={kindClass}>{kind}</span>
         </div>
 
         <p className="tl-panel-desc">
@@ -104,12 +127,12 @@ export function EventDetailPanel({
             </div>
             <div className="tl-panel-pills">
               {visible.map((p) => (
-                <span className={`tl-pill tl-pill-${p.type}`} key={p.id}>
+                <span className={`ss-pill ss-pill-${pillType(p.type)}`} key={p.id}>
                   {p.name}
                 </span>
               ))}
               {overflow > 0 && (
-                <span className="tl-pill tl-pill-overflow">
+                <span className="ss-pill tl-pill-overflow">
                   {t('timeline.panel.morePills', { n: overflow })}
                 </span>
               )}
@@ -121,15 +144,19 @@ export function EventDetailPanel({
           <div className="tl-panel-label">{t('timeline.panel.timing')}</div>
           <div className="tl-panel-rank">
             <span className="tl-panel-rank-value">
-              {datum.chronologicalRank === null
+              {storyPosition === null
                 ? t('timeline.panel.noRank')
-                : `rank ${datum.chronologicalRank.toFixed(3)}`}
+                : t('timeline.panel.storyPosition', storyPosition)}
             </span>
             <span className="tl-panel-position">
               {t('timeline.panel.position', { i: datum.index + 1, n: totalEvents })}
             </span>
           </div>
-          <span className={`tl-panel-dev${datum.outlier ? ' outlier' : ''}`}>
+          <span
+            className={`tl-panel-dev${datum.outlier ? ' outlier' : ''}${
+              datum.deviation === null ? ' is-partial' : ''
+            }`}
+          >
             {deviationText(datum, t)}
           </span>
           <span className={`tl-narrative-chip tl-narrative-${datum.mode}`}>
@@ -148,24 +175,32 @@ export function EventDetailPanel({
           )}
         </div>
 
-        <div className="tl-panel-actions">
-          <button
-            type="button"
-            className="tl-btn"
-            onClick={onJumpToSource}
-            disabled={sourceJumpPending}
-          >
-            {sourceJumpPending
-              ? t('character.sourceJump.locating')
-              : t('timeline.panel.gotoReader')}
-          </button>
-          <button type="button" className="tl-btn" onClick={onOpenGraph}>
-            {t('timeline.panel.gotoGraph')}
-          </button>
-        </div>
+      </div>
+
+      <div className="tl-panel-actions">
+        <button
+          type="button"
+          className="ss-btn ss-btn-sm ss-btn-secondary"
+          onClick={onJumpToSource}
+          disabled={sourceJumpPending}
+        >
+          {sourceJumpPending
+            ? t('character.sourceJump.locating')
+            : t('timeline.panel.gotoReader')}
+        </button>
+        <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary" onClick={onOpenGraph}>
+          {t('timeline.panel.gotoGraph')}
+        </button>
       </div>
     </aside>
   );
+}
+
+const PILL_TYPES = new Set(['character', 'location', 'organization', 'object', 'concept', 'event']);
+
+/** Entity types the kit has a pill colour for; anything else reads as other. */
+function pillType(type: string): string {
+  return PILL_TYPES.has(type) ? type : 'other';
 }
 
 function deviationText(

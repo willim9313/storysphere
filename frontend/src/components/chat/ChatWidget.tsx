@@ -1,11 +1,13 @@
+import { useMemo } from 'react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useDraggable } from '@/hooks/useDraggable';
 import { ChatBubble } from './ChatBubble';
 import { ChatWindow, WINDOW_WIDTH, WINDOW_HEIGHT } from './ChatWindow';
+import { RAIL, isOnRail, useRailOccupant } from '@/contexts/FloatRailContext';
 
 const BUBBLE_SIZE = 48;
-const MARGIN = 24;
-const WINDOW_BUBBLE_GAP = 8;
+const MARGIN = RAIL.right;
+const WINDOW_BUBBLE_GAP = RAIL.windowGap;
 
 export function ChatWidget() {
   const { isChatOpen, openChat, closeChat, ws, pageContext, prefillMessage, clearPrefill } =
@@ -27,6 +29,19 @@ export function ChatWidget() {
     x: Math.max(8, Math.min(pos.x + BUBBLE_SIZE - WINDOW_WIDTH, window.innerWidth - WINDOW_WIDTH - 8)),
     y: Math.max(8, pos.y - WINDOW_HEIGHT - WINDOW_BUBBLE_GAP),
   };
+
+  // Floating rail occupancy: a bubble dragged off the rail releases its slot;
+  // an open window over the rail makes the toast sit above it (R2/R3).
+  useRailOccupant(
+    'bubbleOnRail',
+    isOnRail(pos.x, pos.y, BUBBLE_SIZE, window.innerWidth, window.innerHeight),
+  );
+  const { x: winX, y: winY } = windowPos;
+  const chatWindow = useMemo(
+    () => (isChatOpen ? { left: winX, top: winY, width: WINDOW_WIDTH, height: WINDOW_HEIGHT } : null),
+    [isChatOpen, winX, winY],
+  );
+  useRailOccupant('chatWindow', chatWindow);
 
   return (
     <>

@@ -28,17 +28,19 @@
   /* Text — 暖墨 */
   --fg-primary:   #2a2620;
   --fg-secondary: #5f5648;
-  --fg-muted:     #938876;
+  /* muted 只給註記、計數、placeholder；值取對 bg-primary ≥ 4.5:1（4.65）。
+     更深會與 fg-secondary 層次相黏，故 tertiary／卡片底上的資訊文字改用 fg-secondary。 */
+  --fg-muted:     #776c5b;
 
   /* Line & accent */
   --border:       #ddceb2;
-  --accent:       #b05a34;   /* burnt sienna */
+  --accent:       #a0522f;   /* burnt sienna */
   --accent-fg:    #f8f3e7;   /* 置於 accent 上的文字（= bg-primary，同 kit btn-primary） */
 
   /* Focus ring — 鍵盤 a11y，全站單一規格，經 :focus-visible 套用
      （見 global.css）。與較柔和的 selected-state ring
      （--timeline-selected-ring）是兩件事。 */
-  --focus-ring-color:  #b05a34;
+  --focus-ring-color:  #a0522f;
   --focus-ring-width:  2px;
   --focus-ring-offset: 2px;
 
@@ -47,7 +49,7 @@
   --panel-bg-card:  #e7dcc6;
   --panel-border:   #d3c3a4;
   --panel-fg:       #2a2620;
-  --panel-fg-muted: #938876;
+  --panel-fg-muted: var(--fg-muted);
 
   /* Entity pills — 7 類低彩度 warm hue arc（clay→ochre→olive，rose & mauve）
      值取自設計 contract 的 oklch 定義；Ink 主題刻意不覆寫（跨主題共用分類色） */
@@ -126,6 +128,36 @@
   --polarity-neutral-bg:  #f1e8d5; --polarity-neutral-fg:  #5f5648; --polarity-neutral-edge:  #ddceb2; --polarity-neutral-dot:  #938876;
   --polarity-mixed-bg:    #f6edd6; --polarity-mixed-fg:    #8a5c13; --polarity-mixed-edge:    #dcc08a; --polarity-mixed-dot:    #ad7519;
 
+  /* 語氣色（tone）— 6 色家族，語氣跨角色、跨書固定；兩主題共用、Ink 不覆寫（同 entity 家族）。
+     unmapped 只描邊不填色。文字一律墨色（對比 ≥ 6.9:1）。 */
+  --tone-warm:     oklch(0.83 0.07 50);
+  --tone-inquire:  oklch(0.85 0.085 85);
+  --tone-steady:   oklch(0.84 0.05 118);
+  --tone-cold:     oklch(0.79 0.055 268);
+  --tone-ironic:   oklch(0.79 0.07 345);
+  --tone-agitated: oklch(0.77 0.095 25);
+  --tone-unmapped: var(--border);
+  --tone-fg:       var(--fg-primary);
+
+  /* 類別色（cat）— 登記制，依排名配色（深／淺交替，相鄰必不同明度），不依名稱；
+     兩主題共用、Ink 不覆寫。只用在資料標記（點、色塊、描邊），不做 pill、不進正文。
+     深槽（1/3/5）放紙色字、淺槽（2/4/other）放墨色字；none 只描邊不填色。
+     紙色取 --paper-warmth-0（兩主題皆為固定 #fdfaf1，對比 ≥ 4.6:1；
+     --bg-primary 在 Warm 下 cat-5 只有 4.40:1）。 */
+  --cat-1:        oklch(0.55 0.105 25);
+  --cat-2:        oklch(0.82 0.070 118);
+  --cat-3:        oklch(0.54 0.085 345);
+  --cat-4:        oklch(0.84 0.085 85);
+  --cat-5:        oklch(0.55 0.055 268);
+  --cat-other:    oklch(0.88 0.012 75);
+  --cat-none:     var(--border);
+  --cat-1-fg:     var(--paper-warmth-0);
+  --cat-2-fg:     var(--fg-primary);
+  --cat-3-fg:     var(--paper-warmth-0);
+  --cat-4-fg:     var(--fg-primary);
+  --cat-5-fg:     var(--paper-warmth-0);
+  --cat-other-fg: var(--fg-primary);
+
   /* Symbol 章節密度 — 焦赭單色 ramp（paper → sienna → 深 sienna） */
   --symbol-density-low:   #e9ddc6;
   --symbol-density-mid:   #cf9a72;
@@ -148,13 +180,13 @@
   --timeline-selected-ring:   rgba(176,90,52,0.3);
 
   /* Status — 暖色系功能色：橄欖/赭黃/磚紅/灰藍，色調沉在紙面上 */
-  --color-success:    #5f7d3b;
+  --color-success:    #587437;
   --color-success-bg: #eef1df;
-  --color-warning:    #ad7519;
+  --color-warning:    #906115;
   --color-warning-bg: #f6edd6;
   --color-error:      #a8482c;
   --color-error-bg:   #f4e4da;
-  --color-info:       #5f6a88;
+  --color-info:       #5c6683;
   --color-info-bg:    #e8e7ee;
 
   /* Unraveling DAG 節點狀態 */
@@ -166,30 +198,42 @@
   --status-partial-fg:      #8a5c13;
   --status-empty-bg:        #f1e8d5;
   --status-empty-border:    #ddceb2;
-  --status-empty-fg:        #938876;
+  --status-empty-fg:        var(--fg-muted);
 
   /* Splash wash — 線稿插畫墊在字標後面的程度。
-     值以設計 canvas（splash/splash.css）為準：濃圖 + vignette 護住中心 */
-  --splash-image-opacity: 0.62;
-  --splash-image-filter:  sepia(0.10) contrast(0.98);
+     值以 DS v3 design system 為準（2026-10-01 裁決，B-126） */
+  --splash-image-opacity: 0.42;
+  --splash-image-filter:  sepia(0.15) contrast(1.05);
 
   /* ── Illustration language ──
      線稿插畫（empty state、splash、section mark）的描邊 token：
      細墨線、不填色、略鬆。SVG stroke/weight 一律取用這組。 */
   --illustration-stroke:      var(--fg-primary);
-  --illustration-stroke-soft: var(--fg-muted);
+  --illustration-stroke-soft: #938876;   /* 非文字，釘舊 muted 值，不隨文字 token 加深 */
   --illustration-accent:      var(--accent);
   --illustration-fill:        none;
   --illustration-weight:      1.5px;
   --illustration-weight-fine: 1px;
 
-  /* Spacing */
-  --space-xs: 0.25rem;
-  --space-sm: 0.5rem;
-  --space-md: 1rem;
-  --space-lg: 1.5rem;
-  --space-xl: 2rem;
-  --space-2xl: 3rem;
+  /* LLM 成本字符（Lucide sparkles）——以 mask 繪製、background 用 currentColor，
+     讓任何會消耗 token 的控制項都能帶上同一個標記。一頁只用一種字形。 */
+  --ss-llm-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z'/%3E%3Cpath d='M20 3v4'/%3E%3Cpath d='M22 5h-4'/%3E%3Cpath d='M4 17v2'/%3E%3Cpath d='M3 18h2'/%3E%3C/svg%3E");
+
+  /* Spacing — 8 階（DS v3）：2 · 4 · 6 · 8 · 12 · 16 · 24 · 32 px。
+     數字命名而非 t-shirt：舊名對不上新值，沿用會讓版面靜默位移。 */
+  --space-1: 0.125rem;  --space-2: 0.25rem;  --space-3: 0.375rem; --space-4: 0.5rem;
+  --space-5: 0.75rem;   --space-6: 1rem;     --space-7: 1.5rem;   --space-8: 2rem;
+
+  /* 浮動聊天鈕的底部安全區（B-130）：書內頁主捲動容器的下內距，讓最後一列能捲到泡泡上方。
+     = 浮動軌底距 24（RAIL.slots[0]）＋ 泡泡 48 ＋ 間隙 16。 */
+  --fab-clearance: 88px;
+
+  /* 頁寬兩檔（DS v3 密度）。entry＝C 入口／表單頁的內容上限，靠左（書庫稀疏、上傳 C、設定）；
+     wide＝B 檢視頁「含左右內距 24」的盒寬，內容 1232，固定寬頁置中。內距放在外層容器的頁
+     （角色、事件、象徵、Token、書庫滿載、上傳 B）改取 --page-content-wide，內容同樣是 1232。 */
+  --page-width-entry: 960px;
+  --page-width-wide: 1280px;
+  --page-content-wide: calc(var(--page-width-wide) - 2 * var(--space-7));
 
   /* Typography — serif 給「內容本身」（書名/章名/正文），sans 給
      「關於內容的 chrome」（按鈕/meta/badge/nav）；hand（Caveat）僅限
@@ -198,7 +242,7 @@
   --font-serif: 'Spectral', 'Noto Serif TC', Georgia, serif;
   --font-sans:  'DM Sans', 'Noto Sans TC', system-ui, sans-serif;
   --font-hand:  'Caveat', 'Noto Serif TC', cursive;
-  --font-mono:  'Fira Code', 'Courier New', monospace;
+  --font-mono:  'Fira Code', 'Noto Sans TC', 'Courier New', monospace;
   --font-cjk:   'Noto Sans TC', sans-serif;
   --font-size-2xs: 0.6875rem;
   --font-size-xs: 0.75rem;
@@ -208,6 +252,8 @@
   --font-size-xl: 1.25rem;
   --font-size-2xl: 1.5rem;
   --font-size-3xl: 2rem;
+  /* 語意：整句說明（提示、圖例說明、空態／錯誤說明、導覽條）。標籤、計數、eyebrow、徽章仍用 2xs。 */
+  --font-size-note: var(--font-size-xs);
 
   /* Radii */
   --radius-sm: 0.25rem;
@@ -238,17 +284,48 @@
   --card-radius:       var(--radius-lg);
   --card-border-width: var(--border-width);
   --card-shadow:       var(--shadow-sm);
+  --card-selected-border-width: var(--card-border-width); /* 選中卡（如閱讀頁目前章）的框重 */
+  --card-attention-border-width: var(--card-border-width); /* 要人處理的卡（如書庫人工閘門）的框重 */
+  --row-open-marker-width: 0px; /* 開著詳情的列（如張力頁抽屜對應列）左側標記；Warm 靠底色即可 */
+  --row-pick-hover-decoration: none; /* 可點選列 hover 時名稱的裝飾（如 Token 頁書籍別表）；Warm 靠底色即可 */
+  --drop-active-border-style: dashed; /* 投件框拖曳中：Warm 靠 accent 框色＋底色即可 */
+  --notice-error-border-width: 0; /* 錯誤提示列／失敗卡外框：Warm 靠 error 色相，不畫框 */
   --btn-radius:        var(--radius-md);
   --btn-border-width:  var(--border-width);
+  --btn-danger-border-width: var(--btn-border-width); /* 危險鈕框重：Warm 靠 error 色相，同一般鈕 */
+  --btn-danger-border-style: solid;
   --btn-shadow:        none;
   --pill-radius:       20px;
   --pill-border-width: 0.5px;
+  --chip-border-width: 0;     /* 篩選 chip：Warm 靠底色分層，不畫框 */
+  --narrative-glyph-display: none; /* 敘事模式字形（←→∥?）：Warm 靠色相區分，不畫 */
+  --symbol-glyph-display: none; /* 象徵清單類別圖示與極性字形：Warm 靠色相區分，不畫 */
+  --symbol-dot-display: block; /* 象徵清單極性點：Warm 畫點；Ink 由字形取代 */
+  --tl-outlier-halo-display: none; /* 時間軸偏離點的外圈：Warm 靠 accent 色相，不畫 */
+  --tl-outlier-link-width: 1px; /* 時間軸偏離連線的線重：Warm 靠 accent 色相，同一般連線 */
+  --dag-chain-halo-display: none; /* 建構概覽上游依賴鏈節點外圈：Warm 靠 accent 描邊即可 */
+  --dag-chain-edge-width: 1.5px; /* 建構概覽上游依賴邊線重：Warm 靠 accent 色相 */
+  --dag-link-edge-dash: none; /* 建構概覽直接相連邊：Warm 靠 fg-secondary 與 accent 色相區分，實線 */
+  --dag-edge-rest-opacity: 1; /* 建構概覽 DAG 靜止邊（相鄰欄）：Warm 的 --border 很淡，不再減 */
+  --dag-edge-span-opacity: 0.6; /* 同上，跨欄邊再淡一階 */
+  --dag-node-radius: 4px; /* 建構概覽 DAG 節點框圓角；選取環／焦點框／外圈／群組框依倍數推算 */
+  --density-peak-inset: 0; /* 密度矩陣「4 以上」格的紙色內框：Warm 四階色相可分，不畫 */
+  --cross-tension-pattern: none; /* 敘事頁交叉證據「張力峰值」列：Warm 靠色相，不加紋 */
   --badge-radius:      20px;
+  --badge-caution-border-width: 0px; /* 警示類徽章（開發者、需重啟）：Warm 靠 warning 色相，不畫框 */
+  --choice-selected-ring-width: 1px; /* 選項卡選中時框外的 accent 環；與 1px 框合計 2px */
   --control-radius:    var(--radius-md);
+  --input-radius:       var(--control-radius); /* 文字框、搜尋、select 共用 */
+  --input-border-width: 1px;
+  --input-bg:           var(--bg-primary);
+
+  /* 對話框遮罩：單一種、無模糊（components-dialog 卡） */
+  --scrim: rgba(42,38,32,0.40);
+  --scrim-light: rgba(42,38,32,0.12); /* 輕量背板：對比抽屜等非模態遮罩 */
 
   /* Tension intensity — 焦赭單色 ramp 三階 */
   --tension-intensity-low-bg:    #f1e8d5;
-  --tension-intensity-low-fg:    #938876;
+  --tension-intensity-low-fg:    var(--fg-muted);
   --tension-intensity-low-edge:  #ddceb2;
   --tension-intensity-mid-bg:    #cf9a72;
   --tension-intensity-mid-fg:    #52301c;
@@ -284,7 +361,7 @@
 
   --fg-primary:   #151515;
   --fg-secondary: #3f3f3f;
-  --fg-muted:     #8c8c8c;
+  --fg-muted:     #737373;
 
   --border: #1a1a1a;
   --accent: #111111;
@@ -295,7 +372,7 @@
   --panel-bg-card:  #ededeb;
   --panel-border:   #1a1a1a;
   --panel-fg:       #151515;
-  --panel-fg-muted: #8c8c8c;
+  --panel-fg-muted: var(--fg-muted);
 
   /* Status — 單一單色處理；狀態由 icon 字形承載 */
   --color-success: #151515; --color-success-bg: #ececea;
@@ -306,7 +383,7 @@
   /* Polarity — 單色 fill polarity（深淺取代色相） */
   --polarity-positive-bg: #ffffff; --polarity-positive-fg: #151515; --polarity-positive-edge: #151515; --polarity-positive-dot: #151515;
   --polarity-negative-bg: #151515; --polarity-negative-fg: #ffffff; --polarity-negative-edge: #000000; --polarity-negative-dot: #ffffff;
-  --polarity-neutral-bg:  #f6f6f4; --polarity-neutral-fg:  #8c8c8c; --polarity-neutral-edge:  #cfcfcf; --polarity-neutral-dot:  #8c8c8c;
+  --polarity-neutral-bg:  #f6f6f4; --polarity-neutral-fg:  var(--fg-muted); --polarity-neutral-edge:  #cfcfcf; --polarity-neutral-dot:  #8c8c8c;
   --polarity-mixed-bg:    #d8d8d8; --polarity-mixed-fg:    #151515; --polarity-mixed-edge:    #8c8c8c; --polarity-mixed-dot:    #3f3f3f;
 
   /* 密度 / 張力 — 灰階 ramp */
@@ -316,9 +393,9 @@
   --symbol-density-peak: #000000;
 
   --tension-intensity-low-bg:    #ffffff;
-  --tension-intensity-low-fg:    #8c8c8c;
+  --tension-intensity-low-fg:    var(--fg-muted);
   --tension-intensity-low-edge:  #cfcfcf;
-  --tension-intensity-mid-bg:    #8c8c8c;
+  --tension-intensity-mid-bg:    #737373;   /* 白字 4.74:1 */
   --tension-intensity-mid-fg:    #ffffff;
   --tension-intensity-mid-edge:  #3f3f3f;
   --tension-intensity-high-bg:   #151515;
@@ -347,26 +424,26 @@
   --status-partial-fg:      #151515;
   --status-empty-bg:        #ffffff;
   --status-empty-border:    #cfcfcf;
-  --status-empty-fg:        #8c8c8c;
+  --status-empty-fg:        var(--fg-muted);
 
   /* Frye / Booker — 灰階 fill polarity */
   --frye-romance-bg: #ffffff; --frye-romance-fg: #151515; --frye-romance-border: #151515;
   --frye-comedy-bg:  #ececea; --frye-comedy-fg:  #151515; --frye-comedy-border:  #3f3f3f;
   --frye-tragedy-bg: #151515; --frye-tragedy-fg: #ffffff; --frye-tragedy-border: #000000;
-  --frye-irony-bg:   #8c8c8c; --frye-irony-fg:   #ffffff; --frye-irony-border:   #151515;
+  --frye-irony-bg:   #737373; --frye-irony-fg:   #ffffff; --frye-irony-border:   #151515;
 
   --booker-bg:     #ececea;
   --booker-fg:     #151515;
   --booker-border: #1a1a1a;
   --booker-accent: #111111;
 
-  /* Splash wash — 灰階（白紙上的純墨線），值以設計 canvas 為準 */
-  --splash-image-opacity: 0.70;
-  --splash-image-filter:  grayscale(1) brightness(1.06) contrast(1.05);
+  /* Splash wash — 灰階（白紙上的純墨線），值以 DS v3 design system 為準 */
+  --splash-image-opacity: 0.28;
+  --splash-image-filter:  grayscale(1) contrast(1.3);
 
   /* Illustration — 白紙上的純墨線 */
   --illustration-stroke:      #151515;
-  --illustration-stroke-soft: #8c8c8c;
+  --illustration-stroke-soft: #8c8c8c;   /* 非文字，釘舊 muted 值 */
   --illustration-accent:      #151515;
   --illustration-fill:        none;
   --illustration-weight:      1.5px;
@@ -383,13 +460,54 @@
   --card-radius:       var(--radius-sm);
   --card-border-width: 1.5px;
   --card-shadow:       none;
+  /* Ink 的 accent 與 border 幾乎同色，選中只能靠線重承載 */
+  --card-selected-border-width: 2px;
+  /* 要人處理的卡要比選中更重：Ink 下 accent 框與一般卡框同色，只剩線重 */
+  --card-attention-border-width: 3px;
+  /* Ink 的 bg-secondary 與白底太近，開著的列要靠左側粗線 */
+  --row-open-marker-width: 3px;
+  /* 同理 hover 底色在 Ink 看不見，可點的列改由名稱底線回饋 */
+  --row-pick-hover-decoration: underline;
+  /* 近單色：拖曳中 accent 框與一般框同色、底色貼近白紙，改由虛線轉實線承載 */
+  --drop-active-border-style: solid;
+  /* 近單色：錯誤與警告同為 #ececea 底，錯誤改由墨線框承載 */
+  --notice-error-border-width: 1.5px;
   --btn-radius:        var(--radius-sm);
   --btn-border-width:  1.5px;
+  /* 近單色：危險鈕與次要鈕同為墨色外框，改由雙線框承載 */
+  --btn-danger-border-width: 3px;
+  --btn-danger-border-style: double;
   --btn-shadow:        none;
   --pill-radius:       4px;
   --pill-border-width: 1px;
+  --chip-border-width: 1px;   /* 線稿語彙：chip 也是有框的矩形 tag */
+  --narrative-glyph-display: block; /* 近單色：五種敘事模式的灰階分不開，改由字形承載 */
+  --symbol-glyph-display: inline-flex; /* 近單色：類別色塊與極性點只差灰階，改由圖示／字形承載 */
+  --symbol-dot-display: none; /* 近單色：極性點的灰階分不開，改畫字形 */
+  --tl-outlier-halo-display: inline; /* 近單色：accent #111 與一般點 #151515 同色，偏離改由外圈承載 */
+  --tl-outlier-link-width: 2px; /* 近單色：accent 與 border 同色，偏離連線改由線重承載 */
+  --dag-chain-halo-display: inline; /* 近單色：完整節點黑底黑框，accent 描邊看不見，鏈改由外圈承載 */
+  --dag-chain-edge-width: 2.5px; /* 近單色：上游邊與相連邊同為深色實線，上游改由線重承載 */
+  --dag-link-edge-dash: 4 3; /* 近單色：相連邊改虛線，與上游實線分開 */
+  --dag-edge-rest-opacity: 0.3; /* 近單色：--border 近黑，43 條邊交錯成網，靜止時壓淡 */
+  --dag-edge-span-opacity: 0.15;
+  --dag-node-radius: 0; /* 線稿語彙：直角，與 Ink 卡片／按鈕一致 */
+  --density-peak-inset: 2px; /* 近單色：3（#151515）與 4+（#000）同為黑，4+ 加紙色內框 */
+  /* 近單色：張力列與階段覆蓋列同為 accent 黑，張力改畫斜紋 */
+  --cross-tension-pattern: repeating-linear-gradient(-45deg, transparent 0 2px, var(--bg-primary) 2px 3.5px);
   --badge-radius:      4px;
+  /* 近單色：warning 與 success 徽章同為 #ececea 底＋墨字，警示類改由墨線框承載 */
+  --badge-caution-border-width: 1.5px;
+  /* 未選卡已是 1.5px 框，選中只多 0.5px 看不出來；外環再加 1.5px，合計 3px */
+  --choice-selected-ring-width: 1.5px;
   --control-radius:    var(--radius-sm);
+  /* var() 在宣告處解析：:root 的別名會把 Warm 值凍結在這裡，所以 Ink 必須重新宣告 */
+  --input-radius:       var(--control-radius);
+  --input-border-width: 1.5px;
+  --input-bg:           var(--bg-primary);
+
+  --scrim: rgba(0,0,0,0.40);
+  --scrim-light: rgba(0,0,0,0.12);
 
   /* Shadows — 中性化為純黑（線稿不帶暖影） */
   --shadow-sm: 0 1px 2px rgba(0,0,0,0.08);

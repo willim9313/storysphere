@@ -2,16 +2,15 @@
 
 from __future__ import annotations
 
-from typing import Any
-
 from fastapi import APIRouter, Depends, Query
 
 from storysphere.api.deps import get_doc_service, get_token_store
+from storysphere.api.schemas.token_usage import TokenUsageResponse
 
 router = APIRouter(prefix="/token-usage", tags=["token-usage"])
 
 
-@router.get("", summary="Token usage statistics")
+@router.get("", summary="Token usage statistics", response_model=TokenUsageResponse)
 async def get_token_usage(
     store=Depends(get_token_store),
     doc_service=Depends(get_doc_service),
@@ -23,12 +22,13 @@ async def get_token_usage(
     book_id: str | None = Query(
         default=None,
         alias="bookId",
+        min_length=1,
         description=(
             "Narrow every section to one book. Pass '__unattributed__' for the "
             "calls that carry no book."
         ),
     ),
-) -> dict[str, Any]:
+) -> TokenUsageResponse:
     """Return aggregated token usage with daily and per-book breakdowns.
 
     Book titles are joined in here rather than in the store: token usage and
@@ -50,4 +50,4 @@ async def get_token_usage(
         {**row, "title": titles.get(row["bookId"])} for row in usage.get("byBook", [])
     ]
 
-    return {**usage, "byBook": by_book, "daily": daily}
+    return TokenUsageResponse.model_validate({**usage, "byBook": by_book, "daily": daily})

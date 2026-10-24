@@ -1,13 +1,17 @@
 import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
-import { Search } from 'lucide-react';
+import { Box, ChevronDown, Circle, Hand, Leaf, MapPin, Palette, Search, type LucideIcon } from 'lucide-react';
 
+import { EmptyState } from '@/components/ui/EmptyState';
+import { Tooltip } from '@/components/ui/Tooltip';
 import { SYMBOL_TYPES, POLARITY_STYLE, densityStep, typeStyle } from './tokens';
+import type { ImageryType, Polarity } from '@/api/symbols';
 import { BlockBadge, ReviewBadge } from './Badges';
-import type { ChapterAxis } from './chapterAxis';
+import { OUTSIDE_CELL_FLEX, type ChapterAxis } from './chapterAxis';
 import type { SymbolCheck } from './hooks/useSymbolCheck';
 import { behaviourLine } from './symbolPhrases';
+import { analyzedCount, isBelowTrustFloor, trustPct } from './symbolViewModel';
 import {
   rankSymbols,
   type DistributionShape,
@@ -16,13 +20,27 @@ import {
   type SymbolSignals,
 } from './symbolSignals';
 
+/** Ink-only glyphs for the list (see --symbol-glyph-display): colour alone cannot carry type or polarity there. */
+const TYPE_GLYPH: Record<ImageryType, LucideIcon> = {
+  object: Box,
+  nature: Leaf,
+  spatial: MapPin,
+  body: Hand,
+  color: Palette,
+  other: Circle,
+};
+const POLARITY_GLYPH: Record<Polarity, string> = {
+  positive: '+',
+  negative: '\u2212',
+  neutral: '\u25CB',
+  mixed: '\u00B1',
+};
+
 /** Order of the rank-by menu. Load first — it is the answer to "which one?". */
 const SORT_AXES: SortAxis[] = ['load', 'attach', 'span', 'events', 'freq', 'first', 'review'];
 
-/** Below this, a ranking figure rests mostly on front matter and is marked as such. */
-const TRUST_FLOOR = 0.8;
-
 interface Props {
+  /** Null until the overview has loaded — and stays null if it failed. */
   analysis: SymbolAnalysis | null;
   selectedId: string | null;
   onSelect: (id: string | null) => void;
@@ -31,8 +49,11 @@ interface Props {
   setSortAxis: (v: SortAxis) => void;
   typeFilter: string | null;
   setTypeFilter: (v: string | null) => void;
+  /** The 「全部」 chip: clears the type filter and returns to the map. */
+  onShowAll: () => void;
   /** Behaviour group picked on the map. Screen-local, deliberately not in the URL. */
   shapeFilter: DistributionShape | null;
+  setShapeFilter: (v: DistributionShape | null) => void;
   search: string;
   setSearch: (v: string) => void;
 }
@@ -79,8 +100,9 @@ function metricOf(
  * made the book's dominant image the palest thing on the page and every
  * single-occurrence word the darkest.
  *
- * Non-body cells are narrower and rule-topped rather than filled, so they read as
- * outside the story without vanishing from it.
+ * Cells outside the body are narrower and always dashed-edged — whether or not
+ * they hold anything — so the edge says "not the story" without a colour. They are
+ * filled by count like any other cell: evidence kept, not shape.
  */
 function DensityStrip({ signals, axis }: Readonly<{ signals: SymbolSignals; axis: ChapterAxis }>) {
   const distribution = signals.item.chapter_distribution ?? {};
@@ -89,24 +111,24 @@ function DensityStrip({ signals, axis }: Readonly<{ signals: SymbolSignals; axis
       {axis.slots.map((slot) => {
         const count = distribution[String(slot.chapter)] ?? 0;
         const isBody = slot.segment === 'body';
-        // A rule rather than a fill, solid when occupied — present but not part of
-        // the story's shape.
-        const outsideRule = count > 0 ? '2px solid var(--fg-muted)' : '1px dotted var(--fg-muted)';
         return (
           <span
             key={slot.chapter}
             className={'sym-strip-cell' + (isBody ? '' : ' is-outside')}
             style={{
-              flex: isBody ? 1 : 0.7,
-              // Outside cells are never filled — the rule alone carries them.
-              background: isBody && count > 0 ? densityStep(count) : undefined,
-              borderTop: isBody ? undefined : outsideRule,
+              flex: isBody ? 1 : OUTSIDE_CELL_FLEX,
+              background: count > 0 ? densityStep(count) : undefined,
             }}
           />
         );
       })}
     </div>
   );
+}
+
+function TypeGlyph({ type }: Readonly<{ type: string }>) {
+  const Icon = TYPE_GLYPH[(type as ImageryType) in TYPE_GLYPH ? (type as ImageryType) : 'other'];
+  return <Icon size={14} aria-hidden="true" />;
 }
 
 function axisLabel(t: TFunction<'analysis'>, axis: SortAxis): string {
@@ -124,7 +146,9 @@ export function SymbolList({
   setSortAxis,
   typeFilter,
   setTypeFilter,
+  onShowAll,
   shapeFilter,
+  setShapeFilter,
   search,
   setSearch,
 }: Readonly<Props>) {
@@ -155,6 +179,7 @@ export function SymbolList({
     return rankSymbols(xs, sortAxis);
   }, [analysis, search, typeFilter, shapeFilter, sortAxis]);
 
+  const loaded = analysis !== null;
   const total = analysis?.all.length ?? 0;
   const tailCount = analysis?.tail.length ?? 0;
   let heading: string;
@@ -166,27 +191,158 @@ export function SymbolList({
     heading = t('symbol.list.headingSorted', { axis: t(`symbol.list.axis.${sortAxis}`) });
   }
 
+  const clearFilters = () => {
+    setSearch('');
+    setTypeFilter(null);
+    setShapeFilter(null);
+  };
+
+  let body;
+  if (!loaded) {
+    // Loading, or the overview failed: the main pane says which. Printing
+    // 「尚無意象資料」 here would report a failure as an empty book.
+    body = null;
+  } else if (total === 0) {
+    body = <p className="sym-list-empty">{t('symbol.noData')}</p>;
+  } else if (rows.length === 0) {
+    body = (
+      <div className="sym-list-filtered">
+        <EmptyState
+          weight="filtered"
+          title={t('symbol.noResults')}
+          action={
+            <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary" onClick={clearFilters}>
+              {t('symbol.filterEmpty.clear')}
+            </button>
+          }
+        />
+      </div>
+    );
+  } else {
+    body = rows.map((s) => {
+      const style = typeStyle(s.imageryType);
+      const polarity = s.polarity ? POLARITY_STYLE[s.polarity] : null;
+      const pickable = check.active && check.candidates.has(s.id);
+      const picked = pickable && check.isChecked(s.id);
+      // A figure resting mostly on front matter cannot support itself, so it says
+      // so — in colour, and in words for anyone who cannot tell the colour.
+      const noisy = isBelowTrustFloor(s);
+      const metric = (
+        <span className={'sym-row-metric' + (noisy ? ' is-noisy' : '')}>
+          {metricOf(t, s, sortAxis, analysis.axis.bodyChapterCount)}
+        </span>
+      );
+      const row = (
+        <button
+          key={s.id}
+          type="button"
+          className={
+            'sym-row' +
+            (selectedId === s.id ? ' is-active' : '') +
+            (picked ? ' is-picked' : '') +
+            (check.active && !pickable ? ' is-unpickable' : '')
+          }
+          aria-pressed={pickable ? picked : undefined}
+          // While picking, a candidate row picks instead of opening. The
+          // controls that spend the picks live on the map, so a row that
+          // navigated away would discard the selection it just added to.
+          onClick={() => (pickable ? check.toggle(s.id) : onSelect(s.id))}
+        >
+          <Tooltip label={t(`symbol.types.${s.imageryType}`, { defaultValue: s.imageryType })}>
+            <span className="sym-row-lead" style={{ background: style.bg }}>
+              <span className="sym-row-lead-glyph" style={{ color: style.fg }}>
+                <TypeGlyph type={s.imageryType} />
+              </span>
+            </span>
+          </Tooltip>
+
+          <span className="sym-row-body">
+            <span className="sym-row-line1">
+              <span className="sym-row-term">{s.term}</span>
+              {s.aliases.length > 0 && (
+                <span className="sym-row-aliases">{s.aliases.slice(0, 2).join(' · ')}</span>
+              )}
+              {/* Both can be true: interpreted once, refused on a later
+                  regeneration. Showing only one would hide half the state. */}
+              {s.reviewStatus && <ReviewBadge status={s.reviewStatus} />}
+              {s.block && <BlockBadge />}
+            </span>
+            <span className="sym-row-behaviour">{behaviourLine(t, s)}</span>
+            <DensityStrip signals={s} axis={analysis.axis} />
+          </span>
+
+          {noisy ? (
+            <Tooltip label={t('symbol.list.trustBelowFloor', { pct: trustPct(s) })}>{metric}</Tooltip>
+          ) : (
+            metric
+          )}
+
+          {/* The 12px state slot: kept even when empty so every row's figure sits
+              on the same right edge. */}
+          <span className="sym-row-slot">
+            {polarity && (
+              <Tooltip label={t(`symbol.polarity.${s.polarity}`)}>
+                <>
+                  <span className="sym-row-pol-dot" style={{ background: polarity.dot }} />
+                  <span className="sym-row-pol-glyph" aria-hidden="true">
+                    {POLARITY_GLYPH[s.polarity as Polarity]}
+                  </span>
+                </>
+              </Tooltip>
+            )}
+          </span>
+        </button>
+      );
+
+      if (!check.active) return row;
+      // The checkbox is the row's sibling, not its child: the row is a button, and
+      // a checkbox nested inside one is both invalid and double-firing. Rows that
+      // cannot be picked keep the wrapper and get a gap of the same width, so
+      // nothing shifts sideways down the list.
+      return (
+        <div key={s.id} className="sym-row-wrap">
+          {pickable ? (
+            <input
+              type="checkbox"
+              className="sym-row-check"
+              checked={picked}
+              aria-label={t('symbol.list.checkAria', { term: s.term })}
+              onChange={() => check.toggle(s.id)}
+            />
+          ) : (
+            <span className="sym-row-check-gap" aria-hidden="true" />
+          )}
+          {row}
+        </div>
+      );
+    });
+  }
+
   return (
     <aside className="sym-list">
       <div className="sym-list-controls">
         <label className="sym-sort-select">
           <span className="sym-list-label">{t('symbol.list.sortAxis')}</span>
-          <select value={sortAxis} onChange={(e) => setSortAxis(e.target.value as SortAxis)}>
-            {SORT_AXES.map((axis) => (
-              <option key={axis} value={axis}>
-                {axisLabel(t, axis)}
-              </option>
-            ))}
-          </select>
+          <span className="sym-select-wrap">
+            <select value={sortAxis} onChange={(e) => setSortAxis(e.target.value as SortAxis)}>
+              {SORT_AXES.map((axis) => (
+                <option key={axis} value={axis}>
+                  {axisLabel(t, axis)}
+                </option>
+              ))}
+            </select>
+            <ChevronDown size={14} aria-hidden="true" />
+          </span>
         </label>
 
         <div className="sym-search">
-          <Search size={12} style={{ color: 'var(--fg-muted)' }} />
+          <Search size={13} aria-hidden="true" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder={t('symbol.list.searchPlaceholder')}
+            aria-label={t('symbol.list.searchPlaceholder')}
           />
         </div>
 
@@ -196,30 +352,23 @@ export function SymbolList({
             className={
               'sym-chip-all' + (typeFilter === null && selectedId === null ? ' is-active' : '')
             }
-            onClick={() => {
-              setTypeFilter(null);
-              // Still the only route back to the overview until the detail view
-              // grows a breadcrumb. The behaviour filter is cleared there, since
-              // that is where it was set.
-              onSelect(null);
-            }}
+            aria-pressed={typeFilter === null && selectedId === null}
+            // Still the only route back to the overview until the detail view
+            // grows a breadcrumb. The behaviour filter is cleared there, since
+            // that is where it was set.
+            onClick={onShowAll}
           >
-            {t('symbol.all')} <span className="sym-chip-count">{total}</span>
+            {t('symbol.all')} {loaded && <span className="sym-chip-count">{total}</span>}
           </button>
           {SYMBOL_TYPES.filter((tp) => typeCounts[tp]).map((tp) => {
-            const style = typeStyle(tp);
             const active = typeFilter === tp;
             return (
               <button
                 key={tp}
                 type="button"
                 className={'sym-chip-type' + (active ? ' is-active' : '')}
+                aria-pressed={active}
                 onClick={() => setTypeFilter(active ? null : tp)}
-                style={{
-                  background: active ? style.bg : 'transparent',
-                  color: active ? style.fg : 'var(--fg-secondary)',
-                  borderColor: active ? style.dot : 'var(--border)',
-                }}
               >
                 {t(`symbol.types.${tp}`)} <span className="sym-chip-count">{typeCounts[tp]}</span>
               </button>
@@ -228,12 +377,15 @@ export function SymbolList({
         </div>
       </div>
 
-      <div className="sym-list-heading">
-        <span className="sym-list-heading-text">{heading}</span>
-        <span className="sym-list-heading-count">
-          {t('symbol.list.count', { shown: rows.length, total })}
-        </span>
-      </div>
+      {/* list-group-head: a label, not a target — no hover, no border. */}
+      {loaded && total > 0 && (
+        <div className="sym-list-heading">
+          <span className="sym-list-heading-text">{heading}</span>
+          <span className="sym-list-heading-count">
+            {t('symbol.list.groupMeta', { total: rows.length, analyzed: analyzedCount(rows) })}
+          </span>
+        </div>
+      )}
 
       {/* Which rows carry a checkbox is a rule, not a glitch, so it is stated
           rather than left to be inferred from the rows that lack one. */}
@@ -245,94 +397,7 @@ export function SymbolList({
         </p>
       )}
 
-      <div className="sym-list-body">
-        {rows.length === 0 ? (
-          <p className="sym-list-empty">
-            {total === 0 ? t('symbol.noData') : t('symbol.noResults')}
-          </p>
-        ) : (
-          rows.map((s) => {
-            const style = typeStyle(s.imageryType);
-            const polarity = s.polarity ? POLARITY_STYLE[s.polarity] : null;
-            const pickable = check.active && check.candidates.has(s.id);
-            const picked = pickable && check.isChecked(s.id);
-            const row = (
-              <button
-                key={s.id}
-                type="button"
-                className={
-                  'sym-row' +
-                  (selectedId === s.id ? ' is-active' : '') +
-                  (picked ? ' is-picked' : '') +
-                  (check.active && !pickable ? ' is-unpickable' : '')
-                }
-                aria-pressed={pickable ? picked : undefined}
-                // While picking, a candidate row picks instead of opening. The
-                // controls that spend the picks live on the map, so a row that
-                // navigated away would discard the selection it just added to.
-                onClick={() => (pickable ? check.toggle(s.id) : onSelect(s.id))}
-              >
-                <div className="sym-row-line1">
-                  <span className="sym-row-dot" style={{ background: style.dot }} />
-                  <span className="sym-row-term">{s.term}</span>
-                  {s.aliases.length > 0 && (
-                    <span className="sym-row-aliases">{s.aliases.slice(0, 2).join(' · ')}</span>
-                  )}
-                  <span className="sym-row-spacer" />
-                  {polarity && (
-                    <span
-                      className="sym-row-pol-dot"
-                      style={{ background: polarity.dot }}
-                      title={t(`symbol.polarity.${s.polarity}`)}
-                    />
-                  )}
-                  {/* Both can be true: interpreted once, refused on a later
-                      regeneration. Showing only one would hide half the state. */}
-                  {s.reviewStatus && <ReviewBadge status={s.reviewStatus} />}
-                  {s.block && <BlockBadge />}
-                </div>
-
-                <div className="sym-row-behaviour">{behaviourLine(t, s)}</div>
-
-                {analysis && <DensityStrip signals={s} axis={analysis.axis} />}
-
-                <div
-                  className="sym-row-metric"
-                  // A figure resting mostly on front matter cannot support itself,
-                  // so it says so rather than reading as solid.
-                  style={
-                    s.trust < TRUST_FLOOR ? { color: 'var(--status-partial-fg)' } : undefined
-                  }
-                >
-                  {metricOf(t, s, sortAxis, analysis?.axis.bodyChapterCount ?? 0)}
-                </div>
-              </button>
-            );
-
-            if (!check.active) return row;
-            // The checkbox is the row's sibling, not its child: the row is a
-            // button, and a checkbox nested inside one is both invalid and
-            // double-firing. Rows that cannot be picked keep the wrapper and get
-            // a gap of the same width, so nothing shifts sideways down the list.
-            return (
-              <div key={s.id} className="sym-row-wrap">
-                {pickable ? (
-                  <input
-                    type="checkbox"
-                    className="sym-row-check"
-                    checked={picked}
-                    aria-label={t('symbol.list.checkAria', { term: s.term })}
-                    onChange={() => check.toggle(s.id)}
-                  />
-                ) : (
-                  <span className="sym-row-check-gap" aria-hidden="true" />
-                )}
-                {row}
-              </div>
-            );
-          })
-        )}
-      </div>
+      <div className="sym-list-body">{body}</div>
 
       {tailCount > 0 && !search.trim() && (
         <p className="sym-list-tail-note">{t('symbol.list.tailNote', { count: tailCount })}</p>

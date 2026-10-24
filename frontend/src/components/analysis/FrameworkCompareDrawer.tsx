@@ -1,7 +1,11 @@
+import { useId } from 'react';
 import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { ArchetypeDetail, CharacterAnalysisDetail } from '@/api/types';
 import { useEscapeKey } from '@/hooks/useEscapeKey';
+import { useDialogFocus } from '@/hooks/useDialogFocus';
+import { ConfidenceMeter } from './ConfidenceMeter';
+import { archetypeDisplayName } from './characterModel';
 
 interface Props {
   open: boolean;
@@ -13,6 +17,8 @@ export function FrameworkCompareDrawer({ open, data, onClose }: Props) {
   const { t } = useTranslation('analysis');
 
   useEscapeKey(open, onClose);
+  const dialogRef = useDialogFocus(open);
+  const titleId = useId();
 
   if (!open || !data) return null;
 
@@ -22,10 +28,18 @@ export function FrameworkCompareDrawer({ open, data, onClose }: Props) {
   return (
     <>
       <div className="ca-compare-backdrop" onClick={onClose} />
-      <aside className="ca-compare-drawer" role="dialog" aria-modal="true">
+      <aside
+        ref={dialogRef}
+        className="ca-compare-drawer"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+      >
         <header className="ca-compare-head">
-          <h3>{t('character.compare.title', { name: data.entityName })}</h3>
-          <button className="ca-btn ca-btn-ghost" onClick={onClose}>
+          <h3 id={titleId} tabIndex={-1}>
+            {t('character.compare.title', { name: data.entityName })}
+          </h3>
+          <button type="button" className="ss-btn ss-btn-sm ss-btn-ghost" onClick={onClose}>
             <X size={14} /> {t('character.compare.close')}
           </button>
         </header>
@@ -45,7 +59,7 @@ function CompareColumn({
   title: string;
   archetype: ArchetypeDetail | undefined;
 }) {
-  const { t } = useTranslation('analysis');
+  const { t, i18n } = useTranslation('analysis');
 
   if (!archetype) {
     return (
@@ -64,23 +78,28 @@ function CompareColumn({
       <div className="ca-compare-col-head">
         <h4>{title}</h4>
       </div>
-      <div className="ca-compare-primary">{archetype.primary}</div>
+      <div className="ca-compare-row">
+        <span className="ca-compare-row-label">{t('character.primaryArchetype')}</span>
+        <span className="ca-compare-primary">
+          {archetypeDisplayName(archetype.framework, archetype.primary, i18n.language)}
+        </span>
+      </div>
       {archetype.secondary && (
         <div className="ca-compare-secondary">
-          {t('character.compare.secondaryLabel', { name: archetype.secondary })}
+          {t('character.compare.secondaryLabel', { name: archetypeDisplayName(archetype.framework, archetype.secondary, i18n.language) })}
         </div>
       )}
-      <div className="ca-compare-conf-row">
-        <div className="ca-conf-track">
-          <div className="ca-conf-fill" style={{ width: `${pct}%` }} />
-        </div>
-        <span className="ca-compare-conf-pct">{t('character.compare.confidencePct', { pct })}</span>
+      {/* 信心度三件套在抽屜兩側都齊備：Ink 下長條會塌成單色，文字與數字是必要的冗餘。 */}
+      <div className="ca-compare-row is-center">
+        <span className="ca-compare-row-label">{t('character.confidence')}</span>
+        <ConfidenceMeter pct={pct} />
       </div>
       <p className="ca-compare-evidence-label">{t('character.compare.evidenceLabel')}</p>
       <div className="ca-compare-evidence-list">
         {archetype.evidence.map((e, i) => (
-          <div key={i} className="ca-compare-evidence-item">
-            {e}
+          <div key={e} className="ca-compare-evidence-item">
+            <span className="ca-evidence-num">{`[${i + 1}]`}</span>
+            <span>{e}</span>
           </div>
         ))}
       </div>

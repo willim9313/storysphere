@@ -1,0 +1,9 @@
+/* ClassifyVisibilityButton（臨時功能）——閱讀頁認知狀態、角色分析、圖譜 lens 共用，
+   所以樣式跟元件走，不放進頁面 CSS。 */
+.cvb { display: flex; flex-direction: column; align-items: flex-start; gap: var(--space-3); }
+.cvb-hint { margin: 0; font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-muted); }
+.cvb-done, .cvb-error {
+  display: inline-flex; align-items: center; gap: var(--space-2); font-size: var(--font-size-2xs);
+}
+.cvb-done { color: var(--color-success); }
+.cvb-error { color: var(--color-error); }

@@ -1,6 +1,8 @@
 import { useMemo, useState } from 'react';
-import { BarChart3, GitBranch, Sparkles, Waypoints } from 'lucide-react';
 import { Trans, useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { Flag } from 'lucide-react';
+import { EmptyState } from '@/components/ui/EmptyState';
 import type { AnalysisListResponse } from '@/api/types';
 import { useTimeline } from '@/hooks/useTimeline';
 import { GuidanceRibbon } from '@/components/ui/GuidanceRibbon';
@@ -11,12 +13,21 @@ import { buildOverviewEvents } from './eventTypes';
 
 type LandingView = 'map' | 'ranking' | 'flow';
 
+const VIEWS: { key: LandingView; labelKey: string }[] = [
+  { key: 'map', labelKey: 'event.overview.viewMap' },
+  { key: 'ranking', labelKey: 'event.overview.viewRanking' },
+  { key: 'flow', labelKey: 'event.overview.viewFlow' },
+];
+
 interface EventOverviewLandingProps {
   bookId: string;
   evtData: AnalysisListResponse;
   onSelectEvent: (id: string) => void;
   onGenerate: (id: string) => void;
   generatingId: string | null;
+  /** Why no new generation can start right now (another event is generating,
+   *  or a batch is running), shown as the disabled button's tooltip; null = free. */
+  generateBlockedReason?: string | null;
   onBatchAll: () => void;
   isBatchRunning: boolean;
 }
@@ -27,10 +38,12 @@ export function EventOverviewLanding({
   onSelectEvent,
   onGenerate,
   generatingId,
+  generateBlockedReason = null,
   onBatchAll,
   isBatchRunning,
 }: Readonly<EventOverviewLandingProps>) {
   const { t } = useTranslation('analysis');
+  const navigate = useNavigate();
   const [view, setView] = useState<LandingView>('map');
 
   const { data: timeline } = useTimeline(bookId, 'narrative');
@@ -41,8 +54,39 @@ export function EventOverviewLanding({
   const totalCount = analyzedCount + unanalyzedCount;
   const kernelCount = events.filter((e) => e.importance === 'KERNEL').length;
 
+  // No events at all is not "nothing analyzed yet": events come from the
+  // knowledge-graph extraction, so a batch EEP run has nothing to work on.
+  // Point at the build step instead of offering a 0-event LLM button.
+  if (totalCount === 0) {
+    return (
+      <>
+        <h1 className="sr-only">{t('event.overview.title')}</h1>
+        <EmptyState
+          weight="prerequisite"
+          icon={<Flag size={26} aria-hidden="true" />}
+          title={t('event.overview.empty.title')}
+          description={t('event.overview.empty.description')}
+          action={
+            <button
+              type="button"
+              className="ss-btn ss-btn-md ss-btn-primary"
+              onClick={() => navigate(`/books/${bookId}/unraveling`)}
+            >
+              {t('graph:onboarding.cta')}
+            </button>
+          }
+        />
+      </>
+    );
+  }
+
   return (
     <div className="ea-ov-landing">
+      <GuidanceRibbon surface="event-overview">
+        <strong>{t('event.guide.prefix')}</strong>{' '}
+        <Trans i18nKey="event.guide.overview" ns="analysis" components={{ strong: <strong /> }} />
+      </GuidanceRibbon>
+
       {analyzedCount === 0 && (
         <div className="ea-ov-empty-banner">
           <div className="ea-ov-empty-text">
@@ -50,62 +94,40 @@ export function EventOverviewLanding({
           </div>
           <button
             type="button"
-            className="ea-btn ea-btn-primary"
+            className="ss-btn ss-btn-sm ss-btn-primary ss-btn-llm"
             onClick={onBatchAll}
             disabled={isBatchRunning}
           >
-            <Sparkles size={12} /> {t('event.overview.emptyBatch')}
+            {t('event.overview.emptyBatch')}
           </button>
         </div>
       )}
 
       <div className="ea-ov-head">
-        <h1 className="ea-ov-title">{t('event.overview.title')}</h1>
-        <div className="ea-ov-meta">
-          <span>
-            <strong>{totalCount}</strong> {t('event.overview.metaTotal')}
-          </span>
-          <span className="ea-ov-meta-item analyzed">
-            <span className="ea-ov-meta-dot" /> {t('event.overview.metaAnalyzed')} {analyzedCount}
-          </span>
-          <span className="ea-ov-meta-item">
-            <span className="ea-ov-meta-dot empty" /> {t('event.overview.metaUnanalyzed')}{' '}
-            {unanalyzedCount}
-          </span>
-          <span className="ea-ov-meta-item kernel">
-            {t('event.overview.metaKernel')} {kernelCount}
+        <div className="ea-ov-head-main">
+          <h1 className="ss-page-title">{t('event.overview.title')}</h1>
+          <span className="ea-ov-meta">
+            {t('event.overview.meta', {
+              total: totalCount,
+              analyzed: analyzedCount,
+              unanalyzed: unanalyzedCount,
+              kernel: kernelCount,
+            })}
           </span>
         </div>
-      </div>
-
-      <GuidanceRibbon surface="event-overview">
-        <strong>{t('event.guide.prefix')}</strong>{' '}
-        <Trans i18nKey="event.guide.overview" ns="analysis" components={{ strong: <strong /> }} />
-      </GuidanceRibbon>
-
-      <div className="ea-ov-toolbar">
-        <div className="ea-ov-toggle">
-          <button
-            type="button"
-            className={'ea-ov-toggle-btn' + (view === 'map' ? ' active' : '')}
-            onClick={() => setView('map')}
-          >
-            <Waypoints size={13} /> {t('event.overview.viewMap')}
-          </button>
-          <button
-            type="button"
-            className={'ea-ov-toggle-btn' + (view === 'ranking' ? ' active' : '')}
-            onClick={() => setView('ranking')}
-          >
-            <BarChart3 size={13} /> {t('event.overview.viewRanking')}
-          </button>
-          <button
-            type="button"
-            className={'ea-ov-toggle-btn' + (view === 'flow' ? ' active' : '')}
-            onClick={() => setView('flow')}
-          >
-            <GitBranch size={13} /> {t('event.overview.viewFlow')}
-          </button>
+        {/* View switch is a zero-cost mode switch: no LLM glyph, no accent fill. */}
+        <div className="ss-seg">
+          {VIEWS.map((v) => (
+            <button
+              key={v.key}
+              type="button"
+              className={'ss-seg-item' + (view === v.key ? ' active' : '')}
+              aria-pressed={view === v.key}
+              onClick={() => setView(v.key)}
+            >
+              {t(v.labelKey)}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -116,6 +138,7 @@ export function EventOverviewLanding({
           onSelectEvent={onSelectEvent}
           onGenerate={onGenerate}
           generatingId={generatingId}
+          generateBlockedReason={generateBlockedReason}
         />
       )}
       {view === 'flow' && (

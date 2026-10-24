@@ -53,6 +53,10 @@ describe('query keys', () => {
     ]);
     expect(qk.symbols.overview('b1')).toEqual(['symbols', 'b1', 'overview']);
 
+    expect(qk.buildOverview.manifest('b1')).toEqual(['buildOverview', 'b1']);
+    expect(qk.buildOverview.chapterDistribution('b1')).toEqual([
+      'buildOverview', 'b1', 'chapter-distribution',
+    ]);
     expect(qk.tension.lines('b1')).toEqual(['books', 'b1', 'tension', 'lines']);
     expect(qk.tension.teus('b1')).toEqual(['books', 'b1', 'tension', 'teus']);
     expect(qk.tension.theme('b1')).toEqual(['books', 'b1', 'tension', 'theme']);
@@ -60,6 +64,7 @@ describe('query keys', () => {
     expect(qk.timeline.all('b1')).toEqual(['books', 'b1', 'timeline']);
     expect(qk.timeline.order('b1', 'narrative')).toEqual(['books', 'b1', 'timeline', 'narrative']);
     expect(qk.timeline.config('b1')).toEqual(['books', 'b1', 'timeline-config']);
+    expect(qk.timeline.coverage('b1')).toEqual(['books', 'b1', 'timeline', 'temporal-coverage']);
   });
 
   it('keeps the tasks family shapes', () => {
@@ -100,6 +105,7 @@ describe('query keys', () => {
       qk.timeline.all('b1'),
       qk.timeline.order('b1', 'narrative'),
       qk.timeline.config('b1'),
+      qk.timeline.coverage('b1'),
     ];
 
     for (const key of nested) {

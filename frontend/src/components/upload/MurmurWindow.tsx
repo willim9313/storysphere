@@ -1,23 +1,16 @@
-import { useRef, useEffect, useLayoutEffect, useCallback } from 'react';
-import type { MurmurEvent, MurmurEventType } from '@/api/types';
+import { memo, useRef, useEffect, useLayoutEffect, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
+import type { MurmurEvent } from '@/api/types';
 import { CharacterSlot } from './CharacterSlot';
+import { murmurPillVariant } from './uploadModel';
 
-// Murmur type → entity token stem (repo uses abbreviated names). Pill types
-// render as a colored entity chip; topic renders as serif prose; raw as mono.
-// Mirrors the design canvas mapMurmur (org→org, event→evt), with symbol folded
-// into the concept hue.
-const PILL_STEM: Partial<Record<MurmurEventType, string>> = {
-  character: 'char',
-  location: 'loc',
-  org: 'org',
-  event: 'evt',
-  symbol: 'con',
-};
-
-function eyebrowOf(event: MurmurEvent): string {
+// The step's own name (as in the timeline), not the camelCase key; an
+// unknown key still shows as itself rather than vanishing.
+function eyebrowOf(event: MurmurEvent, t: TFunction<'upload'>): string {
   const chap = event.meta?.chapter;
   const chapText = typeof chap === 'number' ? ` · ch.${String(chap).padStart(2, '0')}` : '';
-  return event.stepKey + chapText;
+  return t(`steps.${event.stepKey}`, { defaultValue: event.stepKey }) + chapText;
 }
 
 function roleOf(event: MurmurEvent): string {
@@ -25,69 +18,28 @@ function roleOf(event: MurmurEvent): string {
   return typeof role === 'string' ? role : '';
 }
 
-function PillContent({ event, stem }: Readonly<{ event: MurmurEvent; stem: string }>) {
-  const role = roleOf(event);
-  return (
-    <div style={{ paddingLeft: 11 }}>
-      <span
-        style={{
-          display: 'inline-flex',
-          alignItems: 'center',
-          gap: 4,
-          font: '500 11.5px/1 var(--font-sans)',
-          background: `var(--entity-${stem}-bg)`,
-          color: `var(--entity-${stem}-fg)`,
-          border: `var(--pill-border-width) solid var(--entity-${stem}-border)`,
-          borderRadius: 'var(--pill-radius)',
-          padding: '3px 9px',
-        }}
-      >
-        <span style={{ width: 5, height: 5, borderRadius: '50%', background: `var(--entity-${stem}-dot)` }} />
-        {event.content}
-      </span>
-      {role && (
-        <span style={{ font: '400 11.5px/1.5 var(--font-serif)', color: 'var(--fg-secondary)', marginLeft: 7 }}>
-          {role}
-        </span>
-      )}
-    </div>
-  );
-}
-
-function MurmurContent({ event }: Readonly<{ event: MurmurEvent }>) {
-  const stem = PILL_STEM[event.type];
-  if (stem) return <PillContent event={event} stem={stem} />;
-  if (event.type === 'raw') {
+// Three content shapes share one stream: entity pill (+ serif role), serif
+// prose for topic, mono for raw.
+// memo: an event never changes once received, so a row renders once.
+const MurmurContent = memo(function MurmurContent({ event }: Readonly<{ event: MurmurEvent }>) {
+  const variant = murmurPillVariant(event.type);
+  if (variant) {
+    const role = roleOf(event);
     return (
-      <div style={{ font: '400 11px/1.5 var(--font-mono)', color: 'var(--fg-muted)', paddingLeft: 11 }}>
-        {event.rawContent ?? event.content}
+      <div className="up-murmur-body">
+        <span className={`ss-pill ss-pill-${variant}`}>
+          <span className="ss-pill-dot" />
+          {event.content}
+        </span>
+        {role && <span className="up-murmur-role">{role}</span>}
       </div>
     );
   }
-  return (
-    <p
-      className="break-words"
-      style={{ font: '400 13px/1.6 var(--font-serif)', color: 'var(--fg-primary)', margin: 0, paddingLeft: 11 }}
-    >
-      {event.content}
-    </p>
-  );
-}
-
-function MurmurEventRow({ event, isNew }: Readonly<{ event: MurmurEvent; isNew: boolean }>) {
-  return (
-    <div className="murmur-event-row" data-new={isNew} style={{ padding: '0 3px' }}>
-      {/* eyebrow: accent dot + mono step·chapter */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
-        <span style={{ width: 5, height: 5, borderRadius: '50%', background: 'var(--accent)', flex: 'none' }} />
-        <span style={{ font: '400 10.5px/1 var(--font-mono)', color: 'var(--fg-muted)', letterSpacing: '.02em' }}>
-          {eyebrowOf(event)}
-        </span>
-      </div>
-      <MurmurContent event={event} />
-    </div>
-  );
-}
+  if (event.type === 'raw') {
+    return <code className="up-murmur-raw">{event.rawContent ?? event.content}</code>;
+  }
+  return <p className="up-murmur-topic">{event.content}</p>;
+});
 
 interface MurmurWindowProps {
   events: MurmurEvent[];
@@ -95,7 +47,10 @@ interface MurmurWindowProps {
   characterSrc?: string;
 }
 
-export function MurmurWindow({ events, characterSrc }: Readonly<MurmurWindowProps>) {
+// memo: the store hands out a new array only when events arrive, so the card's
+// other re-renders (polls, state) skip the list.
+export const MurmurWindow = memo(function MurmurWindow({ events, characterSrc }: Readonly<MurmurWindowProps>) {
+  const { t } = useTranslation('upload');
   const containerRef = useRef<HTMLDivElement>(null);
   const isAtBottomRef = useRef(true);
   const prevLengthRef = useRef(events.length);
@@ -114,6 +69,8 @@ export function MurmurWindow({ events, characterSrc }: Readonly<MurmurWindowProp
     if (el) el.scrollTop = el.scrollHeight;
   }, []);
 
+  // Stick to the bottom as deltas arrive — but only while the reader is
+  // already there; scrolling up to read is never yanked back.
   useEffect(() => {
     if (events.length === prevLengthRef.current) return;
     prevLengthRef.current = events.length;
@@ -123,68 +80,28 @@ export function MurmurWindow({ events, characterSrc }: Readonly<MurmurWindowProp
   }, [events.length]);
 
   return (
-    <>
-      <style>{`
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(8px); }
-          to   { opacity: 1; transform: translateY(0); }
-        }
-        @media (prefers-reduced-motion: reduce) {
-          .murmur-event-row { animation: none !important; }
-        }
-        .murmur-event-row[data-new="true"] {
-          animation: slideUp 0.25s ease-out forwards;
-        }
-      `}</style>
-      {/* Outer wrapper is the position:relative anchor so CharacterSlot
-          stays pinned to the visible corner, not the scrollable content */}
-      <div style={{ position: 'relative' }}>
-        <div
-          ref={containerRef}
-          onScroll={checkAtBottom}
-          style={{
-            height: 260,
-            overflowY: 'auto',
-            borderRadius: 8,
-            border: '1px solid var(--border)',
-            backgroundColor: 'var(--bg-secondary)',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: events.length === 0 ? 'center' : undefined,
-          }}
-        >
-          {events.length === 0 ? (
-            <p className="text-xs text-center" style={{ color: 'var(--fg-muted)', padding: '0 16px' }}>
-              等待系統開始處理…
-            </p>
-          ) : (
-            // paddingRight reserves the CharacterSlot's lane (right:8 + width:56
-            // + gap) so murmur text never flows under the pinned mascot.
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 13, padding: '14px 72px 14px 15px' }}>
-              {events.map((event, idx) => (
-                <MurmurEventRow
-                  key={event.seq}
-                  event={event}
-                  isNew={idx === events.length - 1}
-                />
-              ))}
+    // The column is the position:relative anchor so the CharacterSlot stays
+    // pinned to the visible corner, not to the scrolling content.
+    <div className="up-murmur-col">
+      <div
+        ref={containerRef}
+        onScroll={checkAtBottom}
+        className={events.length === 0 ? 'up-murmur up-murmur-empty' : 'up-murmur'}
+      >
+        {events.length === 0 ? (
+          <span className="up-murmur-empty-text">{t('murmurEmpty')}</span>
+        ) : (
+          events.map((event, idx) => (
+            <div key={event.seq} className="up-murmur-item" data-new={idx === events.length - 1}>
+              <span className="up-murmur-eyebrow">{eyebrowOf(event, t)}</span>
+              <MurmurContent event={event} />
             </div>
-          )}
-        </div>
-
-        {/* CharacterSlot pinned to visible bottom-right of the scroll container */}
-        <div
-          style={{
-            position: 'absolute',
-            bottom: 8,
-            right: 8,
-            pointerEvents: 'none',
-            zIndex: 1,
-          }}
-        >
-          <CharacterSlot src={characterSrc} />
-        </div>
+          ))
+        )}
       </div>
-    </>
+      <div className="up-mascot-pin">
+        <CharacterSlot src={characterSrc} />
+      </div>
+    </div>
   );
-}
+});

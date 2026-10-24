@@ -1,78 +1,90 @@
-import { useState, useRef, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useTranslation } from 'react-i18next';
-import { Search, ChevronDown, ArrowUpRight, X, Upload } from 'lucide-react';
+import { useState, useRef, useCallback, useEffect, useMemo } from 'react';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { Trans, useTranslation } from 'react-i18next';
+import { Search, ChevronDown, ArrowUpRight, X, Upload, AlertTriangle } from 'lucide-react';
 
 import { useBooks } from '@/hooks/useBooks';
 import { searchPassages, type SearchMode, type SearchResult } from '@/api/search';
+import { failureKind, techDetailOf } from '@/api/failureKind';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { PageFailure } from '@/components/ui/PageFailure';
+import {
+  formatScore,
+  groupResults,
+  hitOffsets,
+  booksWithHits,
+  groupCap,
+  MORE_LIMIT,
+  mergeBookSearches,
+  padPosition,
+  parseSearchParams,
+  PER_BOOK_LIMIT,
+  queryTerms,
+  replaceBookResults,
+  splitHighlight,
+  toSearchParams,
+  type BookGroup,
+  type SearchUrlState,
+} from '@/pages/search/searchModel';
 
 import '@/styles/search.css';
-
-// ── Keyword highlight ──────────────────────────────────────────────────────────
-function highlightText(text: string, query: string): React.ReactNode {
-  const words = query
-    .trim()
-    .split(/\s+/)
-    .filter((w) => w.length >= 1)
-    .map((w) => w.replace(/[.*+?^${}()|[\]\\]/g, String.raw`\$&`));
-
-  if (words.length === 0) return text;
-
-  // Capturing-group split: odd-indexed parts are always the matched text,
-  // avoiding stateful g-flag regex in test().
-  const parts = text.split(new RegExp(`(${words.join('|')})`, 'gi'));
-
-  return parts.map((part, i) =>
-    i % 2 === 1 ? (
-      <mark key={`${i}-${part}`} className="srch-mark">
-        {part}
-      </mark>
-    ) : (
-      part
-    ),
-  );
-}
-
-function formatScore(score: number, mode: SearchMode): string {
-  if (mode === 'fulltext') return `${score}次`;
-  return `${Math.round(score * 100)}%`;
-}
-
-// ── Per-book search helper ─────────────────────────────────────────────────────
-async function fetchFilteredResults(
-  q: string,
-  bookIds: string[],
-  mode: SearchMode,
-): Promise<SearchResult[]> {
-  const batches = await Promise.allSettled(
-    bookIds.map((id) => searchPassages({ query: q, bookId: id, topK: 10, mode })),
-  );
-  return batches
-    .filter((b): b is PromiseFulfilledResult<SearchResult[]> => b.status === 'fulfilled')
-    .flatMap((b) => b.value)
-    .sort((a, b) => b.score - a.score)
-    .slice(0, 30);
-}
-
-// ── Types ──────────────────────────────────────────────────────────────────────
-interface BookGroup {
-  documentId: string;
-  title: string;
-  results: SearchResult[];
-}
 
 // ── Sub-components ─────────────────────────────────────────────────────────────
 function SkeletonLoader() {
   return (
-    <div className="srch-skeleton">
+    <div className="srch-skeleton" aria-hidden="true">
       {[1, 2, 3].map((n) => (
         <div key={n} className="srch-skel-group">
-          <div className="srch-skel-bar" style={{ height: 22, width: '30%' }} />
+          <div className="srch-skel-title" />
           {[1, 2].map((r) => (
-            <div key={r} className="srch-skel-row" />
+            <div key={r} className="srch-skel-row">
+              <div className="srch-skel-bar srch-skel-pos" />
+              <div className="srch-skel-lines">
+                <div className="srch-skel-bar srch-skel-line" />
+                <div className="srch-skel-bar srch-skel-line srch-skel-line-short" />
+              </div>
+              <div className="srch-skel-bar srch-skel-score" />
+            </div>
           ))}
         </div>
       ))}
+    </div>
+  );
+}
+
+/** Paragraph text in full (never clamped), keyword hits as <mark>, plus the 3px hit track. */
+function ResultBody({
+  text,
+  query,
+  mode,
+}: Readonly<{ text: string; query: string; mode: SearchMode }>) {
+  const segments = splitHighlight(text, query);
+  const offsets = mode === 'fulltext' ? hitOffsets(text, query) : [];
+
+  return (
+    <div className="srch-row-body">
+      {offsets.length > 0 && (
+        <span className="srch-track" aria-hidden="true">
+          {offsets.map((frac) => (
+            <span
+              key={frac}
+              className="srch-track-tick"
+              style={{ top: `calc(${(frac * 100).toFixed(2)}% - var(--space-1))` }}
+            />
+          ))}
+        </span>
+      )}
+      <p className="srch-row-text">
+        {segments.map((seg, i) =>
+          seg.hit ? (
+            <mark key={i} className="srch-mark">
+              {seg.text}
+            </mark>
+          ) : (
+            seg.text
+          ),
+        )}
+      </p>
     </div>
   );
 }
@@ -83,15 +95,23 @@ function BookGroupSection({
   mode,
   onNavigateBook,
   onNavigatePassage,
+  expanded,
+  moreState,
+  onShowMore,
 }: Readonly<{
   group: BookGroup;
   query: string;
   mode: SearchMode;
   onNavigateBook: (bookId: string) => void;
   onNavigatePassage: (bookId: string, result: SearchResult) => void;
+  expanded: boolean;
+  moreState: 'idle' | 'loading' | 'error';
+  onShowMore: (bookId: string) => void;
 }>) {
   const { t } = useTranslation('search');
   const [collapsed, setCollapsed] = useState(false);
+  const scoreHeading = mode === 'fulltext' ? t('score.hits') : t('score.relevance');
+  const cap = groupCap(group.results.length, expanded);
 
   return (
     <div className="srch-group">
@@ -100,15 +120,20 @@ function BookGroupSection({
           type="button"
           className={`srch-group-toggle${collapsed ? ' collapsed' : ''}`}
           onClick={() => setCollapsed((c) => !c)}
-          aria-label={collapsed ? '展開' : '收合'}
+          aria-label={t(collapsed ? 'aria.expand' : 'aria.collapse', { title: group.title })}
+          aria-expanded={!collapsed}
         >
-          <ChevronDown size={15} />
+          <ChevronDown size={14} />
         </button>
 
         <h2 className="srch-group-title">{group.title}</h2>
 
         <span className="srch-group-count">
-          {group.results.length} {t('tabs.paragraph')}
+          {cap === 'more'
+            ? t('group.countCapped', { count: group.results.length })
+            : cap === 'max'
+              ? t('group.countMax', { count: group.results.length })
+              : t('group.count', { count: group.results.length })}
         </span>
 
         <span className="srch-group-rule" />
@@ -119,30 +144,54 @@ function BookGroupSection({
           onClick={() => onNavigateBook(group.documentId)}
         >
           {t('result.goToBook')}
-          <ArrowUpRight size={13} />
+          <ArrowUpRight size={12} />
         </button>
       </div>
 
       {!collapsed && (
         <div className="srch-rows">
           {group.results.map((result) => {
-            const ch = result.metadata.chapterNumber;
-            const pos = result.metadata.position;
+            const locator = t('result.locator', {
+              chapter: result.metadata.chapterNumber,
+              position: padPosition(result.metadata.position),
+            });
+            // Only the locator is a button (its ::after spans the row, so a click anywhere
+            // still opens it); the paragraph stays plain text for screen readers.
             return (
-              <button
-                key={result.id}
-                type="button"
-                className="srch-row"
-                onClick={() => onNavigatePassage(group.documentId, result)}
-              >
-                <span className="srch-row-pos">
-                  第{ch}章·§{String(pos).padStart(2, '0')}
+              <div key={result.id} className="srch-row" data-result-id={result.id}>
+                <button
+                  type="button"
+                  className="srch-row-open"
+                  aria-label={t('aria.openPassage', { locator })}
+                  onClick={() => onNavigatePassage(group.documentId, result)}
+                >
+                  <code className="srch-row-pos">{locator}</code>
+                </button>
+                <ResultBody text={result.text} query={query} mode={mode} />
+                <span className="srch-row-score">
+                  <span className="srch-row-score-label">{scoreHeading}</span>
+                  <span className="srch-row-score-value">{formatScore(result.score, mode, (count) => t('score.hitCount', { count }))}</span>
                 </span>
-                <p className="srch-row-text">{highlightText(result.text, query)}</p>
-                <span className="srch-row-score">{formatScore(result.score, mode)}</span>
-              </button>
+              </div>
             );
           })}
+          {cap === 'more' && (
+            <div className="srch-group-more">
+              <button
+                type="button"
+                className="ss-btn ss-btn-sm ss-btn-secondary"
+                onClick={() => onShowMore(group.documentId)}
+                disabled={moreState === 'loading'}
+              >
+                {moreState === 'loading' ? t('loading') : t('group.showMore')}
+              </button>
+              {moreState === 'error' && (
+                <span className="srch-group-more-error" role="alert">
+                  {t('group.showMoreFailed')}
+                </span>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -152,210 +201,371 @@ function BookGroupSection({
 // ── Main page ──────────────────────────────────────────────────────────────────
 export default function SearchPage() {
   const { t } = useTranslation('search');
+  const { t: tc } = useTranslation('common');
   const navigate = useNavigate();
+  const location = useLocation();
 
-  const [query, setQuery] = useState('');
-  const [submittedQuery, setSubmittedQuery] = useState('');
+  // The submitted search lives in the URL so 上一頁 from the reader and shared links restore it.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlKey = searchParams.toString();
+  const urlState = useMemo(() => parseSearchParams(new URLSearchParams(urlKey)), [urlKey]);
+  const { q: submittedQuery, mode } = urlState;
+
+  const [query, setQuery] = useState(submittedQuery);
+  // Back/forward between searches: the input follows the URL (adjust-during-render).
+  const [inputUrlKey, setInputUrlKey] = useState(urlKey);
+  if (inputUrlKey !== urlKey) {
+    setInputUrlKey(urlKey);
+    setQuery(submittedQuery);
+  }
   const [results, setResults] = useState<SearchResult[] | null>(null);
-  const [activeBookIds, setActiveBookIds] = useState<string[] | null>(null);
-  const [mode, setMode] = useState<SearchMode>('fulltext');
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [searchError, setSearchError] = useState<unknown>(null);
+  const [failedBooks, setFailedBooks] = useState(0);
+  // 「顯示更多」 per book: which books were re-fetched up to MORE_LIMIT, and in-flight/failed ones.
+  const [expandedBooks, setExpandedBooks] = useState<ReadonlySet<string>>(new Set());
+  const [moreStates, setMoreStates] = useState<Record<string, 'loading' | 'error'>>({});
 
-  const chipsSeededRef = useRef(false);
   const searchGenRef = useRef(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const chipsRef = useRef<HTMLDivElement>(null);
+  // After a chip is removed: the chip whose ✕ takes focus, or null for the search input.
+  const chipFocusRef = useRef<string | null | undefined>(undefined);
 
-  const { data: books = [] } = useBooks();
+  const { data: books, isLoading: booksLoading, error: booksError, refetch } = useBooks();
 
   const bookTitleMap = useMemo(
-    () => Object.fromEntries(books.map((b) => [b.id, b.title])),
+    () => Object.fromEntries((books ?? []).map((b) => [b.id, b.title])),
     [books],
   );
 
-  const hasBooks = books.length > 0;
+  const hasBooks = (books ?? []).length > 0;
+  // Stable across refetches that return the same library, so they don't re-run the search.
+  const libraryKey = books === undefined ? null : books.map((b) => b.id).join(',');
+  // GET /books failed and there is nothing cached: we cannot claim the library is empty.
+  const booksFailed = books === undefined && booksError !== null;
 
   // ── Search execution ─────────────────────────────────────────────────────────
-  const runSearch = useCallback(
-    async (q: string, filterBookIds: string[] | null, searchMode: SearchMode) => {
-      if (!q.trim()) return;
-      const gen = ++searchGenRef.current;
-      setLoading(true);
-      setError(null);
+  // Each library book is queried on its own (topK PER_BOOK_LIMIT), so every book with a hit
+  // gets a group and a chip; chips then only filter locally.
+  const runSearch = useCallback(async (q: string, searchMode: SearchMode, bookIds: string[]) => {
+    if (!q.trim()) return;
+    const gen = ++searchGenRef.current;
+    setLoading(true);
+    setSearchError(null);
+    setFailedBooks(0);
+    setExpandedBooks(new Set());
+    setMoreStates({});
 
-      try {
-        let merged: SearchResult[];
-
-        if (filterBookIds === null || filterBookIds.length === 0) {
-          merged = await searchPassages({ query: q, topK: 20, mode: searchMode });
-          if (gen !== searchGenRef.current) return;
-
-          if (!chipsSeededRef.current) {
-            chipsSeededRef.current = true;
-            setActiveBookIds([...new Set(merged.map((r) => r.metadata.documentId))]);
-          }
-        } else {
-          merged = await fetchFilteredResults(q, filterBookIds, searchMode);
-          if (gen !== searchGenRef.current) return;
-        }
-
-        setResults(merged);
-      } catch (err) {
-        if (gen !== searchGenRef.current) return;
-        console.error('[SearchPage] search failed', err);
-        setError('搜尋失敗，請稍後再試。');
-      } finally {
-        if (gen === searchGenRef.current) setLoading(false);
+    try {
+      const settled = await Promise.allSettled(
+        bookIds.map((id) =>
+          searchPassages({ query: q, bookId: id, topK: PER_BOOK_LIMIT, mode: searchMode }),
+        ),
+      );
+      if (gen !== searchGenRef.current) return;
+      const outcome = mergeBookSearches(bookIds, settled);
+      // Every book failed → this is a failed search, not an incomplete one.
+      if (bookIds.length > 0 && outcome.failedBookIds.length === bookIds.length) {
+        throw outcome.firstError;
       }
+      setResults(outcome.results);
+      setFailedBooks(outcome.failedBookIds.length);
+    } catch (err) {
+      if (gen !== searchGenRef.current) return;
+      console.error('[SearchPage] search failed', err);
+      setSearchError(err ?? new Error('search failed'));
+    } finally {
+      if (gen === searchGenRef.current) setLoading(false);
+    }
+  }, []);
+
+  // Query or mode change in the URL (submit, mode switch, back/forward) re-runs the search;
+  // `books` only filters, so removing a chip does not.
+  useEffect(() => {
+    if (!submittedQuery) {
+      searchGenRef.current += 1; // drop any in-flight response
+      setResults(null);
+      setSearchError(null);
+      setFailedBooks(0);
+      setLoading(false);
+      return;
+    }
+    if (libraryKey === null) return; // book list not loaded yet
+    void runSearch(submittedQuery, mode, libraryKey ? libraryKey.split(',') : []);
+  }, [submittedQuery, mode, libraryKey, runSearch]);
+
+  const rerun = useCallback(() => {
+    if (libraryKey !== null) void runSearch(submittedQuery, mode, libraryKey ? libraryKey.split(',') : []);
+  }, [submittedQuery, mode, libraryKey, runSearch]);
+
+  // New query → new history entry; mode, chips and clear replace the current one.
+  const commitSearch = useCallback(
+    (next: SearchUrlState, replace: boolean) => {
+      const nextKey = toSearchParams(next).toString();
+      if (nextKey === urlKey) {
+        // Same URL (re-submitting the same query): no navigation, so search directly.
+        if (next.q) rerun();
+        return;
+      }
+      setSearchParams(new URLSearchParams(nextKey), { replace });
     },
-    [],
+    [urlKey, setSearchParams, rerun],
+  );
+
+  // ── Derived scope ────────────────────────────────────────────────────────────
+  // books=null → every book with a hit; books=[] → every chip removed; else the URL's chips.
+  const scopeIds = useMemo(
+    () => urlState.books ?? (results ? booksWithHits(results) : []),
+    [urlState.books, results],
   );
 
   const handleSubmit = useCallback(
     (e?: React.SyntheticEvent) => {
       e?.preventDefault();
       if (!query.trim()) return;
-      chipsSeededRef.current = false;
-      setSubmittedQuery(query);
-      setActiveBookIds(null);
-      void runSearch(query, null, mode);
+      commitSearch({ q: query, mode, books: null }, false);
     },
-    [query, mode, runSearch],
+    [query, mode, commitSearch],
   );
 
   const handleClear = useCallback(() => {
     setQuery('');
-    setSubmittedQuery('');
-    setResults(null);
-    setActiveBookIds(null);
-    chipsSeededRef.current = false;
-  }, []);
+    commitSearch({ q: '', mode, books: null }, true);
+    inputRef.current?.focus(); // the clear button itself unmounts
+  }, [mode, commitSearch]);
 
   const handleRemoveChip = useCallback(
     (bookId: string) => {
-      const next = (activeBookIds ?? []).filter((id) => id !== bookId);
-      setActiveBookIds(next);
-      void runSearch(submittedQuery, next.length > 0 ? next : null, mode);
+      const i = scopeIds.indexOf(bookId);
+      chipFocusRef.current = scopeIds[i + 1] ?? scopeIds[i - 1] ?? null;
+      commitSearch({ q: submittedQuery, mode, books: scopeIds.filter((id) => id !== bookId) }, true);
     },
-    [activeBookIds, submittedQuery, mode, runSearch],
+    [scopeIds, submittedQuery, mode, commitSearch],
   );
+
+  // Focus goes to the next chip's ✕ (else the previous one), and to the input once none are left.
+  useEffect(() => {
+    const target = chipFocusRef.current;
+    if (target === undefined) return;
+    chipFocusRef.current = undefined;
+    const btn = target
+      ? chipsRef.current?.querySelector<HTMLElement>(`[data-chip-id="${CSS.escape(target)}"]`)
+      : null;
+    (btn ?? inputRef.current)?.focus();
+  }, [scopeIds]);
+
+  // 重試／重新搜尋: re-send the same query; the chips keep filtering.
+  const handleRetry = rerun;
 
   const handleModeChange = useCallback(
     (newMode: SearchMode) => {
-      setMode(newMode);
-      if (submittedQuery) {
-        chipsSeededRef.current = false;
-        setActiveBookIds(null);
-        void runSearch(submittedQuery, null, newMode);
-      }
+      if (newMode === mode) return;
+      commitSearch({ q: submittedQuery, mode: newMode, books: null }, true);
     },
-    [submittedQuery, runSearch],
+    [mode, submittedQuery, commitSearch],
   );
 
+  const handleShowMore = useCallback(
+    async (bookId: string) => {
+      const gen = searchGenRef.current;
+      setMoreStates((s) => ({ ...s, [bookId]: 'loading' }));
+      try {
+        const more = await searchPassages({ query: submittedQuery, bookId, topK: MORE_LIMIT, mode });
+        if (gen !== searchGenRef.current) return;
+        setResults((prev) => (prev ? replaceBookResults(prev, bookId, more) : prev));
+        setExpandedBooks((prev) => new Set(prev).add(bookId));
+        setMoreStates(({ [bookId]: _done, ...rest }) => rest);
+      } catch (err) {
+        if (gen !== searchGenRef.current) return;
+        console.error('[SearchPage] show more failed', err);
+        setMoreStates((s) => ({ ...s, [bookId]: 'error' }));
+      }
+    },
+    [submittedQuery, mode],
+  );
+
+  // Before leaving for the reader, remember the clicked row on this history entry;
+  // 上一頁 then scrolls back to it and focuses it instead of landing at the top.
+  const handleNavigatePassage = useCallback(
+    (bookId: string, result: SearchResult) => {
+      navigate({ search: location.search }, { replace: true, state: { lastResultId: result.id } });
+      navigate(`/books/${bookId}`, {
+        state: {
+          paragraphId: result.id,
+          chapterNumber: result.metadata.chapterNumber,
+          // Keyword hits are literal, so the reader marks them; a semantic query is a
+          // description that rarely appears verbatim, so it would mark nothing.
+          markTerms: mode === 'fulltext' ? queryTerms(submittedQuery) : undefined,
+        },
+      });
+    },
+    [navigate, location.search, mode, submittedQuery],
+  );
+
+  const lastResultId = (location.state as { lastResultId?: string } | null)?.lastResultId;
+  const restoredKeyRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!lastResultId || loading || results === null) return;
+    if (restoredKeyRef.current === location.key) return;
+    const row = document.querySelector<HTMLElement>(`[data-result-id="${CSS.escape(lastResultId)}"]`);
+    if (!row) return;
+    restoredKeyRef.current = location.key;
+    row.scrollIntoView({ block: 'center' });
+    row.querySelector<HTMLElement>('.srch-row-open')?.focus({ preventScroll: true });
+  }, [lastResultId, loading, results, location.key]);
+
   // ── Derived groups ───────────────────────────────────────────────────────────
-  const groups = useMemo<BookGroup[]>(() => {
-    if (!results) return [];
-
-    const filtered =
-      activeBookIds !== null && activeBookIds.length > 0
-        ? results.filter((r) => activeBookIds.includes(r.metadata.documentId))
-        : results;
-
-    const map = new Map<string, SearchResult[]>();
-    for (const r of filtered) {
-      const docId = r.metadata.documentId;
-      if (!map.has(docId)) map.set(docId, []);
-      map.get(docId)?.push(r);
-    }
-
-    return [...map.entries()].map(([documentId, docResults]) => ({
-      documentId,
-      title: bookTitleMap[documentId] ?? documentId,
-      results: docResults,
-    }));
-  }, [results, activeBookIds, bookTitleMap]);
+  const groups = useMemo<BookGroup[]>(
+    () => (results ? groupResults(results, urlState.books, (id) => bookTitleMap[id]) : []),
+    [results, urlState.books, bookTitleMap],
+  );
 
   const totalCount = groups.reduce((s, g) => s + g.results.length, 0);
 
   // ── Content renderer ─────────────────────────────────────────────────────────
   const hasSearched = submittedQuery !== '';
-  const showChips = activeBookIds !== null && activeBookIds.length > 0;
+  const showChips = scopeIds.length > 0;
+
+  // `count` picks the passage plural; the book noun has its own count, so it is passed in.
+  const summaryKey = mode === 'semantic' ? 'summarySemantic' : 'summary';
+  const summaryValues = {
+    count: totalCount,
+    books: groups.length,
+    bookUnit: t('unit.book', { count: groups.length }),
+  };
+
+  // One persistent polite region announces what the visible states show (error has role="alert").
+  // Summary strings carry <strong> markup for <Trans>; the announcement wants plain text.
+  function statusLines(): string[] {
+    if (!hasSearched || searchError !== null) return [];
+    if (loading || results === null) return [t('loading')];
+    if (groups.length === 0) return [t('empty.noResults')];
+    const summary = t(summaryKey, summaryValues).replace(/<\/?strong>/g, '');
+    return failedBooks > 0 ? [summary, t('partial.message', { count: failedBooks })] : [summary];
+  }
 
   function renderContent() {
     if (!hasSearched) {
-      if (hasBooks) {
-        return (
-          <div className="srch-initial">
-            <div className="srch-initial-icon">
-              <Search size={28} strokeWidth={1.7} />
-            </div>
-            <h1 className="srch-initial-title">{t('title')}</h1>
-            <p className="srch-initial-sub">{t('subtitle')}</p>
-          </div>
-        );
-      }
+      // Never show the initial prompt until the book list has actually answered.
+      // (Empty library is handled before the search bar renders, see below.)
+      if (booksLoading) return null;
       return (
-        <div className="srch-empty">
-          <span style={{ color: 'var(--fg-muted)' }}>
-            <Upload size={40} strokeWidth={1.25} />
-          </span>
-          <h2 className="srch-empty-title">{t('empty.noBooks')}</h2>
-          <p className="srch-empty-hint">{t('empty.noBooksHint')}</p>
-          <button
-            type="button"
-            className="srch-empty-btn"
-            onClick={() => navigate('/upload')}
-          >
-            {t('empty.uploadNow')}
-          </button>
+        <div className="srch-initial">
+          <div className="srch-initial-icon">
+            <Search size={24} strokeWidth={1.7} />
+          </div>
+          <h1 className="srch-initial-title">{t('title')}</h1>
+          <p className="srch-initial-sub">{t('subtitle')}</p>
         </div>
       );
     }
 
     if (loading) return <SkeletonLoader />;
 
-    if (error) {
+    if (searchError !== null) {
+      if (failureKind(searchError) === 'backend') {
+        return (
+          <PageFailure
+            variant="backend"
+            pageName={t('title')}
+            onRetry={handleRetry}
+            techDetail={techDetailOf(searchError)}
+          />
+        );
+      }
       return (
-        <div className="srch-empty">
-          <h2 className="srch-empty-title">{error}</h2>
+        <div className="ss-state ss-state-stage" role="alert">
+          <h2 className="ss-state-title">{t('error.searchFailed')}</h2>
+          <div className="ss-state-actions">
+            <button
+              type="button"
+              className="ss-btn ss-btn-sm ss-btn-primary"
+              onClick={handleRetry}
+            >
+              {tc('retry')}
+            </button>
+          </div>
         </div>
       );
     }
 
+    // Restored from the URL while the book list is still loading: nothing fetched yet.
+    if (results === null) return <SkeletonLoader />;
+
     if (groups.length === 0) {
       return (
-        <div className="srch-empty">
-          <h2 className="srch-empty-title">{t('empty.noResults')}</h2>
-          <p className="srch-empty-hint">{t('empty.noResultsHint')}</p>
-        </div>
+        <EmptyState
+          weight="prerequisite"
+          title={t('empty.noResults')}
+          description={mode === 'fulltext' ? t('empty.noResultsHintFulltext') : t('empty.noResultsHint')}
+          action={
+            mode === 'fulltext' ? (
+              <button
+                type="button"
+                className="ss-btn ss-btn-sm ss-btn-secondary"
+                onClick={() => handleModeChange('semantic')}
+              >
+                {t('empty.trySemantic')}
+              </button>
+            ) : undefined
+          }
+        />
       );
     }
 
     return (
       <>
-        <div className="srch-summary-row">
-          <span>
-            找到 <strong>{totalCount}</strong> 個段落，來自{' '}
-            <strong>{groups.length}</strong> 本書籍
-          </span>
-          <span className="srch-sort-label">
-            {t('sortByRelevance')}
-            <ChevronDown size={13} />
-          </span>
+        <div className="srch-summary">
+          <div className="srch-summary-row">
+            <span>
+              <Trans
+                t={t}
+                i18nKey={summaryKey}
+                count={totalCount}
+                values={summaryValues}
+                components={{ strong: <strong /> }}
+              />
+            </span>
+            <span className="srch-sort-label">
+              {t('sortByRelevance')}
+              <ChevronDown size={12} />
+            </span>
+          </div>
+
+          {/* Semantic search always returns its closest passages; its scores cannot tell
+              relevant from unrelated (2-SR-10), so say what the ranking means instead of a cutoff. */}
+          {mode === 'semantic' && <p className="srch-semantic-note">{t('semanticNote')}</p>}
+
+          {failedBooks > 0 && (
+            <div className="srch-partial">
+              <AlertTriangle size={14} className="srch-partial-icon" />
+              <span className="srch-partial-text">{t('partial.message', { count: failedBooks })}</span>
+              <button
+                type="button"
+                className="ss-btn ss-btn-sm ss-btn-secondary"
+                onClick={handleRetry}
+              >
+                {t('partial.retry')}
+              </button>
+            </div>
+          )}
         </div>
 
         {showChips && (
-          <div className="srch-chips">
+          <div className="srch-chips" ref={chipsRef}>
             <span className="srch-chips-label">{t('scopeLabel')}</span>
-            {activeBookIds.map((id) => (
+            {scopeIds.map((id) => (
               <span key={id} className="srch-chip">
                 {bookTitleMap[id] ?? id}
                 <button
                   type="button"
                   className="srch-chip-remove"
+                  data-chip-id={id}
                   onClick={() => handleRemoveChip(id)}
-                  aria-label={`移除 ${bookTitleMap[id] ?? id}`}
+                  aria-label={t('aria.removeBook', { title: bookTitleMap[id] ?? id })}
                 >
-                  <X size={13} />
+                  <X size={11} />
                 </button>
               </span>
             ))}
@@ -370,14 +580,10 @@ export default function SearchPage() {
               query={submittedQuery}
               mode={mode}
               onNavigateBook={(id) => navigate(`/books/${id}`)}
-              onNavigatePassage={(id, result) =>
-                navigate(`/books/${id}`, {
-                  state: {
-                    paragraphId: result.id,
-                    chapterNumber: result.metadata.chapterNumber,
-                  },
-                })
-              }
+              onNavigatePassage={handleNavigatePassage}
+              expanded={expandedBooks.has(group.documentId)}
+              moreState={moreStates[group.documentId] ?? 'idle'}
+              onShowMore={(id) => void handleShowMore(id)}
             />
           ))}
         </div>
@@ -386,77 +592,134 @@ export default function SearchPage() {
   }
 
   // ── Render ───────────────────────────────────────────────────────────────────
+  if (booksFailed) {
+    return (
+      <div className="srch-scroll">
+        <div className="srch-page">
+          <h1 className="sr-only">{t('title')}</h1>
+          <PageFailure
+            variant={failureKind(booksError)}
+            pageName={t('title')}
+            onRetry={() => void refetch()}
+            techDetail={techDetailOf(booksError)}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // 書庫為空（05 稿 A 區右格）：沒有搜尋列、模式切換與分頁，只有 ready 分量的空狀態。
+  if (!booksLoading && !hasBooks) {
+    return (
+      <div className="srch-scroll">
+        <div className="srch-page">
+          <h1 className="sr-only">{t('title')}</h1>
+          <EmptyState
+            weight="ready"
+            icon={<Upload size={28} />}
+            title={t('empty.noBooks')}
+            description={t('empty.noBooksHint')}
+            action={
+              <button
+                type="button"
+                className="ss-btn ss-btn-md ss-btn-primary"
+                onClick={() => navigate('/upload')}
+              >
+                {t('empty.uploadNow')}
+              </button>
+            }
+          />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="srch-scroll">
       <div className="srch-page">
-        <form className="srch-hero" onSubmit={handleSubmit}>
-          <span className="srch-hero-icon">
-            <Search size={22} />
-          </span>
-          <input
-            className="srch-input"
-            type="text"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder={t('placeholder')}
-            autoFocus
-            autoComplete="off"
-          />
-          {hasSearched && (
-            <button
-              type="button"
-              className="srch-clear-btn"
-              onClick={handleClear}
-              aria-label="清除搜尋"
-            >
-              <X size={16} />
-            </button>
-          )}
-          <span className="srch-scope-btn">
-            {t('scopeAll')}
-            <ChevronDown size={14} />
-          </span>
-          <button
-            type="submit"
-            className="srch-submit-btn"
-            disabled={loading || !query.trim()}
-          >
-            <Search size={16} />
-            {t('submit')}
-          </button>
-        </form>
-
-        <div className="srch-tabs">
-          <button type="button" className="srch-tab active">
-            {t('tabs.paragraph')}
-            {hasSearched && results !== null && (
-              <span className="srch-tab-count">{totalCount}</span>
+        {/* The visible h1 lives in the initial state only. */}
+        {hasSearched && <h1 className="sr-only">{t('title')}</h1>}
+        <div className="sr-only" role="status" aria-live="polite">
+          {statusLines().map((line) => (
+            <p key={line}>{line}</p>
+          ))}
+        </div>
+        <form className="srch-bar" onSubmit={handleSubmit}>
+          <div className="srch-field">
+            <span className="srch-field-icon">
+              <Search size={16} />
+            </span>
+            <input
+              ref={inputRef}
+              className="srch-input"
+              type="text"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder={t(`placeholder.${mode}`)}
+              aria-label={t('aria.input')}
+              autoFocus
+              autoComplete="off"
+            />
+            {hasSearched && (
+              <button
+                type="button"
+                className="srch-clear-btn"
+                onClick={handleClear}
+                aria-label={t('aria.clear')}
+              >
+                <X size={14} />
+              </button>
             )}
-          </button>
-          <button type="button" className="srch-tab">
-            {t('tabs.character')}
-            <span className="srch-tab-soon">{t('comingSoon')}</span>
-          </button>
-          <button type="button" className="srch-tab">
-            {t('tabs.archetype')}
-            <span className="srch-tab-soon">{t('comingSoon')}</span>
-          </button>
+            <span className="srch-scope">
+              {t('scopeAll')}
+              <ChevronDown size={12} />
+            </span>
+          </div>
 
-          <div className="srch-mode-toggle">
+          <div className="ss-seg" role="group" aria-label={t('aria.mode')}>
             <button
               type="button"
-              className={`srch-mode-btn${mode === 'fulltext' ? ' active' : ''}`}
+              className={`ss-seg-item${mode === 'fulltext' ? ' active' : ''}`}
+              aria-pressed={mode === 'fulltext'}
               onClick={() => handleModeChange('fulltext')}
             >
               {t('mode.fulltext')}
             </button>
             <button
               type="button"
-              className={`srch-mode-btn${mode === 'semantic' ? ' active' : ''}`}
+              className={`ss-seg-item${mode === 'semantic' ? ' active' : ''}`}
+              aria-pressed={mode === 'semantic'}
               onClick={() => handleModeChange('semantic')}
             >
               {t('mode.semantic')}
             </button>
+          </div>
+
+          <button
+            type="submit"
+            className="ss-btn ss-btn-md ss-btn-primary srch-submit"
+            disabled={loading || !query.trim()}
+          >
+            <Search size={14} />
+            {t('submit')}
+          </button>
+        </form>
+
+        {/* Tabs stay in every state. 人物／原型 are non-interactive placeholders. */}
+        <div className="srch-tabs">
+          <div className="srch-tab active">
+            {t('tabs.paragraph')}
+            {hasSearched && results !== null && (
+              <span className="srch-tab-count">{totalCount}</span>
+            )}
+          </div>
+          <div className="srch-tab srch-tab-soon">
+            {t('tabs.character')}
+            <span className="srch-tab-soon-badge">{t('comingSoon')}</span>
+          </div>
+          <div className="srch-tab srch-tab-soon">
+            {t('tabs.archetype')}
+            <span className="srch-tab-soon-badge">{t('comingSoon')}</span>
           </div>
         </div>
 

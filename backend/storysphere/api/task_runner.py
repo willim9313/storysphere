@@ -41,8 +41,13 @@ class TaskAborted(Exception):
 
     Carries no traceback into the log — an aborted task is an expected
     outcome, not a defect.  Use it where a runner previously called
-    ``task_store.set_failed(...)`` and returned.
+    ``task_store.set_failed(...)`` and returned.  *error_kind* is stored as
+    the task's ``errorKind`` (e.g. a step rerun's classify_step_failure).
     """
+
+    def __init__(self, message: str, error_kind: str | None = None) -> None:
+        super().__init__(message)
+        self.error_kind = error_kind
 
 
 def launch(task_id: str, coro: Coroutine[Any, Any, Any]) -> asyncio.Task:
@@ -93,7 +98,7 @@ async def _supervise(task_id: str, coro: Coroutine[Any, Any, Any]) -> None:
         task_store.set_completed(task_id, result=result)
     except TaskAborted as exc:
         logger.warning("Task %s aborted: %s", task_id, exc)
-        task_store.set_failed(task_id, error=str(exc))
+        task_store.set_failed(task_id, error=str(exc), error_kind=exc.error_kind)
     except asyncio.CancelledError:
         # Not an error condition — someone asked for this.  Re-raised so the
         # event loop can complete the cancellation; swallowing it would leave

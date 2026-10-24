@@ -1,7 +1,9 @@
-import { useState } from 'react';
-import { Info, X } from 'lucide-react';
+import { useEffect } from 'react';
+import { X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { ReactNode } from 'react';
+
+import { dismissGuidance, registerSurface, useGuidanceDismissed } from './guidanceStore';
 
 import '@/styles/guidance.css';
 
@@ -32,6 +34,11 @@ import '@/styles/guidance.css';
  * @param surface Identifies what is being dismissed, not which page shows it.
  *   The event page has two (`event-overview`, `event-detail`) because they
  *   explain different things and closing one must not hide the other.
+ * Looks come from the kit's `.ss-guidance` (the info glyph is its `::before`
+ * mask, so no icon markup here). Dismiss state lives in `guidanceStore.ts`; the
+ * ribbon registers its surface while mounted so the book title bar can offer a
+ * reopen button once it has been dismissed (DS v3 batch 5, 5-1).
+ *
  * @param float For canvas pages with no document flow to sit in — the
  *   knowledge graph is a full-bleed viewport whose overlays are absolutely
  *   positioned. Anchors the ribbon in the one free corner instead.
@@ -42,37 +49,21 @@ export function GuidanceRibbon({
   float = false,
 }: Readonly<{ surface: string; children: ReactNode; float?: boolean }>) {
   const { t } = useTranslation('common');
-  const key = `storysphere:guidance-dismissed:${surface}`;
-  const [dismissed, setDismissed] = useState(
-    () => typeof window !== 'undefined' && localStorage.getItem(key) === '1',
-  );
+  const dismissed = useGuidanceDismissed(surface);
+
+  // Registered whether shown or dismissed: the title bar needs to know which
+  // surface is on screen precisely when the ribbon has gone.
+  useEffect(() => registerSurface(surface), [surface]);
 
   if (dismissed) return null;
 
-  const handleDismiss = () => {
-    // Safari private browsing reports a zero quota, so setItem throws. The
-    // dismissal is a nicety; losing it must not take the component down.
-    try {
-      localStorage.setItem(key, '1');
-    } catch {
-      /* ignore quota / disabled storage */
-    }
-    setDismissed(true);
-  };
-
   return (
-    <div className={float ? 'sg-ribbon sg-ribbon-float' : 'sg-ribbon'}>
-      {/* The glyph, not the accent edge, is what marks this as guidance. The
-          ink theme flattens every semantic colour to the same near-black —
-          `tokens.css` states the rule outright: 狀態由 icon 字形承載 — so an
-          edge-only design (which `EventGuideRibbon` was) reads there as
-          nothing more than a slightly thicker border. Checked in both themes. */}
-      <Info className="sg-ribbon-icon" size={15} aria-hidden="true" />
-      <div className="sg-ribbon-body">{children}</div>
+    <div className={float ? 'ss-guidance is-float' : 'ss-guidance'}>
+      <p>{children}</p>
       <button
         type="button"
-        className="sg-ribbon-close"
-        onClick={handleDismiss}
+        className="gd-close"
+        onClick={() => dismissGuidance(surface)}
         aria-label={t('guidance.dismiss')}
       >
         <X size={14} />

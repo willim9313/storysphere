@@ -197,6 +197,13 @@ class VectorService:
         logger.info("VectorService: deleted collection '%s'", name)
         return True
 
+    async def has_collection(self, document_id: str) -> bool:
+        """Return True if the book has a collection (i.e. a semantic index)."""
+        loop = asyncio.get_running_loop()
+        name = await loop.run_in_executor(None, self._col, document_id)
+        cols = await loop.run_in_executor(None, self._client.get_collections)
+        return name in [c.name for c in cols.collections]
+
     def list_book_collections(self) -> list[str]:
         """Return document_ids that have collections (filter by prefix)."""
         prefix_with_sep = f"{self._prefix}_"

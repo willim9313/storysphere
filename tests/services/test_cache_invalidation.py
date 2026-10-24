@@ -188,6 +188,11 @@ class TestStaleSources:
         assert "summarization" in sources
         assert "knowledge-graph" in sources
 
+    def test_narrative_structure_ages_with_summarization(self):
+        """GET /narrative dates this key, not hero_journey: — a summaries rerun
+        has to show up here or the page never reports it stale."""
+        assert "summarization" in stale_sources("narrative_structure:book-1")
+
     def test_families_deleted_by_every_step_that_touches_them_are_never_stale(self):
         """Nothing dates an entry that no longer exists to be read."""
         assert stale_sources("voice_profile:book-1:ent-1") == ()
@@ -307,3 +312,47 @@ class TestStaleness:
             self._cache(created.timestamp()), "hero_journey:b1", status
         )
         assert (stale, reason) == (True, "summarization")
+
+
+class TestSummarizationStalesNarrativeStructure:
+    """Rerunning chapter summarization flags GET /narrative as stale."""
+
+    def _status(self, **stamps):
+        from storysphere.domain.documents import PipelineStatus
+        return PipelineStatus(**stamps)
+
+    def _cache(self, created: float):
+        cache = AsyncMock()
+        cache.created_at = AsyncMock(return_value=created)
+        return cache
+
+    async def test_summarization_rerun_names_the_step(self):
+        from datetime import UTC, datetime, timedelta
+
+        from storysphere.services.cache_invalidation import staleness
+
+        created = datetime(2026, 8, 1, tzinfo=UTC)
+        status = self._status(summarization_at=created + timedelta(days=1))
+        stale, reason = await staleness(
+            self._cache(created.timestamp()), "narrative_structure:b1", status
+        )
+        assert (stale, reason) == (True, "summarization")
+
+    async def test_older_summarization_is_not_stale(self):
+        from datetime import UTC, datetime, timedelta
+
+        from storysphere.services.cache_invalidation import staleness
+
+        created = datetime(2026, 8, 1, tzinfo=UTC)
+        status = self._status(summarization_at=created - timedelta(days=1))
+        stale, reason = await staleness(
+            self._cache(created.timestamp()), "narrative_structure:b1", status
+        )
+        assert (stale, reason) == (False, None)
+
+    async def test_other_families_are_not_affected(self):
+        """tension / temporal do not derive from chapter summaries."""
+        from storysphere.services.cache_invalidation import stale_sources
+
+        for key in ("tension_lines:b1", "tension_theme:b1", "temporal_analysis:b1"):
+            assert "summarization" not in stale_sources(key)

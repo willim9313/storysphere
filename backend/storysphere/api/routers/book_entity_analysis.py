@@ -15,7 +15,7 @@ from fastapi import (
     HTTPException,
 )
 
-from storysphere.api import task_runner
+from storysphere.api import batch_guard, task_runner
 from storysphere.api.deps import (
     AnalysisAgentDep,
     AnalysisCacheDep,
@@ -23,6 +23,7 @@ from storysphere.api.deps import (
     KGServiceDep,
     VoiceProfilingServiceDep,
 )
+from storysphere.api.llm_guard import require_llm_provider
 from storysphere.api.routers._book_shared import analysis_staleness, now_iso
 from storysphere.api.schemas.book_entity_analysis import (
     ArchetypeDetailResponse,
@@ -39,13 +40,37 @@ from storysphere.api.schemas.books import (
     TaskIdResponse,
     UnanalyzedEntity,
 )
+from storysphere.api.schemas.common import ActiveBatchResponse, ErrorResponse
 from storysphere.api.store import task_store
 from storysphere.core.error_handling import is_rate_limit_error as _is_rate_limit_error
 from storysphere.services.analysis_cache import AnalysisCache
+from storysphere.services.voice_profiling_service import VoiceGenerationError
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/books", tags=["books"])
+
+
+def _normalize_key_events(events: list[dict]) -> list[dict]:
+    """Coerce ``keyEvents[].chapter`` to ``int | None`` (#7a contract).
+
+    ``key_events`` is raw LLM JSON and the model often writes ``"chapter": "1"``;
+    a string chapter silently drops the event from every chapter-keyed view.
+    Done at response time so results already in the cache are fixed too.
+    """
+    out = []
+    for ev in events:
+        ch = ev.get("chapter")
+        if isinstance(ch, bool):
+            ch = None
+        elif isinstance(ch, float):
+            ch = int(ch) if ch.is_integer() else None
+        elif isinstance(ch, str):
+            ch = int(ch.strip()) if ch.strip().isdigit() else None
+        elif not isinstance(ch, int):
+            ch = None
+        out.append({**ev, "chapter": ch})
+    return out
 
 
 async def _entity_analysis(
@@ -182,7 +207,7 @@ async def get_entity_analysis(
                     actions=result.cep.actions,
                     traits=result.cep.traits,
                     relations=result.cep.relations,
-                    key_events=result.cep.key_events,
+                    key_events=_normalize_key_events(result.cep.key_events),
                     quotes=result.cep.quotes,
                     top_terms=result.cep.top_terms,
                 ) if result.cep else None,
@@ -251,6 +276,7 @@ async def trigger_entity_analysis(
         "Triggering entity analysis: entity=%s (%s), book=%s, lang=%s, mode=%s",
         entity.name, entity_id, book_id, language, body.mode,
     )
+    require_llm_provider()
     task_id = str(uuid4())
     task_store.create(task_id, kind="character", title=f"角色深度分析 — {entity.name}")
     task_runner.launch(
@@ -318,6 +344,7 @@ async def _batch_entity_analysis(
         report(
             int(done / total * 100) if total else 0,
             f"分析角色 {done}/{total}",
+            step_key="batch_progress",
             # Shared with the event batch: BatchEepPanel renders the item
             # count, not the percentage.
             sub_progress=done,
@@ -343,6 +370,15 @@ async def _batch_entity_analysis(
         except Exception as exc:
             if _is_rate_limit_error(exc):
                 logger.warning("Batch character analysis aborted — rate limit: %s", exc)
+                # step_key survives set_failed, so the panel can word the
+                # abort itself from sub_progress / sub_total.
+                report(
+                    int(done / total * 100) if total else 0,
+                    f"分析角色 {done}/{total}",
+                    step_key="rate_limited",
+                    sub_progress=done,
+                    sub_total=total,
+                )
                 # Not a ``return``: the supervisor completes a task that
                 # returns, which would report an aborted run as a success.
                 raise task_runner.TaskAborted(
@@ -382,6 +418,7 @@ async def _batch_entity_analysis(
     "/{book_id}/entities/analyze-all",
     response_model=TaskIdResponse,
     status_code=202,
+    responses={409: {"model": ErrorResponse}},
 )
 async def trigger_batch_entity_analysis(
     book_id: str,
@@ -419,7 +456,11 @@ async def trigger_batch_entity_analysis(
             detail="No characters found for this book",
         )
 
+    require_llm_provider()
     language = await doc.get_document_language(book_id)
+    # No await between the check and the claim (see batch_guard).
+    if (busy := batch_guard.conflict("character", book_id)) is not None:
+        return busy
     task_id = str(uuid4())
     task_store.create(task_id, kind="character", title="批次角色分析")
     task_runner.launch(
@@ -428,6 +469,7 @@ async def trigger_batch_entity_analysis(
             task_id, book_id, agent, kg, cache, language, body.entity_ids
         ),
     )
+    batch_guard.hold("character", book_id, task_id)
 
     logger.info(
         "Triggered batch character analysis: book=%s, "
@@ -435,6 +477,21 @@ async def trigger_batch_entity_analysis(
         book_id, len(characters), task_id,
     )
     return TaskIdResponse(task_id=task_id).model_dump(
+        by_alias=True,
+    )
+
+
+@router.get(
+    "/{book_id}/entities/analyze-all/active",
+    response_model=ActiveBatchResponse,
+)
+async def get_active_character_batch(book_id: str) -> dict:
+    """The character batch currently running for this book, or ``taskId: null``.
+
+    Read-only: lets a page that remounts mid-run pick the batch back up instead
+    of offering to start a second one (which ``…/analyze-all`` refuses with 409).
+    """
+    return ActiveBatchResponse(task_id=batch_guard.running("character", book_id)).model_dump(
         by_alias=True,
     )
 
@@ -453,6 +510,7 @@ async def get_entity_voice_profile(
     doc: DocServiceDep,
     kg: KGServiceDep,
     cached_only: bool = False,
+    force: bool = False,
 ) -> dict:
     """Return the voice profile for a character.
 
@@ -461,6 +519,10 @@ async def get_entity_voice_profile(
 
     ``cached_only=true``: only reads the cache, never triggers generation —
     404 if no cached profile exists yet.
+
+    ``force=true``: skip the cache, regenerate, and overwrite the cache only if
+    generation succeeds. Any failure (LLM error, timeout, unparsable output)
+    answers 502 and leaves the existing cached profile untouched.
     """
     document = await doc.get_document(book_id)
     if document is None:
@@ -471,15 +533,31 @@ async def get_entity_voice_profile(
         raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
 
     language = await doc.get_document_language(book_id)
+    profile = None
     try:
-        profile = await voice_svc.get_voice_profile(
-            document_id=book_id,
-            character_id=entity_id,
-            language=language,
-            cached_only=cached_only,
-        )
+        if cached_only or not force:
+            profile = await voice_svc.get_voice_profile(
+                document_id=book_id,
+                character_id=entity_id,
+                language=language,
+                cached_only=True,
+            )
+        if profile is None and not cached_only:
+            # Only a request that will actually call the LLM needs a provider.
+            require_llm_provider()
+            profile = await voice_svc.get_voice_profile(
+                document_id=book_id,
+                character_id=entity_id,
+                language=language,
+                force=force,
+            )
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+    except VoiceGenerationError as exc:
+        raise HTTPException(
+            status_code=502,
+            detail=f"Voice profile generation failed; the existing profile was kept: {exc}",
+        ) from exc
 
     if profile is None:
         raise HTTPException(status_code=404, detail="Voice profile not cached yet")
@@ -507,24 +585,3 @@ async def get_entity_voice_profile(
         representative_quotes=profile.representative_quotes,
         analyzed_at=profile.analyzed_at,
     ).model_dump(by_alias=True)
-
-
-@router.delete("/{book_id}/entities/{entity_id}/voice", status_code=204)
-async def delete_entity_voice_profile(
-    book_id: str,
-    entity_id: str,
-    voice_svc: VoiceProfilingServiceDep,
-    doc: DocServiceDep,
-    kg: KGServiceDep,
-) -> None:
-    """Invalidate the cached voice profile so the next GET recomputes it."""
-    document = await doc.get_document(book_id)
-    if document is None:
-        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found")
-
-    entity = await kg.get_entity(entity_id)
-    if entity is None:
-        raise HTTPException(status_code=404, detail=f"Entity '{entity_id}' not found")
-
-    await voice_svc.invalidate(document_id=book_id, character_id=entity_id)
-    logger.info("Invalidated voice profile cache: book=%s entity=%s", book_id, entity_id)

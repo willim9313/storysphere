@@ -26,6 +26,10 @@ class TemporalPipelineResult:
     events_ranked: int = 0
     cycles_resolved: int = 0
     errors: list[str] = field(default_factory=list)
+    # Set only when the run failed *before overwriting anything* — the previous
+    # relations and ranks are untouched. ``errors`` also carries non-fatal
+    # notes (e.g. a failed disk save) that do not make the run a failure.
+    failure: str | None = None
 
 
 class TemporalPipeline(BasePipeline[str, TemporalPipelineResult]):
@@ -60,12 +64,15 @@ class TemporalPipeline(BasePipeline[str, TemporalPipelineResult]):
                 the bulk of the range (10–80%) and reports per LLM batch;
                 everything else is a milestone.
 
+        Existing relations and ranks are replaced only after inference
+        succeeds: if the LLM fails (or there are no events) nothing is deleted
+        and ``result.failure`` is set.
+
         Steps:
-            1. Clear existing temporal relations for this document.
-            2. Load all events for the document.
-            3. Load available EEPs from analysis cache.
-            4. Infer temporal relations via TimelineAgent.
-            5. Store temporal relations in KGService.
+            1. Load all events for the document.
+            2. Load available EEPs from analysis cache.
+            3. Infer temporal relations via TimelineAgent.
+            4. Clear existing temporal relations, store the new ones in KGService.
             6. Build DAG and compute chronological ranks.
             7. Write ranks back to events.
             8. Persist to disk.
@@ -77,18 +84,13 @@ class TemporalPipeline(BasePipeline[str, TemporalPipelineResult]):
             if progress_callback:
                 progress_callback(pct, stage)
 
-        # 1. Clear old temporal relations
-        _report(5, "清除舊的時序關係")
-        removed = await self._kg_service.remove_temporal_relations(document_id)
-        if removed:
-            logger.info("Cleared %d old temporal relations for %s", removed, document_id)
-
         # 2. Load all events
         self._log_step("load_events", document_id=document_id)
         _report(8, "載入事件")
         events = await self._kg_service.get_events(document_id=document_id)
         if not events:
             result.errors.append("No events found for document")
+            result.failure = "No events found for document"
             return result
 
         logger.info("TemporalPipeline: %d events for %s", len(events), document_id)
@@ -118,12 +120,16 @@ class TemporalPipeline(BasePipeline[str, TemporalPipelineResult]):
         except Exception as exc:  # noqa: BLE001
             logger.error("TimelineAgent failed: %s", exc)
             result.errors.append(f"TimelineAgent failed: {exc}")
+            result.failure = f"Temporal inference failed, existing timeline kept: {exc}"
             return result
 
         result.temporal_relations = len(relations)
 
-        # 5. Store temporal relations
+        # 5. Inference succeeded — only now replace the old relations
         _report(82, "寫入時序關係")
+        removed = await self._kg_service.remove_temporal_relations(document_id)
+        if removed:
+            logger.info("Cleared %d old temporal relations for %s", removed, document_id)
         for tr in relations:
             await self._kg_service.add_temporal_relation(tr)
 

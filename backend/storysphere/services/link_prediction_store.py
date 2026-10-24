@@ -120,6 +120,18 @@ class LinkPredictionStore:
             await db.commit()
         logger.debug("InferredRelation %s → %s", ir_id, status.value)
 
+    async def delete_ids(self, ir_ids: list[str]) -> int:
+        if not ir_ids:
+            return 0
+        async with aiosqlite.connect(self._db_path) as db:
+            await self._ensure_schema(db)
+            placeholders = ",".join("?" for _ in ir_ids)
+            cursor = await db.execute(
+                f"DELETE FROM inferred_relations WHERE id IN ({placeholders})", ir_ids
+            )
+            await db.commit()
+            return cursor.rowcount
+
     async def delete_by_document(self, document_id: str) -> int:
         async with aiosqlite.connect(self._db_path) as db:
             await self._ensure_schema(db)

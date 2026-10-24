@@ -19,29 +19,29 @@ import type { EventImportance, TemporalDisplacement, TimelineEvent } from '@/api
 
 /** |deviation| above which an event reads as genuinely displaced. */
 export const OUTLIER_THRESHOLD = 0.15;
-/** Minimum X gap (% of row width) between two stave annotations. */
+/** Assumed label width (% of row width) when the caller cannot measure one. */
 export const ANNOTATION_MIN_GAP_PCT = 17;
+/** Height of the strip under a row's plot where its annotations are written,
+ *  so they never sit on a point, a link or a chapter label. */
+export const STAVE_NOTE_STRIP = 16;
 
 /* ── Stave (章節順序 view) ─────────────────────────────────────── */
 
 /** Row height in px. */
 export const STAVE_ROW_HEIGHT = 68;
+/** Row height while the whole book has no rank: nothing can be plotted above
+ *  the unranked band, so the row keeps only room for the chapter labels. */
+export const STAVE_ROW_HEIGHT_UNRANKED = 20;
 /** Y of the "narrative order === story order" midline, within a row. */
 export const STAVE_MID = 26;
 /** px per 1.0 of deviation. */
 export const STAVE_SCALE = 38;
 /** Height of the trailing unranked band inside a row. */
-export const STAVE_UNRANKED_BAND = 13;
+export const STAVE_UNRANKED_BAND = 20;
 /** Target events per row; row count is derived from this, never hardcoded. */
 export const STAVE_TARGET_PER_ROW = 22;
 /** Horizontal inset so end points aren't flush against the row edges. */
 const STAVE_X_INSET = 2;
-
-/* ── Matrix (矩陣視圖) ─────────────────────────────────────────── */
-
-export const MATRIX_HEIGHT = 356;
-export const BEESWARM_SPACING = 7;
-export const BEESWARM_UNRANKED_SPACING = 9;
 
 /* ── Character lanes (角色軌跡) ────────────────────────────────── */
 
@@ -177,6 +177,8 @@ export interface StaveAnnotation {
   yPx: number;
   /** Which side of the point the text sits on. */
   align: 'left' | 'right';
+  /** The label's width as a % of the row — what collisions are judged by. */
+  widthPct: number;
   kind: 'flashback' | 'flashforward';
   /** True when #21h judged this event, false when only geometry flagged it. */
   confirmed: boolean;
@@ -209,9 +211,16 @@ export function staveRowCount(n: number): number {
  * otherwise imply adjacency that the filter removed). In dim mode the caller
  * passes `() => true` and dims via CSS instead, so the line stays intact.
  */
+/** Width of an annotation's label as a % of the row, from its text and the
+ *  row's real pixel width. Without one every label is assumed
+ *  ANNOTATION_MIN_GAP_PCT wide — which is wrong on any narrow row. */
+export type AnnotationWidth = (a: Omit<StaveAnnotation, 'align' | 'widthPct'>) => number;
+
 export function buildStaveRows(
   data: TimelineDatum[],
   isVisible: (d: TimelineDatum) => boolean = () => true,
+  compare = true,
+  annotationWidth: AnnotationWidth = () => ANNOTATION_MIN_GAP_PCT,
 ): StaveRow[] {
   const rowCount = staveRowCount(data.length);
   if (rowCount === 0) return [];
@@ -220,7 +229,7 @@ export function buildStaveRows(
   const rows: StaveRow[] = [];
   for (let r = 0; r < rowCount; r++) {
     const slice = data.slice(r * perRow, (r + 1) * perRow);
-    rows.push(buildStaveRow(slice, isVisible));
+    rows.push(buildStaveRow(slice, isVisible, compare, annotationWidth));
   }
   return rows;
 }
@@ -228,6 +237,8 @@ export function buildStaveRows(
 function buildStaveRow(
   slice: TimelineDatum[],
   isVisible: (d: TimelineDatum) => boolean,
+  compare: boolean,
+  annotationWidth: AnnotationWidth,
 ): StaveRow {
   const n = slice.length;
   const xOf = (k: number) =>
@@ -262,13 +273,16 @@ function buildStaveRow(
       return;
     }
 
-    const yPx = STAVE_MID - d.deviation * STAVE_SCALE;
+    // compare off: ranked events sit on the midline — no vertical deviation,
+    // and nothing is flagged as an outlier (that claim needs the comparison).
+    const yPx = compare ? STAVE_MID - d.deviation * STAVE_SCALE : STAVE_MID;
+    const outlier = compare && d.outlier;
     points.push({
       id: d.id,
       xPct,
       yPx,
       radius: d.isKernel ? 4.5 : 3,
-      outlier: d.outlier,
+      outlier,
       hasAnalysis: d.hasAnalysis,
       datum: d,
     });
@@ -279,10 +293,10 @@ function buildStaveRow(
         y1Px: prev.yPx,
         x2Pct: xPct,
         y2Px: yPx,
-        outlier: d.outlier || prev.outlier,
+        outlier: outlier || prev.outlier,
       });
     }
-    prev = { xPct, yPx, outlier: d.outlier };
+    prev = { xPct, yPx, outlier };
   });
 
   return {
@@ -290,7 +304,7 @@ function buildStaveRow(
     links,
     bands,
     unranked,
-    annotations: buildAnnotations(points),
+    annotations: compare ? buildAnnotations(points, annotationWidth) : [],
     hasUnranked: unranked.length > 0,
   };
 }
@@ -305,7 +319,10 @@ function buildStaveRow(
  * flag an event the analysis never reached. Within a chapter a judged event
  * outranks a merely-displaced one, because it is the stronger claim.
  */
-function buildAnnotations(points: StavePoint[]): StaveAnnotation[] {
+function buildAnnotations(
+  points: StavePoint[],
+  annotationWidth: AnnotationWidth,
+): StaveAnnotation[] {
   const byChapter = new Map<number, StavePoint[]>();
   for (const p of points) {
     if (!p.outlier && !verdictKind(p.datum.displacement)) continue;
@@ -323,17 +340,21 @@ function buildAnnotations(points: StavePoint[]): StaveAnnotation[] {
       return Math.abs(b.datum.deviation ?? 0) > Math.abs(a.datum.deviation ?? 0) ? b : a;
     });
     const verdict = verdictKind(worst.datum.displacement);
-    out.push({
+    const base = {
       id: worst.id,
       xPct: worst.xPct,
       yPx: worst.yPx,
-      // Keep late-row annotations from running off the right edge.
-      align: worst.xPct > 70 ? 'left' : 'right',
       kind: verdict ?? ((worst.datum.deviation ?? 0) < 0 ? 'flashback' : 'flashforward'),
       confirmed: verdict !== null,
       chapter,
       count: group.length,
-    });
+    } as const;
+    const widthPct = annotationWidth(base);
+    // Written rightwards from the point unless that runs off the row; a label
+    // that fits on neither side is not drawn (the point and the panel still say it).
+    const align = base.xPct + widthPct <= 100 ? 'right' : 'left';
+    if (align === 'left' && base.xPct - widthPct < 0) continue;
+    out.push({ ...base, align, widthPct });
   }
 
   /* One annotation per chapter is not enough on its own: a label occupies a
@@ -342,8 +363,8 @@ function buildAnnotations(points: StavePoint[]): StaveAnnotation[] {
      the spans, not the points. On a collision keep the earlier one — unless
      the other is a judged verdict, which is the stronger claim. */
   const span = (a: StaveAnnotation) => {
-    const start = a.align === 'left' ? a.xPct - ANNOTATION_MIN_GAP_PCT : a.xPct;
-    return { start, end: start + ANNOTATION_MIN_GAP_PCT };
+    const start = a.align === 'left' ? a.xPct - a.widthPct : a.xPct;
+    return { start, end: start + a.widthPct };
   };
 
   const kept: StaveAnnotation[] = [];
@@ -358,87 +379,32 @@ function buildAnnotations(points: StavePoint[]): StaveAnnotation[] {
   return kept;
 }
 
-/* ── Matrix ───────────────────────────────────────────────────── */
+/* ── Character lanes ──────────────────────────────────────────── */
 
 /**
- * Beeswarm offset in px for the `k`-th point within one chapter column.
- *
- * Must be counted *per chapter*: a global index makes same-chapter points
- * land on identical offsets and overlap into an unclickable stack.
+ * Which axis labels to print when they cannot all fit: the first and the last
+ * always, the rest left to right whenever the label would clear both the one
+ * before it and the last one. `xs` are % positions (ascending), `labelPx` the
+ * width each label needs. The tick marks themselves are always drawn.
  */
-export function beeswarmOffset(k: number, spacing: number): number {
-  return (k % 2 === 0 ? 1 : -1) * Math.ceil(k / 2) * spacing;
-}
-
-export interface MatrixPoint {
-  id: string;
-  /** X as a percentage of the plot width (chapter column centre + offset). */
-  xPct: number;
-  offsetPx: number;
-  yPx: number;
-  radius: number;
-  outlier: boolean;
-  hasAnalysis: boolean;
-  datum: TimelineDatum;
-}
-
-/** Centre of chapter `chapter` as a percentage, given the chapter list. */
-export function chapterCentrePct(chapter: number, chapters: number[]): number {
-  const i = chapters.indexOf(chapter);
-  if (i < 0 || chapters.length === 0) return 50;
-  return ((i + 0.5) / chapters.length) * 100;
-}
-
-export function buildMatrixPoints(
-  data: TimelineDatum[],
-  chapters: number[],
-): MatrixPoint[] {
-  const out: MatrixPoint[] = [];
-  for (const chapter of chapters) {
-    const inChapter = data.filter(
-      (d) => d.chapter === chapter && d.chronologicalRank !== null,
-    );
-    inChapter.forEach((d, k) => {
-      out.push({
-        id: d.id,
-        xPct: chapterCentrePct(chapter, chapters),
-        offsetPx: beeswarmOffset(k, BEESWARM_SPACING),
-        yPx: MATRIX_HEIGHT - d.chronologicalRank! * MATRIX_HEIGHT,
-        radius: d.isKernel ? 5 : 3.5,
-        outlier: d.outlier,
-        hasAnalysis: d.hasAnalysis,
-        datum: d,
-      });
-    });
+export function sparseLabels(xs: number[], widthPx: number, labelPx: number[]): boolean[] {
+  const show = xs.map(() => widthPx <= 0);
+  if (widthPx <= 0 || xs.length === 0) return show;
+  const px = xs.map((x) => (x / 100) * widthPx);
+  const last = xs.length - 1;
+  show[0] = true;
+  show[last] = true;
+  let prev = 0;
+  for (let i = 1; i < last; i++) {
+    if (px[i] - px[prev] >= labelPx[prev] && px[last] - px[i] >= labelPx[i]) {
+      show[i] = true;
+      prev = i;
+    }
   }
-  return out;
+  // Two labels alone can still collide (a one-chapter-wide lane): keep the first.
+  if (last > 0 && px[last] - px[prev] < labelPx[prev]) show[last] = false;
+  return show;
 }
-
-/** Unranked events for the matrix's degraded band, offset per chapter. */
-export function buildMatrixUnranked(
-  data: TimelineDatum[],
-  chapters: number[],
-): MatrixPoint[] {
-  const seen = new Map<number, number>();
-  return data
-    .filter((d) => d.chronologicalRank === null)
-    .map((d) => {
-      const k = seen.get(d.chapter) ?? 0;
-      seen.set(d.chapter, k + 1);
-      return {
-        id: d.id,
-        xPct: chapterCentrePct(d.chapter, chapters),
-        offsetPx: beeswarmOffset(k, BEESWARM_UNRANKED_SPACING),
-        yPx: 0,
-        radius: 3.5,
-        outlier: false,
-        hasAnalysis: d.hasAnalysis,
-        datum: d,
-      };
-    });
-}
-
-/* ── Character lanes ──────────────────────────────────────────── */
 
 export interface LaneRun {
   x1Pct: number;

@@ -18,7 +18,8 @@ class EmbeddingGenerator:
     """Generate dense vector embeddings for a list of text strings.
 
     Uses the model specified in ``Settings.embedding_model_name``
-    (default: ``all-MiniLM-L6-v2``, 384 dims).
+    (default: ``paraphrase-multilingual-MiniLM-L12-v2``, 384 dims — multilingual, so CJK text is not
+    reduced to ``[UNK]`` tokens).
     """
 
     def embed_texts(self, texts: list[str]) -> list[list[float]]:

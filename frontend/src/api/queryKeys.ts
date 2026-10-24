@@ -25,7 +25,8 @@ type Id = string | null | undefined;
  * Not covered yet: the `narrative`, `buildOverview` and `symbols` roots sit
  * outside the books tree, so `invalidate(qk.book(id))` does not reach them.
  * That is pre-existing and left alone here; moving them would change what a
- * book-level invalidation refetches.
+ * book-level invalidation refetches. (`buildOverview` now has factories, still
+ * on its own root for the same reason.)
  */
 export const qk = {
   books: ['books'] as const,
@@ -60,6 +61,9 @@ export const qk = {
       ['books', bookId, 'events', eventId, 'analysis'] as const,
     source: (bookId: Id, eventId: Id) =>
       ['books', bookId, 'events', eventId, 'source'] as const,
+    // Under `analysis` so a regenerated analysis refreshes its quote links too.
+    quoteSources: (bookId: Id, eventId: Id) =>
+      ['books', bookId, 'events', eventId, 'analysis', 'quote-sources'] as const,
   },
 
   epistemic: {
@@ -69,6 +73,13 @@ export const qk = {
       entityId: Id,
       upToChapter: number | null | undefined,
     ) => ['books', bookId, 'epistemic-state', entityId, upToChapter] as const,
+    // cached_only reads may answer "misbeliefs not inferred yet"; keep them off
+    // the full-read key so other pages never get that partial answer from cache.
+    atCached: (
+      bookId: Id,
+      entityId: Id,
+      upToChapter: number | null | undefined,
+    ) => ['books', bookId, 'epistemic-state', entityId, upToChapter, 'cached'] as const,
   },
 
   factionsPanel: (bookId: Id) => ['books', bookId, 'factions', 'panel'] as const,
@@ -107,6 +118,13 @@ export const qk = {
     overview: (bookId: Id) => ['symbols', bookId, 'overview'] as const,
   },
 
+  /** Pre-existing outlier: rooted at `buildOverview`, not under `books`. */
+  buildOverview: {
+    manifest: (bookId: Id) => ['buildOverview', bookId] as const,
+    chapterDistribution: (bookId: Id) =>
+      ['buildOverview', bookId, 'chapter-distribution'] as const,
+  },
+
   tension: {
     lines: (bookId: Id) => ['books', bookId, 'tension', 'lines'] as const,
     teus: (bookId: Id) => ['books', bookId, 'tension', 'teus'] as const,
@@ -120,6 +138,10 @@ export const qk = {
     order: (bookId: Id, order: TimelineOrder) =>
       ['books', bookId, 'timeline', order] as const,
     config: (bookId: Id) => ['books', bookId, 'timeline-config'] as const,
+    /** #21g story-time-hint coverage. Under the books tree (not `narrative`)
+     *  so a pipeline rerun's `invalidate(qk.book(id))` reaches it — the hints
+     *  come from the knowledge-graph step. */
+    coverage: (bookId: Id) => ['books', bookId, 'timeline', 'temporal-coverage'] as const,
   },
 
   tasks: {

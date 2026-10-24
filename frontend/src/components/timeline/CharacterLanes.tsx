@@ -13,10 +13,13 @@
 
 import { useTranslation } from 'react-i18next';
 import { X } from 'lucide-react';
+import { Tooltip } from '@/components/ui/Tooltip';
+import { useElementWidth } from '@/hooks/useElementWidth';
 import {
   MAX_LANES,
   buildLane,
   coPresence,
+  sparseLabels,
   type TimelineDatum,
 } from '@/lib/timelineGeometry';
 
@@ -58,6 +61,15 @@ export function CharacterLanes({
     const first = data.findIndex((d) => d.chapter === ch);
     return { ch, xPct: n > 1 ? (first / (n - 1)) * 100 : 0 };
   });
+
+  // Narrow lanes cannot print every Ch.N: the marks all stay, the labels thin
+  // out (first and last kept). 11px text, ~0.6em a glyph, plus padding.
+  const [ticksRef, ticksWidth] = useElementWidth<HTMLDivElement>();
+  const tickShown = sparseLabels(
+    ticks.map((tk) => tk.xPct),
+    ticksWidth,
+    ticks.map((tk) => `Ch.${tk.ch}`.length * 6.6 + 10),
+  );
 
   const unselected = available.filter((c) => !selected.some((s) => s.id === c.id));
 
@@ -101,10 +113,13 @@ export function CharacterLanes({
             </select>
           </label>
         )}
-        {selected.length > 0 && (
-          <span className="tl-lanes-note">{t('timeline.lanes.axisNote', { n })}</span>
-        )}
       </header>
+
+      {/* Verbatim and above the lanes, not in a tooltip: 「最長連缺」 only holds
+          on the full axis, which is why the filter does not touch X. */}
+      {selected.length > 0 && (
+        <p className="tl-lanes-note">{t('timeline.lanes.axisNote', { n })}</p>
+      )}
 
       {/* Nothing selected is a working state, not an error: the reader has
           cleared the seeded cast and is about to pick their own. Show the
@@ -113,10 +128,10 @@ export function CharacterLanes({
       {selected.length === 0 && <p className="tl-lanes-empty">{t('timeline.lanes.empty')}</p>}
 
       {selected.length > 0 && (
-        <div className="tl-lanes-ticks">
-          {ticks.map((tick) => (
+        <div className="tl-lanes-ticks" ref={ticksRef}>
+          {ticks.map((tick, i) => (
             <span className="tl-lanes-tick" key={tick.ch} style={{ left: `${tick.xPct}%` }}>
-              Ch.{tick.ch}
+              {tickShown[i] ? `Ch.${tick.ch}` : ''}
             </span>
           ))}
         </div>
@@ -150,34 +165,38 @@ export function CharacterLanes({
               />
             ))}
             {lane.dots.map((dot) => (
-              <button
-                type="button"
+              <Tooltip
                 key={dot.id}
-                className={[
-                  'tl-lane-dot',
-                  dot.datum.isKernel ? 'kernel' : '',
-                  dot.datum.hasAnalysis ? 'analyzed' : 'unanalyzed',
-                  dot.id === selectedEventId ? 'selected' : '',
-                ]
-                  .filter(Boolean)
-                  .join(' ')}
-                style={{ left: `${dot.xPct}%` }}
-                onClick={() => onSelectEvent(dot.datum)}
-                title={dot.datum.title}
+                label={dot.datum.title}
+                anchorClassName="tl-lane-dot-anchor"
+                anchorStyle={{ left: `${dot.xPct}%` }}
               >
-                <span className="sr-only">{dot.datum.title}</span>
-              </button>
+                <button
+                  type="button"
+                  className={[
+                    'tl-lane-dot',
+                    dot.datum.isKernel ? 'kernel' : '',
+                    dot.datum.hasAnalysis ? 'analyzed' : 'unanalyzed',
+                    dot.id === selectedEventId ? 'selected' : '',
+                  ]
+                    .filter(Boolean)
+                    .join(' ')}
+                  onClick={() => onSelectEvent(dot.datum)}
+                  // The same events as the stave, which is the keyboard way
+                  // in; 3 lanes × every appearance would be ~80 Tab stops.
+                  tabIndex={-1}
+                  aria-pressed={dot.id === selectedEventId}
+                >
+                  <span className="sr-only">{dot.datum.title}</span>
+                </button>
+              </Tooltip>
             ))}
           </div>
-          {/* Absence captions live in their own strip below the track so they
-              never sit on top of the dots. */}
-          <div className="tl-lane-notes">
+          {/* Absence captions are chips under the track so they never sit on
+              top of the dots. */}
+          <div className="tl-lane-chips">
             {lane.labelled.map((run, k) => (
-              <span
-                className="tl-lane-note"
-                key={k}
-                style={{ left: `${run.x1Pct}%`, width: `${run.widthPct}%` }}
-              >
+              <span className="tl-lane-chip" key={k}>
                 {t(
                   run.fromOpening
                     ? 'timeline.lanes.absentOpening'

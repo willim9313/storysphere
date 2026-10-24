@@ -1,7 +1,7 @@
 """Timeline endpoints for a book — split out of ``books.py``.
 
 Covers the timeline configuration (#12a–#12c) and the assembled timeline
-itself (#13a–#13b).  Shares the ``/books`` prefix with ``books.py``; the
+itself (#13a–#13c).  Shares the ``/books`` prefix with ``books.py``; the
 endpoint paths are unchanged.
 """
 
@@ -13,16 +13,20 @@ from typing import Any
 from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException
+from fastapi.responses import JSONResponse
 
-from storysphere.api import task_runner
+from storysphere.api import batch_guard, task_runner
 from storysphere.api.deps import (
     AnalysisCacheDep,
     DocServiceDep,
     KGServiceDep,
     TemporalPipelineDep,
 )
+from storysphere.api.llm_guard import require_llm_provider
+from storysphere.api.routers.narrative import TEMPORAL_GUARD_KIND
 from storysphere.api.schemas.book_timeline import (
     ParticipantRef,
+    RunningTimelineTasksResponse,
     TemporalDisplacementEntry,
     TemporalRelationEntry,
     TimelineConfigResponse,
@@ -35,6 +39,7 @@ from storysphere.api.schemas.books import (
     TaskIdResponse,
     TimelineDetectionResponse,
 )
+from storysphere.api.schemas.common import ErrorResponse
 from storysphere.api.store import task_store
 
 logger = logging.getLogger(__name__)
@@ -334,6 +339,10 @@ async def _temporal_pipeline(
         language=language,
         progress_callback=task_runner.progress(task_id),
     )
+    if result.failure:
+        # The pipeline failed before replacing anything; a "done" task would
+        # tell the client the timeline was recomputed when it was not.
+        raise task_runner.TaskAborted(result.failure)
     return {
         "temporal_relations": result.temporal_relations,
         "events_ranked": result.events_ranked,
@@ -342,20 +351,29 @@ async def _temporal_pipeline(
     }
 
 
+# One story-order computation per book. The pipeline drops the book's temporal
+# relations and then re-adds them one by one with awaits in between, so two
+# runs interleaved leave every relation in twice — and pay the LLM twice.
+_COMPUTE_GUARD_KIND = "timeline"
+
+
 @router.post(
     "/{book_id}/timeline/compute",
     response_model=TaskIdResponse,
     status_code=202,
+    responses={409: {"model": ErrorResponse}},
 )
 async def compute_book_timeline(
     book_id: str,
     doc: DocServiceDep,
     kg: KGServiceDep,
     pipeline: TemporalPipelineDep,
-) -> dict:
+) -> dict | JSONResponse:
     """Trigger temporal timeline computation for a book.
 
     Requires EEP (event analysis) to have been run first for best results.
+    409 (``code: batch_running``) while a computation is already going for the
+    book — #13c hands back its task id.
     """
     document = await doc.get_document(book_id)
     if document is None:
@@ -365,12 +383,35 @@ async def compute_book_timeline(
     if not events:
         raise HTTPException(status_code=400, detail="No events found for this book")
 
+    require_llm_provider()
+
     language = await doc.get_document_language(book_id)
+    # No await between the check and the claim (see batch_guard).
+    if (busy := batch_guard.conflict(_COMPUTE_GUARD_KIND, book_id)) is not None:
+        return busy
     task_id = str(uuid4())
     task_store.create(task_id, kind="event", title="時間軸生成")
     task_runner.launch(
         task_id, _temporal_pipeline(task_id, book_id, pipeline, language)
     )
+    batch_guard.hold(_COMPUTE_GUARD_KIND, book_id, task_id)
 
     logger.info("Triggered temporal pipeline: book=%s, task=%s", book_id, task_id)
     return TaskIdResponse(task_id=task_id).model_dump(by_alias=True)
+
+
+@router.get(
+    "/{book_id}/timeline/running",
+    response_model=RunningTimelineTasksResponse,
+)
+async def get_running_timeline_tasks(book_id: str) -> dict:
+    """The #13b and #21h runs going for this book (#13c).
+
+    Read-only: lets the timeline page pick a run back up after a remount (or
+    from another tab) instead of offering to start one the POSTs would refuse
+    with 409.
+    """
+    return RunningTimelineTasksResponse(
+        compute_task_id=batch_guard.running(_COMPUTE_GUARD_KIND, book_id),
+        temporal_task_id=batch_guard.running(TEMPORAL_GUARD_KIND, book_id),
+    ).model_dump(by_alias=True)

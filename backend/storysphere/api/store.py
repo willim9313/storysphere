@@ -34,13 +34,22 @@ from __future__ import annotations
 import json
 import logging
 import threading
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 from storysphere.api.schemas.common import MurmurEvent, TaskStatus
 
 logger = logging.getLogger(__name__)
+
+
+def _utc_now() -> str:
+    """UTC ISO-8601 to the second with a trailing "Z" — the format both stores
+    emit for created_at and finished_at, so the frontend's Date parsing never
+    guesses a timezone. (created_at used to be local time in the memory store
+    and offset-less UTC in SQLite; JS reads both as local, so under SQLite in
+    UTC+8 the upload card's elapsed timer started at "8 hours".)"""
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 # ── In-memory backend ─────────────────────────────────────────────────────────
@@ -66,7 +75,7 @@ class MemoryTaskStore:
             status="pending",
             kind=kind,
             title=title,
-            created_at=datetime.now().isoformat(),
+            created_at=_utc_now(),
         )
         with self._lock:
             self._store[task_id] = task
@@ -109,14 +118,26 @@ class MemoryTaskStore:
         with self._lock:
             if task_id in self._store:
                 self._store[task_id] = self._store[task_id].model_copy(
-                    update={"status": "done", "result": result, "progress": 100, "stage": "完成"}
+                    update={
+                        "status": "done",
+                        "result": result,
+                        "progress": 100,
+                        "stage": "完成",
+                        "finished_at": _utc_now(),
+                    }
                 )
 
-    def set_failed(self, task_id: str, error: str) -> None:
+    def set_failed(self, task_id: str, error: str, error_kind: str | None = None) -> None:
         with self._lock:
             if task_id in self._store:
                 self._store[task_id] = self._store[task_id].model_copy(
-                    update={"status": "error", "error": error, "stage": "失敗"}
+                    update={
+                        "status": "error",
+                        "error": error,
+                        "error_kind": error_kind,
+                        "stage": "失敗",
+                        "finished_at": _utc_now(),
+                    }
                 )
 
     def set_progress(
@@ -200,6 +221,15 @@ _ADD_SUB_STAGE = "ALTER TABLE tasks ADD COLUMN sub_stage TEXT"
 _ADD_KIND = "ALTER TABLE tasks ADD COLUMN kind TEXT"
 _ADD_TITLE = "ALTER TABLE tasks ADD COLUMN title TEXT"
 _ADD_STEP_KEY = "ALTER TABLE tasks ADD COLUMN step_key TEXT"
+_ADD_FINISHED_AT = "ALTER TABLE tasks ADD COLUMN finished_at TEXT"
+_ADD_ERROR_KIND = "ALTER TABLE tasks ADD COLUMN error_kind TEXT"
+
+# SQLite expression for finished_at — same shape as _utc_now() (UTC, "Z").
+_SQL_UTC_NOW = "strftime('%Y-%m-%dT%H:%M:%SZ', 'now')"
+
+# Rows written before created_at carried a "Z" are UTC already (SQLite's 'now'
+# is UTC); only the marker is missing. Idempotent.
+_NORMALISE_CREATED_AT = "UPDATE tasks SET created_at = created_at || 'Z' WHERE created_at NOT LIKE '%Z'"
 
 _CREATE_MURMUR_TABLE = """
 CREATE TABLE IF NOT EXISTS task_murmur_events (
@@ -248,11 +278,14 @@ class SQLiteTaskStore:
                     _ADD_KIND,
                     _ADD_TITLE,
                     _ADD_STEP_KEY,
+                    _ADD_FINISHED_AT,
+                    _ADD_ERROR_KIND,
                 ):
                     try:
                         db.execute(migration)
                     except Exception:
                         pass  # column already exists
+                db.execute(_NORMALISE_CREATED_AT)
                 db.commit()
             self._initialised = True
 
@@ -270,7 +303,7 @@ class SQLiteTaskStore:
                 WHERE task_id IN (
                     SELECT task_id FROM tasks
                     WHERE status IN ('done', 'error')
-                      AND created_at < strftime('%Y-%m-%dT%H:%M:%S',
+                      AND created_at < strftime('%Y-%m-%dT%H:%M:%SZ',
                             datetime('now', ? || ' days'))
                 )
                 """,
@@ -280,7 +313,7 @@ class SQLiteTaskStore:
                 """
                 DELETE FROM tasks
                 WHERE status IN ('done', 'error')
-                  AND created_at < strftime('%Y-%m-%dT%H:%M:%S',
+                  AND created_at < strftime('%Y-%m-%dT%H:%M:%SZ',
                         datetime('now', ? || ' days'))
                 """,
                 (f"-{older_than_days}",),
@@ -316,13 +349,17 @@ class SQLiteTaskStore:
         kind: str | None = None,
         title: str | None = None,
     ) -> TaskStatus:
+        # created_at is written explicitly rather than left to the column
+        # default: the default predates the "Z" format, and SQLite cannot alter
+        # a column default in place.
+        created_at = _utc_now()
         self._execute(
-            "INSERT OR IGNORE INTO tasks (task_id, status, kind, title) "
-            "VALUES (?, 'pending', ?, ?)",
-            (task_id, kind, title),
+            "INSERT OR IGNORE INTO tasks (task_id, status, kind, title, created_at) "
+            "VALUES (?, 'pending', ?, ?, ?)",
+            (task_id, kind, title, created_at),
         )
         return TaskStatus(
-            task_id=task_id, status="pending", kind=kind, title=title
+            task_id=task_id, status="pending", kind=kind, title=title, created_at=created_at
         )
 
     def get(self, task_id: str) -> TaskStatus | None:
@@ -334,7 +371,7 @@ class SQLiteTaskStore:
 
     _SELECT_COLS = (
         "task_id, status, progress, stage, sub_progress, sub_total, "
-        "sub_stage, result, error, kind, title, created_at, step_key"
+        "sub_stage, result, error, kind, title, created_at, step_key, finished_at, error_kind"
     )
 
     @staticmethod
@@ -353,6 +390,8 @@ class SQLiteTaskStore:
             title=row[10],
             created_at=row[11],
             step_key=row[12],
+            finished_at=row[13],
+            error_kind=row[14],
         )
 
     async def _async_get(self, task_id: str) -> TaskStatus | None:
@@ -393,14 +432,16 @@ class SQLiteTaskStore:
 
     def set_completed(self, task_id: str, result: Any) -> None:
         self._execute(
-            "UPDATE tasks SET status = 'done', progress = 100, stage = '完成', result = ? WHERE task_id = ?",
+            "UPDATE tasks SET status = 'done', progress = 100, stage = '完成', result = ?, "
+            f"finished_at = {_SQL_UTC_NOW} WHERE task_id = ?",
             (json.dumps(result), task_id),
         )
 
-    def set_failed(self, task_id: str, error: str) -> None:
+    def set_failed(self, task_id: str, error: str, error_kind: str | None = None) -> None:
         self._execute(
-            "UPDATE tasks SET status = 'error', stage = '失敗', error = ? WHERE task_id = ?",
-            (error, task_id),
+            "UPDATE tasks SET status = 'error', stage = '失敗', error = ?, error_kind = ?, "
+            f"finished_at = {_SQL_UTC_NOW} WHERE task_id = ?",
+            (error, error_kind, task_id),
         )
 
     def set_progress(
@@ -515,9 +556,9 @@ async def set_task_running(task_id: str) -> None:
     task_store.set_running(task_id)
 
 
-async def set_task_failed(task_id: str, error: str) -> None:
+async def set_task_failed(task_id: str, error: str, error_kind: str | None = None) -> None:
     """Awaitable ``set_failed`` for router handlers. See :func:`set_task_running`."""
-    task_store.set_failed(task_id, error)
+    task_store.set_failed(task_id, error, error_kind)
 
 
 # ── Process-level singleton ───────────────────────────────────────────────────

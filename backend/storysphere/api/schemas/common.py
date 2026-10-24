@@ -39,10 +39,33 @@ class TaskStatus(BaseModel):
     sub_stage: str | None = None
     result: dict[str, Any] | None = None
     error: str | None = None
+    # Why a failed task failed, when that can be told. Ingestion: file
+    # properties (encrypted / unreadable / no_text) fail the same way on every
+    # retry; interrupted / internal may pass (classify_task_failure). A step
+    # rerun (#8d) fails like a step does: rate_limited / llm_unconfigured /
+    # blocked / timeout / other (classify_step_failure). None for older rows
+    # and tasks that never classify.
+    error_kind: Literal[
+        "encrypted", "unreadable", "no_text", "interrupted", "internal",
+        "rate_limited", "llm_unconfigured", "blocked", "timeout", "other",
+    ] | None = None
     kind: str | None = None
     title: str | None = None
     created_at: str | None = None
+    # When the task reached done / error — UTC ISO-8601 with a trailing "Z".
+    # The task center's "N 分鐘前完成" is measured from this, not created_at:
+    # a 20-minute ingestion would otherwise read "20 分鐘前完成" the moment it
+    # lands. None while the task is still pending / running / awaiting_review.
+    finished_at: str | None = None
     murmur_events: list[MurmurEvent] = []
+
+
+class ActiveBatchResponse(BaseModel):
+    """The batch of one kind currently running for a book (``…/analyze-all/active``)."""
+
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+    task_id: str | None = None
 
 
 class ErrorResponse(BaseModel):

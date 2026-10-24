@@ -1,12 +1,14 @@
-import { useTranslation } from 'react-i18next';
-import type { AnalysisItem, UnanalyzedEntity } from '@/api/types';
-import { avatarStyle } from './entityAvatarStyle';
+import { useTranslation } from "react-i18next";
+import type { AnalysisItem, UnanalyzedEntity } from "@/api/types";
+import { Tooltip } from "@/components/ui/Tooltip";
+import { mentionBarWidth } from "./characterModel";
 
-/** Design canvas formula: width% = 6 + 94 * sqrt(mentions / max) */
-function mentionBarWidth(mentions: number, max: number): number {
-  if (max <= 0) return 6;
-  return 6 + 94 * Math.sqrt(Math.max(0, mentions) / max);
-}
+/**
+ * 左欄清單列（動作列·行內按鈕變體，DS v3 第 3 批 · 09）。
+ *   上行：姓名；下行：提及量長條＋數值＋「建立」（第二行固定 28px）。
+ *   狀態點與「建立」二擇一：已分析列有點、未分析列有按鈕。
+ * 長條是平方根尺度 6 + 94√(m/max)（px），讓提及 1–3 次的長尾仍看得出差異。
+ */
 
 export function AnalyzedItem({
   item,
@@ -14,50 +16,69 @@ export function AnalyzedItem({
   onSelect,
   maxMentionCount,
   itemId,
-}: {
+}: Readonly<{
   item: AnalysisItem;
   isSelected: boolean;
   onSelect: () => void;
   maxMentionCount?: number;
   itemId?: string;
-}) {
-  const { t } = useTranslation('analysis');
+}>) {
+  const { t } = useTranslation("analysis");
+  const partial = item.status === "partial";
   return (
-    <button
-      id={itemId}
-      type="button"
-      className={'ca-item' + (isSelected ? ' selected' : '')}
-      onClick={onSelect}
-    >
-      <div className="ca-avatar" style={avatarStyle(item.title)}>
-        {item.title[0]}
-      </div>
-      <div className="ca-item-body">
-        <div className="ca-item-row">
-          <span className="ca-item-name">{item.title}</span>
-          <span
-            className="ca-item-dot"
-            style={item.status === 'partial' ? { background: 'var(--color-warning)' } : undefined}
-          />
-        </div>
-        {maxMentionCount !== undefined && (
-          <div className="ca-item-mentionrow">
-            <div className="ca-item-mentionbar">
-              <div
-                className="ca-item-mentionbar-fill"
-                style={{ width: `${mentionBarWidth(item.mentionCount, maxMentionCount)}%` }}
+    <div id={itemId} className={"ca-row" + (isSelected ? " selected" : "")}>
+      <button
+        type="button"
+        className="ca-row-main"
+        aria-current={isSelected ? "true" : undefined}
+        onClick={onSelect}
+      >
+        <span className="ca-row-avatar">{item.title[0]}</span>
+        <span className="ca-row-body">
+          <span className="ca-row-name">{item.title}</span>
+          {maxMentionCount !== undefined && (
+            <span className="ca-row-meta">
+              <span
+                className="ca-row-bar"
+                style={{
+                  width: mentionBarWidth(item.mentionCount, maxMentionCount),
+                }}
               />
-            </div>
-            <span
-              className="ca-item-mentioncount"
-              aria-label={t('character.list.mentionCount', { count: item.mentionCount })}
-            >
-              {item.mentionCount}
+              <span
+                className="ca-row-count"
+                aria-label={t("character.list.mentionCount", {
+                  count: item.mentionCount,
+                })}
+              >
+                {item.mentionCount}
+              </span>
             </span>
-          </div>
-        )}
-      </div>
-    </button>
+          )}
+        </span>
+        <span className="ca-row-flags">
+          {item.isStale && (
+            <Tooltip label={t("character.stale.tooltip")}>
+              <span
+                className="ca-row-stale"
+                role="img"
+                aria-label={t("character.stale.tooltip")}
+              />
+            </Tooltip>
+          )}
+          {partial ? (
+            <Tooltip label={t("event.partialBadge")}>
+              <span
+                className="ca-row-dot partial"
+                role="img"
+                aria-label={t("event.partialBadge")}
+              />
+            </Tooltip>
+          ) : (
+            <span className="ca-row-dot" />
+          )}
+        </span>
+      </button>
+    </div>
   );
 }
 
@@ -67,65 +88,79 @@ export function UnanalyzedItem({
   onSelect,
   onGenerate,
   isGenerating,
+  failed,
   maxMentionCount,
   itemId,
-}: {
+}: Readonly<{
   item: UnanalyzedEntity;
   isSelected: boolean;
   onSelect: () => void;
   onGenerate: () => void;
   isGenerating: boolean;
+  /** The last batch run failed on this one: marked with a diamond dot (shape,
+   *  not hue — Ink has one colour for every status). */
+  failed?: boolean;
   maxMentionCount?: number;
   itemId?: string;
-}) {
-  const { t } = useTranslation('analysis');
+}>) {
+  const { t } = useTranslation("analysis");
 
   return (
     <div
       id={itemId}
-      className={'ca-item' + (isSelected ? ' selected' : '')}
-      onClick={onSelect}
-      role="button"
-      tabIndex={0}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault();
-          onSelect();
-        }
-      }}
+      className={
+        "ca-row pending" +
+        (failed ? " is-failed" : "") +
+        (isSelected ? " selected" : "")
+      }
     >
-      <div className="ca-avatar muted">{item.name[0]}</div>
-      <div className="ca-item-body">
-        <div className="ca-item-row">
-          <span className="ca-item-name muted">{item.name}</span>
-        </div>
-        {maxMentionCount !== undefined && (
-          <div className="ca-item-mentionrow">
-            <div className="ca-item-mentionbar">
-              <div
-                className="ca-item-mentionbar-fill muted"
-                style={{ width: `${mentionBarWidth(item.mentionCount, maxMentionCount)}%` }}
-              />
-            </div>
-            <span
-              className="ca-item-mentioncount"
-              aria-label={t('character.list.mentionCount', { count: item.mentionCount })}
-            >
-              {item.mentionCount}
-            </span>
-          </div>
-        )}
-      </div>
       <button
         type="button"
-        className="ca-item-mini-btn"
-        onClick={(e) => {
-          e.stopPropagation();
-          onGenerate();
-        }}
+        className="ca-row-main"
+        aria-current={isSelected ? "true" : undefined}
+        onClick={onSelect}
+      >
+        <span className="ca-row-avatar">{item.name[0]}</span>
+        <span className="ca-row-body">
+          <span className="ca-row-name">{item.name}</span>
+          <span className="ca-row-meta">
+            {maxMentionCount !== undefined && (
+              <>
+                <span
+                  className="ca-row-bar"
+                  style={{
+                    width: mentionBarWidth(item.mentionCount, maxMentionCount),
+                  }}
+                />
+                <span
+                  className="ca-row-count"
+                  aria-label={t("character.list.mentionCount", {
+                    count: item.mentionCount,
+                  })}
+                >
+                  {item.mentionCount}
+                </span>
+              </>
+            )}
+          </span>
+        </span>
+        {failed && (
+          <Tooltip label={t("character.batch.stat.failed")}>
+            <span
+              className="ca-row-dot failed"
+              role="img"
+              aria-label={t("character.batch.stat.failed")}
+            />
+          </Tooltip>
+        )}
+      </button>
+      <button
+        type="button"
+        className="ss-btn ss-btn-sm ss-btn-ghost ss-btn-llm ca-row-create"
+        onClick={onGenerate}
         disabled={isGenerating}
       >
-        {isGenerating ? '…' : t('character.list.createBtn')}
+        {isGenerating ? "…" : t("character.list.createBtn")}
       </button>
     </div>
   );

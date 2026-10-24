@@ -1,5 +1,7 @@
 import { useTranslation } from 'react-i18next';
 
+import { Tooltip } from '@/components/ui/Tooltip';
+import { useElementWidth } from '@/hooks/useElementWidth';
 import { densityStep, typeStyle } from './tokens';
 import {
   OUTSIDE_CELL_FLEX,
@@ -7,15 +9,21 @@ import {
   type ChapterAxis,
   type ChapterAxisSlot,
 } from './chapterAxis';
-import { segmentLabel } from './symbolPhrases';
+import { barHeight } from './interpretationModel';
+import { distributionSummary, segmentLabel } from './symbolPhrases';
 import type { SymbolSignals } from './symbolSignals';
 
 /** Tallest a bar can draw, in px. */
 const MAX_BAR_H = 72;
-/** The pinned symbol's row, drawn shorter so the open symbol stays the subject. */
-const PIN_BAR_H = 36;
 /** An occupied chapter is never invisible, however small its share. */
 const MIN_BAR_H = 3;
+/** Matches `gap` on `.sym-dist-plot` / `.sym-dist-labels`. */
+const COL_GAP = 3;
+/** Width one digit of an 11px tabular chapter number needs, plus breathing room. */
+const DIGIT_W = 7;
+const LABEL_PAD = 4;
+/** Below this, a front/back column shows 「前／後」 rather than 「目次」「後記」. */
+const OUTSIDE_LABEL_MIN_W = 36;
 
 interface Props {
   signals: SymbolSignals;
@@ -52,9 +60,31 @@ export function ChapterDistChart({ signals, axis, scale, pinned }: Readonly<Prop
     ? new Set(signals.distribution.peakBodyChapters)
     : new Set<number>();
 
+  // The chart fills whatever the card gives it. At 720px that is ~306px, so every
+  // column still draws and only the axis numbers thin out — see `visibleBodyLabels`.
+  const [plotRef, plotW] = useElementWidth<HTMLDivElement>();
+  const bodyChapters = axis.slots.filter((s) => s.segment === 'body').map((s) => s.chapter);
+  const outsideCount = axis.slots.length - bodyChapters.length;
+  const colW =
+    plotW > 0
+      ? (plotW - COL_GAP * (axis.slots.length - 1)) /
+        (bodyChapters.length + OUTSIDE_CELL_FLEX * outsideCount)
+      : Infinity;
+  const shownLabels = visibleBodyLabels(bodyChapters, peaks, colW);
+  const compactOutside = colW * OUTSIDE_CELL_FLEX < OUTSIDE_LABEL_MIN_W;
+
   return (
-    <div className="sym-dist">
-      <div className="sym-dist-plot">
+    <div className="sym-dist" ref={plotRef}>
+      {/* The bars are an image; their numbers live in hover tooltips only, so the
+          plot carries them as its accessible name. */}
+      <div
+        className="sym-dist-plot"
+        role="img"
+        aria-label={t('symbol.chartLabel', {
+          term: signals.term,
+          counts: distributionSummary(t, distribution, axis),
+        })}
+      >
         {axis.slots.map((slot) => {
           const count = distribution[String(slot.chapter)] ?? 0;
           const isBody = slot.segment === 'body';
@@ -62,29 +92,30 @@ export function ChapterDistChart({ signals, axis, scale, pinned }: Readonly<Prop
           return (
             <div
               key={slot.chapter}
-              className="sym-dist-col"
+              className="sym-dist-colwrap"
               style={{ flex: isBody ? 1 : OUTSIDE_CELL_FLEX }}
-              title={slotTitle(t, slot, count)}
             >
-              <span className="sym-dist-peak">{isPeak ? '▲' : ''}</span>
-              <span
-                className="sym-dist-bar"
-                style={{
-                  height:
-                    count > 0
-                      ? `${Math.max(MIN_BAR_H, (count / scale) * MAX_BAR_H)}px`
-                      : '2px',
-                  background: count > 0 ? densityStep(count) : 'var(--bg-tertiary)',
-                  // A dashed edge marks a bar that sits outside the story: kept
-                  // visible, but excluded from shape and first appearance.
-                  border: count > 0 && !isBody ? '1px dashed var(--fg-muted)' : undefined,
-                  // Held back rather than shortened. 海's colophon holds more
-                  // occurrences than any chapter does, so at full contrast the
-                  // tallest, darkest bar on the chart is the noise — the eye
-                  // reaches it before the note explaining it should be ignored.
-                  opacity: isBody ? undefined : 0.45,
-                }}
-              />
+              <Tooltip label={slotTitle(t, slot, count)}>
+                <div className="sym-dist-col">
+                  <span className="sym-dist-peak">{isPeak ? '▲' : ''}</span>
+                  <span
+                    className="sym-dist-bar"
+                    style={{
+                      // Zero is a 1px baseline, not a hole that reads as missing data.
+                      height: `${barHeight(count, scale, MAX_BAR_H, MIN_BAR_H)}px`,
+                      background: count > 0 ? densityStep(count) : 'var(--border)',
+                      // A dashed edge marks a bar that sits outside the story: kept
+                      // visible, but excluded from shape and first appearance.
+                      border: count > 0 && !isBody ? '1px dashed var(--fg-muted)' : undefined,
+                      // Held back rather than shortened. 海's colophon holds more
+                      // occurrences than any chapter does, so at full contrast the
+                      // tallest, darkest bar on the chart is the noise — the eye
+                      // reaches it before the note explaining it should be ignored.
+                      opacity: isBody ? undefined : 0.45,
+                    }}
+                  />
+                </div>
+              </Tooltip>
             </div>
           );
         })}
@@ -92,32 +123,41 @@ export function ChapterDistChart({ signals, axis, scale, pinned }: Readonly<Prop
 
       {pinned !== null && (
         <div className="sym-dist-pin">
-          <div className="sym-dist-plot is-pin">
+          <div
+            className="sym-dist-plot is-pin"
+            role="img"
+            aria-label={t('symbol.chartLabel', {
+              term: pinned.term,
+              counts: distributionSummary(t, pinned.item.chapter_distribution ?? {}, axis),
+            })}
+          >
             {axis.slots.map((slot) => {
               const count = (pinned.item.chapter_distribution ?? {})[String(slot.chapter)] ?? 0;
               const isBody = slot.segment === 'body';
               return (
                 <div
                   key={slot.chapter}
-                  className="sym-dist-col"
+                  className="sym-dist-colwrap"
                   style={{ flex: isBody ? 1 : OUTSIDE_CELL_FLEX }}
-                  title={slotTitle(t, slot, count)}
                 >
-                  <span
-                    className="sym-dist-bar"
-                    style={{
-                      height:
-                        count > 0
-                          ? `${Math.max(MIN_BAR_H, (count / scale) * PIN_BAR_H)}px`
-                          : '2px',
-                      // The pinned row is drawn in its own type colour rather than
-                      // the shared density scale: two rows of the same browns would
-                      // read as one chart with a gap in it.
-                      background:
-                        count > 0 ? typeStyle(pinned.imageryType).dot : 'var(--bg-tertiary)',
-                      opacity: isBody ? undefined : 0.45,
-                    }}
-                  />
+                  <Tooltip label={slotTitle(t, slot, count)}>
+                    <div className="sym-dist-col">
+                      <span
+                        className="sym-dist-bar"
+                        style={{
+                          // Same scale and same px ceiling as the row above, so the
+                          // two rows can be compared by height.
+                          height: `${barHeight(count, scale, MAX_BAR_H, MIN_BAR_H)}px`,
+                          // The pinned row is drawn in its own type colour rather than
+                          // the shared density scale: two rows of the same browns would
+                          // read as one chart with a gap in it.
+                          background:
+                            count > 0 ? typeStyle(pinned.imageryType).dot : 'var(--border)',
+                          opacity: isBody ? undefined : 0.45,
+                        }}
+                      />
+                    </div>
+                  </Tooltip>
                 </div>
               );
             })}
@@ -134,13 +174,49 @@ export function ChapterDistChart({ signals, axis, scale, pinned }: Readonly<Prop
               className={'sym-dist-label' + (isBody ? '' : ' is-outside')}
               style={{ flex: isBody ? 1 : OUTSIDE_CELL_FLEX }}
             >
-              {isBody ? slot.chapter : segmentLabel(t, slot)}
+              {isBody
+                ? shownLabels.has(slot.chapter) && slot.chapter
+                : compactOutside
+                  ? t(`symbol.dist.label.${slot.segment}`)
+                  : segmentLabel(t, slot)}
             </span>
           );
         })}
       </div>
     </div>
   );
+}
+
+/**
+ * Which body chapter numbers fit under their columns without colliding.
+ *
+ * Every chapter draws a column at any width; only the numbers thin out. The first
+ * and last chapter and the peaks are placed first, then every k-th chapter where
+ * k columns are wide enough for one number, skipping any that would land within k
+ * columns of a number already placed.
+ */
+function visibleBodyLabels(
+  chapters: readonly number[],
+  peaks: ReadonlySet<number>,
+  colW: number,
+): Set<number> {
+  if (chapters.length === 0) return new Set();
+  const digits = String(chapters[chapters.length - 1]).length;
+  const stride = Math.max(1, Math.ceil((digits * DIGIT_W + LABEL_PAD) / colW));
+  if (stride === 1) return new Set(chapters);
+
+  const last = chapters.length - 1;
+  const candidates = [0, last];
+  chapters.forEach((ch, i) => {
+    if (peaks.has(ch)) candidates.push(i);
+  });
+  for (let i = 0; i <= last; i += stride) candidates.push(i);
+
+  const placed: number[] = [];
+  for (const i of candidates) {
+    if (placed.every((p) => Math.abs(p - i) >= stride)) placed.push(i);
+  }
+  return new Set(placed.map((i) => chapters[i]));
 }
 
 type T = ReturnType<typeof useTranslation<'analysis'>>['t'];

@@ -126,6 +126,17 @@ class TestRunRerunStep:
 
         assert status.status == "error"
         assert status.error == "boom"
+        assert status.error_kind == "other"
+
+    def test_failed_outcome_carries_its_kind_to_the_task(self):
+        """#8d: the rerun task's errorKind is the step's failure kind."""
+        from storysphere.workflows.ingestion import StepOutcome
+
+        status, _ = self._run(
+            StepOutcome(step="summarization", error="429 quota", error_kind="rate_limited")
+        )
+
+        assert status.error_kind == "rate_limited"
 
     def test_missing_book_surfaces_as_a_failed_task(self):
         """rerun_step reports it as a failed outcome, not an exception."""

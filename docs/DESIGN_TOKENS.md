@@ -58,14 +58,18 @@
 |-------|------|-----|
 | `--fg-primary` | `#2a2620` | `#151515` |
 | `--fg-secondary` | `#5f5648` | `#3f3f3f` |
-| `--fg-muted` | `#938876` | `#8c8c8c` |
+| `--fg-muted` | `#776c5b` | `#737373` |
+
+> `--fg-muted` 取對 `--bg-primary` ≥ 4.5:1 的值（Warm 4.65、Ink 4.74；2026-10-24 由 `#938876`／`#8c8c8c` 調深，原值僅 3.15／3.36）。
+> 在 `bg-secondary`／`bg-tertiary`／`panel-bg-card` 上仍低於 4.5:1（Warm 3.79–4.23、Ink 4.01–4.38），要在這些底上承載資訊的文字改用 `--fg-secondary`；再調深會讓 Warm 的 muted 與 secondary 層次相黏（全底過線需 `#695f4e`，對 secondary 6.51 只剩 5.67）。
+> 舊值仍保留在非文字的 `--illustration-stroke-soft`，插畫筆觸不跟著加深。
 
 ### 3.3 邊框與 Accent
 
 | Token | warm | ink |
 |-------|------|-----|
 | `--border` | `#ddceb2` | `#1a1a1a` |
-| `--accent` | `#b05a34`（焦赭） | `#111111` |
+| `--accent` | `#a0522f`（焦赭） | `#111111` |
 | `--accent-fg` | `#f8f3e7` | `#ffffff` |
 
 ### 3.3.1 Focus Ring（鍵盤 a11y）
@@ -74,7 +78,7 @@
 
 | Token | warm | ink |
 |-------|------|-----|
-| `--focus-ring-color` | `#b05a34` | `#151515` |
+| `--focus-ring-color` | `#a0522f` | `#151515` |
 | `--focus-ring-width` | `2px` | 繼承 |
 | `--focus-ring-offset` | `2px` | 繼承 |
 
@@ -86,7 +90,7 @@
 | `--panel-bg-card` | `#e7dcc6` | `#ededeb` |
 | `--panel-border` | `#d3c3a4` | `#1a1a1a` |
 | `--panel-fg` | `#2a2620` | `#151515` |
-| `--panel-fg-muted` | `#938876` | `#8c8c8c` |
+| `--panel-fg-muted` | `var(--fg-muted)` | `var(--fg-muted)` |
 
 ### 3.5 字體（兩主題共用，不隨主題置換）
 
@@ -95,7 +99,7 @@
 | `--font-serif` | `'Spectral', 'Noto Serif TC', Georgia, serif` | 內容本身：書名、章名、正文、頁面標題 |
 | `--font-sans` | `'DM Sans', 'Noto Sans TC', system-ui, sans-serif` | chrome：按鈕、meta、badge、nav |
 | `--font-hand` | `'Caveat', 'Noto Serif TC', cursive` | **僅限插畫語彙**（doodle 標註、empty-state 說明、splash 花飾）；禁用於 chrome 與正文 |
-| `--font-mono` | `'Fira Code', 'Courier New', monospace` | log、key、code |
+| `--font-mono` | `'Fira Code', 'Noto Sans TC', 'Courier New', monospace` | log、key、code（Noto Sans TC 讓 mono 內的中文不退回系統字） |
 | `--font-cjk` | `'Noto Sans TC', sans-serif` | CJK fallback |
 
 判準：一個東西**是**內容 → serif；**關於**內容 → sans。
@@ -114,6 +118,7 @@
 | `--font-size-xl`   | `1.25rem`   | 20 |
 | `--font-size-2xl`  | `1.5rem`    | 24 |
 | `--font-size-3xl`  | `2rem`      | 32 |
+| `--font-size-note` | `var(--font-size-xs)` | 12 | 語意 token：整句說明（見下表） |
 
 #### 語意層級（面板 chrome）
 
@@ -124,7 +129,10 @@
 | 強調數字（stat） | `--font-size-2xl` | 24 |
 | 內文 | `--font-size-sm` | 14 |
 | 次要・列表・pill | `--font-size-xs` | 12 |
-| 註記・計數・eyebrow | `--font-size-2xs` | 11 |
+| 整句說明（提示、圖例說明、空態／錯誤說明、警示內文、研究者導覽條） | `--font-size-note` | 12 |
+| 註記・計數・eyebrow・標籤・徽章・成本提示 | `--font-size-2xs` | 11 |
+
+「整句說明」與「註記」的分界（2026-10-24）：成句、需要讀完才懂的說明走 `--font-size-note`；由 ` · ` 串起的計數 meta、欄位／圖例項目標籤、eyebrow、徽章、短狀態詞（約 8 字內）、原文摘錄、「會呼叫 LLM，消耗 token」這類成本提示維持 2xs。要整體調整說明字級時只改 `--font-size-note`。
 
 面板一律套用此層級；`text-[Npx]` 等 arbitrary 值禁用，標準 `text-xs`/`text-sm`（=12/14，在 scale 上）可接受。
 
@@ -159,6 +167,41 @@
 
 **新色相禁令**：需要新分類色時，取既有 entity/symbol/status token 或 warm arc 未使用的一步，不發明新 hue。
 
+### 3.7.1 語氣色（Tone · 跨主題共用）
+
+6 色語氣家族，供語氣色帶、語氣標記使用。**兩主題共用、Ink 不覆寫**（同 entity 家族）。**語氣色跨角色、跨書固定**——同一語氣在任何角色、任何書都是同一色。
+
+| token | 值 | 備註 |
+|------|----|----|
+| `--tone-warm` | `oklch(0.83 0.07 50)` | |
+| `--tone-inquire` | `oklch(0.85 0.085 85)` | 疑問 |
+| `--tone-steady` | `oklch(0.84 0.05 118)` | 陳述 |
+| `--tone-cold` | `oklch(0.79 0.055 268)` | |
+| `--tone-ironic` | `oklch(0.79 0.07 345)` | |
+| `--tone-agitated` | `oklch(0.77 0.095 25)` | 感嘆 |
+| `--tone-unmapped` | `var(--border)` | **只描邊、不填色** |
+| `--tone-fg` | `var(--fg-primary)` | 全部墨色字；對比 Warm 6.98–9.49、Ink 8.48–11.52（皆 ≥ 4.5:1） |
+
+### 3.7.2 類別色（Categorical · 跨主題共用）
+
+資料標記用的 5＋1 色（深／淺交替，相鄰必不同明度）。**兩主題共用、Ink 不覆寫。** 規則：
+
+- 只用在資料標記（點、色塊、描邊），**不做 pill、不進正文**。
+- **登記制**：目前只登記 09 角色分析的派系；新用途要先登記再用。依排名配色，不依名稱。
+- `cat-none` 只描邊、不填色。
+
+| token | 值 | 字色 token | 對比（Warm / Ink） |
+|------|----|----|----|
+| `--cat-1` | `oklch(0.55 0.105 25)`（磚紅） | `--cat-1-fg` = `--paper-warmth-0` | 4.7 / 5.1 |
+| `--cat-2` | `oklch(0.82 0.070 118)` | `--cat-2-fg` = `--fg-primary` | 8.7 / 10.6 |
+| `--cat-3` | `oklch(0.54 0.085 345)` | `--cat-3-fg` = `--paper-warmth-0` | 4.9 / 5.3 |
+| `--cat-4` | `oklch(0.84 0.085 85)` | `--cat-4-fg` = `--fg-primary` | 9.2 / 11.2 |
+| `--cat-5` | `oklch(0.55 0.055 268)` | `--cat-5-fg` = `--paper-warmth-0` | 4.67 / 4.9 |
+| `--cat-other` | `oklch(0.88 0.012 75)` | `--cat-other-fg` = `--fg-primary` | 10.5 / 12.7 |
+| `--cat-none` | `var(--border)` | — | 只描邊 |
+
+> 紙色字取 `--paper-warmth-0`（`#fdfaf1`，兩主題皆為固定值），不取 `--bg-primary`：Warm 的 `#f8f3e7` 放在 `cat-5` 上只有 4.40:1。Ink 的墨色字 `--fg-primary` 是 `#151515`，比 Warm 的 `#2a2620` 更深，故兩邊都過 4.5:1。
+
 ### 3.8 象徵意象類型（Symbol Pills · 跨主題共用）
 
 同一 warm arc 重映射（bg / fg / dot 對應 entity 表的同色相）：
@@ -180,7 +223,7 @@ warm 由 status 色系派生；ink 用 fill polarity（深淺取代色相）。
 |------|------|-----|
 | `--polarity-positive-bg/-fg/-edge/-dot` | `#eef1df` / `#4a6330` / `#b7c78e` / `#5f7d3b` | `#ffffff` / `#151515` / `#151515` / `#151515` |
 | `--polarity-negative-bg/-fg/-edge/-dot` | `#f4e4da` / `#8a3a22` / `#d3a78f` / `#a8482c` | `#151515` / `#ffffff` / `#000000` / `#ffffff` |
-| `--polarity-neutral-bg/-fg/-edge/-dot` | `#f1e8d5` / `#5f5648` / `#ddceb2` / `#938876` | `#f6f6f4` / `#8c8c8c` / `#cfcfcf` / `#8c8c8c` |
+| `--polarity-neutral-bg/-fg/-edge/-dot` | `#f1e8d5` / `#5f5648` / `#ddceb2` / `#938876` | `#f6f6f4` / `var(--fg-muted)` / `#cfcfcf` / `#8c8c8c` |
 | `--polarity-mixed-bg/-fg/-edge/-dot` | `#f6edd6` / `#8a5c13` / `#dcc08a` / `#ad7519` | `#d8d8d8` / `#151515` / `#8c8c8c` / `#3f3f3f` |
 
 #### 符號章節密度（Symbol density）
@@ -196,12 +239,14 @@ warm 由 status 色系派生；ink 用 fill polarity（深淺取代色相）。
 
 warm 為暖色功能色（橄欖/赭黃/磚紅/灰藍，沉在紙面上）；ink 全部單色，狀態由 icon 字形承載。
 
+warm 的 success／warning／info 於 2026-10-09 加深到與自身 `-bg` 至少 4.5:1（11px badge 字），accent 同日加深到紙色字疊其上與其疊在 `--bg-secondary` 上皆 ≥4.5:1。資料家族（polarity dot、narrative border、timeline、booker 等）沿用舊色值，它們是圖形標記不是文字。
+
 | 屬性 | warm | ink |
 |------|------|-----|
-| `--color-success` / `-bg` | `#5f7d3b` / `#eef1df` | `#151515` / `#ececea` |
-| `--color-warning` / `-bg` | `#ad7519` / `#f6edd6` | `#151515` / `#ececea` |
+| `--color-success` / `-bg` | `#587437` / `#eef1df` | `#151515` / `#ececea` |
+| `--color-warning` / `-bg` | `#906115` / `#f6edd6` | `#151515` / `#ececea` |
 | `--color-error` / `-bg` | `#a8482c` / `#f4e4da` | `#151515` / `#ececea` |
-| `--color-info` / `-bg` | `#5f6a88` / `#e8e7ee` | `#151515` / `#ececea` |
+| `--color-info` / `-bg` | `#5c6683` / `#e8e7ee` | `#151515` / `#ececea` |
 
 ### 3.10 Unraveling DAG 節點狀態
 
@@ -211,7 +256,7 @@ ink 用單色階：fill 極性＋線重承載完成度。
 |------|------|-----|
 | `--status-complete-bg/-border/-fg` | `#eef1df` / `#5f7d3b` / `#4a6330` | `#151515` / `#151515` / `#ffffff` |
 | `--status-partial-bg/-border/-fg` | `#f6edd6` / `#ad7519` / `#8a5c13` | `#ffffff` / `#1a1a1a` / `#151515` |
-| `--status-empty-bg/-border/-fg` | `#f1e8d5` / `#ddceb2` / `#938876` | `#ffffff` / `#cfcfcf` / `#8c8c8c` |
+| `--status-empty-bg/-border/-fg` | `#f1e8d5` / `#ddceb2` / `var(--fg-muted)` | `#ffffff` / `#cfcfcf` / `var(--fg-muted)` |
 
 ### 3.11 知識圖譜節點（跨主題共用）
 
@@ -233,8 +278,8 @@ ink 用單色階：fill 極性＋線重承載完成度。
 
 | 階段 | warm（焦赭 ramp） | ink |
 |------|------|-----|
-| low `-bg/-fg/-edge` | `#f1e8d5` / `#938876` / `#ddceb2` | `#ffffff` / `#8c8c8c` / `#cfcfcf` |
-| mid `-bg/-fg/-edge` | `#cf9a72` / `#52301c` / `#a96a44` | `#8c8c8c` / `#ffffff` / `#3f3f3f` |
+| low `-bg/-fg/-edge` | `#f1e8d5` / `var(--fg-muted)` / `#ddceb2` | `#ffffff` / `var(--fg-muted)` / `#cfcfcf` |
+| mid `-bg/-fg/-edge` | `#cf9a72` / `#52301c` / `#a96a44` | `#737373` / `#ffffff` / `#3f3f3f` |
 | high `-bg/-fg/-edge` | `#b05a34` / `#f8f3e7` / `#7d3e22` | `#151515` / `#ffffff` / `#000000` |
 
 ### 3.13 Frye Mythos · 神話模式
@@ -246,7 +291,7 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 | romance | `#f6edd6` / `#8a5c13` / `#dcc08a` | `#ffffff` / `#151515` / `#151515` |
 | comedy | `#eef1df` / `#4a6330` / `#b7c78e` | `#ececea` / `#151515` / `#3f3f3f` |
 | tragedy | `#f4e4da` / `#8a3a22` / `#d3a78f` | `#151515` / `#ffffff` / `#000000` |
-| irony | `#e8e7ee` / `#47506b` / `#a9aec4` | `#8c8c8c` / `#ffffff` / `#151515` |
+| irony | `#e8e7ee` / `#47506b` / `#a9aec4` | `#737373` / `#ffffff` / `#151515` |
 
 `data-mode="irony_satire"` 共用 `irony` 配色。
 
@@ -268,15 +313,47 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 | `--card-radius` | `var(--radius-lg)`（12px） | `var(--radius-sm)`（4px） | 書卡、settings 卡、panel、option card |
 | `--card-border-width` | `1px` | `1.5px` | 卡片與 panel 外框 |
 | `--card-shadow` | `var(--shadow-sm)` | `none` | 卡片 elevation（Ink 全平面） |
+| `--card-selected-border-width` | `var(--card-border-width)`（1px） | `2px` | 選中卡的框重（閱讀頁目前章）。Ink 的 accent `#111` 與 border `#1a1a1a` 幾乎同色，選中只能靠線重承載 |
+| `--card-attention-border-width` | `var(--card-border-width)`（1px） | `3px` | 要人處理的卡的框重（書庫人工閘門帶）。Warm 由 accent 框色承載；Ink 下 accent 與 border 同色，只能靠比「選中」更重的線 |
+| `--drop-active-border-style` | `dashed` | `solid` | 上傳頁投件框拖曳中的框線樣式。Warm 靠 accent 框色＋`bg-secondary` 底；Ink 的 accent `#111` 與 border `#1a1a1a` 同色、底色貼近白紙（1.08:1），改由虛線轉實線承載 |
+| `--notice-error-border-width` | `0` | `1.5px` | 上傳頁錯誤提示列（`.up-notice-error`）與失敗卡（`.up-failed`）的 error 色外框。Warm 靠 error 色相；Ink 的錯誤與警告同為 `#ececea` 底＋同一個三角字形，錯誤改由墨線框承載 |
+| `--row-pick-hover-decoration` | `none` | `underline` | 可點選列 hover 時名稱的 `text-decoration`（Token 頁書籍別表）。Warm 的 hover 底色已足以回饋；Ink 的 `#f6f6f4` 對白底 1.08:1 看不見，改由名稱底線承載 |
+| `--row-open-marker-width` | `0px` | `3px` | 開著詳情的列左側標記（張力頁抽屜對應的表格列與格點列標籤，以 inset box-shadow 畫 `--fg-primary`）。Warm 的 `bg-secondary` 底色已足以分辨；Ink 的 `#f6f6f4` 與白底太近 |
 | `--btn-radius` | `var(--radius-md)`（8px） | `var(--radius-sm)`（4px） | 按鈕 |
 | `--btn-border-width` | `1px` | `1.5px` | 按鈕外框 |
+| `--btn-danger-border-width` | `var(--btn-border-width)` | `3px` | 危險鈕（`.ss-btn-danger`，全站）外框線重。Ink 的危險鈕與次要鈕同為墨色外框，搭配 `double` 改畫雙線框 |
+| `--btn-danger-border-style` | `solid` | `double` | 同上（雙線需 ≥ 3px 才畫得出來） |
 | `--btn-shadow` | `none` | `none` | 按鈕 elevation |
 | `--pill-radius` | `20px`（全圓 lozenge） | `4px`（矩形 tag） | entity / symbol pill |
 | `--pill-border-width` | `0.5px` | `1px` | pill 外框 |
+| `--chip-border-width` | `0` | `1px` | 篩選 chip 外框（書庫）。Warm 靠底色分層不畫框；Ink 的未選 chip 底 `#f6f6f4` 在白紙上幾乎看不見，改成有框的矩形 tag |
+| `--narrative-glyph-display` | `none` | `block` | 敘事模式字形（事件分析頁故事骨幹圖圓點中央與圖例）：倒敘 `←`、預敘 `→`、平行 `∥`、未知 `?`，順敘不加。Warm 靠色相區分；Ink 五種模式只差灰階（平行 `#f6f6f4` 對未知 `#fafafa`），改由字形承載 |
+| `--symbol-glyph-display` | `none` | `inline-flex` | 象徵意象頁左欄清單的輔助字形：類別色塊內的 lucide 圖示（object `Box`、nature `Leaf`、spatial `MapPin`、body `Hand`、color `Palette`、other `Circle`），以及 12px 狀態槽內的極性字形（`+` `−` `○` `±`）。Warm 靠色相區分；Ink 類別色塊與極性點只差灰階，改由圖示／字形承載 |
+| `--symbol-dot-display` | `block` | `none` | 象徵意象頁左欄清單 12px 狀態槽的極性點；與 `--symbol-glyph-display` 成對，兩主題各只顯示點或字形其一，槽寬不變 |
+| `--cross-tension-pattern` | `none` | 斜紋（`repeating-linear-gradient(-45deg, transparent 0 2px, var(--bg-primary) 2px 3.5px)`） | 敘事結構頁交叉證據「張力峰值」列的格子疊紋。Warm 靠色相即可；Ink 下張力列與「階段覆蓋」列同為 accent 黑，只能靠列名分辨，改由斜紋承載 |
+| `--tl-outlier-halo-display` | `none` | `inline` | 時間軸譜面偏離點（outlier）外圍的同心環（半徑 +3、1px accent）。Warm 偏離點靠 accent 色相；Ink 的 accent `#111` 與一般點 `#151515` 同色，改由外圈承載 |
+| `--tl-outlier-link-width` | `1px` | `2px` | 時間軸譜面偏離連線的線重。Warm 靠 accent 色相；Ink 的 accent 與 border `#1a1a1a` 同色，改由線重承載 |
+| `--dag-chain-halo-display` | `none` | `inline` | 建構概覽 DAG 上游依賴鏈節點的外圈（外 3px、1.5px accent）。Warm 靠節點 accent 描邊；Ink 完整節點黑底黑框，描邊看不見，改由外圈承載 |
+| `--dag-chain-edge-width` | `1.5px` | `2.5px` | 建構概覽 DAG 上游依賴邊的線重。Warm 靠 accent 色相；Ink 上游邊與直接相連邊同為深色實線，改由線重承載 |
+| `--dag-edge-rest-opacity` | `1` | `0.3` | 建構概覽 DAG 無選取時相鄰欄邊的不透明度（邊色 `--border`）。Warm 的 `#ddceb2` 太淡不再減；Ink 的 `#1a1a1a` 43 條交錯成網，壓淡 |
+| `--dag-edge-span-opacity` | `0.6` | `0.15` | 同上，跨一欄以上的邊 |
+| `--dag-node-radius` | `4px` | `0` | 建構概覽 DAG 節點框圓角；外圈 ×1.5、選取環 ×2、焦點框 ×2.25、KG 群組框 ×1.5（CSS `rx`，屬性值留作不支援時的後備）。Ink 線稿語彙直角 |
+| `--dag-link-edge-dash` | `none` | `4 3` | 建構概覽 DAG 與選取節點直接相連（非上游）的邊。Warm 實線靠 fg-secondary 色相；Ink 改虛線，與上游實線分開（回頭邊本身已是虛線，不套） |
+| `--density-peak-inset` | `0` | `2px` | 時間軸密度矩陣「4 以上」格與圖例色票的紙色內框（inset box-shadow）。Ink 的 3（`#151515`）與 4+（`#000`）同為黑，4+ 加內框區分 |
 | `--badge-radius` | `20px` | `4px` | status badge |
+| `--badge-caution-border-width` | `0px` | `1.5px` | 警示類徽章／旗標（設定頁「開發者」「需重啟」）的墨線框，以 inset box-shadow 畫 `currentColor`。Warm 靠 warning 與 success 色相區分；Ink 兩者同為 `#ececea` 底＋墨字，警示類改由框承載（規劃中仍是虛線） |
+| `--choice-selected-ring-width` | `1px` | `1.5px` | 選項卡（設定頁主題卡、部署雙卡）選中時框外的 accent 環（outset box-shadow，不推擠版面）。合計框重 Warm 2px、Ink 3px；Ink 未選卡已是 1.5px，只加粗框看不出選中 |
 | `--control-radius` | `var(--radius-md)` | `var(--radius-sm)` | input、toggle、select |
+| `--input-radius` | `var(--control-radius)` | `var(--control-radius)` | 文字框、搜尋、select 共用的框 |
+| `--input-border-width` | `1px` | `1.5px` | 同上 |
+| `--input-bg` | `var(--bg-primary)` | `var(--bg-primary)` | 同上 |
+| `--scrim` | `rgba(42,38,32,0.40)` | `rgba(0,0,0,0.40)` | 對話框遮罩（單一種、無模糊） |
+| `--scrim-light` | `rgba(42,38,32,0.12)` | `rgba(0,0,0,0.12)` | 輕量背板（事件頁對比抽屜等非模態遮罩） |
 
-兩主題需要進一步分化時在此層加 token（如 `--tab-radius`、`--input-border-width`），保持 palette 層與 shape 層分離。
+兩主題需要進一步分化時在此層加 token（如 `--tab-radius`），保持 palette 層與 shape 層分離。
+
+> `--input-radius` / `--input-bg` 在 Ink 區塊**必須重新宣告**：`var()` 在宣告處解析，
+> 只寫在 `:root` 會把 Warm 的值凍結進 Ink。
 
 ### 3.16 插畫語彙（Illustration）
 
@@ -285,7 +362,7 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 | Token | warm | ink |
 |-------|------|-----|
 | `--illustration-stroke` | `var(--fg-primary)` | `#151515` |
-| `--illustration-stroke-soft` | `var(--fg-muted)` | `#8c8c8c` |
+| `--illustration-stroke-soft` | `#938876` | `#8c8c8c` |
 | `--illustration-accent` | `var(--accent)` | `#151515` |
 | `--illustration-fill` | `none` | `none` |
 | `--illustration-weight` | `1.5px` | `1.5px` |
@@ -306,10 +383,19 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 | `--timeline-parallel-bg/-border` | `rgba(158,97,129,0.06)` / `rgba(158,97,129,0.3)` | `rgba(0,0,0,0.02)` / `rgba(0,0,0,0.12)` |
 | `--timeline-causal-stroke` | `#b05a34` | `#151515` |
 | `--timeline-selected-ring` | `rgba(176,90,52,0.3)` | `rgba(0,0,0,0.2)` |
-| `--splash-image-opacity` | `0.62` | `0.70` |
-| `--splash-image-filter` | `sepia(0.10) contrast(0.98)` | `grayscale(1) brightness(1.06) contrast(1.05)` |
+| `--splash-image-opacity` | `0.42` | `0.28` |
+| `--splash-image-filter` | `sepia(0.15) contrast(1.05)` | `grayscale(1) contrast(1.3)` |
 
-> Splash 兩 token 的值以設計 canvas（Claude Design 專案 `splash/splash.css` 的 per-theme fade tuning）為準；該專案 `colors_and_type.css` 內殘留的舊值（0.22 / 0.10）為未同步殘骸，不作依據。
+> Splash 兩 token 的值以 DS v3 design system 的 `colors_and_type.css` 為準（2026-10-01 裁決，B-126）。
+> 17 稿決議紀錄另寫 0.22 / 0.10，兩者取較濃者。
+
+### 3.17.1 LLM 成本字符
+
+| Token | 值 | 作用對象 |
+|-------|-----|---------|
+| `--ss-llm-glyph` | Lucide `sparkles` 的 SVG data URI（兩主題共用） | 任何會消耗 token 的控制項；以 `mask` 繪製、`background: currentColor` 上色 |
+
+一頁只用一種字形。零成本動作不加——沒有字符本身就是「免費」的標記。
 
 ### 3.18 原始尺度（Primitive scales）
 
@@ -317,16 +403,34 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 請走 §3.15 的 shape token（`--card-radius`、`--card-shadow` 等），本節是它們的底層來源。
 間距與過場則直接使用。
 
-**間距（跨主題共用）**
+**間距（跨主題共用）—— DS v3 八階**
 
 | Token | 值 | px |
 |-------|-----|-----|
-| `--space-xs` | `0.25rem` | 4px |
-| `--space-sm` | `0.5rem` | 8px |
-| `--space-md` | `1rem` | 16px |
-| `--space-lg` | `1.5rem` | 24px |
-| `--space-xl` | `2rem` | 32px |
-| `--space-2xl` | `3rem` | 48px |
+| `--space-1` | `0.125rem` | 2px |
+| `--space-2` | `0.25rem` | 4px |
+| `--space-3` | `0.375rem` | 6px |
+| `--space-4` | `0.5rem` | 8px |
+| `--space-5` | `0.75rem` | 12px |
+| `--space-6` | `1rem` | 16px |
+| `--space-7` | `1.5rem` | 24px |
+| `--space-8` | `2rem` | 32px |
+
+**頁寬（跨主題共用）**——規則見 UI_SPEC §1.2.1
+
+| Token | 值 | 用途 |
+|-------|-----|------|
+| `--page-width-entry` | `960px` | 入口／表單頁內容上限，靠左（書庫稀疏、上傳 C、設定） |
+| `--page-width-wide` | `1280px` | 寬版（B 檢視）盒寬，**含左右內距 24**；內距在盒內的頁取用（時間軸、敘事、張力、建構概覽、搜尋） |
+| `--page-content-wide` | `calc(var(--page-width-wide) - 2 * var(--space-7))` = 1232 | 內距在外層容器的頁取用（角色、事件、象徵、Token、書庫滿載、上傳 B），內容寬同為 1232 |
+
+**浮動聊天鈕安全區（跨主題共用）**
+
+| Token | 值 | 用途 |
+|-------|-----|------|
+| `--fab-clearance` | `88px` | 書內頁主捲動容器的下內距，讓最後一列能捲到聊天泡泡上方（B-130）。= 浮動軌底距 24（`RAIL.slots[0]`）＋ 泡泡 48 ＋ 間隙 16。改 `RAIL` 或泡泡尺寸時要一起改 |
+
+**舊間距**（`--space-xs`…`--space-2xl`）已於 2026-10-24 移除：最後 3 處用量（global.css）改為同 px 的新階。
 
 **圓角（跨主題共用；主題分化發生在 §3.15）**
 

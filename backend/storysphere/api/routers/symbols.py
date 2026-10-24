@@ -6,6 +6,8 @@ GET   /api/v1/symbols/{imagery_id}/timeline     — occurrences sorted by chapte
 GET   /api/v1/symbols/{imagery_id}/co-occurrences — top-k co-occurring terms
 GET   /api/v1/symbols/{imagery_id}/sep          — Symbol Evidence Profile (B-022)
 POST  /api/v1/symbols/analyze-all               — batch LLM symbol interpretation (#15j)
+GET   /api/v1/symbols/analyze-all/active        — running batch for a book (#15k)
+GET   /api/v1/symbols/analyses/running          — running single interpretations (#15l)
 POST  /api/v1/symbols/{imagery_id}/analyze      — start LLM symbol interpretation (B-040)
 GET   /api/v1/symbols/{imagery_id}/analyze/{task_id} — poll interpretation task
 GET   /api/v1/symbols/{imagery_id}/interpretation — cached SymbolInterpretation (B-040)
@@ -21,7 +23,7 @@ from uuid import uuid4
 
 from fastapi import APIRouter, HTTPException, Query
 
-from storysphere.api import task_runner
+from storysphere.api import batch_guard, task_runner
 from storysphere.api.deps import (
     AnalysisAgentDep,
     AnalysisCacheDep,
@@ -31,16 +33,19 @@ from storysphere.api.deps import (
     SymbolGraphServiceDep,
     SymbolServiceDep,
 )
+from storysphere.api.llm_guard import require_llm_provider
 from storysphere.api.schemas.analysis import (
     SymbolAnalysisRequest,
     SymbolBatchAnalysisRequest,
     SymbolInterpretationReviewRequest,
 )
-from storysphere.api.schemas.common import TaskStatus
+from storysphere.api.schemas.common import ActiveBatchResponse, ErrorResponse, TaskStatus
 from storysphere.api.schemas.symbols import (
     CoOccurrenceEntry,
     ImageryEntityResponse,
     ImageryListResponse,
+    RunningSymbolAnalysesResponse,
+    RunningSymbolAnalysis,
     SymbolTimelineEntry,
 )
 from storysphere.api.store import get_task, task_store
@@ -112,14 +117,18 @@ async def get_symbol_overview(
     Interpretation status is overlaid here rather than cached with the structural
     aggregate, because HITL review changes it without invalidating anything else.
     """
-    overview = await symbol_svc.assemble_overview(
-        book_id=book_id,
-        doc_service=doc_service,
-        kg_service=kg_service,
-        symbol_graph=symbol_graph,
-        cache=cache,
-        force=force,
-    )
+    try:
+        overview = await symbol_svc.assemble_overview(
+            book_id=book_id,
+            doc_service=doc_service,
+            kg_service=kg_service,
+            symbol_graph=symbol_graph,
+            cache=cache,
+            force=force,
+        )
+    except ValueError as exc:
+        # assemble_overview's only documented ValueError: the book does not exist.
+        raise HTTPException(status_code=404, detail=f"Book '{book_id}' not found") from exc
 
     interpretations, blocks = await asyncio.gather(
         symbol_analysis_svc.list_interpretations(book_id),
@@ -256,7 +265,10 @@ async def _symbol_analysis(
 
 
 @router.post(
-    "/{imagery_id}/analyze", response_model=TaskStatus, status_code=202
+    "/{imagery_id}/analyze",
+    response_model=TaskStatus,
+    status_code=202,
+    responses={409: {"model": ErrorResponse}},
 )
 async def analyze_symbol(
     imagery_id: str,
@@ -272,17 +284,25 @@ async def analyze_symbol(
     ``status`` is ``"completed"`` or ``"failed"``.
     """
     entity = await symbol_svc.get_imagery_by_id(imagery_id)
-    if entity is None:
+    # An imagery id from another book would be interpreted in this book's
+    # language and cached under this book — same 404 as a missing one.
+    if entity is None or entity.book_id != req.book_id:
         raise HTTPException(
-            status_code=404, detail=f"Imagery '{imagery_id}' not found"
+            status_code=404,
+            detail=f"Imagery '{imagery_id}' not found in book '{req.book_id}'",
         )
 
     language = await doc.get_document_language(req.book_id)
     req = req.model_copy(update={"language": language})
 
+    require_llm_provider()
+    # No await between the check and the claim (see batch_guard).
+    if (busy := batch_guard.conflict("symbol", req.book_id, imagery_id)) is not None:
+        return busy
     task_id = str(uuid4())
     task_store.create(task_id, kind="symbol", title="符號意象抽取")
     task_runner.launch(task_id, _symbol_analysis(task_id, imagery_id, req, agent))
+    batch_guard.hold("symbol", req.book_id, task_id, item_id=imagery_id)
     return TaskStatus(task_id=task_id, status="pending")
 
 
@@ -310,6 +330,7 @@ async def _batch_symbol_analysis(
         report(
             int(done / item_total * 100) if item_total else 0,
             f"詮釋意象 {done}/{item_total}",
+            step_key="batch_progress",
             sub_progress=done,
             sub_total=item_total,
         )
@@ -324,6 +345,15 @@ async def _batch_symbol_analysis(
     )
 
     if summary.pop("aborted", False):
+        # step_key survives set_failed, so the panel can word the abort
+        # itself from sub_progress / sub_total.
+        report(
+            int(summary["progress"] / total * 100) if total else 0,
+            f"詮釋意象 {summary['progress']}/{total}",
+            step_key="rate_limited",
+            sub_progress=summary["progress"],
+            sub_total=total,
+        )
         # Not a ``return``: the supervisor completes a task that returns,
         # which would report a quota-exhausted sweep as a success.
         raise task_runner.TaskAborted(
@@ -334,7 +364,41 @@ async def _batch_symbol_analysis(
     return summary
 
 
-@router.post("/analyze-all", response_model=TaskStatus, status_code=202)
+@router.get("/analyze-all/active", response_model=ActiveBatchResponse)
+async def get_active_symbol_batch(
+    book_id: str = Query(..., description="Book identifier"),
+) -> ActiveBatchResponse:
+    """The symbol batch currently running for this book, or ``taskId: null``.
+
+    Read-only: lets the page pick a running batch back up after a remount
+    instead of offering to start a second one (which #15j refuses with 409).
+    """
+    return ActiveBatchResponse(task_id=batch_guard.running("symbol", book_id))
+
+
+@router.get("/analyses/running", response_model=RunningSymbolAnalysesResponse)
+async def get_running_symbol_analyses(
+    book_id: str = Query(..., description="Book identifier"),
+) -> dict:
+    """Single-symbol interpretations (#15e) still running for this book (#15l).
+
+    Read-only: lets the page show a generation started before a remount (or in
+    another tab) instead of offering to start it again, which #15e refuses with 409.
+    """
+    running = batch_guard.running_items("symbol", book_id)
+    return RunningSymbolAnalysesResponse(
+        running=[
+            RunningSymbolAnalysis(imagery_id=iid, task_id=tid) for iid, tid in running.items()
+        ],
+    ).model_dump(by_alias=True)
+
+
+@router.post(
+    "/analyze-all",
+    response_model=TaskStatus,
+    status_code=202,
+    responses={409: {"model": ErrorResponse}},
+)
 async def analyze_all_symbols(
     req: SymbolBatchAnalysisRequest,
     agent: AnalysisAgentDep,
@@ -375,6 +439,10 @@ async def analyze_all_symbols(
     skip_ids = set(interpreted) | set(blocked)
     language = await doc.get_document_language(req.book_id)
 
+    require_llm_provider()
+    # No await between the check and the claim (see batch_guard).
+    if (busy := batch_guard.conflict("symbol", req.book_id)) is not None:
+        return busy
     task_id = str(uuid4())
     task_store.create(task_id, kind="symbol", title="批次象徵詮釋")
     task_runner.launch(
@@ -389,6 +457,7 @@ async def analyze_all_symbols(
             agent,
         ),
     )
+    batch_guard.hold("symbol", req.book_id, task_id)
     logger.info(
         "Triggered batch symbol analysis: book=%s imagery=%d task=%s",
         req.book_id,
@@ -438,9 +507,9 @@ async def review_symbol_interpretation(
     req: SymbolInterpretationReviewRequest,
     symbol_analysis_svc: SymbolAnalysisServiceDep,
 ) -> SymbolInterpretation:
-    """Update the review_status (and optionally theme/polarity) of a SymbolInterpretation.
+    """Update the review_status (and optionally theme/evidence_summary/polarity) of a SymbolInterpretation.
 
-    Optionally override ``theme`` / ``polarity`` when
+    Optionally override ``theme`` / ``evidence_summary`` / ``polarity`` when
     ``review_status`` is ``"modified"``.
     """
     updated = await symbol_analysis_svc.update_interpretation_review(
@@ -449,6 +518,7 @@ async def review_symbol_interpretation(
         review_status=req.review_status,
         theme=req.theme,
         polarity=req.polarity,
+        evidence_summary=req.evidence_summary,
     )
     if updated is None:
         raise HTTPException(

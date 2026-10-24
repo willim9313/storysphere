@@ -59,11 +59,6 @@
   to   { opacity: 1; }
 }
 
-@keyframes toast-in {
-  from { opacity: 0; transform: translateY(8px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
 /* ── Splash screen (outside @layer for specificity) ─────────────── */
 @keyframes splash-bar {
   0%   { transform: translateX(-100%); }
@@ -71,25 +66,107 @@
   100% { transform: translateX(380%); }
 }
 
+/* ── Splash（DS v3 0-9，值以決議紀錄 17 A 區為準）。
+   左內距與字標字級是品牌尺寸，保留 clamp，不收斂進 token。
+   opacity 由元件 state 驅動（淡入／淡出），留在 inline。 ── */
+.splash-root {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  padding-left: clamp(2rem, 8vw, 8rem);
+  background: var(--bg-primary);
+  transition: opacity 0.4s ease;
+  cursor: pointer;
+  overflow: hidden;
+  outline: none;
+}
+
+.splash-bg {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
 /* Warm: line art sits gently on paper. Ink: pure ink line on white. */
 .splash-bg-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: right center;
+  display: block;
+  user-select: none;
+  mix-blend-mode: multiply;
   opacity: var(--splash-image-opacity);
   filter: var(--splash-image-filter);
 }
 
+.splash-vignette {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 62% 92% at 20% 50%, var(--bg-primary) 0%, transparent 70%);
+}
+
+.splash-fg {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-align: left;
+  gap: var(--space-6);
+}
+
+.splash-wordmark {
+  font-family: var(--font-serif);
+  font-size: clamp(2.5rem, 6vw, 4rem);
+  font-weight: 700;
+  line-height: 1;
+  color: var(--fg-primary);
+  letter-spacing: -0.01em;
+  margin: 0;
+  user-select: none;
+}
+
+.splash-subtitle {
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+  color: var(--fg-secondary);
+  letter-spacing: 0.14em;
+  margin: 0;
+  user-select: none;
+}
+
+.splash-credit {
+  position: absolute;
+  right: var(--space-6);
+  bottom: var(--space-5);
+  z-index: 2;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-muted);
+  letter-spacing: 0.04em;
+  opacity: 0.7;
+  user-select: none;
+}
+
 .splash-loader-track {
   width: 90px;
-  height: 2px;
+  height: var(--space-1);
   background: var(--bg-tertiary);
   border-radius: 1px;
   overflow: hidden;
-  margin-top: 4px;
+  margin-top: var(--space-2);
 }
 
 .splash-loader-bar {
   width: 30%;
   height: 100%;
   background: var(--accent);
+  border-radius: 1px;
   animation: splash-bar 1.4s ease-in-out infinite;
 }
 
@@ -106,8 +183,8 @@
   .btn {
     display: inline-flex;
     align-items: center;
-    gap: var(--space-sm);
-    padding: var(--space-sm) var(--space-md);
+    gap: var(--space-4);
+    padding: var(--space-4) var(--space-6);
     border-radius: var(--btn-radius);
     font-size: var(--font-size-sm);
     font-weight: 500;
@@ -117,30 +194,11 @@
     box-shadow: var(--btn-shadow);
   }
 
-  .btn-primary {
-    background-color: var(--accent);
-    color: var(--accent-fg);
-  }
-
-  .btn-primary:hover {
-    opacity: 0.9;
-  }
-
-  .btn-secondary {
-    background-color: var(--bg-primary);
-    color: var(--fg-primary);
-    border-color: var(--border);
-  }
-
-  .btn-secondary:hover {
-    background-color: var(--bg-secondary);
-  }
-
   .card {
     background-color: var(--bg-primary);
     border: var(--card-border-width) var(--border-style) var(--border);
     border-radius: var(--card-radius);
-    padding: var(--space-lg);
+    padding: var(--space-7);
     box-shadow: var(--card-shadow);
   }
 
@@ -154,62 +212,6 @@
     border-radius: var(--pill-radius);
     white-space: nowrap;
   }
-
-  .pill-dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  .pill-char {
-    background: var(--entity-char-bg);
-    border: var(--pill-border-width) solid var(--entity-char-border);
-    color: var(--entity-char-fg);
-  }
-  .pill-char .pill-dot { background: var(--entity-char-dot); }
-
-  .pill-loc {
-    background: var(--entity-loc-bg);
-    border: var(--pill-border-width) solid var(--entity-loc-border);
-    color: var(--entity-loc-fg);
-  }
-  .pill-loc .pill-dot { background: var(--entity-loc-dot); }
-
-  .pill-con {
-    background: var(--entity-con-bg);
-    border: var(--pill-border-width) solid var(--entity-con-border);
-    color: var(--entity-con-fg);
-  }
-  .pill-con .pill-dot { background: var(--entity-con-dot); }
-
-  .pill-evt {
-    background: var(--entity-evt-bg);
-    border: var(--pill-border-width) solid var(--entity-evt-border);
-    color: var(--entity-evt-fg);
-  }
-  .pill-evt .pill-dot { background: var(--entity-evt-dot); }
-
-  .pill-org {
-    background: var(--entity-org-bg);
-    border: var(--pill-border-width) solid var(--entity-org-border);
-    color: var(--entity-org-fg);
-  }
-  .pill-org .pill-dot { background: var(--entity-org-dot); }
-
-  .pill-obj {
-    background: var(--entity-obj-bg);
-    border: var(--pill-border-width) solid var(--entity-obj-border);
-    color: var(--entity-obj-fg);
-  }
-  .pill-obj .pill-dot { background: var(--entity-obj-dot); }
-
-  .pill-other {
-    background: var(--entity-other-bg);
-    border: var(--pill-border-width) solid var(--entity-other-border);
-    color: var(--entity-other-fg);
-  }
-  .pill-other .pill-dot { background: var(--entity-other-dot); }
 
   /* ── 內文行內實體標註 ──────────────────────────────────────────
      有別於 chips 用的 .pill：閱讀時預設只有一條細底線（不搶字流），
@@ -255,25 +257,11 @@
 
   /* R3: chunk 頂部的 entity chips 跟隨標註密度（canvas data-amode 規則）：
      "characters" 只留角色 chip，"off" 整列隱藏。 */
-  [data-annotation-mode='characters'] .chunk-chips .pill:not(.pill-char) {
+  [data-annotation-mode='characters'] .chunk-chips .ss-pill:not(.ss-pill-character) {
     display: none;
   }
   [data-annotation-mode='off'] .chunk-chips {
     display: none;
-  }
-
-  /* ── Theme-aware progress bar fill ──────────────────────────────── */
-  .theme-progress-fill {
-    background-color: var(--accent);
-  }
-
-  /* 隱藏捲軸但保留可捲動（用於窄螢幕橫向滑動的 tab 列等） */
-  .no-scrollbar {
-    scrollbar-width: none;          /* Firefox */
-    -ms-overflow-style: none;       /* IE / old Edge */
-  }
-  .no-scrollbar::-webkit-scrollbar {
-    display: none;                  /* WebKit */
   }
 
   /* ── Keyword tag styles ────────────────────────────────────────── */
@@ -282,93 +270,11 @@
     align-items: center;
     font-size: var(--font-size-2xs);
     padding: 1px 6px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     white-space: nowrap;
     background: var(--bg-tertiary);
     color: var(--fg-secondary);
     border: 0.5px solid var(--border);
-  }
-
-  /* ── StepIndicator ─────────────────────────────────────────────── */
-  .ss-steps { display: flex; flex-direction: column; }
-  .ss-step {
-    position: relative;
-    display: flex;
-    gap: 12px;
-    padding-bottom: 14px;
-  }
-  .ss-step:last-child { padding-bottom: 0; }
-  .ss-step::after {
-    content: '';
-    position: absolute;
-    left: 13px;
-    top: 28px;
-    bottom: 0;
-    width: var(--line-weight);
-    background: var(--border);
-  }
-  .ss-step:last-child::after { display: none; }
-  .ss-step-done::after { background: var(--color-success); }
-  [data-theme="ink"] .ss-step-done::after { background: var(--fg-primary); }
-
-  .ss-step-marker {
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    flex-shrink: 0;
-    border: var(--line-weight) solid var(--border);
-    background: var(--bg-primary);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-family: var(--font-sans);
-    font-size: var(--font-size-2xs);
-    font-weight: 500;
-    color: var(--fg-muted);
-    position: relative;
-    z-index: 1;
-    transition: background-color var(--transition-fast), border-color var(--transition-fast);
-  }
-  .ss-step-done .ss-step-marker {
-    background: var(--color-success);
-    border-color: var(--color-success);
-    color: var(--bg-primary);
-  }
-  [data-theme="ink"] .ss-step-done .ss-step-marker {
-    background: var(--fg-primary);
-    border-color: var(--fg-primary);
-    color: var(--bg-primary);
-  }
-  .ss-step-active .ss-step-marker {
-    background: var(--accent);
-    border-color: var(--accent);
-    color: var(--bg-primary);
-  }
-  [data-theme="ink"] .ss-step-active .ss-step-marker {
-    background: var(--fg-primary);
-    border-color: var(--fg-primary);
-  }
-  .ss-step-content {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    padding-top: 4px;
-    flex: 1;
-  }
-  .ss-step-label {
-    font-family: var(--font-sans);
-    font-size: var(--font-size-sm);
-    font-weight: 500;
-    color: var(--fg-muted);
-    line-height: 20px;
-  }
-  .ss-step-done .ss-step-label { color: var(--fg-secondary); font-weight: 400; }
-  .ss-step-active .ss-step-label { color: var(--accent); font-weight: 600; }
-  [data-theme="ink"] .ss-step-active .ss-step-label { color: var(--fg-primary); }
-  .ss-step-sub {
-    font-family: var(--font-sans);
-    font-size: var(--font-size-2xs);
-    color: var(--fg-muted);
   }
 
   /* ── Toggle ────────────────────────────────────────────────────── */
@@ -400,7 +306,6 @@
     transition: transform var(--transition-fast);
   }
   .ss-toggle.is-on::after { transform: translateX(16px); }
-  .ss-toggle.is-disabled { cursor: not-allowed; opacity: 0.45; }
 }
 
 /* Deep-link jump highlight — used when navigating into a specific paragraph
@@ -431,3 +336,41 @@
 }
 .rd-fade { opacity: 0; }
 .rd-fade.rd-in { animation: rd-fade .55s ease forwards; }
+
+/* BookLayout 取書失敗：書名列與 BookNav 保留，主體換 PageFailure（置中）。 */
+.book-layout-failure { flex: 1; min-height: 0; display: flex; flex-direction: column; justify-content: center; padding: var(--space-7); }
+
+/* ConfirmDialog 擴充（DS v3 4-SH-1）：成本提示（按鈕列左側）與分段清單。
+   ss-kit.css 是設計端的檔，這裡只補新增的 class，不改既有的。 */
+.ss-dialog-cost {
+  margin-right: auto; font-family: var(--font-sans);
+  font-size: var(--font-size-2xs); color: var(--fg-muted);
+}
+.ss-dialog-section { display: flex; flex-direction: column; gap: var(--space-2); }
+.ss-dialog-section-title {
+  margin: 0; font-family: var(--font-sans);
+  font-size: var(--font-size-xs); font-weight: 600; color: var(--fg-primary);
+}
+
+/* 書內頁可見頁標題（角色、事件、象徵、敘事）：四頁原本各寫一份同樣的規則。
+   ss-kit.css 是設計端的檔，這裡只補新增的 class，不改既有的。 */
+.ss-page-title {
+  margin: 0; font-family: var(--font-serif);
+  font-size: var(--font-size-2xl); font-weight: 700; color: var(--fg-primary);
+}
+
+/* 篩選 chip（書庫篩選、Token 範圍）：Warm 靠底色分層不畫框，Ink 底色貼近白紙改靠框（--chip-border-width）。
+   選中用 .active 或 aria-pressed。內距各頁依稿給（書庫 6／12、Token 6／16）。 */
+.ss-chip {
+  font-family: var(--font-sans); font-size: var(--font-size-2xs); font-weight: 500;
+  border: var(--chip-border-width) var(--border-style) var(--border); border-radius: var(--pill-radius);
+  background: var(--bg-secondary); color: var(--fg-secondary); cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+.ss-chip:hover { background: var(--bg-tertiary); }
+.ss-chip.active, .ss-chip[aria-pressed='true'] { border-color: var(--accent); background: var(--accent); color: var(--accent-fg); }
+
+/* 整句說明 12px（--font-size-note，2026-10-24）。ss-kit.css 是設計端的檔、且在 global.css 之後載入，
+   這裡以 body 前綴提高權重覆寫，不改 ss-kit.css 本身。 */
+body .ss-guidance > p,
+body .ss-taskc-empty-sub { font-size: var(--font-size-note); }

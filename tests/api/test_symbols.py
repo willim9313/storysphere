@@ -401,6 +401,15 @@ class TestSymbolOverview:
         mock_symbol_svc.assemble_overview.assert_awaited_once()
 
 
+class TestSymbolOverviewUnknownBook:
+    def test_unknown_book_returns_404(self, client, mock_symbol_svc):
+        mock_symbol_svc.assemble_overview = AsyncMock(
+            side_effect=ValueError("SymbolService: book not found: 'nope'")
+        )
+        resp = client.get("/api/v1/symbols/overview", params={"book_id": "nope"})
+        assert resp.status_code == 404
+
+
 class TestSymbolTimeline:
     def test_returns_occurrences(self, client):
         resp = client.get("/api/v1/symbols/img-1/timeline")
@@ -504,6 +513,68 @@ class TestSymbolAnalyze:
             json={"book_id": "book-1"},
         )
         assert resp.status_code == 404
+
+
+    def test_analyze_imagery_of_another_book_returns_404(self, client, mock_symbol_svc):
+        mock_symbol_svc.get_imagery_by_id = AsyncMock(
+            return_value=_make_entity(book_id="other-book")
+        )
+        resp = client.post("/api/v1/symbols/img-1/analyze", json={"book_id": "book-1"})
+        assert resp.status_code == 404
+
+
+class TestSingleSymbolGuard:
+    """#15e same-item mutex and #15l — a second run of one symbol pays twice."""
+
+    def _start(self, client, imagery_id: str = "img-1"):
+        return client.post(
+            f"/api/v1/symbols/{imagery_id}/analyze", json={"book_id": "book-1"}
+        )
+
+    def test_same_symbol_while_running_returns_409(self, client, mock_analysis_agent):
+        mock_analysis_agent.analyze_symbol = AsyncMock(side_effect=hanging_call())
+        task_id = self._start(client).json()["taskId"]
+
+        resp = self._start(client)
+        assert resp.status_code == 409
+        assert resp.json()["code"] == "analysis_running"
+
+        client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+    def test_other_symbol_is_not_blocked(
+        self, client, mock_analysis_agent, mock_symbol_svc
+    ):
+        mock_analysis_agent.analyze_symbol = AsyncMock(side_effect=hanging_call())
+        first = self._start(client).json()["taskId"]
+        mock_symbol_svc.get_imagery_by_id = AsyncMock(
+            return_value=_make_entity(entity_id="img-2")
+        )
+
+        resp = self._start(client, "img-2")
+        assert resp.status_code == 202
+
+        client.post(f"/api/v1/tasks/{first}/cancel")
+        client.post(f"/api/v1/tasks/{resp.json()['taskId']}/cancel")
+
+    def test_running_lists_the_live_run(self, client, mock_analysis_agent):
+        mock_analysis_agent.analyze_symbol = AsyncMock(side_effect=hanging_call())
+        task_id = self._start(client).json()["taskId"]
+
+        resp = client.get("/api/v1/symbols/analyses/running", params={"book_id": "book-1"})
+        assert resp.status_code == 200
+        assert resp.json() == {"running": [{"imageryId": "img-1", "taskId": task_id}]}
+
+        client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+    def test_running_is_empty_once_the_run_ends(self, client, mock_analysis_agent):
+        mock_analysis_agent.analyze_symbol = AsyncMock(side_effect=hanging_call())
+        task_id = self._start(client).json()["taskId"]
+        client.post(f"/api/v1/tasks/{task_id}/cancel")
+        poll_until_terminal(client, task_id)
+
+        resp = client.get("/api/v1/symbols/analyses/running", params={"book_id": "book-1"})
+        assert resp.json() == {"running": []}
+        assert self._start(client).status_code == 202
 
 
 class TestAnalyzeAllSymbols:
@@ -823,6 +894,29 @@ class TestSymbolInterpretationReview:
         assert data["theme"] == "new theme"
         assert data["polarity"] == "positive"
 
+    def test_patch_passes_evidence_summary(self, client, mock_symbol_analysis_svc):
+        from storysphere.domain.symbol_analysis import SymbolInterpretation
+        updated = SymbolInterpretation(
+            imagery_id="img-1", book_id="book-1", term="mirror",
+            theme="t", evidence_summary="edited", polarity="neutral",
+            review_status="modified",
+        )
+        mock_symbol_analysis_svc.update_interpretation_review = AsyncMock(
+            return_value=updated
+        )
+        resp = client.patch(
+            "/api/v1/symbols/img-1/interpretation",
+            json={
+                "book_id": "book-1",
+                "review_status": "modified",
+                "evidence_summary": "edited",
+            },
+        )
+        assert resp.status_code == 200
+        assert resp.json()["evidence_summary"] == "edited"
+        kwargs = mock_symbol_analysis_svc.update_interpretation_review.await_args.kwargs
+        assert kwargs["evidence_summary"] == "edited"
+
     def test_patch_missing_returns_404(self, client, mock_symbol_analysis_svc):
         mock_symbol_analysis_svc.update_interpretation_review = AsyncMock(
             return_value=None
@@ -891,6 +985,29 @@ class TestBatchSymbolCancellation:
         status = poll_until_terminal(client, task_id)
         assert status["status"] == "error"
         assert status["error"] == "cancelled"
+
+    def test_second_run_while_running_returns_409(self, client, mock_analysis_agent):
+        """A second sweep would re-interpret every term the first has not cached."""
+        mock_analysis_agent.analyze_symbols_batch = AsyncMock(side_effect=hanging_call())
+        task_id = self._start(client)
+
+        resp = client.post("/api/v1/symbols/analyze-all", json={"book_id": "book-1"})
+        assert resp.status_code == 409
+        assert resp.json()["code"] == "batch_running"
+        active = client.get("/api/v1/symbols/analyze-all/active", params={"book_id": "book-1"})
+        assert active.json() == {"taskId": task_id}
+
+        client.post(f"/api/v1/tasks/{task_id}/cancel")
+
+    def test_active_is_null_once_the_run_ends(self, client, mock_analysis_agent):
+        mock_analysis_agent.analyze_symbols_batch = AsyncMock(side_effect=hanging_call())
+        task_id = self._start(client)
+        client.post(f"/api/v1/tasks/{task_id}/cancel")
+        poll_until_terminal(client, task_id)
+
+        active = client.get("/api/v1/symbols/analyze-all/active", params={"book_id": "book-1"})
+        assert active.status_code == 200
+        assert active.json() == {"taskId": None}
 
     def test_agent_failure_reaches_the_task(self, client, mock_analysis_agent):
         """The runner has no try/except of its own — the supervisor is the net.

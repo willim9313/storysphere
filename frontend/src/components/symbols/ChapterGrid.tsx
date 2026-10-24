@@ -1,6 +1,7 @@
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 
+import { Tooltip } from '@/components/ui/Tooltip';
 import { OUTSIDE_CELL_FLEX, type ChapterAxis, type ChapterSegment } from './chapterAxis';
 import { segmentLabel } from './symbolPhrases';
 import { densityStep } from './tokens';
@@ -31,18 +32,23 @@ export function AxisHeader({ axis }: Readonly<{ axis: ChapterAxis }>) {
 /**
  * One symbol's row of cells against the axis.
  *
- * Shading is absolute — 「once」, 「twice」, 「three or more」 — and therefore
- * comparable down a column. Normalising each row against its own maximum made the
- * book's dominant image the palest thing on screen and every single-occurrence
- * word the darkest; PR #27 removed that and it must not come back through a second
- * copy of this markup.
+ * Shading is absolute — 「once」 and 「twice or more」 — and therefore comparable
+ * down a column. Normalising each row against its own maximum made the book's
+ * dominant image the palest thing on screen and every single-occurrence word the
+ * darkest; PR #27 removed that and it must not come back through a second copy of
+ * this markup.
  *
  * Unlike the detail view's bar chart, non-body cells are not dimmed here, and that
  * difference is deliberate rather than an oversight to reconcile. There, height is
  * the primary channel, so 海's colophon — three occurrences against a chapter
  * maximum of two — draws the tallest, darkest bar on the chart and has to be held
- * back. Here every cell is the same size, so colour alone cannot dominate, and the
- * dashed edge is enough to place it outside the story.
+ * back. Here every cell is the same size, so colour alone cannot dominate.
+ *
+ * Every cell outside the body is dashed-edged, occupied or not: the edge is what
+ * says "outside the story" (evidence kept, but excluded from shape and first
+ * appearance), and it has to survive Ink, where hue is gone. Each cell is a DS
+ * Tooltip rather than a native title — 144 of them on a 12×12 map, each only a
+ * span until it is hovered.
  */
 export function ChapterCells({
   distribution,
@@ -57,21 +63,20 @@ export function ChapterCells({
         return (
           <span
             key={slot.chapter}
-            className="sym-heat-cell"
-            style={{
-              flex: isBody ? 1 : OUTSIDE_CELL_FLEX,
-              background: count > 0 ? densityStep(count) : undefined,
-              // A dashed edge marks evidence sitting outside the story: kept
-              // visible, but excluded from shape and first appearance.
-              border:
-                count > 0 && !isBody
-                  ? '1px dashed var(--fg-muted)'
-                  : 'var(--line-weight) var(--border-style) var(--bg-tertiary)',
-            }}
-            title={`${
-              isBody ? t('symbol.chapterN', { n: slot.chapter }) : segmentLabel(t, slot)
-            } · ${t('symbol.chapterOccurrences', { count })}`}
-          />
+            className="sym-heat-cellwrap"
+            style={{ flex: isBody ? 1 : OUTSIDE_CELL_FLEX }}
+          >
+            <Tooltip
+              label={`${
+                isBody ? t('symbol.chapterN', { n: slot.chapter }) : segmentLabel(t, slot)
+              } · ${t('symbol.chapterOccurrences', { count })}`}
+            >
+              <span
+                className={'sym-heat-cell' + (isBody ? '' : ' is-outside')}
+                style={count > 0 ? { background: densityStep(count) } : undefined}
+              />
+            </Tooltip>
+          </span>
         );
       })}
     </>

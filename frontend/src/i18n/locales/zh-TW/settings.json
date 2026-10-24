@@ -6,13 +6,13 @@
     "groupOther": "其他",
     "appearance": "外觀與主題",
     "language": "語言",
+    "guidance": "研究者導覽",
     "llm": "LLM 設定",
     "env": "環境設定",
     "shortcuts": "快捷鍵",
     "experimental": "實驗性功能",
     "about": "關於 & 版本",
     "badgeDev": "開發者",
-    "badgeMerged": "整合",
     "badgePlanned": "規劃中"
   },
   "appearance": {
@@ -27,7 +27,6 @@
   },
   "language": {
     "title": "語言",
-    "sub": "介面語言與分析輸出語言設定",
     "uiLanguage": "介面語言",
     "uiLanguageHint": "影響所有 UI 文字，不影響書籍內容或分析結果",
     "outputLanguage": "分析輸出語言",
@@ -42,12 +41,15 @@
     "title": "LLM 設定",
     "sub": "目前模型設定（唯讀）。修改需編輯 .env 並重啟服務。",
     "sectionTitle": "目前設定",
+    "status": "狀態",
+    "ready": "可用",
+    "unset": "未設定",
+    "unsetHint": "在 .env 設定 {{env}} 後重啟服務。",
     "provider": "Provider",
     "primaryModel": "主模型",
     "analysisTemp": "分析 temperature",
     "chatTemp": "對話 temperature",
     "localModel": "Local LLM",
-    "note": "完整的 LLM 設定 UI 留待獨立設計票。首版僅顯示狀態。",
     "loadError": "無法載入 LLM 設定"
   },
   "common": {
@@ -77,7 +79,8 @@
     "entities": "實體",
     "relations": "關係",
     "events": "事件",
-    "stWarn": "切換至 Standard 需修改 .env 並重啟服務，下方設定為預覽。建議先執行遷移再切換。",
+    "stWarn": "下方為 Standard 的預覽，不會儲存。切換步驟：① 修改 .env 的 DEPLOY_MODE 並重啟服務 ② KG 後端切到 Neo4j ③ 執行資料遷移。",
+    "switchFailed": "切換失敗：",
     "qdrantSvcTitle": "Qdrant Service",
     "qdrantUrl": "QDRANT_URL",
     "qdrantKey": "QDRANT_API_KEY",
@@ -89,7 +92,7 @@
     "neoUrl": "NEO4J_URL",
     "neoUser": "NEO4J_USER",
     "neoPass": "NEO4J_PASSWORD",
-    "neoNote": "Neo4j 切換為 runtime 生效的例外（POST /api/v1/kg/switch），不需重啟。",
+    "neoNote": "實際部署為 Standard 時，切換知識圖譜後端即時生效，不需重啟。",
     "kgGapsNow": "目前後端無法提供這些功能：",
     "kgGapsIfSwitch": "切換到 {{mode}} 會停用這些功能：",
     "kgFeature": {
@@ -111,11 +114,16 @@
     "loadError": "無法載入狀態",
     "migrating": "遷移中…",
     "refresh": "重新整理狀態",
-    "currentTag": "（目前）"
+    "currentTag": "（目前）",
+    "previewTag": "預覽中",
+    "gateNote": "門檻未達成：需實際部署為 Standard · KG 後端為 Neo4j",
+    "runMigration": "執行遷移",
+    "neoSectionTitle": "Neo4j 連線",
+    "kgFeatureUnknown": "其他功能",
+    "migDone": "遷移完成 · 實體 {{entities}}、關係 {{relations}}、事件 {{events}}"
   },
   "about": {
     "title": "關於 & 版本",
-    "sub": "版本資訊與關鍵套件清單",
     "frontend": "前端套件",
     "backend": "後端套件",
     "paths": "資料路徑",
@@ -143,10 +151,17 @@
     "colCompletion": "Completion",
     "colTotal": "合計",
     "colCalls": "呼叫",
+    "dailyNote": "長條寬度為本期相對值（相對 <mono>{{date}}</mono> 的 <mono>{{value}}</mono>），非絕對刻度；換時間範圍後長度不可跨期比較",
+    "byBookScope": "這張表永遠顯示全部書籍——點另一列即可切換",
     "byBook": "書籍別用量",
     "allBooks": "全部書籍",
     "unattributed": "未歸屬",
     "deletedBook": "已刪除的書 · {{id}}",
+    "bookNoData": "「{{title}}」在這個時間範圍沒有使用記錄",
+    "scopeOnly": "只看「{{title}}」",
+    "showAllBooks": "顯示全部書籍",
+    "bookFilter": "篩選書籍",
+    "rangeLabel": "時間範圍",
     "services": {
       "analysis": "深度分析",
       "chat": "對話",
@@ -157,5 +172,12 @@
       "imagery": "意象",
       "ingestion": "匯入"
     }
+  },
+  "guidance": {
+    "title": "研究者導覽",
+    "hint": "重新顯示各頁頂端已關閉的研究者導覽。區塊說明與欄位出處不可關閉，不受影響。",
+    "reset": "重設所有導覽",
+    "count": "已關閉 {{n}} 條",
+    "countNone": "目前沒有已關閉的導覽"
   }
 }

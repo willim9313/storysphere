@@ -3,6 +3,13 @@ import { Check, Minus } from 'lucide-react';
 import { relativeIntensity } from './intensity';
 import { formatChapters, type ReviewStatus, type TensionLineDetail } from './reviewTypes';
 
+const BADGE: Record<ReviewStatus, string> = {
+  pending: 'ss-badge-warning',
+  approved: 'ss-badge-success',
+  modified: 'ss-badge-info',
+  rejected: 'ss-badge-error',
+};
+
 interface Props {
   rows: TensionLineDetail[];
   /** Every line's intensity, filtered or not — see `scale` below. */
@@ -10,7 +17,6 @@ interface Props {
   totalCount: number;
   selected: Set<string>;
   openId: string | null;
-  cursorId: string | null;
   onOpen: (id: string) => void;
   onToggleSelect: (id: string) => void;
   onToggleAll: () => void;
@@ -26,19 +32,17 @@ export function TensionLineTable({
   totalCount,
   selected,
   openId,
-  cursorId,
   onOpen,
   onToggleSelect,
   onToggleAll,
   onReview,
   onEditLabels,
   onShowAll,
-}: Props) {
+}: Readonly<Props>) {
   const { t } = useTranslation('analysis');
 
   // Bands rank each line against the whole book, not the filtered subset —
-  // otherwise filtering to "pending" would silently re-scale every bar and the
-  // same line would look strong in one view and weak in another.
+  // otherwise filtering would silently re-scale every bar.
   const scale = relativeIntensity(allIntensities);
 
   const allSelected = rows.length > 0 && rows.every((r) => selected.has(r.id));
@@ -57,8 +61,8 @@ export function TensionLineTable({
           aria-label={allSelected ? t('tension.table.clearAll') : t('tension.table.selectAll')}
           onClick={onToggleAll}
         >
-          {headState === 'on' && <Check size={10} />}
-          {headState === 'partial' && <Minus size={10} />}
+          {headState === 'on' && <Check size={9} strokeWidth={3.5} />}
+          {headState === 'partial' && <Minus size={9} strokeWidth={3.5} />}
         </button>
         <span>{t('tension.table.colPoles')}</span>
         <span>{t('tension.table.colChapters')}</span>
@@ -76,7 +80,7 @@ export function TensionLineTable({
             key={line.id}
             className="tn-row"
             data-open={line.id === openId}
-            data-cursor={line.id === cursorId}
+            data-selected={isSelected}
             data-rejected={line.review_status === 'rejected'}
             onClick={() => onOpen(line.id)}
           >
@@ -91,14 +95,12 @@ export function TensionLineTable({
                 onToggleSelect(line.id);
               }}
             >
-              {isSelected ? <Check size={10} /> : null}
+              {isSelected ? <Check size={9} strokeWidth={3.5} /> : null}
             </button>
 
-            {/* The only tab stop that opens the row — the old page had two per
-                row pointing at the same action. Deliberately handler-free: a
-                native button fires click on Enter/Space, which bubbles to the
-                row. Giving it its own onClick would toggle the drawer twice and
-                close it again on every click. */}
+            {/* The only tab stop that opens the row. Deliberately handler-free:
+                a native button fires click on Enter/Space, which bubbles to the
+                row; its own onClick would toggle the drawer twice. */}
             <button type="button" className="tn-row-poles">
               {line.canonical_pole_a}
               <span className="tn-vs">vs</span>
@@ -112,26 +114,26 @@ export function TensionLineTable({
             </span>
 
             <span className="tn-row-intensity">
-              <i className="tn-bar" aria-hidden="true">
-                <i
+              <span className="tn-bar" aria-hidden="true">
+                <span
                   className="tn-bar-fill"
                   data-band={band.bucket}
                   style={{ width: `${band.widthPct}%` }}
                 />
-              </i>
-              <span className="tn-bar-value">
+              </span>
+              <span className="tn-meta-mono tn-nowrap">
                 {band.label} {t(`tension.table.band${band.bucket[0].toUpperCase()}${band.bucket.slice(1)}`)}
               </span>
             </span>
 
-            <span className="tn-status-badge" data-s={line.review_status}>
+            <span className={`ss-badge ${BADGE[line.review_status]} tn-row-status`}>
               {t(`tension.status.${line.review_status}`)}
             </span>
 
             <span className="tn-row-actions">
               <button
                 type="button"
-                className="tn-act-primary"
+                className="ss-btn ss-btn-sm ss-btn-secondary"
                 onClick={(e) => {
                   e.stopPropagation();
                   onReview(line.id, 'approved');
@@ -141,7 +143,7 @@ export function TensionLineTable({
               </button>
               <button
                 type="button"
-                className="tn-act-ghost"
+                className="ss-btn ss-btn-sm ss-btn-secondary"
                 onClick={(e) => {
                   e.stopPropagation();
                   onEditLabels(line.id);
@@ -151,7 +153,7 @@ export function TensionLineTable({
               </button>
               <button
                 type="button"
-                className="tn-act-ghost"
+                className="ss-btn ss-btn-sm ss-btn-ghost"
                 onClick={(e) => {
                   e.stopPropagation();
                   onReview(line.id, 'rejected');
@@ -164,10 +166,11 @@ export function TensionLineTable({
         );
       })}
 
+      {/* Lightest empty weight: one line and one ghost button, no stage. */}
       {rows.length === 0 && (
-        <div className="tn-table-empty">
-          {t('tension.table.empty')}
-          <button type="button" className="tn-link-btn" onClick={onShowAll}>
+        <div className="tn-empty-line">
+          <span>{t('tension.table.empty')}</span>
+          <button type="button" className="ss-btn ss-btn-sm ss-btn-ghost" onClick={onShowAll}>
             {t('tension.table.showAll', { count: totalCount })}
           </button>
         </div>

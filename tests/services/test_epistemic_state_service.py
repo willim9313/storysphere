@@ -195,3 +195,89 @@ class TestCaching:
         assert DOC in key
         assert ALICE in key
         assert "7" in key, "chapter missing from the key — a re-read would be wrong"
+
+
+# ── No LLM provider configured ───────────────────────────────────────────────
+
+
+class TestWithoutProvider:
+    """Known/unknown is set arithmetic; only misbeliefs need the LLM.
+
+    With no provider the zero-cost part must still be answered (the reader's
+    epistemic panel stays usable), and nothing is cached so misbeliefs fill in
+    once a provider is configured.
+    """
+
+    @pytest.fixture
+    def unconfigured(self, kg, cache):
+        from storysphere.core.llm_client import UnconfiguredLLM
+
+        return EpistemicStateService(
+            kg_service=kg, llm=UnconfiguredLLM("no provider"), cache=cache
+        )
+
+    async def test_partition_is_answered_without_misbeliefs(self, unconfigured, kg):
+        kg.get_snapshot.return_value = (
+            [
+                _event("in", participants=[ALICE], visibility="secret"),
+                _event("out", participants=["other"], visibility="secret"),
+            ],
+            None, None,
+        )
+
+        state = await _knowledge(unconfigured)
+
+        assert [e.id for e in state.known_events] == ["in"]
+        assert [e.id for e in state.unknown_events] == ["out"]
+        assert state.misbeliefs == []
+        assert state.misbeliefs_inferred is False
+
+    async def test_the_partial_result_is_not_cached(self, unconfigured, cache):
+        await _knowledge(unconfigured)
+
+        cache.set.assert_not_called()
+
+
+# ── cached_only: browsing chapters must not spend tokens ─────────────────────
+
+
+class TestCachedOnly:
+    async def test_a_miss_answers_the_partition_without_the_llm(self, service, kg):
+        kg.get_snapshot.return_value = (
+            [
+                _event("in", participants=[ALICE], visibility="secret"),
+                _event("out", participants=["other"], visibility="secret"),
+            ],
+            None, None,
+        )
+
+        state = await service.get_character_knowledge(ALICE, DOC, 5, cached_only=True)
+
+        assert [e.id for e in state.known_events] == ["in"]
+        assert [e.id for e in state.unknown_events] == ["out"]
+        assert state.misbeliefs == []
+        assert state.misbeliefs_inferred is False
+        service._infer_misbeliefs.assert_not_awaited()
+
+    async def test_a_miss_is_not_cached(self, service, cache):
+        await service.get_character_knowledge(ALICE, DOC, 5, cached_only=True)
+
+        cache.set.assert_not_called()
+
+    async def test_a_hit_returns_the_inferred_result(self, service, cache):
+        from storysphere.domain.epistemic_state import CharacterEpistemicState
+
+        cache.get_as = AsyncMock(return_value=CharacterEpistemicState(
+            character_id=ALICE, character_name="Alice", up_to_chapter=5,
+        ))
+
+        state = await service.get_character_knowledge(ALICE, DOC, 5, cached_only=True)
+
+        assert state.misbeliefs_inferred is True
+        service._infer_misbeliefs.assert_not_awaited()
+
+    async def test_without_the_flag_a_miss_still_infers(self, service):
+        state = await _knowledge(service)
+
+        assert state.misbeliefs_inferred is True
+        service._infer_misbeliefs.assert_awaited_once()

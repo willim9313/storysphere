@@ -105,7 +105,7 @@ class Settings(BaseSettings):
 
     # ── Embedding ──────────────────────────────────────────────────────────────
     embedding_model_name: str = Field(
-        default="all-MiniLM-L6-v2",
+        default="paraphrase-multilingual-MiniLM-L12-v2",
         description="sentence-transformers model id for paragraph embeddings (Qdrant)",
     )
     embedding_device: str = Field(

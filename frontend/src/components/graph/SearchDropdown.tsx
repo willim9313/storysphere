@@ -17,7 +17,12 @@ interface SearchDropdownProps {
   readonly onClose: () => void;
   readonly onSelectEntity: (id: string) => void;
   readonly onSelectChapter: (chapterId: string) => void;
+  /** Reports the id of the highlighted option (null when none) for aria-activedescendant. */
+  readonly onActiveOptionChange?: (id: string | null) => void;
 }
+
+export const SEARCH_LISTBOX_ID = 'kg-search-listbox';
+const optionId = (section: SectionName, id: string) => `kg-search-opt-${section}-${id}`;
 
 type SectionName = 'entity' | 'chapter' | 'paragraph';
 
@@ -28,12 +33,19 @@ interface FlatResult {
 
 const MAX_PER_SECTION = 8;
 
+// Every type gets its own --graph-* swatch; organisation / object / other used
+// to fall through to the character colour, mislabelling them in the results.
+const DOT_KEY: Record<EntityType, string> = {
+  character: 'char',
+  location: 'loc',
+  organization: 'org',
+  object: 'obj',
+  concept: 'con',
+  event: 'evt',
+  other: 'other',
+};
 function dotKeyFor(type: EntityType): string {
-  if (type === 'concept') return 'con';
-  if (type === 'event') return 'evt';
-  if (type === 'location') return 'loc';
-  if (type === 'character') return 'char';
-  return 'char';
+  return DOT_KEY[type] ?? 'other';
 }
 
 function highlight(text: string, query: string) {
@@ -43,17 +55,7 @@ function highlight(text: string, query: string) {
   return (
     <>
       {text.slice(0, idx)}
-      <span
-        style={{
-          backgroundColor: 'var(--color-warning-bg, #fff3c4)',
-          color: 'var(--fg-primary)',
-          padding: '0 2px',
-          borderRadius: 2,
-          fontWeight: 600,
-        }}
-      >
-        {text.slice(idx, idx + query.length)}
-      </span>
+      <span className="kg-search-hit">{text.slice(idx, idx + query.length)}</span>
       {text.slice(idx + query.length)}
     </>
   );
@@ -67,6 +69,7 @@ export function SearchDropdown({
   onClose,
   onSelectEntity,
   onSelectChapter,
+  onActiveOptionChange,
 }: SearchDropdownProps) {
   const { t } = useTranslation('graph');
   const [activeIdx, setActiveIdx] = useState(0);
@@ -100,9 +103,21 @@ export function SearchDropdown({
     setActiveIdx(0);
   }
 
+  const activeItem = flat.length > 0 ? flat[Math.min(activeIdx, flat.length - 1)] : undefined;
+  const activeId = open && query && activeItem ? optionId(activeItem.section, activeItem.id) : null;
+
+  useEffect(() => {
+    onActiveOptionChange?.(activeId);
+  }, [activeId, onActiveOptionChange]);
+
+  // Keys act only while focus is in the search input; focus elsewhere
+  // (a button, the canvas) must not trigger Enter/Arrow handling.
   useEffect(() => {
     if (!open) return;
+    const inSearchInput = (t: EventTarget | null) =>
+      t instanceof HTMLInputElement && t.closest('.kg-search') !== null;
     const handler = (e: KeyboardEvent) => {
+      if (!inSearchInput(e.target)) return;
       if (e.key === 'Escape') {
         e.preventDefault();
         onClose();
@@ -123,8 +138,21 @@ export function SearchDropdown({
         else if (item.section === 'chapter') onSelectChapter(item.id);
       }
     };
+    // Click or focus landing outside the search box closes the dropdown.
+    // Option rows preventDefault on mousedown so the input never blurs first.
+    const outside = (e: Event) => {
+      const el = e.target;
+      if (el instanceof Element && el.closest('.kg-search')) return;
+      onClose();
+    };
     window.addEventListener('keydown', handler);
-    return () => window.removeEventListener('keydown', handler);
+    document.addEventListener('mousedown', outside);
+    document.addEventListener('focusin', outside);
+    return () => {
+      window.removeEventListener('keydown', handler);
+      document.removeEventListener('mousedown', outside);
+      document.removeEventListener('focusin', outside);
+    };
   }, [open, flat, activeIdx, onClose, onSelectEntity, onSelectChapter]);
 
   if (!open || !query) return null;
@@ -132,22 +160,12 @@ export function SearchDropdown({
   return (
     <div
       ref={listRef}
-      className="absolute z-20 flex flex-col"
-      style={{
-        // Anchored just under the toolbar (top:12 + ~32 toolbar height + 12 gap)
-        top: 56,
-        left: 12,
-        width: 460,
-        maxHeight: 'calc(100% - 80px)',
-        backgroundColor: 'var(--bg-primary)',
-        border: '1px solid var(--border)',
-        borderRadius: 'var(--radius-md)',
-        boxShadow: 'var(--shadow-lg, var(--shadow-md))',
-        overflow: 'hidden',
-      }}
+      className="kg-search-pop"
+      id={SEARCH_LISTBOX_ID}
       role="listbox"
+      aria-label={t('searchA11y.listLabel')}
     >
-      <div className="flex-1 overflow-y-auto">
+      <div className="kg-search-scroll">
         <Group
           header={t('v1.search.section.entity')}
           count={filteredEntities.length}
@@ -162,14 +180,13 @@ export function SearchDropdown({
               return (
                 <Row
                   key={e.id}
+                  id={optionId('entity', e.id)}
                   active={active}
                   onClick={() => onSelectEntity(e.id)}
                   left={
                     <span
-                      className="inline-block rounded-full"
+                      className="kg-search-dot"
                       style={{
-                        width: 8,
-                        height: 8,
                         backgroundColor: `var(--entity-${dotKeyFor(e.type as EntityType)}-dot, var(--accent))`,
                       }}
                     />
@@ -196,22 +213,11 @@ export function SearchDropdown({
               return (
                 <Row
                   key={c.id}
+                  id={optionId('chapter', c.id)}
                   active={active}
                   onClick={() => onSelectChapter(c.id)}
                   left={
-                    <span
-                      className="inline-flex items-center justify-center rounded-full tabular-nums"
-                      style={{
-                        width: 22,
-                        height: 22,
-                        backgroundColor: 'var(--bg-tertiary)',
-                        fontFamily: 'var(--font-mono, monospace)',
-                        fontSize: 'var(--font-size-2xs)',
-                        color: 'var(--fg-secondary)',
-                      }}
-                    >
-                      {c.order}
-                    </span>
+                    <span className="kg-search-order">{c.order}</span>
                   }
                   name={highlight(c.title, query)}
                   meta={t('v1.search.chapterMeta', { order: c.order })}
@@ -231,31 +237,20 @@ export function SearchDropdown({
       </div>
 
       {/* Keyboard hint footer */}
-      <div
-        className="flex items-center"
-        style={{
-          gap: 12,
-          padding: '6px 14px',
-          backgroundColor: 'var(--bg-secondary)',
-          borderTop: '1px solid var(--border)',
-          fontSize: 'var(--font-size-2xs)',
-          color: 'var(--fg-muted)',
-          flexShrink: 0,
-        }}
-      >
-        <span className="inline-flex items-center" style={{ gap: 4 }}>
+      <div className="kg-search-foot">
+        <span className="kg-search-hint">
           <Kbd>↑↓</Kbd>
           {t('v1.search.kbd.navigate')}
         </span>
-        <span className="inline-flex items-center" style={{ gap: 4 }}>
+        <span className="kg-search-hint">
           <Kbd>↵</Kbd>
           {t('v1.search.kbd.select')}
         </span>
-        <span className="inline-flex items-center" style={{ gap: 4 }}>
+        <span className="kg-search-hint">
           <Kbd>esc</Kbd>
           {t('v1.search.kbd.close')}
         </span>
-        <span style={{ marginLeft: 'auto' }}>{t('v1.search.kbd.advanced')}</span>
+        <span className="kg-search-foot-end">{t('v1.search.kbd.advanced')}</span>
       </div>
     </div>
   );
@@ -270,27 +265,10 @@ interface GroupProps {
 
 function Group({ header, count, isLast, children }: GroupProps) {
   return (
-    <div style={{ padding: '6px 0', borderBottom: isLast ? 'none' : '1px solid var(--border)' }}>
-      <div
-        className="flex items-center justify-between"
-        style={{
-          padding: '4px 14px',
-          fontSize: 'var(--font-size-2xs)',
-          fontWeight: 600,
-          textTransform: 'uppercase',
-          letterSpacing: '0.06em',
-          color: 'var(--fg-muted)',
-        }}
-      >
+    <div role="group" aria-label={header} className={`kg-search-group${isLast ? ' is-last' : ''}`}>
+      <div className="kg-search-group-head">
         <span>{header}</span>
-        {count > 0 && (
-          <span
-            className="tabular-nums"
-            style={{ fontFamily: 'var(--font-mono, monospace)' }}
-          >
-            {count}
-          </span>
-        )}
+        {count > 0 && <span className="kg-search-count">{count}</span>}
       </div>
       {children}
     </div>
@@ -298,6 +276,7 @@ function Group({ header, count, isLast, children }: GroupProps) {
 }
 
 interface RowProps {
+  readonly id: string;
   readonly active: boolean;
   readonly onClick: () => void;
   readonly left?: React.ReactNode;
@@ -305,68 +284,31 @@ interface RowProps {
   readonly meta?: string;
 }
 
-function Row({ active, onClick, left, name, meta }: RowProps) {
+function Row({ id, active, onClick, left, name, meta }: RowProps) {
   return (
-    <button
+    <div
+      id={id}
+      role="option"
+      aria-selected={active}
+      onMouseDown={(e) => e.preventDefault()}
       onClick={onClick}
-      className="w-full flex items-center text-left"
-      style={{
-        gap: 8,
-        padding: '6px 14px',
-        fontSize: 'var(--font-size-xs)',
-        backgroundColor: active ? 'var(--bg-tertiary)' : 'transparent',
-        color: 'var(--fg-primary)',
-        border: 0,
-        cursor: 'pointer',
-        fontFamily: 'inherit',
-      }}
-      onMouseEnter={(e) => {
-        if (!active) e.currentTarget.style.backgroundColor = 'var(--bg-secondary)';
-      }}
-      onMouseLeave={(e) => {
-        if (!active) e.currentTarget.style.backgroundColor = 'transparent';
-      }}
+      className={`kg-search-row${active ? ' is-active' : ''}`}
     >
       {left}
-      <span
-        className="flex-1 truncate"
-        style={{ fontFamily: 'var(--font-serif)' }}
-      >
-        {name}
-      </span>
-      {meta && (
-        <span style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', whiteSpace: 'nowrap' }}>
-          {meta}
-        </span>
-      )}
-    </button>
+      <span className="kg-search-name">{name}</span>
+      {meta && <span className="kg-search-meta">{meta}</span>}
+    </div>
   );
 }
 
 function Empty({ children }: { readonly children: React.ReactNode }) {
   return (
-    <div
-      style={{ padding: '6px 14px', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}
-    >
-      {children}
-    </div>
+    <div className="kg-search-empty">{children}</div>
   );
 }
 
 function Kbd({ children }: { readonly children: React.ReactNode }) {
   return (
-    <span
-      style={{
-        fontFamily: 'var(--font-mono, monospace)',
-        fontWeight: 600,
-        fontSize: 'var(--font-size-2xs)',
-        padding: '0 4px',
-        borderRadius: 3,
-        backgroundColor: 'var(--bg-tertiary)',
-        color: 'var(--fg-secondary)',
-      }}
-    >
-      {children}
-    </span>
+    <span className="kg-search-kbd">{children}</span>
   );
 }

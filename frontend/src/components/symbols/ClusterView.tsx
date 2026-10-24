@@ -1,5 +1,5 @@
 import { useTranslation } from 'react-i18next';
-import { ArrowLeft, Network } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 
 import { AxisHeader, ChapterCells } from './ChapterGrid';
 import { shapeLabel } from './symbolPhrases';
@@ -43,7 +43,7 @@ export function ClusterView({ cluster, axis, onBack, onSelect }: Readonly<Props>
           </span>
           <span className="sym-crumb-here">{t('symbol.cluster.crumb')}</span>
         </nav>
-        <h2 className="sym-ov-title">{t('symbol.cluster.title', { term: seed.term })}</h2>
+        <h1 className="ss-page-title sym-ov-title">{t('symbol.cluster.title', { term: seed.term })}</h1>
         {/* States how the group was built, not what it means. What it means is the
             grid below, and a prose claim about it would be authored rather than
             computed. */}
@@ -56,10 +56,9 @@ export function ClusterView({ cluster, axis, onBack, onSelect }: Readonly<Props>
         </p>
       </header>
 
-      <section className="sym-dash-card sym-dash-card-wide">
+      <section className="sym-dash-card">
         <div className="sym-dash-card-head">
-          <Network size={13} style={{ color: 'var(--accent)' }} />
-          <span className="sym-dash-card-title">{t('symbol.cluster.gridTitle')}</span>
+          <h2 className="sym-dash-card-title">{t('symbol.cluster.gridTitle')}</h2>
           <span className="sym-dash-card-meta">
             {t('symbol.cluster.gridMeta', { count: members.length })}
           </span>

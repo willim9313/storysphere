@@ -1,7 +1,10 @@
 {
   "title": "Cross-book Search",
   "subtitle": "Start with a concept, emotion, or question — find relevant passages across all books in your library.",
-  "placeholder": "Describe an emotion or scene, e.g. the protagonist's moment of doubt…",
+  "placeholder": {
+    "fulltext": "Enter words separated by spaces — all must appear, e.g. sea name",
+    "semantic": "Describe an emotion or scene, e.g. the protagonist's moment of doubt…"
+  },
   "submit": "Search",
   "scopeAll": "All books",
   "scopeLabel": "Scope:",
@@ -13,18 +16,61 @@
     "archetype": "Archetypes"
   },
   "result": {
-    "goToBook": "Go to book"
+    "goToBook": "Go to book",
+    "locator": "Ch. {{chapter}} · §{{position}}"
   },
   "empty": {
     "noResults": "No passages found",
     "noResultsHint": "Try rephrasing your query or describing the emotion or scene differently.",
     "noBooks": "No books in library",
     "noBooksHint": "Upload a novel to start cross-book search.",
-    "uploadNow": "Upload now"
+    "uploadNow": "Upload now",
+    "noResultsHintFulltext": "Every word must appear in the same passage. Try fewer words, or switch to semantic search to find passages with a similar meaning.",
+    "trySemantic": "Try semantic search"
+  },
+  "summary_one": "Found <strong>{{count}}</strong> passage across <strong>{{books}}</strong> {{bookUnit}}",
+  "summary_other": "Found <strong>{{count}}</strong> passages across <strong>{{books}}</strong> {{bookUnit}}",
+  "summarySemantic_one": "The <strong>{{count}}</strong> closest passage across <strong>{{books}}</strong> {{bookUnit}}",
+  "summarySemantic_other": "The <strong>{{count}}</strong> closest passages across <strong>{{books}}</strong> {{bookUnit}}",
+  "semanticNote": "Ranked by closeness in meaning — a passage is not guaranteed to contain what you are looking for, and relevance is only comparable within one search.",
+  "score": {
+    "hits": "Hits",
+    "relevance": "Relevance",
+    "hitCount_one": "{{count}} hit",
+    "hitCount_other": "{{count}} hits"
+  },
+  "error": {
+    "searchFailed": "Search failed. Please try again later."
+  },
+  "partial": {
+    "message_one": "{{count}} book query failed; results are incomplete",
+    "message_other": "{{count}} book queries failed; results are incomplete",
+    "retry": "Search again"
+  },
+  "aria": {
+    "collapse": "Collapse {{title}}",
+    "expand": "Expand {{title}}",
+    "removeBook": "Remove {{title}}",
+    "clear": "Clear search",
+    "mode": "Search mode",
+    "input": "Search passages",
+    "openPassage": "Open {{locator}} in the reader"
   },
   "loading": "Searching…",
   "mode": {
     "fulltext": "Keyword",
     "semantic": "Semantic"
+  },
+  "group": {
+    "count_one": "{{count}} passage",
+    "count_other": "{{count}} passages",
+    "countCapped": "{{count}}+ passages",
+    "countMax": "Top {{count}} only",
+    "showMore": "Show more",
+    "showMoreFailed": "Couldn't load more. Try again."
+  },
+  "unit": {
+    "book_one": "book",
+    "book_other": "books"
   }
 }

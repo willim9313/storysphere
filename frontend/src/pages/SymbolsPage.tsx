@@ -1,14 +1,20 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { Link, useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useQueries, useQueryClient, useMutation } from '@tanstack/react-query';
 import { Trans, useTranslation } from 'react-i18next';
-import { Telescope, BookOpen, GitBranch, RefreshCw } from 'lucide-react';
+import { Shapes } from 'lucide-react';
 
 import { useChatDispatch } from '@/contexts/ChatContext';
 import { useBook } from '@/hooks/useBook';
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { EmptyState } from '@/components/ui/EmptyState';
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog';
+import { LlmUnconfiguredNotice } from '@/components/ui/LlmUnconfiguredNotice';
+import { PageFailure } from '@/components/ui/PageFailure';
 import { ApiError } from '@/api/client';
+import { failureKind, isLlmUnconfigured, techDetailOf } from '@/api/failureKind';
 import {
+  fetchRunningSymbolAnalyses,
   fetchSymbolTimeline,
   fetchSymbolInterpretation,
   reviewSymbolInterpretation,
@@ -48,6 +54,7 @@ import {
   type ChapterAxis,
 } from '@/components/symbols/chapterAxis';
 import { densityStep } from '@/components/symbols/tokens';
+import { densityLegend } from '@/components/symbols/symbolViewModel';
 import { GuidanceRibbon } from '@/components/ui/GuidanceRibbon';
 
 import '@/styles/symbols.css';
@@ -77,6 +84,8 @@ export default function SymbolsPage() {
   const { setPageContext } = useChatDispatch();
   const { data: book } = useBook(bookId);
   const { t } = useTranslation('analysis');
+  const { t: tc } = useTranslation('common');
+  const { t: tn } = useTranslation('nav');
   const queryClient = useQueryClient();
 
   useEffect(() => {
@@ -101,6 +110,7 @@ export default function SymbolsPage() {
     openCluster: openClusterUrl,
     setSortAxis,
     setTypeFilter,
+    showAll,
   } = useSymbolUrlState();
 
   const [search, setSearch] = useState('');
@@ -109,7 +119,13 @@ export default function SymbolsPage() {
   // returned to.
   const [shapeFilter, setShapeFilter] = useState<DistributionShape | null>(null);
 
-  const { analysis, isLoading: listLoading } = useSymbolAnalysis(bookId);
+  const {
+    analysis,
+    data: overview,
+    isLoading: listLoading,
+    error: listError,
+    refetch: refetchOverview,
+  } = useSymbolAnalysis(bookId);
   const batch = useSymbolBatch(bookId, t('symbol.overview.batch.failed'));
   const check = useSymbolCheck(analysis);
 
@@ -121,6 +137,11 @@ export default function SymbolsPage() {
     // still held would be unspendable — and would come back on the reader's
     // return, minutes later, as a count they no longer recognise.
     else check.exit();
+  };
+
+  const handleShowAll = () => {
+    showAll();
+    setShapeFilter(null);
   };
 
   const openCluster = (seedId: string) => {
@@ -214,6 +235,7 @@ export default function SymbolsPage() {
       queryKey: ['entities', id],
       queryFn: () => fetchEntityById(id),
       staleTime: Infinity,
+      retry: false,
     })),
   });
 
@@ -222,6 +244,7 @@ export default function SymbolsPage() {
       queryKey: ['events', bookId, id],
       queryFn: () => fetchEventDetail(bookId!, id),
       staleTime: Infinity,
+      retry: false,
     })),
   });
 
@@ -230,6 +253,8 @@ export default function SymbolsPage() {
     return {
       id,
       name: characterQueries[i]?.data?.name ?? id,
+      // An id that did not resolve is shown shortened in a dashed chip, not dropped.
+      resolved: characterQueries[i]?.data?.name != null,
       hint: count != null && count > 0
         ? t('symbol.interpretation.linkedCharHint', { count })
         : undefined,
@@ -241,6 +266,7 @@ export default function SymbolsPage() {
     return {
       id,
       name: ev?.title ?? id,
+      resolved: ev?.title != null,
       hint: ev?.chapter != null ? t('symbol.interpretation.linkedEventHint', { chapter: ev.chapter }) : undefined,
     };
   });
@@ -254,57 +280,88 @@ export default function SymbolsPage() {
    * looking uninterpreted forever: the overview still reports null, the query
    * stays disabled, and nothing ever asks the server.
    */
-  const refetchInterpretation = () => {
+  const refetchInterpretation = (imageryId: string | null = selectedId) => {
     if (!bookId) return;
     void queryClient.invalidateQueries({ queryKey: qk.symbols.overview(bookId) });
-    if (selectedId) {
-      void queryClient.invalidateQueries({ queryKey: qk.symbols.interpretation(bookId, selectedId) });
+    if (imageryId) {
+      void queryClient.invalidateQueries({ queryKey: qk.symbols.interpretation(bookId, imageryId) });
     }
   };
 
+  // A run finishes for the symbol it was started on, which the reader may have
+  // left by now — refresh that one, not whichever is open.
   const interpretationTask = useSymbolInterpretationTask(
-    refetchInterpretation,
+    (_task, imageryId) => refetchInterpretation(imageryId),
     t('symbol.error.generic'),
-    t('symbol.error.triggerFailed'),
   );
+
+  // A run started before a remount (or in another tab) is followed, not offered
+  // again: #15e would refuse a second one with 409 anyway (#15l).
+  const { resume: resumeInterpretation } = interpretationTask;
+  useEffect(() => {
+    if (!bookId) return;
+    let alive = true;
+    fetchRunningSymbolAnalyses(bookId)
+      .then(({ running = [] }) => {
+        const run = running[0];
+        if (alive && run) resumeInterpretation(run.imageryId, run.taskId);
+      })
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, [bookId, resumeInterpretation]);
 
   const handleGenerate = (force = false) => {
     if (!selectedId || !bookId) return;
     void interpretationTask.trigger(selectedId, { bookId, forceRefresh: force });
   };
 
-  const handleRegenerate = () => {
-    if (globalThis.window === undefined) {
-      handleGenerate(true);
-      return;
-    }
-    if (globalThis.window.confirm(t('symbol.interpretation.regenerateConfirm'))) {
-      handleGenerate(true);
-    }
-  };
+  // Regenerating spends tokens and overwrites the interpretation and its review
+  // state, so it goes through a loss-list confirmation (DS v3 · 11 補稿 B).
+  const [regenOpen, setRegenOpen] = useState(false);
+  const handleRegenerate = () => setRegenOpen(true);
 
   // ── HITL review ──────────────────────────────────────────────
   const reviewMutation = useMutation({
-    mutationFn: (vars: { status: 'approved' | 'modified' | 'rejected'; theme?: string; polarity?: Polarity }) =>
+    mutationFn: (vars: {
+      status: 'approved' | 'modified' | 'rejected';
+      theme?: string;
+      evidenceSummary?: string;
+      polarity?: Polarity;
+    }) =>
       reviewSymbolInterpretation(selectedId!, {
         bookId: bookId!,
         reviewStatus: vars.status,
         theme: vars.theme,
+        evidenceSummary: vars.evidenceSummary,
         polarity: vars.polarity,
       }),
-    onSuccess: refetchInterpretation,
+    onSuccess: () => refetchInterpretation(),
   });
 
   const reviewError = reviewMutation.isError ? t('symbol.error.reviewFailed') : null;
 
   const handleApprove = () => reviewMutation.mutate({ status: 'approved' });
   const handleReject = () => reviewMutation.mutate({ status: 'rejected' });
-  const handleSubmitModify = (theme: string, polarity: Polarity) =>
-    reviewMutation.mutate({ status: 'modified', theme, polarity });
+  const handleSubmitModify = (theme: string, evidenceSummary: string | undefined, polarity: Polarity) =>
+    reviewMutation.mutateAsync({ status: 'modified', theme, evidenceSummary, polarity });
 
   // ── Computed ─────────────────────────────────────────────────
   const selected = entities.find((e) => e.id === selectedId) ?? null;
-  const isGenerating = interpretationTask.running && selectedId !== null;
+  // The task may belong to a symbol the reader has since left. Its overlay, cancel
+  // button and failure stay with that symbol; this one shows its own state, with
+  // the generate button held off by `pending` so two runs never spend at once.
+  const taskIsHere = selectedId !== null && interpretationTask.imageryId === selectedId;
+  const isGenerating = interpretationTask.running && taskIsHere;
+  // One paid run at a time per symbol page: another symbol's run holds every
+  // trigger (it would be abandoned, not stopped), a batch holds single generation
+  // but not regeneration — the batch skips symbols that already have one.
+  const singleBlockedReason =
+    interpretationTask.running && !taskIsHere ? t('symbol.generating.blockedBySingle') : null;
+  const generateBlockedReason =
+    singleBlockedReason ??
+    (batch.running || batch.pending ? t('symbol.generating.blockedByBatch') : null);
 
   let interpretationBlock: React.ReactNode;
   if (isGenerating) {
@@ -313,7 +370,9 @@ export default function SymbolsPage() {
         task={interpretationTask.task}
         term={selected?.term ?? ''}
         occurrenceCount={selected?.frequency}
-        onCancel={interpretationTask.cancel}
+        onCancel={() => void interpretationTask.cancel()}
+        cancelling={interpretationTask.cancelling}
+        cancelFailed={interpretationTask.cancelFailed}
       />
     );
   } else if (interpretation) {
@@ -322,9 +381,12 @@ export default function SymbolsPage() {
         key={interpretation.id ?? interpretation.imagery_id}
         entity={selected!}
         interpretation={interpretation}
+        // 詮釋與阻擋並存：舊詮釋照常顯示，阻擋改成區塊頂端一條警示列。
+        block={selectedSignals?.block ?? null}
         // 後端算的排除數，不是前端自己從 chapter_roles 推的（B-101）：這句
         // 話講的是「LLM 沒看到幾筆」，而那個答案只有排除的那一方知道。
         frontCount={selectedSignals?.item.excluded_front_matter_count ?? 0}
+        occurrenceCount={timeline.length}
         resolvedCharacters={resolvedCharacters}
         resolvedEvents={resolvedEvents}
         pending={reviewMutation.isPending}
@@ -333,6 +395,7 @@ export default function SymbolsPage() {
         onSubmitModify={handleSubmitModify}
         onReject={handleReject}
         onRegenerate={handleRegenerate}
+        regenerateBlockedReason={singleBlockedReason}
       />
     );
   } else {
@@ -342,10 +405,41 @@ export default function SymbolsPage() {
         rank={selectedRank}
         onGenerate={() => handleGenerate(false)}
         pending={interpretationTask.running}
-        error={interpretationTask.error}
+        blockedReason={generateBlockedReason}
+        error={taskIsHere ? interpretationTask.error : null}
       />
     ) : null;
   }
+
+  const regenDialog = (
+    <ConfirmDialog
+      open={regenOpen}
+      title={t('symbol.regen.title', { term: selected?.term ?? '' })}
+      message={t('symbol.interpretation.regenerateConfirm')}
+      items={[
+        t('symbol.regen.loss.content'),
+        t('symbol.regen.loss.status', {
+          status: t(`symbol.review.${interpretation?.review_status ?? 'pending'}`),
+        }),
+      ]}
+      costHint={t('tension.state.tokenHintShort')}
+      confirmLabel={t('symbol.interpretation.regenerate')}
+      spendsTokens
+      danger
+      onConfirm={() => {
+        setRegenOpen(false);
+        handleGenerate(true);
+      }}
+      onCancel={() => setRegenOpen(false)}
+    />
+  );
+
+  const pageName = tn('tabs.symbolImagery');
+  const backToBook = (
+    <Link to={`/books/${bookId}`} className="ss-btn ss-btn-md ss-btn-secondary">
+      {t('character.error.backToBook')}
+    </Link>
+  );
 
   let detailBody: React.ReactNode;
   if (listLoading) {
@@ -354,7 +448,19 @@ export default function SymbolsPage() {
         <LoadingSpinner />
       </div>
     );
-  } else if (cluster !== null && analysis) {
+  } else if (analysis === null) {
+    // The overview did not load. Falling through to the empty state here would
+    // report a failure as a book with no symbols — the one thing it must not say.
+    detailBody = (
+      <PageFailure
+        variant={failureKind(listError)}
+        pageName={pageName}
+        onRetry={() => void refetchOverview()}
+        secondaryAction={backToBook}
+        techDetail={techDetailOf(listError)}
+      />
+    );
+  } else if (cluster !== null) {
     detailBody = (
       <ClusterView
         cluster={cluster}
@@ -368,6 +474,7 @@ export default function SymbolsPage() {
       detailBody = (
         <SymbolsDashboard
           analysis={analysis}
+          serverRowCount={overview?.items?.length ?? 0}
           batch={batch}
           check={check}
           sortAxis={sortAxis}
@@ -375,10 +482,21 @@ export default function SymbolsPage() {
           setShapeFilter={setShapeFilter}
           onSelect={handleSelect}
           onOpenCluster={openCluster}
+          blockedReason={
+            interpretationTask.running ? t('symbol.generating.blockedBySingle') : null
+          }
         />
       );
     } else {
-      detailBody = <EmptyState bookId={bookId!} onRefresh={() => queryClient.invalidateQueries({ queryKey: qk.symbols.list(bookId) })} />;
+      detailBody = (
+        <NoSymbolsYet
+          bookId={bookId!}
+          // The page reads the overview, so that is the cache to drop. This used to
+          // invalidate `qk.symbols.list`, a different key under a different root:
+          // the button looked like it worked and refetched nothing.
+          onRefresh={() => queryClient.invalidateQueries({ queryKey: qk.symbols.overview(bookId) })}
+        />
+      );
     }
   } else {
     detailBody = (
@@ -415,6 +533,7 @@ export default function SymbolsPage() {
             // Nothing to compare a symbol against itself, so the row is dropped
             // rather than drawn twice.
             pinned={pinnedSignals?.id === selectedSignals.id ? null : pinnedSignals}
+            onClearPin={() => setPinned(null)}
           />
         )}
 
@@ -440,6 +559,47 @@ export default function SymbolsPage() {
     );
   }
 
+  // Every token-spending trigger (single or batch) fails one of three ways, and the
+  // page says which. The app's own 503 means no LLM provider is configured: a
+  // feature state, so a notice in place and the page carries on. A response with
+  // no body at all is the backend being unreachable: a compact banner with a
+  // retry, since there is content on screen worth keeping. Anything else is the
+  // trigger failing on its own.
+  const triggerFailure = interpretationTask.triggerFailure;
+  const showLlmNotice = batch.llmBlocked || isLlmUnconfigured(triggerFailure);
+  let triggerBanner: React.ReactNode = null;
+  if (triggerFailure && !isLlmUnconfigured(triggerFailure)) {
+    const unreachable = failureKind(triggerFailure) === 'backend';
+    triggerBanner = (
+      <div className="sym-inline-banner" role="alert">
+        <span>{unreachable ? tc('failure.backendTitle') : t('symbol.error.triggerFailed')}</span>
+        {unreachable && (
+          <button
+            type="button"
+            className="ss-btn ss-btn-sm ss-btn-secondary"
+            onClick={() => void interpretationTask.retry()}
+          >
+            {tc('retry')}
+          </button>
+        )}
+        <button
+          type="button"
+          className="ss-btn ss-btn-sm ss-btn-ghost"
+          onClick={interpretationTask.reset}
+        >
+          {t('symbol.overview.batch.dismiss')}
+        </button>
+      </div>
+    );
+  }
+
+  // Dashboard, cluster and symbol views carry their own h1; loading, failure and
+  // the empty state do not, so the page supplies one.
+  const detailHasH1 =
+    !listLoading &&
+    analysis !== null &&
+    (cluster !== null || (selected === null ? entities.length > 0 : selectedSignals !== null));
+
   return (
     <div className="sym-page">
       <SymbolList
@@ -451,17 +611,25 @@ export default function SymbolsPage() {
         setSortAxis={setSortAxis}
         typeFilter={typeFilter}
         setTypeFilter={setTypeFilter}
+        onShowAll={handleShowAll}
         shapeFilter={shapeFilter}
+        setShapeFilter={setShapeFilter}
         search={search}
         setSearch={setSearch}
       />
 
       <main className="sym-detail">
-        <GuidanceRibbon surface="symbols">
-          <strong>{t('symbol.guide.prefix')}</strong>{' '}
-          <Trans i18nKey="symbol.guide.body" ns="analysis" components={{ strong: <strong /> }} />
-        </GuidanceRibbon>
-        {detailBody}
+        <div className="sym-detail-inner">
+          {!detailHasH1 && <h1 className="sr-only">{pageName}</h1>}
+          <GuidanceRibbon surface="symbols">
+            <strong>{t('symbol.guide.prefix')}</strong>{' '}
+            <Trans i18nKey="symbol.guide.body" ns="analysis" components={{ strong: <strong /> }} />
+          </GuidanceRibbon>
+          {showLlmNotice && <LlmUnconfiguredNotice />}
+          {triggerBanner}
+          {detailBody}
+          {regenDialog}
+        </div>
       </main>
     </div>
   );
@@ -479,12 +647,22 @@ function ChapterCard({
   signals,
   axis,
   pinned,
-}: Readonly<{ signals: SymbolSignals; axis: ChapterAxis; pinned: SymbolSignals | null }>) {
+  onClearPin,
+}: Readonly<{
+  signals: SymbolSignals;
+  axis: ChapterAxis;
+  pinned: SymbolSignals | null;
+  onClearPin: () => void;
+}>) {
   const { t } = useTranslation('analysis');
   const { firstBodyChapter: first, peakBodyChapters: peaks, front } = signals.distribution;
   // One source for the bar scale: the caption states it and the legend derives its
   // steps from it, so neither can drift from what the chart drew.
-  const scale = barScale(signals.item.chapter_distribution ?? {}, axis);
+  // With a symbol pinned, both rows share one max so their heights compare directly.
+  const scale = Math.max(
+    barScale(signals.item.chapter_distribution ?? {}, axis),
+    pinned ? barScale(pinned.item.chapter_distribution ?? {}, axis) : 0,
+  );
 
   const meta = [];
   if (first !== null) meta.push(t('symbol.firstSeenBody', { chapter: first }));
@@ -500,9 +678,19 @@ function ChapterCard({
   return (
     <section className="sym-card">
       <div className="sym-card-head">
-        <BookOpen size={13} style={{ color: 'var(--accent)' }} />
-        <span className="sym-card-title">{t('symbol.chapterDist')}</span>
+        <h2 className="sym-card-title">{t('symbol.chapterDist')}</h2>
         <span className="sym-card-meta">{meta.join(' · ')}</span>
+        {pinned !== null && (
+          // Inside the chart card, so the lower row is read as part of this chart.
+          <span className="sym-dist-pin-head">
+            <span className="sym-dist-pin-label">
+              {t('symbol.pin.clearOther', { term: pinned.term })}
+            </span>
+            <button type="button" className="ss-btn ss-btn-sm ss-btn-ghost" onClick={onClearPin}>
+              {t('symbol.pin.clearSelf')}
+            </button>
+          </span>
+        )}
       </div>
       <div className="sym-card-body" style={{ overflowX: 'auto' }}>
         <ChapterDistChart signals={signals} axis={axis} scale={scale} pinned={pinned} />
@@ -512,19 +700,17 @@ function ChapterCard({
           </p>
         )}
         <div className="sym-dist-legend">
-          {[1, 2, 3]
-            .filter((step) => step <= scale)
-            .map((step) => (
-              <span key={step} className="sym-dist-legend-item">
-                <span
-                  className="sym-dist-legend-swatch"
-                  style={{ background: densityStep(step) }}
-                />
-                {step === 3
-                  ? t('symbol.overview.heat.legendMore', { count: step })
-                  : t('symbol.overview.heat.legendStep', { count: step })}
-              </span>
-            ))}
+          {densityLegend(scale).map((step) => (
+            <span key={step} className="sym-dist-legend-item">
+              <span
+                className="sym-dist-legend-swatch"
+                style={{ background: densityStep(step) }}
+              />
+              {step === 2
+                ? t('symbol.overview.heat.legendMore', { count: step })
+                : t('symbol.overview.heat.legendStep', { count: step })}
+            </span>
+          ))}
           <span className="sym-dist-legend-item">
             <span className="sym-dist-legend-swatch is-outside" />
             {t('symbol.overview.heat.legendOutside')}
@@ -542,39 +728,51 @@ function ChapterCard({
   );
 }
 
-function EmptyState({ bookId, onRefresh }: Readonly<{ bookId: string; onRefresh: () => void }>) {
+/**
+ * The book has no symbols (as opposed to: they failed to load, or a filter matched
+ * none). Whole-stage empty — a book that has not been through extraction is the
+ * one case where the page has nothing to draw.
+ *
+ * The three steps use the Build Overview's own words (段落, 象徵節點, 已建立／部分／
+ * 未建立, 前置) rather than the pipeline's (token, empty / partial / complete),
+ * and the third carries the cost line, since every trigger on that page spends
+ * tokens. The sidebar goes empty at the same time — 「全部 0」 — and both must, or
+ * the page contradicts itself.
+ */
+function NoSymbolsYet({ bookId, onRefresh }: Readonly<{ bookId: string; onRefresh: () => void }>) {
   const { t } = useTranslation('analysis');
   const navigate = useNavigate();
   return (
-    <div className="sym-empty">
-      <div className="sym-empty-illust">
-        <Telescope size={56} strokeWidth={1.25} />
-      </div>
-      <h2 className="sym-empty-title">{t('symbol.emptyTitle')}</h2>
-      <p className="sym-empty-desc">{t('symbol.emptyHint')}</p>
-      <div className="sym-empty-steps">
-        {([1, 2, 3] as const).map((n) => (
-          <div key={n} className="sym-empty-step">
-            <div className="sym-empty-step-n">{n}</div>
-            <div>
-              <div className="sym-empty-step-t">{t(`symbol.emptyStep${n}Title`)}</div>
-              <div className="sym-empty-step-d">{t(`symbol.emptyStep${n}Desc`)}</div>
-            </div>
+    <EmptyState
+      weight="ready"
+      icon={<Shapes size={28} aria-hidden="true" />}
+      title={t('symbol.emptyTitle')}
+      description={t('symbol.emptyHint')}
+      action={
+        <>
+          <div className="sym-empty-steps">
+            {([1, 2, 3] as const).map((n) => (
+              <div key={n} className="sym-empty-step">
+                <span className="sym-empty-step-n">{n}</span>
+                <span className="sym-empty-step-t">{t(`symbol.empty.steps.${n}.title`)}</span>
+                <span className="sym-empty-step-d">{t(`symbol.empty.steps.${n}.desc`)}</span>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
-      <div className="sym-empty-cta">
-        <button
-          type="button"
-          className="sym-btn-secondary"
-          onClick={() => navigate(`/books/${bookId}/unraveling`)}
-        >
-          <GitBranch size={13} /> {t('symbol.emptyUnravelingBtn')}
-        </button>
-        <button type="button" className="sym-btn-ghost-large" onClick={onRefresh}>
-          <RefreshCw size={13} /> {t('symbol.emptyRecheckBtn')}
-        </button>
-      </div>
-    </div>
+          <div className="ss-state-actions">
+            <button
+              type="button"
+              className="ss-btn ss-btn-sm ss-btn-primary"
+              onClick={() => navigate(`/books/${bookId}/unraveling`)}
+            >
+              {t('symbol.emptyUnravelingBtn')}
+            </button>
+            <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary" onClick={onRefresh}>
+              {t('symbol.emptyRecheckBtn')}
+            </button>
+          </div>
+        </>
+      }
+    />
   );
 }

@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Eye, EyeOff, AlertTriangle, Clock, Users, Loader } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { useEpistemicState } from '@/hooks/useEpistemicState';
+import { fetchEpistemicState } from '@/api/graph';
 import { useSourceJump } from '@/hooks/useSourceJump';
+import { Tooltip } from '@/components/ui/Tooltip';
+import { PageFailure } from '@/components/ui/PageFailure';
+import { LlmUnconfiguredNotice } from '@/components/ui/LlmUnconfiguredNotice';
+import { failureKind, techDetailOf } from '@/api/failureKind';
 import { ClassifyVisibilityButton } from '@/components/epistemic/ClassifyVisibilityButton';
 import { ChapterTimeline, type TimelineMarker } from './ChapterTimeline';
 import { getChapter, getTitle, getDescription, getId } from './epistemicEventUtils';
@@ -52,7 +57,30 @@ export function EpistemicStateSection({
     return () => clearTimeout(tid);
   }, [displayedChapter, queriedChapter]);
 
-  const { data: state, isFetching } = useEpistemicState(bookId, characterId, queriedChapter);
+  // Cache-only: moving the cursor to an uncached chapter answers known/unknown
+  // for free; misbeliefs (the LLM step) wait for an explicit button press.
+  const { data: state, isFetching, error, refetch } = useEpistemicState(
+    bookId,
+    characterId,
+    queriedChapter,
+    { cachedOnly: true },
+  );
+  const inferMisbeliefs = useMutation({
+    mutationFn: (v: { characterId: string; chapter: number }) =>
+      fetchEpistemicState(bookId, v.characterId, v.chapter),
+    onSuccess: (full, v) => {
+      queryClient.setQueryData(qk.epistemic.atCached(bookId, v.characterId, v.chapter), full);
+    },
+  });
+  // The mutation outlives cursor moves and character switches; only report
+  // its state for the (character, chapter) currently on screen.
+  const inferTarget = inferMisbeliefs.variables;
+  const inferIsCurrent =
+    inferTarget?.characterId === characterId && inferTarget.chapter === state?.upToChapter;
+  const misbeliefsPending = state != null && !state.misbeliefsInferred;
+  // Still not inferred after an explicit request → no LLM provider configured.
+  const inferUnconfigured =
+    inferIsCurrent && inferMisbeliefs.data != null && !inferMisbeliefs.data.misbeliefsInferred;
   const { jump, pendingKey } = useSourceJump(bookId);
 
   // Backend already partitions events into known/unknown by the character's
@@ -109,6 +137,18 @@ export function EpistemicStateSection({
     return all;
   }, [state, displayedChapter]);
 
+  // No data at all and the request failed: say so instead of drawing an empty cursor.
+  if (!state && error) {
+    return (
+      <PageFailure
+        variant={failureKind(error)}
+        pageName={t('character.tabs.epistemic')}
+        onRetry={() => void refetch()}
+        techDetail={techDetailOf(error)}
+      />
+    );
+  }
+
   if (state && !state.dataComplete) {
     return (
       <div className="ca-empty">
@@ -132,36 +172,28 @@ export function EpistemicStateSection({
     <div>
       {/* Summary row */}
       <div className="ca-epi-summary">
-        <div className="ca-epi-summary-chapter">
-          <span className="ca-epi-summary-chapter-label">{t('character.epistemic.upToChapter')}</span>
-          <span className="ca-epi-summary-chapter-n">
-            {t('character.epistemic.chapterN', { n: displayedChapter })}
-          </span>
-        </div>
-        <div className="ca-epi-counts">
-          <div className="ca-epi-count">
-            <span className="ca-epi-count-dot known" />
-            <span className="ca-epi-count-n">{optimistic?.known.length ?? 0}</span>
-            <span className="ca-epi-count-l">{t('character.epistemic.knownLabel')}</span>
-          </div>
-          <div className="ca-epi-count">
-            <span className="ca-epi-count-dot unknown" />
-            <span className="ca-epi-count-n">{optimistic?.unknown.length ?? 0}</span>
-            <span className="ca-epi-count-l">{t('character.epistemic.unknownLabel')}</span>
-          </div>
-          <div className="ca-epi-count">
-            <span className="ca-epi-count-dot misbelief" />
-            <span className="ca-epi-count-n">{optimistic?.misbeliefs.length ?? 0}</span>
-            <span className="ca-epi-count-l">{t('character.epistemic.misbeliefShortLabel')}</span>
-          </div>
-        </div>
-        <span style={{ flex: 1 }} />
-        <span style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}>
+        <h2 className="ca-epi-summary-title">{t('character.tabs.epistemic')}</h2>
+        <span className="ca-epi-summary-chapter">
+          {t('character.epistemic.upToChapter')} {t('character.epistemic.chapterN', { n: displayedChapter })}
+        </span>
+        {/* Text + count in a badge: the Ink theme flattens success / warning /
+            error to one near-black, so the label has to carry the meaning. */}
+        <span className="ss-badge ss-badge-success">
+          {t('character.epistemic.knownLabel')} {optimistic?.known.length ?? 0}
+        </span>
+        <span className="ss-badge ss-badge-warning">
+          {t('character.epistemic.unknownLabel')} {optimistic?.unknown.length ?? 0}
+        </span>
+        <span className="ss-badge ss-badge-error">
+          {t('character.epistemic.misbeliefShortLabel')}{' '}
+          {misbeliefsPending ? '—' : optimistic?.misbeliefs.length ?? 0}
+        </span>
+        <span className="ca-epi-summary-note">
           {isFetching ? t('character.epistemic.computing') : t('character.epistemic.summarySubtitle')}
         </span>
         <button
           type="button"
-          className="ca-btn ca-btn-outline-accent"
+          className="ss-btn ss-btn-sm ss-btn-secondary ca-epi-compare-btn"
           onClick={() => onOpenCompare(displayedChapter)}
         >
           <Users size={13} /> {t('character.epistemicCompare.openButton')}
@@ -253,15 +285,58 @@ export function EpistemicStateSection({
                 <AlertTriangle size={12} />
                 {t('character.epistemic.misbeliefTitle')}
               </span>
-              <span className="ca-epi-block-count">{optimistic.misbeliefs.length}</span>
+              <span className="ca-epi-block-count">
+                {misbeliefsPending ? '—' : optimistic.misbeliefs.length}
+              </span>
             </div>
-            {optimistic.misbeliefs.length === 0 ? (
+            {misbeliefsPending ? (
+              inferUnconfigured ? (
+                <LlmUnconfiguredNotice />
+              ) : (
+                <div>
+                  <p style={{ margin: 0, fontSize: 'var(--font-size-xs)', color: 'var(--fg-secondary)' }}>
+                    {t('character.epistemic.misbeliefPending', { n: state.upToChapter })}
+                  </p>
+                  <button
+                    type="button"
+                    className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+                    style={{ marginTop: 'var(--space-4)' }}
+                    disabled={inferIsCurrent && inferMisbeliefs.isPending}
+                    onClick={() =>
+                      inferMisbeliefs.mutate({ characterId, chapter: state.upToChapter })
+                    }
+                  >
+                    {inferIsCurrent && inferMisbeliefs.isPending
+                      ? t('character.epistemic.inferringMisbeliefs')
+                      : t('character.epistemic.inferMisbeliefs')}
+                  </button>
+                  <p style={{ margin: 'var(--space-2) 0 0', fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)' }}>
+                    {inferIsCurrent && inferMisbeliefs.isError
+                      ? t('character.epistemic.inferMisbeliefsFailed')
+                      : t('tension.state.tokenHintShort')}
+                  </p>
+                </div>
+              )
+            ) : optimistic.misbeliefs.length === 0 ? (
               <p style={{ margin: 0, fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)' }}>
                 {t('character.epistemic.misbeliefEmpty')}
               </p>
             ) : (
-              optimistic.misbeliefs.map((m) => (
+              optimistic.misbeliefs.map((m) => {
+                // The misbelief item carries only sourceEventId; the event title
+                // comes from the matching unknown event (no match → no title row).
+                const sourceEvent = (state?.unknownEvents as Record<string, unknown>[] | undefined)?.find(
+                  (ev) => String(ev.id ?? ev.eventId ?? '') === m.sourceEventId,
+                );
+                const eventTitle = sourceEvent ? getTitle(sourceEvent) : '';
+                return (
                 <div key={m.sourceEventId} className="ca-misbelief">
+                  {eventTitle && (
+                    <div className="event-title">
+                      <span className="glyph" aria-hidden="true">✕</span>
+                      {eventTitle}
+                    </div>
+                  )}
                   <div>
                     <span className="label">{t('character.epistemic.characterBelieves')}</span>
                     <span className="belief">{m.characterBelief}</span>
@@ -274,7 +349,8 @@ export function EpistemicStateSection({
                     {t('character.epistemic.confidence', { pct: Math.round(m.confidence * 100) })}
                   </div>
                 </div>
-              ))
+                );
+              })
             )}
           </div>
         </div>
@@ -314,19 +390,15 @@ function EpistemicEventRow({
   }
 
   return (
-    <button
-      type="button"
-      className={rowClass}
-      onClick={onJump}
-      disabled={pending}
-      title={t('character.sourceJump.cta')}
-    >
-      <span className="ca-epi-event-name">{title}</span>
-      {pending ? (
-        <Loader size={11} className="ca-srcjump-spinner animate-spin" aria-label={t('character.sourceJump.locating')} />
-      ) : (
-        chapter != null && <span className="ca-epi-event-ch">Ch.{chapter}</span>
-      )}
-    </button>
+    <Tooltip label={t('character.sourceJump.cta')}>
+      <button type="button" className={rowClass} onClick={onJump} disabled={pending}>
+        <span className="ca-epi-event-name">{title}</span>
+        {pending ? (
+          <Loader size={11} className="ca-srcjump-spinner animate-spin" aria-label={t('character.sourceJump.locating')} />
+        ) : (
+          chapter != null && <span className="ca-epi-event-ch">Ch.{chapter}</span>
+        )}
+      </button>
+    </Tooltip>
   );
 }

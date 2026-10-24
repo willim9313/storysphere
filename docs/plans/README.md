@@ -109,3 +109,13 @@
 | 2026-09-12 | [三個沒試過的方向：兩段式抽取、schema 內顆粒度、後處理合併](./20260912-untried-granularity-directions.md) |
 | 2026-09-12 | [Chat 工具選擇：ADR-008 的 >85% 第一次被實測](./20260912-chat-tool-selection-baseline.md) |
 | 2026-09-13 | [全站風格統整 — 規劃與現況盤點](./20260913-design-system-unification.md) |
+| 2026-10-01 | [DS v3 第 0 批：基礎外框 + 共通控制項 + tokens —— 實作計畫](./20261001-ds-v3-batch0-foundation.md) |
+| 2026-10-01 | [DS v3 第 1 批：入口流程（書庫・上傳・章節審閱）—— 實作計畫](./20261001-ds-v3-batch1-entry.md) |
+| 2026-10-02 | [DS v3 第 2 批：系統頁（設定・跨書搜尋・Token 用量・方法論）—— 實作計畫](./20261002-ds-v3-batch2-system.md) |
+| 2026-10-02 | [DS v3 第 3 批：閱讀＋列表型分析（閱讀頁・角色分析・事件分析・符號意象）—— 實作計畫](./20261002-ds-v3-batch3-analysis.md) |
+| 2026-10-04 | [DS v3 第 4 批：專門視圖（時間軸・建構概覽・知識圖譜・張力分析）—— 實作計畫](./20261004-ds-v3-batch4-views.md) |
+| 2026-10-04 | [DS v3 第 5 批：補充包（研究者導覽・敘事結構・批次面板・語氣色／類別色・兩份補稿）—— 實作計畫](./20261004-ds-v3-batch5-supplement.md) |
+| 2026-10-07 | [閱讀頁可讀非正文章節（卷首／卷末）—— 實作計畫](./20261007-reader-non-body-chapters.md) |
+| 2026-10-17 | [上傳流程錯誤分類碼（errorKind／failedStepKinds）—— 實作計畫](./20261017-ingestion-error-kind.md) |
+| 2026-10-17 | [章節審閱頁長書效能（memo 化、content-visibility、總覽捲動）—— 實作計畫](./20261017-chapter-review-long-book-perf.md) |
+| 2026-10-18 | [段落向量改用多語 embedding 模型 —— 實作計畫](./20261018-multilingual-paragraph-embedding.md) |

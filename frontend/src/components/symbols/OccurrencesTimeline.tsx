@@ -1,10 +1,11 @@
 import { useMemo, useState, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ChevronDown, ChevronRight, ExternalLink, Telescope } from 'lucide-react';
+import { ChevronDown, ChevronRight } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 
 import { LoadingSpinner } from '@/components/ui/LoadingSpinner';
+import { Tooltip } from '@/components/ui/Tooltip';
 import type { SymbolTimelineEntry } from '@/api/symbols';
 
 import { chapterSegment, type ChapterAxis, type ChapterSegment } from './chapterAxis';
@@ -118,21 +119,28 @@ function OccurrenceRow({
           </span>
         ))}
         {jumpable ? (
+          // Words, not a bare icon: the old 22px square was the only way off this
+          // list and nothing on it said where it went.
+          // Seven of these read alike to a screen reader; the label says which.
           <button
             type="button"
-            className="sym-occ-jump"
-            title={t('symbol.interpretation.occurrenceJumpTitle')}
+            className="ss-btn ss-btn-sm ss-btn-ghost"
             onClick={onJump}
+            aria-label={[
+              t('symbol.occ.jump'),
+              t('symbol.chapterN', { n: item.chapter_number }) +
+                (ordinal === null ? '' : ` #${ordinal}`),
+            ].join(' · ')}
           >
-            <ExternalLink size={11} />
+            {t('symbol.occ.jump')}
           </button>
         ) : (
           // Not a disabled button: there is nothing to enable. The reader lists
           // body chapters only, so this paragraph has no page to open, and a
           // greyed control invites clicking to find out why.
-          <span className="sym-occ-nojump" title={t('symbol.occ.noJumpTitle')}>
-            {t('symbol.occ.noJump')}
-          </span>
+          <Tooltip label={t('symbol.occ.noJumpTitle')}>
+            <span className="sym-occ-nojump">{t('symbol.occ.noJump')}</span>
+          </Tooltip>
         )}
       </div>
     </div>
@@ -159,7 +167,11 @@ export function OccurrencesTimeline({
   // right chapter before scrolling to the paragraph.
   const jump = (item: SymbolTimelineEntry) =>
     navigate(`/books/${bookId}`, {
-      state: { paragraphId: item.paragraph_id, chapterNumber: item.chapter_number },
+      state: {
+        paragraphId: item.paragraph_id,
+        chapterNumber: item.chapter_number,
+        markTerms: [term, ...aliases],
+      },
     });
 
   const frontCount = front.reduce((sum, g) => sum + g.items.length, 0);
@@ -260,8 +272,9 @@ export function OccurrencesTimeline({
   return (
     <section className="sym-card">
       <div className="sym-card-head">
-        <Telescope size={13} style={{ color: 'var(--accent)' }} />
-        <span className="sym-card-title">{t('symbol.occurrences')}</span>
+        <h2 id="sym-occurrences-title" tabIndex={-1} className="sym-card-title">
+          {t('symbol.occurrences')}
+        </h2>
         <span className="sym-card-meta">
           {/* The front-matter clause is dropped at zero rather than reading
               「前置頁 0 筆另計」, which is a template showing through and not a

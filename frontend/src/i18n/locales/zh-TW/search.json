@@ -1,7 +1,10 @@
 {
   "title": "跨書搜尋",
-  "subtitle": "以一個概念、情感或問題為出發點，同時在書庫中所有書籍的文本與分析結果裡尋找相關段落。",
-  "placeholder": "描述某種情感或場景，例如：主角內心的動搖…",
+  "subtitle": "以一個概念、情感或問題為出發點，同時在書庫所有書籍的原文裡尋找相關段落。",
+  "placeholder": {
+    "fulltext": "輸入詞語，以空格分隔、須同時出現，例如：海 名字",
+    "semantic": "描述某種情感或場景，例如：主角內心的動搖…"
+  },
   "submit": "搜尋",
   "scopeAll": "所有書籍",
   "scopeLabel": "範圍：",
@@ -13,18 +16,55 @@
     "archetype": "原型"
   },
   "result": {
-    "goToBook": "前往該書"
+    "goToBook": "前往該書",
+    "locator": "第{{chapter}}章·§{{position}}"
   },
   "empty": {
     "noResults": "找不到相關段落",
     "noResultsHint": "嘗試調整搜尋詞，或以不同方式描述情感與場景。",
     "noBooks": "書庫尚無書籍",
     "noBooksHint": "上傳一本小說即可開始跨書搜尋。",
-    "uploadNow": "立即上傳"
+    "uploadNow": "立即上傳",
+    "noResultsHintFulltext": "每個詞都須出現在同一段落。試著減少詞數，或改用語意搜尋找意思相近的段落。",
+    "trySemantic": "改用語意搜尋"
+  },
+  "summary": "找到 <strong>{{count}}</strong> 個段落，來自 <strong>{{books}}</strong> {{bookUnit}}",
+  "summarySemantic": "最相近的 <strong>{{count}}</strong> 個段落，來自 <strong>{{books}}</strong> {{bookUnit}}",
+  "semanticNote": "依意思相近程度排序，不代表段落一定含有你要找的內容；相關度只能在同一次搜尋內比較。",
+  "score": {
+    "hits": "命中次數",
+    "relevance": "相關度",
+    "hitCount": "{{count}}次"
+  },
+  "error": {
+    "searchFailed": "搜尋失敗，請稍後再試。"
+  },
+  "partial": {
+    "message": "{{count}} 本書籍查詢失敗，結果不完整",
+    "retry": "重新搜尋"
+  },
+  "aria": {
+    "collapse": "收合 {{title}}",
+    "expand": "展開 {{title}}",
+    "removeBook": "移除 {{title}}",
+    "clear": "清除搜尋",
+    "mode": "搜尋模式",
+    "input": "搜尋段落",
+    "openPassage": "在閱讀頁開啟 {{locator}}"
   },
   "loading": "搜尋中…",
   "mode": {
     "fulltext": "關鍵字",
     "semantic": "語意"
+  },
+  "group": {
+    "count": "{{count}} 段落",
+    "countCapped": "{{count}}+ 段落",
+    "countMax": "僅列前 {{count}} 段",
+    "showMore": "顯示更多",
+    "showMoreFailed": "載入失敗，請再試一次。"
+  },
+  "unit": {
+    "book": "本書籍"
   }
 }

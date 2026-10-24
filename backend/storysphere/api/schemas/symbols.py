@@ -5,7 +5,8 @@ Uses snake_case (no alias_generator) following backend/storysphere/api/schemas/e
 
 from __future__ import annotations
 
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict, Field
+from pydantic.alias_generators import to_camel
 
 from storysphere.domain.imagery import ImageryEntity, SymbolOccurrence
 
@@ -66,3 +67,25 @@ class CoOccurrenceEntry(BaseModel):
     imagery_id: str
     co_occurrence_count: int
     imagery_type: str
+
+
+class RunningSymbolAnalysis(BaseModel):
+    """One single-symbol interpretation (#15e) still running (#15l).
+
+    camelCase, unlike the rest of this module: it sits next to #15k
+    (``ActiveBatchResponse``) and mirrors #7l, and the page reads all three the
+    same way.
+    """
+
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+    imagery_id: str
+    task_id: str
+
+
+class RunningSymbolAnalysesResponse(BaseModel):
+    """Single-symbol interpretations (#15e) currently running for a book (#15l)."""
+
+    model_config = ConfigDict(populate_by_name=True, alias_generator=to_camel)
+
+    running: list[RunningSymbolAnalysis] = Field(default_factory=list)

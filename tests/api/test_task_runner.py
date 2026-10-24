@@ -113,6 +113,18 @@ class TestFailure:
         task = store.get(task_id)
         assert task.status == "error"
         assert task.error == message
+        assert task.error_kind is None
+
+    async def test_aborted_task_carries_its_error_kind(self, store, task_id):
+        """A step rerun aborts with the step's failure kind (#8d → errorKind)."""
+        from storysphere.api import task_runner
+
+        async def _work():
+            raise task_runner.TaskAborted("429 quota exceeded", error_kind="rate_limited")
+
+        await task_runner.launch(task_id, _work())
+
+        assert store.get(task_id).error_kind == "rate_limited"
 
     async def test_abort_does_not_complete_the_task(self, store, task_id):
         """Guards the trap the batch runners would otherwise fall into.

@@ -13,6 +13,8 @@ from __future__ import annotations
 
 import json
 import logging
+import re
+from datetime import UTC, datetime
 
 from sqlalchemy import Column, ForeignKey, Integer, String, Text, and_, func, select
 from sqlalchemy import delete as sa_delete
@@ -60,6 +62,7 @@ class _DocumentRow(_Base):
     language = Column(String, nullable=False, server_default="en")
     timeline_config_json = Column(Text, nullable=True)  # JSON-encoded TimelineConfig
     pipeline_status_json = Column(Text, nullable=True)  # JSON-encoded PipelineStatus
+    last_opened_at = Column(String, nullable=True)  # UTC ISO-8601 with trailing "Z"
 
 
 class _ChapterRow(_Base):
@@ -131,6 +134,7 @@ class DocumentService:
                 # B-102: 段落層 keywords 一直產得出來也送進 Qdrant，只是沒有欄位存。
                 # 既有的書要重跑 feature-extraction 才會有值。
                 "ALTER TABLE paragraphs ADD COLUMN keywords_json TEXT",
+                "ALTER TABLE documents ADD COLUMN last_opened_at TEXT",
             ]:
                 try:
                     await conn.execute(sa_text(stmt))
@@ -408,6 +412,7 @@ class DocumentService:
                     if doc_row.pipeline_status_json
                     else PipelineStatus()
                 ),
+                last_opened_at=doc_row.last_opened_at,
             )
 
     async def update_pipeline_status(self, document_id: str, pipeline_status: PipelineStatus) -> None:
@@ -420,6 +425,20 @@ class DocumentService:
                     ),
                     {"json": pipeline_status.model_dump_json(), "id": document_id},
                 )
+
+    async def mark_opened(self, document_id: str) -> bool:
+        """Stamp ``last_opened_at`` with the current UTC time (``...Z``).
+
+        Returns False when the document does not exist.
+        """
+        stamp = datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
+        async with self._session_factory() as session:
+            async with session.begin():
+                result = await session.execute(
+                    sa_text("UPDATE documents SET last_opened_at = :ts WHERE id = :id"),
+                    {"ts": stamp, "id": document_id},
+                )
+                return result.rowcount > 0
 
     async def get_document_language(self, document_id: str) -> str:
         """Return the detected/configured language for a document, or ``'en'``."""
@@ -449,6 +468,7 @@ class DocumentService:
                     _DocumentRow.title,
                     _DocumentRow.file_type,
                     _DocumentRow.pipeline_status_json,
+                    _DocumentRow.last_opened_at,
                     chapter_count,
                 )
                 # Body chapters only: the count is shown as the book's length,
@@ -469,6 +489,7 @@ class DocumentService:
                     file_type=row.file_type,
                     chapter_count=row.chapter_count,
                     pipeline_status_json=row.pipeline_status_json,
+                    last_opened_at=row.last_opened_at,
                 )
                 for row in result.all()
             ]
@@ -662,26 +683,47 @@ class DocumentService:
     ) -> list[VectorSearchResult]:
         """Full-text search on paragraph text using SQLite LIKE (AND for multiple tokens).
 
-        Each space-separated token must appear in the paragraph (AND semantics).
-        Score = total occurrence count of all tokens; results sorted descending.
+        Each space-separated token must appear in the paragraph (AND semantics);
+        ``%`` / ``_`` in a token match literally.
+        Score = number of non-overlapping hits of the tokens (case-insensitive,
+        deduplicated, longest first) — the same split the frontend highlights,
+        so the「N次」score equals the number of ``<mark>``s.
+
+        Body chapters only: front/back matter is not part of the story, and the
+        semantic index holds body paragraphs only, so both modes cover the same text.
+        No SQL ``LIMIT``: ranking uses the hit count computed here, so limiting
+        before scoring could drop the best matches.
         """
-        tokens = [t for t in query.strip().split() if t]
+        tokens = list({t.lower(): t for t in query.strip().split() if t}.values())
         if not tokens:
             return []
 
         async with self._session_factory() as session:
-            stmt = select(_ParagraphRow)
+            stmt = select(_ParagraphRow).join(
+                _ChapterRow,
+                and_(
+                    _ChapterRow.id == _ParagraphRow.chapter_id,
+                    _ChapterRow.role == ChapterRole.body.value,
+                ),
+            )
             if document_id:
                 stmt = stmt.where(_ParagraphRow.document_id == document_id)
             for token in tokens:
-                stmt = stmt.where(_ParagraphRow.text.ilike(f"%{token}%"))
+                escaped = (
+                    token.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
+                )
+                stmt = stmt.where(_ParagraphRow.text.ilike(f"%{escaped}%", escape="\\"))
 
             result = await session.execute(stmt)
             rows = result.scalars().all()
 
+        hit_re = re.compile(
+            "|".join(re.escape(t) for t in sorted(tokens, key=len, reverse=True)),
+            re.IGNORECASE,
+        )
+
         def _score(text: str) -> float:
-            text_lower = text.lower()
-            return float(sum(text_lower.count(t.lower()) for t in tokens))
+            return float(sum(1 for _ in hit_re.finditer(text)))
 
         return sorted(
             [

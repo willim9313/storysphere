@@ -1,0 +1,107 @@
+import type { BookUsage, DailyUsage, TokenBucket } from '@/api/tokenUsage';
+import { UNATTRIBUTED } from '@/api/tokenUsage';
+
+/** A book row's key. `null` is a real group but cannot be an object key. */
+export function bookKey(bookId: string | null): string {
+  return bookId ?? UNATTRIBUTED;
+}
+
+/** Label for a book row. A deleted book keeps its spending but loses its title;
+ *  the id stub is the only handle left and still tells two deleted books apart. */
+export function bookLabel(
+  book: BookUsage,
+  labels: { unattributed: string; deleted: (id: string) => string },
+): string {
+  if (book.bookId === null) return labels.unattributed;
+  return book.title ?? labels.deleted(book.bookId.slice(0, 8));
+}
+
+export interface BucketRow {
+  key: string;
+  bucket: TokenBucket;
+}
+
+/** Descending by totalTokens; ties keep the input order. */
+export function sortBuckets(data: Record<string, TokenBucket>): BucketRow[] {
+  return Object.entries(data)
+    .map(([key, bucket]) => ({ key, bucket }))
+    .sort((a, b) => b.bucket.totalTokens - a.bucket.totalTokens);
+}
+
+/** The book table is always built from the unfiltered query, sorted like the others. */
+export function bookRows(books: BookUsage[]): BucketRow[] {
+  return sortBuckets(Object.fromEntries(books.map((b) => [bookKey(b.bookId), b])));
+}
+
+export type Range = 'today' | '7d' | '30d' | 'all';
+export const RANGE_KEYS: readonly Range[] = ['today', '7d', '30d', 'all'];
+export const DEFAULT_RANGE: Range = '7d';
+
+/** `?range=` from the URL; anything unknown falls back to the default. */
+export function parseRange(value: string | null): Range {
+  return RANGE_KEYS.find((r) => r === value) ?? DEFAULT_RANGE;
+}
+
+/** Label for the selected book even when the current range has no row for it:
+ *  look through every list we have. `null` = no list knows it (yet). */
+export function selectedLabel(
+  key: string,
+  lists: BookUsage[][],
+  labels: { unattributed: string; deleted: (id: string) => string },
+): string | null {
+  if (key === UNATTRIBUTED) return labels.unattributed;
+  for (const list of lists) {
+    const hit = list.find((b) => bookKey(b.bookId) === key);
+    if (hit) return bookLabel(hit, labels);
+  }
+  return null;
+}
+
+/** Dropdown order: books as given, 「未歸屬」 last — it is not a book. */
+export function dropdownBooks(books: BookUsage[]): BookUsage[] {
+  return [...books.filter((b) => b.bookId !== null), ...books.filter((b) => b.bookId === null)];
+}
+
+/** Dropdown and table rows share one state: clicking the selected row clears it. */
+export function toggleSelected(current: string | null, key: string): string | null {
+  return current === key ? null : key;
+}
+
+export interface DailyRow {
+  /** YYYY-MM-DD — unique, unlike the label. */
+  date: string;
+  /** MM-DD, or YYYY-MM-DD when the period crosses a year. */
+  label: string;
+  totalTokens: number;
+  /** 0–100, relative to this period's maximum. */
+  pct: number;
+}
+
+export interface DailyScale {
+  rows: DailyRow[];
+  /** Label of the day the bars are scaled against (earliest on a tie). */
+  baseLabel: string;
+  baseValue: number;
+}
+
+/** Bar width = day / period max. The base is part of the result so the page can
+ *  say what the bars are relative to — it changes with the range. */
+export function dailyScale(daily: DailyUsage[]): DailyScale | null {
+  if (daily.length === 0) return null;
+  let base = daily[0];
+  for (const d of daily) if (d.totalTokens > base.totalTokens) base = d;
+  const max = base.totalTokens;
+  // 「全部」 can cross a year; MM-DD alone would then name two different days the same.
+  const crossesYear = daily[0].date.slice(0, 4) !== daily[daily.length - 1].date.slice(0, 4);
+  const label = (date: string) => (crossesYear ? date : date.slice(5));
+  return {
+    baseLabel: label(base.date),
+    baseValue: max,
+    rows: daily.map((d) => ({
+      date: d.date,
+      label: label(d.date),
+      totalTokens: d.totalTokens,
+      pct: max > 0 ? (d.totalTokens / max) * 100 : 0,
+    })),
+  };
+}

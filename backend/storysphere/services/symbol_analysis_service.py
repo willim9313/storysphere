@@ -254,8 +254,9 @@ class SymbolAnalysisService:
         review_status: str,
         theme: str | None = None,
         polarity: str | None = None,
+        evidence_summary: str | None = None,
     ) -> SymbolInterpretation | None:
-        """Update review_status (and optionally theme/polarity) of an interpretation.
+        """Update review_status (and optionally theme/evidence_summary/polarity) of an interpretation.
 
         Returns the updated SymbolInterpretation, or None if not found.
         """
@@ -266,6 +267,8 @@ class SymbolAnalysisService:
         updates: dict = {"review_status": review_status}
         if theme is not None:
             updates["theme"] = theme
+        if evidence_summary is not None:
+            updates["evidence_summary"] = evidence_summary
         if polarity is not None:
             updates["polarity"] = polarity
         updated = current.model_copy(update=updates)

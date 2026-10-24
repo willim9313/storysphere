@@ -89,11 +89,13 @@ async def get_kg_status() -> KgStatusResponse:
         from storysphere.api.deps import get_vector_service  # noqa: PLC0415
         qc = get_vector_service()._client
         collections = qc.get_collections().collections
+        # Every collection holds one unnamed vector per point, so points == vectors.
+        # (qdrant-client 1.18 dropped ``vectors_count``; reading it raised and left this null.)
         vector_count = sum(
-            (qc.get_collection(c.name).vectors_count or 0) for c in collections
+            (qc.get_collection(c.name).points_count or 0) for c in collections
         )
-    except Exception:
-        pass
+    except Exception as exc:
+        logger.warning("Vector count unavailable: %s", exc)
 
     return KgStatusResponse(
         mode=mode,
