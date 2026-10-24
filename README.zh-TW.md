@@ -23,7 +23,22 @@ StorySphere 讀入小說（PDF / DOCX / EPUB），透過多階段 ETL 管線抽�
 - **對話 Agent** — LangGraph 串流 chat agent，具工具存取能力，任一書籍頁面皆可使用
 - **視覺化** — 知識圖譜、事件時間軸、各分析面板
 
+**介面：** 桌面優先（最小寬度 720px），兩種主題——**Warm**（象牙紙與墨線）與 **Ink**（近單色線稿），介面完整支援繁體中文與英文。
+
 > **目前運行在輕量模式（lightweight）**：Qdrant 以本地檔案儲存，KG 後端固定為 NetworkX，無需額外外部服務。也支援 standard 模式（遠端 Qdrant、可選 Neo4j），詳見〈部署模式〉。
+
+---
+
+## 畫面
+
+![知識圖譜：選取角色後，側欄顯示關係、深度分析狀態與相關段落（Warm 主題）](docs/images/readme/knowledge-graph-warm.webp)
+
+| | |
+|---|---|
+| ![閱讀：章節正文與實體標註、書籍概覽與章節清單（Warm）](docs/images/readme/reader-warm.webp) | ![敘事結構：英雄旅程各階段落在章節軸上，附信心值與出處章節（Warm）](docs/images/readme/narrative-warm.webp) |
+| **閱讀** — 每個分析結論都能回到原文段落 | **敘事結構** — 整本書的英雄旅程 |
+| ![象徵意象：章節密度熱圖與主要意象，近單色的 Ink 主題](docs/images/readme/symbols-ink.webp) | ![角色分析：定位象限——敘事存在感 × 結構重要性，依派系上色（Warm）](docs/images/readme/characters-warm.webp) |
+| **象徵意象** — 章節密度熱圖（**Ink** 主題） | **角色分析** — 誰是要角、誰是樞紐、誰是背景長尾 |
 
 ---
 
@@ -40,7 +55,8 @@ StorySphere 讀入小說（PDF / DOCX / EPUB），透過多階段 ETL 管線抽�
 | 關鍵字抽取 | YAKE · TF-IDF · LLM · Composite |
 | 追蹤 | Langfuse（選用） |
 | 前端 | React 19 · TypeScript · Vite · React Router v6 · TanStack Query |
-| 圖形視覺化 | Cytoscape.js（+ fcose layout）· D3 |
+| 樣式 | CSS design tokens（Warm／Ink 兩主題，`styles/tokens.css`）· 元件 kit `ss-*` · Tailwind CSS 3 · lucide-react 圖示 |
+| 圖形視覺化 | Cytoscape.js（+ fcose layout）· 手刻 SVG 圖表 |
 | 前端多語系 | i18next / react-i18next（英文 + 繁體中文） |
 | Python 套件管理 | **uv** |
 
@@ -333,6 +349,9 @@ uv run pytest --neo4j
 - [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) — 前後端 API 規格，唯一真相來源
 - [`docs/UI_SPEC.md`](docs/UI_SPEC.md) — UI 元件設計規格
 - [`docs/DESIGN_TOKENS.md`](docs/DESIGN_TOKENS.md) — CSS token 對照表
+- [`DESIGN.md`](DESIGN.md) — 視覺系統：色彩、字體、元件、Do／Don't
+- [`PRODUCT.md`](PRODUCT.md) — 產品前提：使用者、原則、平台限制
+- [`docs/DS_V3_DESIGN_FEEDBACK.md`](docs/DS_V3_DESIGN_FEEDBACK.md) — DS v3 重構時發現的設計遺漏與工程端代為裁決處，待同步回設計端
 - [`docs/domain-glossary.md`](docs/domain-glossary.md) — 領域術語表
 - [`docs/BACKLOG.md`](docs/BACKLOG.md) — 現行 backlog（已結案項目見 `docs/BACKLOG_ARCHIVE.md`）
 - [`docs/type-generation.md`](docs/type-generation.md) — 為何 TypeScript 型別要自動產生，以及 camelCase / snake_case 規則
