@@ -22,31 +22,75 @@ interface UseDraggableReturn {
   draggedRef: { current: boolean };
 }
 
+/**
+ * Where the element sits, as a distance from its nearest viewport corner.
+ * Absolute x/y went stale on every resize: a bubble left at the bottom-right
+ * of a 1024 window ended up mid-content once the window was widened (B-130).
+ */
+interface Anchor {
+  ax: 'left' | 'right';
+  dx: number;
+  ay: 'top' | 'bottom';
+  dy: number;
+}
+
 function clamp(val: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, val));
 }
 
-function loadPos(
+function toAnchor(p: Position, w: number, h: number): Anchor {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  const right = p.x + w / 2 > vw / 2;
+  const bottom = p.y + h / 2 > vh / 2;
+  return {
+    ax: right ? 'right' : 'left',
+    dx: right ? vw - p.x - w : p.x,
+    ay: bottom ? 'bottom' : 'top',
+    dy: bottom ? vh - p.y - h : p.y,
+  };
+}
+
+function toPos(a: Anchor, w: number, h: number): Position {
+  const vw = window.innerWidth;
+  const vh = window.innerHeight;
+  return {
+    x: clamp(a.ax === 'right' ? vw - w - a.dx : a.dx, 0, vw - w),
+    y: clamp(a.ay === 'bottom' ? vh - h - a.dy : a.dy, 0, vh - h),
+  };
+}
+
+function loadAnchor(
   storageKey: string,
   fallback: Position,
   w: number,
   h: number,
-): Position {
+): Anchor {
   try {
     const raw = localStorage.getItem(storageKey);
     if (raw) {
-      const parsed = JSON.parse(raw) as { x?: unknown; y?: unknown };
+      const parsed = JSON.parse(raw) as Partial<Anchor> & { x?: unknown; y?: unknown };
+      if (
+        (parsed.ax === 'left' || parsed.ax === 'right') &&
+        (parsed.ay === 'top' || parsed.ay === 'bottom') &&
+        typeof parsed.dx === 'number' &&
+        typeof parsed.dy === 'number'
+      ) {
+        return { ax: parsed.ax, dx: parsed.dx, ay: parsed.ay, dy: parsed.dy };
+      }
+      // Pre-anchor format: absolute x/y, re-read against the nearest corner.
       if (typeof parsed.x === 'number' && typeof parsed.y === 'number') {
-        return {
-          x: clamp(parsed.x, 0, window.innerWidth - w),
-          y: clamp(parsed.y, 0, window.innerHeight - h),
-        };
+        return toAnchor(
+          { x: clamp(parsed.x, 0, window.innerWidth - w), y: clamp(parsed.y, 0, window.innerHeight - h) },
+          w,
+          h,
+        );
       }
     }
   } catch {
     // ignore parse / storage errors
   }
-  return fallback;
+  return toAnchor(fallback, w, h);
 }
 
 export function useDraggable({
@@ -56,9 +100,10 @@ export function useDraggable({
   elementHeight,
 }: UseDraggableOptions): UseDraggableReturn {
   const [isDragging, setIsDragging] = useState(false);
-  const [pos, setPos] = useState<Position>(() =>
-    loadPos(storageKey, defaultPos(), elementWidth, elementHeight),
-  );
+  // The anchor is the source of truth; pos is derived from it on resize.
+  const [initialAnchor] = useState(() => loadAnchor(storageKey, defaultPos(), elementWidth, elementHeight));
+  const anchorRef = useRef<Anchor>(initialAnchor);
+  const [pos, setPos] = useState<Position>(() => toPos(initialAnchor, elementWidth, elementHeight));
 
   // Ref always holds the latest pos so onMouseDown closure doesn't go stale
   const posRef = useRef(pos);
@@ -68,13 +113,11 @@ export function useDraggable({
     posRef.current = pos;
   }, [pos]);
 
-  // Re-clamp if viewport resizes (e.g. rotate phone, resize window)
+  // Re-place from the anchor on resize, so the element keeps its distance to
+  // its corner (a shrink that clamps it springs back when the window grows).
   useEffect(() => {
     const onResize = () => {
-      setPos((p) => ({
-        x: clamp(p.x, 0, window.innerWidth - elementWidth),
-        y: clamp(p.y, 0, window.innerHeight - elementHeight),
-      }));
+      setPos(toPos(anchorRef.current, elementWidth, elementHeight));
     };
     window.addEventListener('resize', onResize);
     return () => window.removeEventListener('resize', onResize);
@@ -108,8 +151,9 @@ export function useDraggable({
         setIsDragging(false);
         document.removeEventListener('mousemove', onMouseMove);
         document.removeEventListener('mouseup', onMouseUp);
+        anchorRef.current = toAnchor(latestPos, elementWidth, elementHeight);
         try {
-          localStorage.setItem(storageKey, JSON.stringify(latestPos));
+          localStorage.setItem(storageKey, JSON.stringify(anchorRef.current));
         } catch {
           // ignore storage errors
         }

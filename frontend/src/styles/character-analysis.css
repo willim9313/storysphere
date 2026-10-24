@@ -261,7 +261,7 @@
 .ca-content { flex: 1; min-width: 0; display: flex; flex-direction: column; overflow: hidden; position: relative; }
 .ca-content-scroll {
   flex: 1; overflow-y: auto; min-height: 0;
-  padding: var(--space-7) var(--space-7) var(--space-8);
+  padding: var(--space-7) var(--space-7) var(--fab-clearance);
 }
 .ca-content-inner {
   max-width: 1280px; margin: 0 auto;

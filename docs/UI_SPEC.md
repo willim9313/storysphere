@@ -2576,6 +2576,9 @@ group header 五件：accent chevron（收合鈕，`aria-expanded`）+ 書名（
 
 圓形浮動按鈕，固定在右下角，顯示對話 icon；當 ChatWindow 開啟時改為關閉 icon。
 
+- **可拖曳**，位置以「最近的視窗角落＋到該角落的距離」記在 localStorage `chat-widget-pos`（`{ax, dx, ay, dy}`；`hooks/useDraggable.ts`）。resize 與重新載入時從角落重算——預設的停在右下 24／24，拖到左上的留在左上；視窗縮小被夾住、放大後彈回原距離。舊格式 `{x, y}` 讀取時換算成最近角落。
+- **不蓋內容的規則（B-130，2026-10-24）**：泡泡維持在浮動軌上，**由頁面讓位**——書內頁的主捲動容器下內距用 `--fab-clearance`（88），最後一列可捲到泡泡上方。套用：角色、事件、時間軸、張力、象徵、敘事、建構概覽（`ca-content-scroll`、`ea-content-scroll`、`tl-inner`、`tn-page`、`sym-detail`、`nl-page`、`bo-page`）。閱讀頁與圖譜不是單一捲動容器：閱讀頁由回頂部 FAB 的安全距處理，圖譜的圖例帶右內距讓出泡泡。新頁面若主內容捲到視窗底，也要用這個 token。
+
 #### ChatWindow
 
 WebSocket 連線，含訊息列表 + 輸入框。
@@ -2684,6 +2687,7 @@ WebSocket 連線，含訊息列表 + 輸入框。
   「在軌」判準：泡泡與 toast 欄（右側 340 寬）水平相交，且位於格 2 以下。
 - **讓位**：聊天視窗開啟且壓到軌時，toast 貼視窗上緣 8px，並 clamp 在視窗內。
 - **z 序**：泡泡 60 · 視窗 59 > toast 55 > FAB 30——持久控制項壓在暫態通知上。
+- **頁面讓位**：軌上元件不避讓頁面內容；書內頁以 `--fab-clearance` 下內距讓出軌位（見 §4.1）。
 
 | 狀態 | toast `bottom` |
 |---|---|

@@ -17,7 +17,7 @@
 }
 .tn-page {
   max-width: 1280px; margin: 0 auto; width: 100%;
-  padding: var(--space-7) var(--space-7) var(--space-8);
+  padding: var(--space-7) var(--space-7) var(--fab-clearance);
   display: flex; flex-direction: column; gap: var(--space-6);
   font-family: var(--font-sans); color: var(--fg-primary);
 }
@@ -632,7 +632,7 @@
 
 @media (max-width: 640px) {
   .tn-grid { --tn-grid-label-w: 150px; }
-  .tn-page { padding: var(--space-6) var(--space-5) var(--space-8); }
+  .tn-page { padding: var(--space-6) var(--space-5) var(--fab-clearance); }
   /* 五格在這個寬度比自己的標題還窄：改直向堆疊 */
   .tn-stepper { grid-template-columns: minmax(0, 1fr); }
   .tn-teu-items { padding-left: var(--space-5); }
