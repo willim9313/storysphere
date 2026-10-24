@@ -967,9 +967,9 @@
 .ca-ov-bubble:focus-visible { outline: none; }
 .ca-ov-bubble:focus-visible circle:last-of-type { stroke: var(--accent); stroke-width: 2.5; }
 .ca-ov-median-line { stroke: var(--border); stroke-width: 1.5; stroke-dasharray: 4 4; }
-.ca-ov-median-label { fill: var(--fg-muted); font-family: var(--font-mono); font-size: var(--font-size-2xs); }
-.ca-ov-axis-label { fill: var(--fg-muted); font-family: var(--font-sans); font-size: var(--font-size-sm); font-weight: 500; }
-.ca-ov-corner-label { fill: var(--fg-muted); font-family: var(--font-sans); font-size: var(--font-size-xs); font-style: italic; opacity: 0.6; }
+.ca-ov-median-label { fill: var(--fg-secondary); font-family: var(--font-mono); font-size: var(--font-size-2xs); }
+.ca-ov-axis-label { fill: var(--fg-secondary); font-family: var(--font-sans); font-size: var(--font-size-sm); font-weight: 500; }
+.ca-ov-corner-label { fill: var(--fg-secondary); font-family: var(--font-sans); font-size: var(--font-size-xs); font-style: italic; }
 .ca-ov-bubble-label { fill: var(--fg-primary); font-family: var(--font-sans); font-size: var(--font-size-sm); font-weight: 500; }
 .ca-ov-bubble-detail { fill: var(--fg-muted); font-family: var(--font-sans); font-size: var(--font-size-xs); font-weight: 400; }
 .ca-ov-footnote { font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-muted); margin: 0; text-wrap: pretty; }

@@ -2421,3 +2421,23 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 - **問題**：上述結構標籤用 `fg-muted`，Warm 3.15:1、疊在人工關卡卡片（bg-tertiary）上只有 2.59:1（Ink 2.84）；DESIGN.md 的 muted 只給註記、計數、placeholder。720 寬階段條 kicker 單行截斷成「CROSS-SCE…」。Ink 的 bg-secondary `#f6f6f4` 與白底太近，開著抽屜的列與一般列分不出來。
 - **目前處置**（使用者 2026-10-14 裁決）：僅本頁——上述標籤改 `--fg-secondary`（Warm 5.37–6.51、Ink 8.9）；kicker 改可換行；新 shape token `--row-open-marker-width`（Warm 0／Ink 3px），開著的表格列與格點列標籤左側 inset 粗線。提示、計數、鎖定階段維持 muted。人工關卡卡片上的 warning 字 4.0:1 併入全站色彩延後項，未改。
 - **請設計端**：確認結構標籤改 secondary；補畫窄寬 kicker 換行與 Ink 開著列的標記。
+
+## 稿外新增 · 全站收尾（跨頁延後項）
+
+各頁評估時刻意「各頁評完再統一處理」的跨頁項目。編號 `XS-n`。
+
+| # | 類型 | 狀態 |
+|---|------|------|
+| XS-1 | 缺陷 · `--fg-muted` 全站對比不足，且被大量用在承載資訊的文字 | 待同步 |
+
+### XS-1 `--fg-muted` 對比與用途
+
+- **出處**：`colors_and_type.css` 的 `--fg-muted`（Warm `#938876`／Ink `#8c8c8c`）；DESIGN.md Pencil 鉛筆灰「muted 只給註記、計數、placeholder」；NL-1、TN-2 與方法論頁 #338 已在各頁單點處理，留下全站延後項（2026-10-24）
+- **問題**：對各層底色只有 2.56–3.36:1，未達 4.5:1。全站 552 處引用中，逐處分類為註記／計數 226、承載資訊或可操作 223（軸名、未選中分頁、欄位標籤、圖例說明、錯誤訊息）、非文字 103——muted 實際上被當成第二層資訊文字使用。
+- **目前處置**（使用者 2026-10-24 裁決）：
+  - token 調深到對 `bg-primary` ≥ 4.5:1：Warm `#776c5b`（4.65）、Ink `#737373`（4.74）。不追到全底過線——Warm 要 `#695f4e` 才過 tertiary，對 secondary 只剩 5.67 vs 6.51，層次相黏。
+  - 調深後仍不及格、且承載資訊的 `bg-secondary`／`bg-tertiary` 底文字改 `--fg-secondary`：角色象限圖軸名／角標／中位數（角標去掉 `opacity: .6`）、事件骨幹圖軌名與章節刻度、事件重要性徽章（衛星／未分析）、敘事階段詳情欄位標籤與信心刻度、閱讀頁與 Token 頁統計標籤、Token 表頭、圖譜模式說明、象徵「待審」徽章。secondary 底上的計數與 meta 維持 muted（Warm 4.23、Ink 4.38）。
+  - 寫死同色值的文字 token（`--panel-fg-muted`、`--status-empty-fg`、`--tension-intensity-low-fg`、Ink `--polarity-neutral-fg`）改成 `var(--fg-muted)` 跟著走。
+  - 非文字的 `--illustration-stroke-soft` 釘在舊值，插畫筆觸不加深。
+  - 順帶：Ink 的白字灰底 `--tension-intensity-mid-bg`、`--frye-irony-bg` 由 `#8c8c8c`（白字 3.36）改 `#737373`（4.74）。
+- **請設計端**：`colors_and_type.css` 更新 muted 兩值；稿上 secondary／tertiary 底的結構標籤（軸名、欄位標籤、徽章）改畫 secondary；確認「承載資訊或可操作的文字不用 muted」為全站規則。

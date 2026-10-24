@@ -55,7 +55,7 @@
 }
 .rd-stat-wide { grid-column: 1 / -1; flex-direction: row-reverse; align-items: baseline; justify-content: space-between; }
 .rd-stat-value { font-family: var(--font-mono); font-size: var(--font-size-sm); font-weight: 700; color: var(--fg-primary); }
-.rd-stat-label { font-size: var(--font-size-2xs); color: var(--fg-muted); }
+.rd-stat-label { font-size: var(--font-size-2xs); color: var(--fg-secondary); }
 .rd-section { display: flex; flex-direction: column; gap: var(--space-3); }
 .rd-label { font-size: var(--font-size-2xs); letter-spacing: 0.06em; color: var(--fg-muted); margin: 0; font-weight: 400; }
 .rd-label-hint { font-family: var(--font-mono); letter-spacing: 0; }

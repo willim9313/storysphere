@@ -455,7 +455,7 @@
 .nl-sd-label {
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
+  color: var(--fg-secondary);
   letter-spacing: 0.04em;
 }
 .nl-sd-extra {
@@ -632,7 +632,7 @@ a.nl-sd-ev:hover {
   height: 14px;
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
+  color: var(--fg-secondary);
   font-variant-numeric: tabular-nums;
 }
 .nl-conf-s0 {

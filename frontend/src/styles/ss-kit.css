@@ -791,7 +791,7 @@
 }
 .ss-stat-label {
   font-family: var(--font-sans); font-size: var(--font-size-2xs);
-  color: var(--fg-muted); letter-spacing: 0.05em;
+  color: var(--fg-secondary); letter-spacing: 0.05em;
 }
 
 /* 第 5 批 5-1：照設計 kit 補齊（原樣搬入，未改既有 class）。 */

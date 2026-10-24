@@ -58,7 +58,11 @@
 |-------|------|-----|
 | `--fg-primary` | `#2a2620` | `#151515` |
 | `--fg-secondary` | `#5f5648` | `#3f3f3f` |
-| `--fg-muted` | `#938876` | `#8c8c8c` |
+| `--fg-muted` | `#776c5b` | `#737373` |
+
+> `--fg-muted` 取對 `--bg-primary` ≥ 4.5:1 的值（Warm 4.65、Ink 4.74；2026-10-24 由 `#938876`／`#8c8c8c` 調深，原值僅 3.15／3.36）。
+> 在 `bg-secondary`／`bg-tertiary`／`panel-bg-card` 上仍低於 4.5:1（Warm 3.79–4.23、Ink 4.01–4.38），要在這些底上承載資訊的文字改用 `--fg-secondary`；再調深會讓 Warm 的 muted 與 secondary 層次相黏（全底過線需 `#695f4e`，對 secondary 6.51 只剩 5.67）。
+> 舊值仍保留在非文字的 `--illustration-stroke-soft`，插畫筆觸不跟著加深。
 
 ### 3.3 邊框與 Accent
 
@@ -86,7 +90,7 @@
 | `--panel-bg-card` | `#e7dcc6` | `#ededeb` |
 | `--panel-border` | `#d3c3a4` | `#1a1a1a` |
 | `--panel-fg` | `#2a2620` | `#151515` |
-| `--panel-fg-muted` | `#938876` | `#8c8c8c` |
+| `--panel-fg-muted` | `var(--fg-muted)` | `var(--fg-muted)` |
 
 ### 3.5 字體（兩主題共用，不隨主題置換）
 
@@ -215,7 +219,7 @@ warm 由 status 色系派生；ink 用 fill polarity（深淺取代色相）。
 |------|------|-----|
 | `--polarity-positive-bg/-fg/-edge/-dot` | `#eef1df` / `#4a6330` / `#b7c78e` / `#5f7d3b` | `#ffffff` / `#151515` / `#151515` / `#151515` |
 | `--polarity-negative-bg/-fg/-edge/-dot` | `#f4e4da` / `#8a3a22` / `#d3a78f` / `#a8482c` | `#151515` / `#ffffff` / `#000000` / `#ffffff` |
-| `--polarity-neutral-bg/-fg/-edge/-dot` | `#f1e8d5` / `#5f5648` / `#ddceb2` / `#938876` | `#f6f6f4` / `#8c8c8c` / `#cfcfcf` / `#8c8c8c` |
+| `--polarity-neutral-bg/-fg/-edge/-dot` | `#f1e8d5` / `#5f5648` / `#ddceb2` / `#938876` | `#f6f6f4` / `var(--fg-muted)` / `#cfcfcf` / `#8c8c8c` |
 | `--polarity-mixed-bg/-fg/-edge/-dot` | `#f6edd6` / `#8a5c13` / `#dcc08a` / `#ad7519` | `#d8d8d8` / `#151515` / `#8c8c8c` / `#3f3f3f` |
 
 #### 符號章節密度（Symbol density）
@@ -248,7 +252,7 @@ ink 用單色階：fill 極性＋線重承載完成度。
 |------|------|-----|
 | `--status-complete-bg/-border/-fg` | `#eef1df` / `#5f7d3b` / `#4a6330` | `#151515` / `#151515` / `#ffffff` |
 | `--status-partial-bg/-border/-fg` | `#f6edd6` / `#ad7519` / `#8a5c13` | `#ffffff` / `#1a1a1a` / `#151515` |
-| `--status-empty-bg/-border/-fg` | `#f1e8d5` / `#ddceb2` / `#938876` | `#ffffff` / `#cfcfcf` / `#8c8c8c` |
+| `--status-empty-bg/-border/-fg` | `#f1e8d5` / `#ddceb2` / `var(--fg-muted)` | `#ffffff` / `#cfcfcf` / `var(--fg-muted)` |
 
 ### 3.11 知識圖譜節點（跨主題共用）
 
@@ -270,8 +274,8 @@ ink 用單色階：fill 極性＋線重承載完成度。
 
 | 階段 | warm（焦赭 ramp） | ink |
 |------|------|-----|
-| low `-bg/-fg/-edge` | `#f1e8d5` / `#938876` / `#ddceb2` | `#ffffff` / `#8c8c8c` / `#cfcfcf` |
-| mid `-bg/-fg/-edge` | `#cf9a72` / `#52301c` / `#a96a44` | `#8c8c8c` / `#ffffff` / `#3f3f3f` |
+| low `-bg/-fg/-edge` | `#f1e8d5` / `var(--fg-muted)` / `#ddceb2` | `#ffffff` / `var(--fg-muted)` / `#cfcfcf` |
+| mid `-bg/-fg/-edge` | `#cf9a72` / `#52301c` / `#a96a44` | `#737373` / `#ffffff` / `#3f3f3f` |
 | high `-bg/-fg/-edge` | `#b05a34` / `#f8f3e7` / `#7d3e22` | `#151515` / `#ffffff` / `#000000` |
 
 ### 3.13 Frye Mythos · 神話模式
@@ -283,7 +287,7 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 | romance | `#f6edd6` / `#8a5c13` / `#dcc08a` | `#ffffff` / `#151515` / `#151515` |
 | comedy | `#eef1df` / `#4a6330` / `#b7c78e` | `#ececea` / `#151515` / `#3f3f3f` |
 | tragedy | `#f4e4da` / `#8a3a22` / `#d3a78f` | `#151515` / `#ffffff` / `#000000` |
-| irony | `#e8e7ee` / `#47506b` / `#a9aec4` | `#8c8c8c` / `#ffffff` / `#151515` |
+| irony | `#e8e7ee` / `#47506b` / `#a9aec4` | `#737373` / `#ffffff` / `#151515` |
 
 `data-mode="irony_satire"` 共用 `irony` 配色。
 
@@ -354,7 +358,7 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 | Token | warm | ink |
 |-------|------|-----|
 | `--illustration-stroke` | `var(--fg-primary)` | `#151515` |
-| `--illustration-stroke-soft` | `var(--fg-muted)` | `#8c8c8c` |
+| `--illustration-stroke-soft` | `#938876` | `#8c8c8c` |
 | `--illustration-accent` | `var(--accent)` | `#151515` |
 | `--illustration-fill` | `none` | `none` |
 | `--illustration-weight` | `1.5px` | `1.5px` |
