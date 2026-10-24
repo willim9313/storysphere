@@ -23,7 +23,22 @@ StorySphere ingests novels (PDF / DOCX / EPUB), runs a multi-stage ETL pipeline 
 - **Conversational agent** — LangGraph streaming chat agent with tool access, available on every book page
 - **Visualization** — knowledge graph, event timeline, and per-analysis panels
 
+**Interface:** desktop-first (minimum width 720px), two themes — **Warm** (ivory paper and ink) and **Ink** (near-monochrome line art) — and full English / Traditional Chinese UI.
+
 > **Currently running in lightweight deploy mode**: Qdrant uses local file storage, KG backend is fixed to NetworkX — no external services required. Standard mode (remote Qdrant, optional Neo4j) is also supported; see [Deployment Modes](#deployment-modes).
+
+---
+
+## Screenshots
+
+![Knowledge graph — a character selected, with relations, deep-analysis status and source passages in the side panel (Warm theme)](docs/images/readme/knowledge-graph-warm.webp)
+
+| | |
+|---|---|
+| ![Reader — chapter text with entity annotations, book overview and chapter list (Warm)](docs/images/readme/reader-warm.webp) | ![Narrative structure — Hero's Journey stages laid over the chapter axis, with confidence and source chapters (Warm)](docs/images/readme/narrative-warm.webp) |
+| **Reader** — every analysis traces back to the source paragraph | **Narrative structure** — Hero's Journey across the whole book |
+| ![Symbols — chapter density heatmap and leading symbols, in the near-monochrome Ink theme](docs/images/readme/symbols-ink.webp) | ![Character analysis — positioning quadrant: narrative presence × structural importance, coloured by faction (Warm)](docs/images/readme/characters-warm.webp) |
+| **Symbols** — chapter density heatmap, shown in the **Ink** theme | **Character analysis** — who leads, who is a hub, who is the long tail |
 
 ---
 
@@ -40,7 +55,8 @@ StorySphere ingests novels (PDF / DOCX / EPUB), runs a multi-stage ETL pipeline 
 | Keyword Extraction | YAKE · TF-IDF · LLM · Composite |
 | Tracing | Langfuse (optional) |
 | Frontend | React 19 · TypeScript · Vite · React Router v6 · TanStack Query |
-| Graph / Data Viz | Cytoscape.js (+ fcose layout) · D3 |
+| Styling | CSS design tokens (Warm / Ink themes, `styles/tokens.css`) · component kit `ss-*` · Tailwind CSS 3 · lucide-react icons |
+| Graph / Data Viz | Cytoscape.js (+ fcose layout) · hand-built SVG charts |
 | Frontend i18n | i18next / react-i18next (English + Traditional Chinese) |
 | Package Manager (Python) | **uv** |
 
@@ -337,6 +353,9 @@ the three test layers, fixture rules, naming — are in
 - [`docs/API_CONTRACT.md`](docs/API_CONTRACT.md) — Frontend/backend API spec, single source of truth
 - [`docs/UI_SPEC.md`](docs/UI_SPEC.md) — UI component design spec
 - [`docs/DESIGN_TOKENS.md`](docs/DESIGN_TOKENS.md) — CSS token reference
+- [`DESIGN.md`](DESIGN.md) — Visual system: colour, type, components, do's and don'ts
+- [`PRODUCT.md`](PRODUCT.md) — Product premise: who it is for, principles, platform constraints
+- [`docs/DS_V3_DESIGN_FEEDBACK.md`](docs/DS_V3_DESIGN_FEEDBACK.md) — Design gaps and engineering-side decisions from the DS v3 rebuild, to sync back to design
 - [`docs/domain-glossary.md`](docs/domain-glossary.md) — Domain terminology
 - [`docs/BACKLOG.md`](docs/BACKLOG.md) — Live backlog (see `docs/BACKLOG_ARCHIVE.md` for resolved items)
 - [`docs/type-generation.md`](docs/type-generation.md) — Why TypeScript types are generated, and the camelCase / snake_case rule
