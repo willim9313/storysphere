@@ -534,7 +534,7 @@ export default function NarrativePage() {
         {!loading && (
           <header className="nl-head">
             <div className="nl-head-line">
-              <h1 className="nl-head-title">{t('narrative.pageTitle')}</h1>
+              <h1 className="ss-page-title">{t('narrative.pageTitle')}</h1>
               <p className="nl-head-lead">{t('narrative.pageLead')}</p>
             </div>
             {book && structure && (

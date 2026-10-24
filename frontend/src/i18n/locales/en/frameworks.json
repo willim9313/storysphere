@@ -32,7 +32,6 @@
   "confIntro": "Every judgement carries a 0–1 confidence value, mapped to one of three epistemic tiers.",
   "honestTitle": "What the confidence value is — and is not",
   "honestBody": "The confidence value reflects how sure the model is about a single judgement. It is the LLM's own assessment made during inference — not a deterministic, line-by-line auditable formula. It is shaped by how explicit the textual evidence is, passage length, and cross-chapter consistency, but it remains a probabilistic judgement. Treat it as a triage priority for human review, not objective truth — low confidence is not proof of error, and high confidence is no guarantee of correctness.",
-  "tierLegend": "Three tiers",
   "confBadgeHas": "With confidence",
   "confBadgeNone": "No confidence value",
   "noConfidenceTitle": "This method does not produce a confidence value",

@@ -105,7 +105,7 @@ export function EventOverviewLanding({
 
       <div className="ea-ov-head">
         <div className="ea-ov-head-main">
-          <h1 className="ea-ov-title">{t('event.overview.title')}</h1>
+          <h1 className="ss-page-title">{t('event.overview.title')}</h1>
           <span className="ea-ov-meta">
             {t('event.overview.meta', {
               total: totalCount,

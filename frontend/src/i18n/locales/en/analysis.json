@@ -9,7 +9,6 @@
   "retry": "Retry",
   "triggerFailed": "Failed to trigger analysis. Please try again later.",
   "batchTriggerFailed": "Failed to trigger batch analysis. Please try again later.",
-  "selectCharacter": "Select a character to view or generate analysis",
   "viewInGraph": "View in Graph",
   "frameworkIndex": "Frameworks",
   "regenerateTitle": "Regenerate Analysis",
@@ -72,7 +71,6 @@
       "title": "Framework Compare — {{name}}",
       "fromSidebar": "Compare Jung vs Schmidt",
       "switchTo": "Switch to compare",
-      "confidencePct": "{{pct}}% confidence",
       "evidenceLabel": "Evidence",
       "notGenerated": "This framework hasn't been generated yet",
       "secondaryLabel": "Secondary: {{name}}"
@@ -141,8 +139,6 @@
       "quadrant": {
         "yAxis": "Structural importance ↑",
         "xAxis": "Narrative presence (log mentions) →",
-        "cornerLead": "Leads",
-        "cornerTail": "Background long tail",
         "ariaLabel": "Character positioning quadrant scatter plot",
         "median": "Median",
         "metricsError": "Character structural-importance data is temporarily unavailable, so the quadrant view can't render.",
@@ -210,14 +206,8 @@
       "noData": "No voice profile yet",
       "paragraphsAnalyzed": "{{count}} passages analyzed",
       "toneDistribution": "Tone Distribution",
-      "toneDistributionSub": "Sentence-type breakdown",
       "sentenceLength": "Sentence Length (characters)",
       "regenerate": "Regenerate voice profile",
-      "sentenceLengthSub": "Word-count buckets",
-      "speechStyleSub": "Qualitative description",
-      "dominantToneSub": "One-line summary",
-      "distinctivePatternsCount": "{{count}} items",
-      "representativeQuotesCount": "{{count}} quotes",
       "tones": {
         "declarative": "Declarative",
         "interrogative": "Interrogative",
@@ -336,7 +326,6 @@
     "labels": {
       "before": "Before",
       "after": "After",
-      "stateChangeSub": "State before → after",
       "causalitySub": "root cause · chain",
       "impactSub": "people · relations",
       "rootCauseLabel": "Root cause",
@@ -360,7 +349,6 @@
       "satelliteAbbr": "S",
       "filterKernel": "Kernel K",
       "filterSatellite": "Satellite S",
-      "groupLabel": "Group by",
       "groupByChapter": "Chapter",
       "groupByImportance": "Importance",
       "chapterGroup": "Chapter {{n}}",
@@ -416,7 +404,6 @@
         "caption": "X = chapter order · bands = importance (kernel above, satellite below; the centre line holds events whose importance is not yet judged) · colour = narrative mode · dashed = not yet analyzed. Each band grows to fit its densest chapter, so nodes never overlap.",
         "bandKernel": "Kernel K",
         "bandSatellite": "Satellite S",
-        "legendNarrative": "Narrative mode",
         "legendKernel": "Large circle = kernel event",
         "legendUnanalyzed": "Dashed circle = not yet analyzed",
         "legendAxis": "X axis = chapter order",
@@ -562,7 +549,6 @@
       "lossEdited": "{{count}} with edited labels",
       "willStale": "This will also go stale:",
       "willStaleBody": "the book-wide proposition (it cites these lines)",
-      "cancel": "Cancel",
       "confirm": "Re-run",
       "trigger": "Re-run Step 2"
     },
@@ -960,18 +946,9 @@
       "unrated": "n/a",
       "noSummary": "(no summary yet)"
     },
-    "story": {
-      "headline": "{{n}} events in the order they actually happened",
-      "meta": "A chapter marked in sienna appears later in the book than its story position",
-      "trayLabel": "↵ {{n}} events that don't fit the story order",
-      "trayMore": "+{{n}} more"
-    },
     "legend": {
-      "kernel": "Large = KERNEL event",
       "analyzed": "Solid = analyzed",
-      "unanalyzed": "Dashed = not yet analyzed",
-      "unranked": "Thin ring = no place in story order",
-      "outlier": "Sienna = past the displacement threshold ({{n}})"
+      "unanalyzed": "Dashed = not yet analyzed"
     },
     "lanes": {
       "region": "Character lanes",
@@ -1157,13 +1134,6 @@
       "4": "Book synthesis",
       "sourceHint": "Source data present at upload, not produced by an LLM"
     },
-    "laneName": {
-      "0": "Text",
-      "1": "KG",
-      "2": "Analysis",
-      "3": "Results",
-      "4": "Synthesis"
-    },
     "node": {
       "book_meta": "Book Meta",
       "chapters": "Chapters",
@@ -1310,7 +1280,6 @@
       "themeEditPlaceholder": "Enter revised thematic proposition…",
       "linkedCharHint": "{{count}} co-occurrences",
       "linkedEventHint": "Ch. {{chapter}}",
-      "occurrenceJumpTitle": "Jump to reader",
       "frontMatterWarning": "{{count}} of this symbol's occurrences sit in front matter (colophon / title page) and were left out of the evidence; only body and afterword text goes to the model. The distribution chart still shows them.",
       "cta": {
         "recommendedTitle": "Strong enough signals — worth writing up as an argument",
@@ -1391,7 +1360,6 @@
       "headingSorted": "By {{axis}}",
       "headingSearch": "Search results",
       "headingShape": "Filtered by behaviour",
-      "count": "{{shown}} / {{total}}",
       "tailNote": "{{count}} more words occur once and are not ranked",
       "metric": {
         "load": "{{value}}",
@@ -1728,7 +1696,6 @@
     "approve": "Approve",
     "markNA": "Mark N/A",
     "rerun": "Re-analyze",
-    "rerunning": "Re-analyzing…",
     "rerunArrow": "Re-run analysis →",
     "coverage": "Mapped {{mapped}}",
     "ofTotal": "/ {{total}} stages",

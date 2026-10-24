@@ -4,10 +4,10 @@
    Prefix: .tl-*  ·  every colour and size comes from a token.
 
    Fixed here (design brief §4.0a): the old page-level `.tl button`
-   reset (specificity 0,1,1) beat `.tl-btn` (0,1,0), so the toolbar's
-   buttons had no border and no background at rest and only looked
-   clickable on hover. The reset is now scoped to unclassed buttons,
-   so `.tl-btn` actually applies.
+   reset (specificity 0,1,1) beat single-class button styles (0,1,0), so
+   the toolbar's buttons had no border and no background at rest and only
+   looked clickable on hover. The reset is now scoped to unclassed buttons,
+   so classed buttons (kit `.ss-btn`) keep their own look.
    ───────────────────────────────────────────────────────────── */
 
 /* ── Reset / base ─────────────────────────────────────────── */
@@ -37,7 +37,7 @@
   flex-direction: column;
   gap: var(--space-6);
 }
-/* Scoped so it cannot swallow `.tl-btn`'s own border/background. */
+/* Scoped so it cannot swallow a classed button's own border/background. */
 .tl button:not([class]) {
   font: inherit;
   color: inherit;
@@ -55,61 +55,9 @@
   min-height: 50vh;
 }
 
-
 /* ── Buttons ──────────────────────────────────────────────── */
-.tl-btn {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  padding: 5px 10px;
-  border: var(--btn-border-width) var(--border-style) var(--border);
-  border-radius: var(--btn-radius);
-  background: var(--bg-primary);
-  color: var(--fg-primary);
-  cursor: pointer;
-  white-space: nowrap;
-  transition:
-    background-color var(--transition-fast),
-    color var(--transition-fast),
-    box-shadow var(--transition-fast);
-}
-.tl-btn:hover:not(:disabled) {
-  background: var(--bg-tertiary);
-}
-.tl-btn:disabled {
-  background: var(--bg-tertiary);
-  color: var(--fg-muted);
-  cursor: not-allowed;
-}
-.tl-btn-accent {
-  border-color: var(--accent);
-  color: var(--accent);
-}
 /* Marks a button that spends LLM tokens. Sits one step back from the label so
    it reads as a property of the action, not as part of its name. */
-.tl-btn-ai {
-  flex: none;
-  opacity: 0.75;
-}
-.tl-btn-primary {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--accent-fg);
-}
-.tl-btn-on {
-  border-color: var(--fg-primary);
-}
-.tl-btn-on-solid {
-  background: var(--fg-primary);
-  border-color: var(--fg-primary);
-  color: var(--accent-fg);
-}
-.tl-btn-ghost {
-  border-style: dashed;
-  color: var(--fg-secondary);
-}
 
 /* ── Toolbar ──────────────────────────────────────────────── */
 /* Left = 看什麼 (free), right = 跑什麼 (spends tokens), one solid rule between:
@@ -339,11 +287,6 @@
   font-size: var(--font-size-2xs);
   color: var(--fg-muted);
   letter-spacing: 0.05em;
-}
-.tl-filter-mode-hint {
-  font-size: var(--font-size-2xs);
-  color: var(--fg-muted);
-  line-height: 1.5;
 }
 .tl-filter-chips {
   display: flex;
@@ -1186,12 +1129,6 @@
 .tl-legend-dot.outlier {
   background: var(--accent);
 }
-.tl-legend-line {
-  flex: none;
-  width: 16px;
-  height: 0;
-  border-top: 1px dashed var(--border);
-}
 .tl-legend-dash {
   flex: none;
   width: 16px;
@@ -1575,48 +1512,7 @@
   justify-content: center;
 }
 
-/* ── Pills & narrative chips ──────────────────────────────── */
-.tl-pill {
-  display: inline-flex;
-  align-items: center;
-  font-size: var(--font-size-2xs);
-  padding: 2px 9px;
-  border-radius: var(--pill-radius);
-  border: var(--pill-border-width) var(--border-style) var(--entity-other-border);
-  background: var(--entity-other-bg);
-  color: var(--entity-other-fg);
-  white-space: nowrap;
-}
-.tl-pill-character {
-  border-color: var(--entity-char-border);
-  background: var(--entity-char-bg);
-  color: var(--entity-char-fg);
-}
-.tl-pill-location {
-  border-color: var(--entity-loc-border);
-  background: var(--entity-loc-bg);
-  color: var(--entity-loc-fg);
-}
-.tl-pill-organization {
-  border-color: var(--entity-org-border);
-  background: var(--entity-org-bg);
-  color: var(--entity-org-fg);
-}
-.tl-pill-object {
-  border-color: var(--entity-obj-border);
-  background: var(--entity-obj-bg);
-  color: var(--entity-obj-fg);
-}
-.tl-pill-concept {
-  border-color: var(--entity-con-border);
-  background: var(--entity-con-bg);
-  color: var(--entity-con-fg);
-}
-.tl-pill-event {
-  border-color: var(--entity-evt-border);
-  background: var(--entity-evt-bg);
-  color: var(--entity-evt-fg);
-}
+/* ── Pills ────────────────────────────────────────────────── */
 .tl-pill-overflow {
   border-style: dashed;
   border-color: var(--border);
@@ -1669,33 +1565,9 @@
   max-width: 52ch;
   margin: 0;
 }
-.tl-state-chips {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 6px;
-  max-width: 72ch;
-}
-.tl-state-actions {
-  display: flex;
-  gap: 8px;
-}
 .tl-loading-text {
   font-size: var(--font-size-xs);
   color: var(--fg-secondary);
-}
-.tl-skeletons {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  width: min(680px, 80%);
-}
-.tl-skeleton {
-  height: 54px;
-  border-radius: var(--radius-md);
-  background: var(--bg-secondary);
-  animation: tl-pulse 1.4s ease-in-out infinite;
 }
 .tl-spinner {
   animation: spin 1s linear infinite;
@@ -1711,8 +1583,7 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .tl-spinner,
-  .tl-skeleton {
+  .tl-spinner {
     animation: none;
   }
 }

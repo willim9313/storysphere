@@ -194,12 +194,6 @@ export function QuadrantView({
               >
                 {t('character.overview.quadrant.xAxis')}
               </text>
-              <text x={VB_W - pad.right - 6} y={pad.top + 18} textAnchor="end" className="ca-ov-corner-label">
-                {t('character.overview.quadrant.cornerLead')}
-              </text>
-              <text x={pad.left + 6} y={VB_H - pad.bottom - 10} textAnchor="start" className="ca-ov-corner-label">
-                {t('character.overview.quadrant.cornerTail')}
-              </text>
 
               {/* bubbles. The native SVG <title> is gone on purpose: the DS
                   Tooltip is an HTML portal anchored on a DOM element and cannot

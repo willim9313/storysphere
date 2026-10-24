@@ -39,7 +39,6 @@
       "modeStory": "Story"
     }
   },
-  "stats": "{{nodes}} nodes · {{edges}} relations",
   "statsInferred": "+{{n}} inferred",
   "statsNodeLabel": "nodes",
   "statsEdgeLabel": "relations",

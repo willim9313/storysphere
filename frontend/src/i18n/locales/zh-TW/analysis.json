@@ -9,7 +9,6 @@
   "retry": "重試",
   "triggerFailed": "觸發分析失敗，請稍後再試。",
   "batchTriggerFailed": "觸發批次分析失敗，請稍後再試。",
-  "selectCharacter": "選擇角色以查看或生成分析",
   "viewInGraph": "在圖譜中查看",
   "frameworkIndex": "框架索引",
   "regenerateTitle": "覆蓋重新生成",
@@ -72,7 +71,6 @@
       "title": "框架對照 — {{name}}",
       "fromSidebar": "對照 Jung vs Schmidt",
       "switchTo": "切到對照",
-      "confidencePct": "{{pct}}% 信心",
       "evidenceLabel": "證據",
       "notGenerated": "此框架尚未生成",
       "secondaryLabel": "次：{{name}}"
@@ -141,8 +139,6 @@
       "quadrant": {
         "yAxis": "結構重要性 ↑",
         "xAxis": "敘事存在感（log 提及量）→",
-        "cornerLead": "要角",
-        "cornerTail": "背景長尾",
         "ariaLabel": "角色定位象限散點圖",
         "median": "中位數",
         "metricsError": "角色結構重要性資料暫時無法取得，象限視圖無法呈現。",
@@ -210,14 +206,8 @@
       "noData": "尚無語音風格",
       "paragraphsAnalyzed": "已分析 {{count}} 個段落",
       "toneDistribution": "語氣分布",
-      "toneDistributionSub": "句法分類比例",
       "sentenceLength": "句長分布（字）",
       "regenerate": "重新生成語音風格",
-      "sentenceLengthSub": "字數區間頻次",
-      "speechStyleSub": "質性描述",
-      "dominantToneSub": "一句話描述",
-      "distinctivePatternsCount": "{{count}} 項",
-      "representativeQuotesCount": "{{count}} 句",
       "tones": {
         "declarative": "陳述",
         "interrogative": "疑問",
@@ -336,7 +326,6 @@
     "labels": {
       "before": "之前",
       "after": "之後",
-      "stateChangeSub": "狀態前後變化",
       "causalitySub": "根因 · 因果鏈",
       "impactSub": "人物 · 關係",
       "rootCauseLabel": "根本原因",
@@ -360,7 +349,6 @@
       "satelliteAbbr": "S",
       "filterKernel": "核心 K",
       "filterSatellite": "衛星 S",
-      "groupLabel": "分組",
       "groupByChapter": "章節序",
       "groupByImportance": "重要度",
       "chapterGroup": "第 {{n}} 章",
@@ -416,7 +404,6 @@
         "caption": "橫軸＝章節順序 · 縱向分帶＝重要度（核心在上、衛星在下，中央虛線上為尚未判定重要度者）· 顏色＝敘事模式 · 虛線圈＝尚未分析。每帶高度依該帶最密集的章節自動撐開，節點不重疊。",
         "bandKernel": "核心 K",
         "bandSatellite": "衛星 S",
-        "legendNarrative": "敘事模式",
         "legendKernel": "大圈 = 核心事件",
         "legendUnanalyzed": "虛線圈 = 尚未分析",
         "legendAxis": "橫軸 = 章節順序",
@@ -562,7 +549,6 @@
       "lossEdited": "{{count}} 條已改寫標籤",
       "willStale": "會連帶過期：",
       "willStaleBody": "全書主題命題（引用了這些線）",
-      "cancel": "取消",
       "confirm": "重新執行",
       "trigger": "重新執行 Step 2"
     },
@@ -960,18 +946,9 @@
       "unrated": "未評",
       "noSummary": "（本筆尚無摘要）"
     },
-    "story": {
-      "headline": "依故事實際發生先後排列的 {{n}} 筆",
-      "meta": "章節標記為焦赭者＝在書中比它的故事位置晚出現",
-      "trayLabel": "↵ 排不進故事時序的 {{n}} 筆",
-      "trayMore": "＋其餘 {{n}} 筆"
-    },
     "legend": {
-      "kernel": "大點＝核心事件 KERNEL",
       "analyzed": "實心＝已分析",
-      "unanalyzed": "虛線＝尚未分析",
-      "unranked": "細實線＝排不進故事時序",
-      "outlier": "焦赭＝偏離 45° 對照線超過門檻（{{n}} 筆）"
+      "unanalyzed": "虛線＝尚未分析"
     },
     "lanes": {
       "region": "角色軌跡",
@@ -1157,13 +1134,6 @@
       "4": "全書合成",
       "sourceHint": "上傳時就有的來源資料，不由 LLM 產生"
     },
-    "laneName": {
-      "0": "文本",
-      "1": "KG",
-      "2": "分析",
-      "3": "結果",
-      "4": "綜合"
-    },
     "node": {
       "book_meta": "書籍元資料",
       "chapters": "章節",
@@ -1310,7 +1280,6 @@
       "themeEditPlaceholder": "輸入修訂後的主題命題…",
       "linkedCharHint": "{{count}} 次共現",
       "linkedEventHint": "第 {{chapter}} 章",
-      "occurrenceJumpTitle": "跳至閱讀頁",
       "frontMatterWarning": "這個意象有 {{count}} 筆出現在前置頁（版權頁／書名頁），未列入詮釋證據；送進 LLM 的只有正文與後記。分布圖仍會畫出它們。",
       "cta": {
         "recommendedTitle": "訊號夠強 —— 值得把它寫成一段論證",
@@ -1391,7 +1360,6 @@
       "headingSorted": "依{{axis}}排序",
       "headingSearch": "搜尋結果",
       "headingShape": "行為分群篩選",
-      "count": "{{shown}} / {{total}}",
       "tailNote": "另有 {{count}} 個只出現 1 次的詞，未列入排序",
       "metric": {
         "load": "{{value}}",
@@ -1728,7 +1696,6 @@
     "approve": "核可",
     "markNA": "標記不適用",
     "rerun": "重新分析",
-    "rerunning": "重新分析中…",
     "rerunArrow": "重新分析 →",
     "coverage": "已映射 {{mapped}}",
     "ofTotal": "／ {{total}} 階段",
