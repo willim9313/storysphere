@@ -5,6 +5,7 @@ import type { components } from '@/api/generated';
 import { relativeIntensity } from './intensity';
 import type { TensionLineDetail } from './reviewTypes';
 import { TriggerNote } from './TensionStateCards';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 type TensionTheme = components['schemas']['TensionThemeResponse'];
 
@@ -65,15 +66,16 @@ export function TensionThemeHero({
         </span>
         <div className="tn-stale-old">{theme.proposition}</div>
         <div className="tn-alert-actions">
-          <button
-            type="button"
-            className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
-            onClick={onResynthesize}
-            disabled={!!busyReason}
-            title={busyReason ?? undefined}
-          >
-            {t('tension.theme.resynthesize')}
-          </button>
+          <Tooltip label={busyReason ?? ''} disabled={!busyReason}>
+            <button
+              type="button"
+              className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+              onClick={onResynthesize}
+              disabled={!!busyReason}
+            >
+              {t('tension.theme.resynthesize')}
+            </button>
+          </Tooltip>
           <TriggerNote busyReason={busyReason} />
           {meta && <span className="tn-meta-mono">{meta}</span>}
         </div>
@@ -180,15 +182,16 @@ export function TensionThemeHero({
       )}
 
       <div className="tn-hero-foot">
-        <button
-          type="button"
-          className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
-          onClick={onResynthesize}
-          disabled={!!busyReason}
-          title={busyReason ?? undefined}
-        >
-          {t('tension.theme.resynthesizeShort')}
-        </button>
+        <Tooltip label={busyReason ?? ''} disabled={!busyReason}>
+          <button
+            type="button"
+            className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+            onClick={onResynthesize}
+            disabled={!!busyReason}
+          >
+            {t('tension.theme.resynthesizeShort')}
+          </button>
+        </Tooltip>
         <button type="button" className="ss-btn ss-btn-sm ss-btn-secondary" onClick={onApprove} disabled={pending}>
           {t('tension.approve')}
         </button>

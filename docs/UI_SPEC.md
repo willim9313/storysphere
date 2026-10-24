@@ -613,6 +613,7 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 > - **窄寬（2026-10-09）**：象限圖與 ego 關係網的 SVG 以容器實際像素寬為 viewBox（`useElementWidth`），文字維持 CSS 字級不隨寬度縮放；象限高＝寬×0.47（320–470）、泡泡半徑隨寬度縮放（0.5–1 倍）；ego 橢圓橫半徑＝寬/2−46（90–380）。象限主欄放不下 480＋圖例就換行（圖例落到圖下）。內容欄 ≤600px（container query `ca-content`）時語音四格改 2×2、質性欄全寬。
 > - **左欄**：框架 chip（pill）＋說明句固定最上、搜尋、原型篩選、「對照 Jung vs Schmidt」；清單為動作列（姓名／長條＋數值＋「建立」，第二行 28px；長條 px＝6+94√(m/max)）；
 >   群組標頭在搜尋或篩選縮減時顯示「顯示 / 總數」。選中態＝底色＋加粗。partial 狀態點為空心環（Ink 靠形狀）。
+> - **象限不畫角標**（2026-10-24）：原本右上「要角」、左下「背景長尾」兩個斜體角標會壓在泡泡上，09 稿也沒有畫，已移除；象限只留中位數十字線、軸名與前 8 名泡泡旁的名字。
 > - **象限派系配色**（`components/analysis/characterModel.ts`）：依派系人數排名配 cat-1…5（深淺交替），第 6 名起併入「其他」，無派系只描邊。同數時 #6d 沒有首次出現章節，退回後端回傳順序。
 >   色值為全域 token `--cat-1…5／--cat-other`（`tokens.css`，見 DESIGN_TOKENS §3.7.2）。圖例可點：單獨亮出該派系（其餘泡泡 opacity 0.3），再點取消；「其他」可展開並逐派亮出。0 個派系時只留「此書未抽出派系」。
 >   metrics 載入中不再閃出第四種錯誤（`quadrantStatus`）。
@@ -1643,7 +1644,7 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 
 ### 3.9 象徵意象頁 `/books/:bookId/symbols`
 
-頁面分為兩欄：左側清單（284px）+ 右側內容。i18n namespace 為 `analysis.json` 的 `symbol.*`。DS v3 第 3 批（3-4）改版，依據 `11 符號意象` 決議紀錄；**B 檢視**密度（頁邊 24／區塊間距 16／卡內距 16／列 8、內容寬 1232（`--page-content-wide`）、下內距 32），熱圖格點為唯一例外（格子尺寸由 12 欄軸決定，列間距 `--space-2`）。
+頁面分為兩欄：左側清單（268px，與角色／事件同寬，依 09／10／11 稿；2026-10-24 由 284 收回）+ 右側內容。i18n namespace 為 `analysis.json` 的 `symbol.*`。DS v3 第 3 批（3-4）改版，依據 `11 符號意象` 決議紀錄；**B 檢視**密度（頁邊 24／區塊間距 16／卡內距 16／列 8、內容寬 1232（`--page-content-wide`）、下內距 32），熱圖格點為唯一例外（格子尺寸由 12 欄軸決定，列間距 `--space-2`）。
 
 > **以下是草稿・待設計定案**（i18n `symbol.*`，zh-TW 與 en 皆有；稿上已有的 8 句加稿上沒有的 2 句〔`generating.cancelFailed`、`overview.batch.confirmTitle`〕）：
 > `list.trustBelowFloor`、`list.groupMeta`、`error.blockedInline`、`cluster.empty`、`filterEmpty.clear`、
@@ -1660,7 +1661,7 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 #### 版面結構
 
 ```
-[Left 284px]  [main：GuidanceRibbon → (LlmUnconfiguredNotice) → (觸發失敗橫幅) → 內容；內容寬 1232]
+[Left 268px]  [main：GuidanceRibbon → (LlmUnconfiguredNotice) → (觸發失敗橫幅) → 內容；內容寬 1232]
 ```
 
 #### Left Panel — 意象清單（components-rows 動作列）

@@ -194,25 +194,6 @@
     box-shadow: var(--btn-shadow);
   }
 
-  .btn-primary {
-    background-color: var(--accent);
-    color: var(--accent-fg);
-  }
-
-  .btn-primary:hover {
-    opacity: 0.9;
-  }
-
-  .btn-secondary {
-    background-color: var(--bg-primary);
-    color: var(--fg-primary);
-    border-color: var(--border);
-  }
-
-  .btn-secondary:hover {
-    background-color: var(--bg-secondary);
-  }
-
   .card {
     background-color: var(--bg-primary);
     border: var(--card-border-width) var(--border-style) var(--border);
@@ -231,62 +212,6 @@
     border-radius: var(--pill-radius);
     white-space: nowrap;
   }
-
-  .pill-dot {
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    flex-shrink: 0;
-  }
-
-  .pill-char {
-    background: var(--entity-char-bg);
-    border: var(--pill-border-width) solid var(--entity-char-border);
-    color: var(--entity-char-fg);
-  }
-  .pill-char .pill-dot { background: var(--entity-char-dot); }
-
-  .pill-loc {
-    background: var(--entity-loc-bg);
-    border: var(--pill-border-width) solid var(--entity-loc-border);
-    color: var(--entity-loc-fg);
-  }
-  .pill-loc .pill-dot { background: var(--entity-loc-dot); }
-
-  .pill-con {
-    background: var(--entity-con-bg);
-    border: var(--pill-border-width) solid var(--entity-con-border);
-    color: var(--entity-con-fg);
-  }
-  .pill-con .pill-dot { background: var(--entity-con-dot); }
-
-  .pill-evt {
-    background: var(--entity-evt-bg);
-    border: var(--pill-border-width) solid var(--entity-evt-border);
-    color: var(--entity-evt-fg);
-  }
-  .pill-evt .pill-dot { background: var(--entity-evt-dot); }
-
-  .pill-org {
-    background: var(--entity-org-bg);
-    border: var(--pill-border-width) solid var(--entity-org-border);
-    color: var(--entity-org-fg);
-  }
-  .pill-org .pill-dot { background: var(--entity-org-dot); }
-
-  .pill-obj {
-    background: var(--entity-obj-bg);
-    border: var(--pill-border-width) solid var(--entity-obj-border);
-    color: var(--entity-obj-fg);
-  }
-  .pill-obj .pill-dot { background: var(--entity-obj-dot); }
-
-  .pill-other {
-    background: var(--entity-other-bg);
-    border: var(--pill-border-width) solid var(--entity-other-border);
-    color: var(--entity-other-fg);
-  }
-  .pill-other .pill-dot { background: var(--entity-other-dot); }
 
   /* ── 內文行內實體標註 ──────────────────────────────────────────
      有別於 chips 用的 .pill：閱讀時預設只有一條細底線（不搶字流），
@@ -339,18 +264,13 @@
     display: none;
   }
 
-  /* ── Theme-aware progress bar fill ──────────────────────────────── */
-  .theme-progress-fill {
-    background-color: var(--accent);
-  }
-
   /* ── Keyword tag styles ────────────────────────────────────────── */
   .kw-tag {
     display: inline-flex;
     align-items: center;
     font-size: var(--font-size-2xs);
     padding: 1px 6px;
-    border-radius: 4px;
+    border-radius: var(--radius-sm);
     white-space: nowrap;
     background: var(--bg-tertiary);
     color: var(--fg-secondary);
@@ -386,7 +306,6 @@
     transition: transform var(--transition-fast);
   }
   .ss-toggle.is-on::after { transform: translateX(16px); }
-  .ss-toggle.is-disabled { cursor: not-allowed; opacity: 0.5; }
 }
 
 /* Deep-link jump highlight — used when navigating into a specific paragraph
@@ -432,3 +351,21 @@
   margin: 0; font-family: var(--font-sans);
   font-size: var(--font-size-xs); font-weight: 600; color: var(--fg-primary);
 }
+
+/* 書內頁可見頁標題（角色、事件、象徵、敘事）：四頁原本各寫一份同樣的規則。
+   ss-kit.css 是設計端的檔，這裡只補新增的 class，不改既有的。 */
+.ss-page-title {
+  margin: 0; font-family: var(--font-serif);
+  font-size: var(--font-size-2xl); font-weight: 700; color: var(--fg-primary);
+}
+
+/* 篩選 chip（書庫篩選、Token 範圍）：Warm 靠底色分層不畫框，Ink 底色貼近白紙改靠框（--chip-border-width）。
+   選中用 .active 或 aria-pressed。內距各頁依稿給（書庫 6／12、Token 6／16）。 */
+.ss-chip {
+  font-family: var(--font-sans); font-size: var(--font-size-2xs); font-weight: 500;
+  border: var(--chip-border-width) var(--border-style) var(--border); border-radius: var(--pill-radius);
+  background: var(--bg-secondary); color: var(--fg-secondary); cursor: pointer;
+  transition: background-color var(--transition-fast), color var(--transition-fast);
+}
+.ss-chip:hover { background: var(--bg-tertiary); }
+.ss-chip.active, .ss-chip[aria-pressed='true'] { border-color: var(--accent); background: var(--accent); color: var(--accent-fg); }

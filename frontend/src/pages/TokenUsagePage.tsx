@@ -247,7 +247,7 @@ export default function TokenUsagePage() {
                 <button
                   key={key}
                   type="button"
-                  className="tu-range"
+                  className="ss-chip tu-range"
                   aria-pressed={range === key}
                   onClick={() => update({ range: key })}
                 >

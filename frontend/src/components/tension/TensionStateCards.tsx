@@ -86,15 +86,16 @@ export function TensionEmptyCard({
       )}
       {/* One button only: no "run all three", which would skip both gates. */}
       <div className="tn-empty-cta">
-        <button
-          type="button"
-          className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm"
-          onClick={onStart}
-          disabled={!!busyReason}
-          title={busyReason ?? undefined}
-        >
-          {t('tension.state.startStep1')}
-        </button>
+        <Tooltip label={busyReason ?? ''} disabled={!busyReason}>
+          <button
+            type="button"
+            className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm"
+            onClick={onStart}
+            disabled={!!busyReason}
+          >
+            {t('tension.state.startStep1')}
+          </button>
+        </Tooltip>
         <TriggerNote busyReason={busyReason} cost={t('tension.state.tokenHintLong')} />
       </div>
     </div>
@@ -168,15 +169,16 @@ export function TensionStep1Card({
       </div>
       <p className="tn-step1-body">{t('tension.state.step1Body')}</p>
       <div className="tn-step1-actions">
-        <button
-          type="button"
-          className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm"
-          onClick={onGroup}
-          disabled={!!busyReason}
-          title={busyReason ?? undefined}
-        >
-          {t('tension.state.runStep2')}
-        </button>
+        <Tooltip label={busyReason ?? ''} disabled={!busyReason}>
+          <button
+            type="button"
+            className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm"
+            onClick={onGroup}
+            disabled={!!busyReason}
+          >
+            {t('tension.state.runStep2')}
+          </button>
+        </Tooltip>
         <TriggerNote busyReason={busyReason} cost={t('tension.state.tokenHintShort')} />
       </div>
       <TensionFailureList failures={failures} />
@@ -224,15 +226,16 @@ export function TensionErrorCard({
       <span className="tn-alert-title">{title}</span>
       <span className="tn-alert-body">{message}</span>
       <div className="tn-alert-actions">
-        <button
-          type="button"
-          className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
-          onClick={onRetry}
-          disabled={!!busyReason}
-          title={busyReason ?? undefined}
-        >
-          {retryLabel}
-        </button>
+        <Tooltip label={busyReason ?? ''} disabled={!busyReason}>
+          <button
+            type="button"
+            className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+            onClick={onRetry}
+            disabled={!!busyReason}
+          >
+            {retryLabel}
+          </button>
+        </Tooltip>
         <TriggerNote busyReason={busyReason} />
         {meta && <span className="tn-meta-mono">{meta}</span>}
       </div>
@@ -262,15 +265,16 @@ export function TensionSoftGate({
       ) : (
         <>
           <span className="tn-gate-text">{t('tension.stage.themeReady')}</span>
-          <button
-            type="button"
-            className="ss-btn ss-btn-sm ss-btn-primary ss-btn-llm"
-            onClick={onSynthesize}
-            disabled={!!busyReason}
-            title={busyReason ?? undefined}
-          >
-            {t('tension.stage.synthesize')}
-          </button>
+          <Tooltip label={busyReason ?? ''} disabled={!busyReason}>
+            <button
+              type="button"
+              className="ss-btn ss-btn-sm ss-btn-primary ss-btn-llm"
+              onClick={onSynthesize}
+              disabled={!!busyReason}
+            >
+              {t('tension.stage.synthesize')}
+            </button>
+          </Tooltip>
           <TriggerNote busyReason={busyReason} cost={t('tension.state.tokenHintShort')} />
         </>
       )}

@@ -23,7 +23,7 @@
    Rows are components-rows action rows (DS v3 · 3-4): 24px lead, xs/500 title, no
    dividers, row gap --space-1, a 12px state slot kept even when empty. */
 .sym-list {
-  width: 284px;
+  width: 268px;
   flex-shrink: 0;
   background: var(--bg-primary);
   border-right: var(--line-weight) var(--border-style) var(--border);
@@ -480,7 +480,7 @@
   padding: 2px 8px;
   background: var(--bg-secondary);
   border: var(--line-weight) var(--border-style) var(--border);
-  border-radius: 12px;
+  border-radius: var(--radius-lg);
 }
 
 /* ── Type pill ───────────────────────────────────────────── */
@@ -507,7 +507,7 @@
   align-items: center;
   gap: 4px;
   padding: 2px 7px;
-  border-radius: 4px;
+  border-radius: var(--radius-sm);
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);
   font-weight: 600;
@@ -1384,77 +1384,10 @@
   color: var(--fg-muted);
   background: var(--bg-tertiary);
   padding: 1px 6px;
-  border-radius: 4px;
-}
-.sym-occ-jump {
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 4px;
-  background: var(--bg-tertiary);
-  border: 0;
-  color: var(--fg-secondary);
-  cursor: pointer;
-}
-.sym-occ-jump:hover {
-  background: var(--accent);
-  color: var(--bg-primary);
+  border-radius: var(--radius-sm);
 }
 
 /* ── Buttons ─────────────────────────────────────────────── */
-.sym-btn-primary {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: var(--radius-md);
-  background: var(--accent);
-  color: var(--bg-primary);
-  border: var(--line-weight) solid var(--accent);
-  font-family: var(--font-sans);
-  font-size: var(--font-size-sm);
-  font-weight: 600;
-  cursor: pointer;
-  box-shadow: var(--node-shadow);
-}
-.sym-btn-primary:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.sym-btn-ghost {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 5px 10px;
-  border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--fg-muted);
-  border: var(--line-weight) var(--border-style) var(--border);
-  font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
-  font-weight: 600;
-  cursor: pointer;
-}
-.sym-btn-ghost:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-.sym-btn-ghost-large {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 8px 14px;
-  border-radius: var(--radius-md);
-  background: transparent;
-  color: var(--fg-secondary);
-  border: var(--line-weight) var(--border-style) var(--border);
-  font-family: var(--font-sans);
-  font-size: var(--font-size-xs);
-  font-weight: 600;
-  cursor: pointer;
-}
 
 /* ── Dashboard mode (has data, nothing selected) ─────────── */
 /* Padding and max-width come from .sym-detail / .sym-detail-inner (B 檢視). */
@@ -1480,14 +1413,7 @@
   gap: var(--space-3);
   min-width: 0;
 }
-.sym-ov-title {
-  font-family: var(--font-serif);
-  font-weight: 700;
-  font-size: var(--font-size-2xl);
-  color: var(--fg-primary);
-  line-height: 1.2;
-  margin: 0;
-}
+.sym-ov-title { line-height: 1.2; }
 .sym-ov-meta {
   font-family: var(--font-sans);
   font-size: var(--font-size-2xs);

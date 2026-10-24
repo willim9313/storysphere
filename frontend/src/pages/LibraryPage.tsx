@@ -292,7 +292,7 @@ export default function LibraryPage() {
               key={key}
               type="button"
               aria-pressed={filter === key}
-              className={filter === key ? 'lib-chip active' : 'lib-chip'}
+              className={filter === key ? 'ss-chip lib-chip active' : 'ss-chip lib-chip'}
               onClick={() => setFilter(key)}
             >
               {t(`filters.${key}`)}

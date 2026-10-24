@@ -39,7 +39,6 @@
       "modeStory": "故事"
     }
   },
-  "stats": "{{nodes}} 節點 · {{edges}} 關係",
   "statsInferred": "+{{n}} 推斷",
   "statsNodeLabel": "節點",
   "statsEdgeLabel": "關係",

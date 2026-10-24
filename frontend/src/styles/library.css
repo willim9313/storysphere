@@ -90,15 +90,7 @@
 
 /* ── 篩選 chip（四顆單選；處理中不 disable、不加 0 徽章）── */
 .lib-filters { display: flex; flex-wrap: wrap; gap: var(--space-4); }
-.lib-chip {
-  font-family: var(--font-sans); font-size: var(--font-size-2xs); font-weight: 500;
-  padding: var(--space-3) var(--space-5); border-radius: var(--pill-radius); cursor: pointer;
-  border: var(--chip-border-width) var(--border-style) var(--border);
-  background: var(--bg-secondary); color: var(--fg-secondary);
-  transition: background-color var(--transition-fast), color var(--transition-fast);
-}
-.lib-chip:hover { background: var(--bg-tertiary); }
-.lib-chip.active { background: var(--accent); color: var(--accent-fg); }
+.lib-chip { padding: var(--space-3) var(--space-5); }
 
 /* ── 書卡格線 ── */
 .lib-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: var(--lib-row); }

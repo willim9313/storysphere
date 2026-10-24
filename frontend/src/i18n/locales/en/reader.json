@@ -83,7 +83,6 @@
   "col2Collapse": "Collapse chapter list",
   "nav": {
     "chapterBadge": "Chapter {{current}} / {{total}}",
-    "prev": "← Previous: {{title}}",
     "next": "Next: {{title}} →",
     "backToTop": "Back to top"
   },

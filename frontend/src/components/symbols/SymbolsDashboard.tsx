@@ -108,7 +108,7 @@ function OverviewHeader({
   return (
     <header className="sym-ov-head">
       <div className="sym-ov-head-main">
-        <h1 className="sym-ov-title">{t('symbol.overview.title')}</h1>
+        <h1 className="ss-page-title sym-ov-title">{t('symbol.overview.title')}</h1>
         <p className="sym-ov-meta">{meta.join(t('symbol.overview.meta.separator'))}</p>
       </div>
       <BatchButtons

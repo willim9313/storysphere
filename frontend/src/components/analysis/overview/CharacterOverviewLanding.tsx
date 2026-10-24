@@ -77,7 +77,7 @@ export function CharacterOverviewLanding({
     <div className="ca-ov-landing">
       <div className="ca-ov-head">
         <div className="ca-ov-head-main">
-          <h1 className="ca-ov-title">{t('character.overview.title')}</h1>
+          <h1 className="ss-page-title">{t('character.overview.title')}</h1>
           <div className="ca-ov-meta">
             <span>
               <strong>{totalCount}</strong> {t('character.overview.metaTotal')}

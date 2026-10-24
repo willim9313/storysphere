@@ -37,24 +37,7 @@
   flex-wrap: wrap;
 }
 .tu-ranges { display: flex; gap: var(--space-3); }
-.tu-range {
-  padding: var(--space-3) var(--space-6);
-  /* 篩選 chip 語彙：Warm 靠底色分層不畫框，Ink 底色貼近白紙改靠框 */
-  border: var(--chip-border-width) var(--border-style) var(--border);
-  border-radius: var(--pill-radius);
-  background: var(--bg-secondary);
-  color: var(--fg-secondary);
-  font-family: inherit;
-  font-size: var(--font-size-2xs);
-  font-weight: 500;
-  cursor: pointer;
-  transition: background var(--transition-fast), color var(--transition-fast);
-}
-.tu-range[aria-pressed='true'] {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--accent-fg);
-}
+.tu-range { padding: var(--space-3) var(--space-6); }
 .tu-book-select {
   min-width: 180px;
   max-width: 280px;

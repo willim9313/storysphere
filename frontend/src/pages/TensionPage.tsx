@@ -58,6 +58,7 @@ import {
 import { useTensionTask } from '@/components/tension/hooks/useTensionTask';
 import '@/styles/tension.css';
 import { qk } from '@/api/queryKeys';
+import { Tooltip } from '@/components/ui/Tooltip';
 
 /**
  * Shape of the Step 1 task result (API_CONTRACT #14b).
@@ -904,15 +905,16 @@ export default function TensionPage() {
                       ) : (
                         <span className="tn-hint">{t('tension.state.tokenHintShort')}</span>
                       )}
-                      <button
-                        type="button"
-                        className="ss-btn ss-btn-sm ss-btn-danger ss-btn-llm"
-                        onClick={() => setRerunOpen(true)}
-                        disabled={!!busyReason}
-                        title={busyReason ?? undefined}
-                      >
-                        {t('tension.rerun.trigger')}
-                      </button>
+                      <Tooltip label={busyReason ?? ''} disabled={!busyReason}>
+                        <button
+                          type="button"
+                          className="ss-btn ss-btn-sm ss-btn-danger ss-btn-llm"
+                          onClick={() => setRerunOpen(true)}
+                          disabled={!!busyReason}
+                        >
+                          {t('tension.rerun.trigger')}
+                        </button>
+                      </Tooltip>
                     </div>
                   </section>
                 </>
