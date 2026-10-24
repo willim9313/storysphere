@@ -28,7 +28,9 @@
   /* Text — 暖墨 */
   --fg-primary:   #2a2620;
   --fg-secondary: #5f5648;
-  --fg-muted:     #938876;
+  /* muted 只給註記、計數、placeholder；值取對 bg-primary ≥ 4.5:1（4.65）。
+     更深會與 fg-secondary 層次相黏，故 tertiary／卡片底上的資訊文字改用 fg-secondary。 */
+  --fg-muted:     #776c5b;
 
   /* Line & accent */
   --border:       #ddceb2;
@@ -47,7 +49,7 @@
   --panel-bg-card:  #e7dcc6;
   --panel-border:   #d3c3a4;
   --panel-fg:       #2a2620;
-  --panel-fg-muted: #938876;
+  --panel-fg-muted: var(--fg-muted);
 
   /* Entity pills — 7 類低彩度 warm hue arc（clay→ochre→olive，rose & mauve）
      值取自設計 contract 的 oklch 定義；Ink 主題刻意不覆寫（跨主題共用分類色） */
@@ -196,7 +198,7 @@
   --status-partial-fg:      #8a5c13;
   --status-empty-bg:        #f1e8d5;
   --status-empty-border:    #ddceb2;
-  --status-empty-fg:        #938876;
+  --status-empty-fg:        var(--fg-muted);
 
   /* Splash wash — 線稿插畫墊在字標後面的程度。
      值以 DS v3 design system 為準（2026-10-01 裁決，B-126） */
@@ -207,7 +209,7 @@
      線稿插畫（empty state、splash、section mark）的描邊 token：
      細墨線、不填色、略鬆。SVG stroke/weight 一律取用這組。 */
   --illustration-stroke:      var(--fg-primary);
-  --illustration-stroke-soft: var(--fg-muted);
+  --illustration-stroke-soft: #938876;   /* 非文字，釘舊 muted 值，不隨文字 token 加深 */
   --illustration-accent:      var(--accent);
   --illustration-fill:        none;
   --illustration-weight:      1.5px;
@@ -318,7 +320,7 @@
 
   /* Tension intensity — 焦赭單色 ramp 三階 */
   --tension-intensity-low-bg:    #f1e8d5;
-  --tension-intensity-low-fg:    #938876;
+  --tension-intensity-low-fg:    var(--fg-muted);
   --tension-intensity-low-edge:  #ddceb2;
   --tension-intensity-mid-bg:    #cf9a72;
   --tension-intensity-mid-fg:    #52301c;
@@ -354,7 +356,7 @@
 
   --fg-primary:   #151515;
   --fg-secondary: #3f3f3f;
-  --fg-muted:     #8c8c8c;
+  --fg-muted:     #737373;
 
   --border: #1a1a1a;
   --accent: #111111;
@@ -365,7 +367,7 @@
   --panel-bg-card:  #ededeb;
   --panel-border:   #1a1a1a;
   --panel-fg:       #151515;
-  --panel-fg-muted: #8c8c8c;
+  --panel-fg-muted: var(--fg-muted);
 
   /* Status — 單一單色處理；狀態由 icon 字形承載 */
   --color-success: #151515; --color-success-bg: #ececea;
@@ -376,7 +378,7 @@
   /* Polarity — 單色 fill polarity（深淺取代色相） */
   --polarity-positive-bg: #ffffff; --polarity-positive-fg: #151515; --polarity-positive-edge: #151515; --polarity-positive-dot: #151515;
   --polarity-negative-bg: #151515; --polarity-negative-fg: #ffffff; --polarity-negative-edge: #000000; --polarity-negative-dot: #ffffff;
-  --polarity-neutral-bg:  #f6f6f4; --polarity-neutral-fg:  #8c8c8c; --polarity-neutral-edge:  #cfcfcf; --polarity-neutral-dot:  #8c8c8c;
+  --polarity-neutral-bg:  #f6f6f4; --polarity-neutral-fg:  var(--fg-muted); --polarity-neutral-edge:  #cfcfcf; --polarity-neutral-dot:  #8c8c8c;
   --polarity-mixed-bg:    #d8d8d8; --polarity-mixed-fg:    #151515; --polarity-mixed-edge:    #8c8c8c; --polarity-mixed-dot:    #3f3f3f;
 
   /* 密度 / 張力 — 灰階 ramp */
@@ -386,9 +388,9 @@
   --symbol-density-peak: #000000;
 
   --tension-intensity-low-bg:    #ffffff;
-  --tension-intensity-low-fg:    #8c8c8c;
+  --tension-intensity-low-fg:    var(--fg-muted);
   --tension-intensity-low-edge:  #cfcfcf;
-  --tension-intensity-mid-bg:    #8c8c8c;
+  --tension-intensity-mid-bg:    #737373;   /* 白字 4.74:1 */
   --tension-intensity-mid-fg:    #ffffff;
   --tension-intensity-mid-edge:  #3f3f3f;
   --tension-intensity-high-bg:   #151515;
@@ -417,13 +419,13 @@
   --status-partial-fg:      #151515;
   --status-empty-bg:        #ffffff;
   --status-empty-border:    #cfcfcf;
-  --status-empty-fg:        #8c8c8c;
+  --status-empty-fg:        var(--fg-muted);
 
   /* Frye / Booker — 灰階 fill polarity */
   --frye-romance-bg: #ffffff; --frye-romance-fg: #151515; --frye-romance-border: #151515;
   --frye-comedy-bg:  #ececea; --frye-comedy-fg:  #151515; --frye-comedy-border:  #3f3f3f;
   --frye-tragedy-bg: #151515; --frye-tragedy-fg: #ffffff; --frye-tragedy-border: #000000;
-  --frye-irony-bg:   #8c8c8c; --frye-irony-fg:   #ffffff; --frye-irony-border:   #151515;
+  --frye-irony-bg:   #737373; --frye-irony-fg:   #ffffff; --frye-irony-border:   #151515;
 
   --booker-bg:     #ececea;
   --booker-fg:     #151515;
@@ -436,7 +438,7 @@
 
   /* Illustration — 白紙上的純墨線 */
   --illustration-stroke:      #151515;
-  --illustration-stroke-soft: #8c8c8c;
+  --illustration-stroke-soft: #8c8c8c;   /* 非文字，釘舊 muted 值 */
   --illustration-accent:      #151515;
   --illustration-fill:        none;
   --illustration-weight:      1.5px;

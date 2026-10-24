@@ -158,12 +158,12 @@
 }
 .ea-imp.satellite {
   background: var(--bg-tertiary);
-  color: var(--fg-muted);
+  color: var(--fg-secondary);
   border: var(--line-weight) var(--border-style) var(--border);
 }
 .ea-imp.unknown {
   background: var(--bg-tertiary);
-  color: var(--fg-muted);
+  color: var(--fg-secondary);
   border: var(--line-weight) dashed var(--border);
 }
 
@@ -505,7 +505,7 @@
 }
 .ea-ov-map-band-label {
   position: absolute; left: 0; top: 6px;
-  font-size: var(--font-size-2xs); letter-spacing: 0.06em; color: var(--fg-muted);
+  font-size: var(--font-size-2xs); letter-spacing: 0.06em; color: var(--fg-secondary);
 }
 .ea-ov-map-plot { position: absolute; top: 0; bottom: 0; left: 52px; right: 0; }
 .ea-ov-map-colline {
@@ -546,7 +546,7 @@
 }
 .ea-ov-map-axis-tick {
   position: absolute; top: var(--space-4); transform: translateX(-50%);
-  font-variant-numeric: tabular-nums; font-size: var(--font-size-2xs); color: var(--fg-muted);
+  font-variant-numeric: tabular-nums; font-size: var(--font-size-2xs); color: var(--fg-secondary);
 }
 .ea-ov-map-legend { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4) var(--space-6); }
 .ea-ov-map-legend-item {

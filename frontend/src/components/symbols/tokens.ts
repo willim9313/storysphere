@@ -101,7 +101,7 @@ export interface ReviewStyle {
 }
 
 export const REVIEW_STYLE: Record<SymbolReviewStatus, ReviewStyle> = {
-  pending: { fg: 'var(--fg-muted)', bg: 'var(--bg-tertiary)' },
+  pending: { fg: 'var(--fg-secondary)', bg: 'var(--bg-tertiary)' },
   approved: { fg: 'var(--color-success)', bg: 'var(--color-success-bg)' },
   modified: { fg: 'var(--color-info)', bg: 'var(--color-info-bg)' },
   rejected: { fg: 'var(--color-error)', bg: 'var(--color-error-bg)' },

@@ -130,7 +130,7 @@
 .tu-table thead tr { background: var(--bg-secondary); }
 .tu-table th {
   font-weight: 500;
-  color: var(--fg-muted);
+  color: var(--fg-secondary);
   border-bottom: var(--line-weight) var(--border-style) var(--border);
 }
 .tu-table tbody tr + tr td { border-top: var(--line-weight) var(--border-style) var(--border); }
