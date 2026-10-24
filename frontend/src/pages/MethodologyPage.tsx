@@ -673,7 +673,7 @@ export default function MethodologyPage() {
                       </Tooltip>
                     )}
                   </div>
-                  {!fw.crossBook && <span id="md-nocross" className="md-sr-only">{t('noCross')}</span>}
+                  {!fw.crossBook && <span id="md-nocross" className="sr-only">{t('noCross')}</span>}
                 </header>
                 <div role="tabpanel" id="md-tabpanel" aria-labelledby={`md-tab-${mode}`}>
                   {mode === 'about' && (

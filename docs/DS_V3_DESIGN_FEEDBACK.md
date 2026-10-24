@@ -7,7 +7,7 @@
 
 **每條必填**：出處（handoff 批次＋檔案路徑＋稿上哪一區）、問題、目前的處置、要設計端做什麼。
 
-**狀態**：`待同步` → `已同步`（記日期）→ `設計已回覆`（記結論與是否需要回頭改實作）
+**狀態**：`待同步` → `已同步`（記日期）→ `設計已回覆`（記結論與是否需要回頭改實作）；後續 PR 讓問題本身消失的記 `已失效`（記日期與原因）
 
 ---
 
@@ -42,6 +42,7 @@
   內容為既有字串「批次角色分析完成」＋失敗清單＋「關閉」，手動關閉。沿用事件頁面板的樣式（`.ea-batch`）。
 - **請設計端**：在 09 稿（第 3 批）畫出這個面板；確認位置與內容，或給定案。
 - **第 5 批 09·10 決議已覆蓋**（2026-10-04）：角色頁面板放左欄最上、在框架軸之上；失敗不再列清單，只放數字＋「只看失敗」；上述「關閉」鈕與 `BatchFailureList` 已移出角色頁。見 5-BP-*、UI_SPEC §3.4。
+- **現況（2026-10-24 巡檢）**：已被第 5 批（5-BP）取代：角色頁不再列失敗清單，只留件數與「只看失敗」（`CharacterAnalysisPage.tsx:247-262`）；`BatchFailureList` 只剩象徵頁使用（`SymbolsDashboard.tsx:315`）。待設計端確認後可結案。
 
 ### 0-B Toast 左邊框：決議紀錄與規格卡衝突
 
@@ -73,6 +74,7 @@
   舊頁內 toast 不論有無失敗都是綠色勾勾。
 - **請設計端**：確認。
 - **第 5 批 09·10 決議已覆蓋**（2026-10-04）：toast 只當完成通知，有失敗**不再 persist**（5.2s 自動消失）；類型仍用 warning（部分完成不是乾淨的成功，工程判斷）。
+- **現況（2026-10-24 巡檢）**：toast 仍為 warning（`CharacterAnalysisPage.tsx:250-254`），但已不 persist（5.2 秒自動消失）；只剩「warning 是否正確」待確認。
 
 ### 0-F 對話框規格卡的成本提示是註解，容易被讀成產品元素
 
@@ -82,6 +84,7 @@
 - **目前處置**：不做。
 - **請設計端**：把註解移出對話框本體（或明確標示為註解），並修正 README §2.5 的寫法。
 - **第 4 批補記**（2026-10-04）：13 D 區、15 F 區明文要求成本提示行為產品元素；使用者裁決本批照做，見 4-SH-1。
+- **現況（2026-10-24 巡檢）**：「不做」已過時：`ConfirmDialog` 已有 `costHint` prop（`ConfirmDialog.tsx:22-24`，見 4-SH-1）。
 
 ### 0-G Splash 濃度兩組值
 
@@ -137,6 +140,7 @@
   - 任務徽章只在選單內的任務中心列顯示；`…` 鈕本身沒有徽章，所以選單未開時看不到任務數。
   - `…` 鈕目前**沒有可存取名稱**（需新字串，見產品端待裁決）。
 - **請設計端**：畫出溢出選單，並決定徽章是否要冒到 `…` 鈕上。
+- **現況（2026-10-24 巡檢）**：「⋯ 鈕沒有可存取名稱」已過時：現為 `aria-label="更多"`＋Tooltip（`Sidebar.tsx:253`）。
 
 ### 0-N 任務中心的幾個尺寸與 Ink 陰影
 
@@ -349,6 +353,7 @@ Handoff `redesign_v3_handoff_batch_1.zip`（`design_handoff_01_entry/`）。下�
 - **出處**：03 H 區「書名空白：確認上傳 disabled」畫成 `opacity:0.5; cursor:not-allowed`；`tokens/ss-kit.css` 的 `.ss-btn*` 沒有 `:disabled` 規則。
 - **目前處置**：上傳頁頁內套 H 區的值（`.up-page .ss-btn:disabled`），不動共用 kit。
 - **請設計端**：在 kit 定義 `.ss-btn:disabled`（含 Ink），之後各頁改用 kit 的。
+- **現況（2026-10-24 巡檢）**：共用 kit 已定義 `.ss-btn:disabled`（`ss-kit.css:56`，opacity 0.5、not-allowed），頁內覆寫已移除；「頁內套、不動 kit」已失效。
 
 ### 1-T 目錄抽屜標題、徽章與閱讀欄提示框
 
@@ -1030,7 +1035,7 @@ Handoff `redesign_v3_handoff_batch_3.zip`（`design_handoff_03_analysis/`）。�
 | # | 類型 | 狀態 |
 |---|------|------|
 | 3-CH-1 | 矛盾 · 語氣分布的資料不是語氣詞 | 待同步 |
-| 3-CH-2 | 遺漏 · 角色批次失敗項沒有章節 | 待同步 |
+| 3-CH-2 | 遺漏 · 角色批次失敗項沒有章節 | 已失效（2026-10-24） |
 | 3-CH-3 | 同步 · ENG-001 本批已上線，暫時警語不上線 | 待同步 |
 | 3-CH-4 | 遺漏 · 稿上既有文字但 i18n 沒有（弧線圖例句、框架說明句、門檻說明、比對依據、派系圖例字串、回書籍總覽） | 待同步 |
 | 3-CH-5 | 矛盾 · 弧線事件圖例稿寫「軸上圓點＝關鍵事件」，既有 i18n 是「關鍵事件 marker」 | 待同步 |
@@ -1055,6 +1060,7 @@ Handoff `redesign_v3_handoff_batch_3.zip`（`design_handoff_03_analysis/`）。�
 - **目前處置**：角色頁逐筆「名稱 · 失敗原因」；事件頁照舊帶章節。
 - **請設計端**：09 I 區改成不帶章節。
 - **第 5 批 09·10 決議已覆蓋**（2026-10-04）：兩頁面板都不再列失敗清單（只放數字＋「只看失敗」），本條的「逐筆名稱 · 失敗原因」已無落點；失敗原因目前只在伺服器紀錄與（符號頁的）`BatchFailureList`。
+- **現況（2026-10-24 巡檢）**：已失效：第 5 批 09·10 決議覆蓋，兩頁面板不再列失敗清單，本處置無落點（文件已自註）。
 
 #### 3-CH-3 ENG-001 本批已上線，暫時警語不上線
 
@@ -1082,6 +1088,7 @@ Handoff `redesign_v3_handoff_batch_3.zip`（`design_handoff_03_analysis/`）。�
 - **出處**：09 D 區「證據已更新」用 `ss-badge-warning`；UI_SPEC 舊文（B-111）刻意用 info，理由是它與 partial 正交可同時出現。
 - **目前處置**：照稿改 warning（兩者同色，靠文字分）。
 - **請設計端**：確認；若要保留 info 請改稿。
+- **現況（2026-10-24 巡檢）**：過期徽章實為 `ss-badge-info`（`CharacterAnalysisPage.tsx:491`），清單點 `.ca-row-stale` 也是 `--color-info`，與「照稿改 warning」不符——文件或程式需擇一更正。
 
 #### 3-CH-7 認知對照以 index 退回 id
 
@@ -1253,6 +1260,7 @@ Handoff `redesign_v3_handoff_batch_3.zip`（`design_handoff_03_analysis/`）。�
 - **問題**：原 `densityStep` 另有 3 次以上的第三色（`--symbol-density-peak`），圖例沒有對應項；兩者不一致。
 - **目前處置**：≥2 一律 `--symbol-density-high`，圖例與格子一致。`--symbol-density-low`、`-peak` 仍留在 tokens.css，未刪。
 - **請設計端**：確認 peak／low 是否從 token 家族移除。
+- **現況（2026-10-24 巡檢）**：「`--symbol-density-peak` 不再被使用」不實：章節分布圖峰值標記 `.sym-dist-peak` 仍引用（`symbols.css:1071`），只有熱圖不再用。
 
 #### 3-SY-8 「供應商回傳空內容」那句沒在裁決範圍
 
@@ -1564,10 +1572,10 @@ Handoff `redesign_v3_handoff_batch_4.zip`（`design_handoff_04_views/`）。下�
 | 4-KG-5 | 矛盾 · 次級面板一次只能開一個 | 待同步 |
 | 4-KG-6 | 矛盾 · 強制重跑文案與後端行為 | 待同步 |
 | 4-KG-7 | 遺漏 · 稿畫統計列在工具列、README 寫三件套共用右錨點 | 待同步 |
-| 4-KG-8 | 遺漏 · Ink 下合作／敵對／一般三色邊無非色相載體 | 待同步 |
+| 4-KG-8 | 遺漏 · Ink 下合作／敵對／一般三色邊無非色相載體 | 已失效（2026-10-24） |
 | 4-KG-9 | 遺漏 · 稿面板是浮動卡，產品是貼邊整高右欄；工具列高 32 與帶副標的鏡頭切換器 | 待同步 |
 | 4-KG-10 | 遺漏 · 社群鏡頭沒有縮放；稿的縮放條含重設圖示 | 待同步 |
-| 4-KG-11 | 遺漏 · 導覽條（共用元件）有左邊框強調 | 待同步 |
+| 4-KG-11 | 遺漏 · 導覽條（共用元件）有左邊框強調 | 已失效（2026-10-24） |
 
 #### 4-KG-1 實體對模式的出口字串、位置與 Esc
 
@@ -1622,6 +1630,7 @@ Handoff `redesign_v3_handoff_batch_4.zip`（`design_handoff_04_views/`）。下�
 - **問題**：Ink 下 success／error 同為 `#151515`，三條實線只靠標籤區分，畫布上的邊無法辨認；只有「推測」有虛線。
 - **目前處置**：照稿。
 - **請設計端**：給合作／敵對／一般一個非色相載體（線寬或線型）。
+- **現況（2026-10-24 巡檢）**：已失效：敵對邊改虛線、合作邊加粗（`GraphPage.tsx:402`、`LegendCard.tsx:112,120`），Ink 已有非色相載體。
 
 #### 4-KG-9 面板形態與工具列高度
 
@@ -1636,6 +1645,7 @@ Handoff `redesign_v3_handoff_batch_4.zip`（`design_handoff_04_views/`）。下�
 - **問題**：社群鏡頭是固定 SVG，沒有縮放；重設已在工具列。
 - **目前處置**：只在個別／類型鏡頭顯示 `− 讀數 ＋`，不放重設圖示。
 - **請設計端**：確認。
+- **現況（2026-10-24 巡檢）**：社群鏡頭已支援滾輪／捏合縮放（`FactionCanvas.tsx:153-162`），「沒有縮放」不再屬實；縮放條仍只有 −／讀數／＋、無重設。
 
 #### 4-KG-11 導覽條左邊框
 
@@ -1643,6 +1653,7 @@ Handoff `redesign_v3_handoff_batch_4.zip`（`design_handoff_04_views/`）。下�
 - **問題**：現況帶左邊框強調，與「提示條不得有左邊框強調」衝突。
 - **目前處置**：未改（共用元件）。
 - **請設計端**：另開共用元件工單。
+- **現況（2026-10-24 巡檢）**：已失效：導覽條已是 kit `.ss-guidance`（無左側色條），圖譜頁用 `.is-float`。
 
 ### 張力分析 `/books/:bookId/tension`
 
@@ -1650,7 +1661,7 @@ Handoff `redesign_v3_handoff_batch_4.zip`（`design_handoff_04_views/`）。下�
 |---|------|------|
 | 4-TN-1 | 裁決 · 409 說明的最後半句承諾不存在的動作 | 待同步 |
 | 4-TN-2 | 矛盾 · TEU 逐章精簡列的「TEU 標題」沒有欄位 | 待同步 |
-| 4-TN-3 | 遺漏 · 導覽列改 `.ss-guidance` 屬共用層 | 待同步 |
+| 4-TN-3 | 遺漏 · 導覽列改 `.ss-guidance` 屬共用層 | 已失效（2026-10-24） |
 | 4-TN-4 | 遺漏 · 稿上新出現的字串沒進 README §5 | 待同步 |
 | 4-TN-5 | 遺漏 · 批次審核沒有後端端點，稿沒畫部分失敗 | 待同步 |
 | 4-TN-6 | 矛盾 · 軟閘門「全部審完 →」與主鈕同時出現的畫法 | 待同步 |
@@ -1676,6 +1687,7 @@ Handoff `redesign_v3_handoff_batch_4.zip`（`design_handoff_04_views/`）。下�
 - **問題**：同 3-EV-9：`GuidanceRibbon` 是全站共用元件；`.ss-guidance` 不在產品 kit。
 - **目前處置**：維持共用元件，等第 19 稿。
 - **請設計端**：第 19 稿一併定。
+- **現況（2026-10-24 巡檢）**：已失效：「維持共用元件、等第 19 稿」已由 5-1 落地為 kit `.ss-guidance`（`guidance.css`）。
 
 #### 4-TN-4 稿上新出現的字串沒進 README §5
 
@@ -1834,6 +1846,7 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 - **問題**：原實作在圓心水平畫一條虛線分隔兩區並標字；新稿圓心只留階段名，那條線會穿過它。稿也沒說區帶要移去哪。
 - **目前處置**：5-3 移除區帶線與兩個標籤；i18n `narrative.ring.knownWorld`／`specialWorld` 保留（孤兒）。
 - **請設計端**：確認區帶是否要保留（例如畫成圓環內外緣的弧線），或從 spec §3 刪除。
+- **現況（2026-10-24 巡檢）**：文件說保留為孤兒的 `narrative.ring.knownWorld`／`specialWorld` 已不在 i18n（B-129 清理）。
 
 #### 5-NR-4 核可／標記不適用的亮著態與撤銷提示稿上沒畫
 
@@ -2221,6 +2234,7 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 - **問題**：步驟短名與「不可用」寫死中文，英文介面照樣顯示中文；短名（摘要／特徵／符號）與建構概覽、閱讀頁重跑選單的全名不一致。後端任一步失敗即 `error`，所以這列只出現在錯誤書上，而錯誤書卡整張只連閱讀頁，沒有通往「哪一步失敗、怎麼重跑」的路。中文窄卡會把「不可用」拆行。
 - **目前處置**（使用者 2026-10-09 裁決）：步驟名改用 `reader:rerun.steps.*` 全名（章節摘要／特徵萃取／知識圖譜／符號探索）；句型中文不變、英文「{steps} unavailable」（`library.card.{listSep,unavailable}`）；「不可用」不斷行；列尾加「查看錯誤 →」（沿用 `library.shortcuts.viewError`）連 `/books/:id/unraveling`，疊在整卡連結之上。
 - **請設計端**：01 C 區降級告警改用全名並補畫列尾連結；確認 badge「✕ 錯誤」與降級列並存（badge 說出錯、降級列說哪幾步）。
+- **現況（2026-10-24 巡檢）**：功能仍在，但 i18n key 已改為 `library.card.unavailableSteps`（`Trans`＋`<nw>`，`library.json:31-32`、`BookCard.tsx:29,114`），不再是 `{listSep,unavailable}`。
 
 ### LIB-4 「處理中」篩選為空時與人工閘門帶的說法
 
@@ -2283,6 +2297,7 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 - **問題**：`DESIGN_TOKENS.md` 語意層級規定 11px（`--font-size-2xs`）只給「註記・計數・eyebrow」，次要說明用 12px；`DESIGN.md` 規定 `fg-muted` 只給註記、計數、placeholder。稿上的整句說明卻畫成 11px 或 `fg-muted`（對比約 2.9–3.4:1，未達 4.5:1）。
 - **目前處置**（使用者 2026-10-10 裁決）：僅本頁——整句說明（`nl-sd-note`、`nl-sd-shared`、`nl-band-note`、`nl-cross-body`、`nl-cross-meta`、`nl-cross-peak-note`、`nl-unclass-fact-v`）升到 `--font-size-xs`；承載資訊的 `fg-muted` 文字（`nl-sd-body.is-muted`、`nl-evbox-hint`、`nl-ev-empty`、`nl-cross-meta`、`nl-seg-hint`）改 `--fg-secondary`，兩主題皆換。標籤、章號、徽章維持 11px／muted。不改 token。
 - **請設計端**：16 稿把整句說明改 12px、承載資訊文字改 secondary；全站其他頁同樣用法（`2xs` 約六百處、`fg-muted` 數百處）尚未清點，請決定是否整體套用此規則。
+- **現況（2026-10-24 巡檢）**：「僅本頁、不改 token」「全站尚未清點」已由 XS-1（#340）取代：`--fg-muted` 已調深、全站清點完成。
 
 ### NL-2 敘事任務執行中停用其他觸發
 
@@ -2393,6 +2408,7 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 - **問題**：同 NL-1——整句說明畫成 11px 與 `fg-muted`（3.15:1），其中包括花 token 前要看懂的阻擋原因；缺席區間 chip 是 muted 疊在 `bg-secondary` 上，2.86:1。被擋的「識別倒敘與預敘」列阻擋說明擠在中欄折成四行，1440 寬工具列 262px、譜面從 y≈588 才開始。
 - **目前處置**（使用者 2026-10-13 裁決，比照 NL-1）：僅本頁——`tl-action-sub`、`tl-actions-note`、`tl-compare-blocked-desc`、`tl-cluster-hint`、`tl-lanes-note`、`tl-base-sub` 升 `--font-size-xs`，帶資訊的 muted 改 `--fg-secondary`（6.5:1）；`tl-lane-chip` 字色改 secondary（5.9:1）。被擋列在面板窄時改兩行（狀態與阻擋原因跨整列寬），面板最小寬 420 → 360；1440 工具列 262 → 231px。1024／720 工具列本就換行，字級升 12px 各高 6–7px。不改 token。
 - **請設計端**：12 稿把上述句子改 12px／secondary；補畫被擋列的兩行排法。
+- **現況（2026-10-24 巡檢）**：「不改 token」已由 XS-1（#340）取代。
 
 ### TL-5 對照標題、詳情面板的故事時序位置、矩陣縱軸
 
@@ -2421,6 +2437,7 @@ Handoff `redesign_v3_handoff_batch_5.zip`（`design_handoff_05_supplement/`）�
 - **問題**：上述結構標籤用 `fg-muted`，Warm 3.15:1、疊在人工關卡卡片（bg-tertiary）上只有 2.59:1（Ink 2.84）；DESIGN.md 的 muted 只給註記、計數、placeholder。720 寬階段條 kicker 單行截斷成「CROSS-SCE…」。Ink 的 bg-secondary `#f6f6f4` 與白底太近，開著抽屜的列與一般列分不出來。
 - **目前處置**（使用者 2026-10-14 裁決）：僅本頁——上述標籤改 `--fg-secondary`（Warm 5.37–6.51、Ink 8.9）；kicker 改可換行；新 shape token `--row-open-marker-width`（Warm 0／Ink 3px），開著的表格列與格點列標籤左側 inset 粗線。提示、計數、鎖定階段維持 muted。人工關卡卡片上的 warning 字 4.0:1 併入全站色彩延後項，未改。
 - **請設計端**：確認結構標籤改 secondary；補畫窄寬 kicker 換行與 Ink 開著列的標記。
+- **現況（2026-10-24 巡檢）**：「不改 token／維持 muted」已由 XS-1（#340）取代：token 值已調深，secondary／tertiary 底的資訊文字改 `--fg-secondary`。
 
 ## 稿外新增 · 全站收尾（跨頁延後項）
 

@@ -693,7 +693,7 @@ export default function TensionPage() {
       <div className="tn-shell">
         <div className="tn-shell-main tn-scroll">
           <div className="tn-page">
-            <h1 className="tn-sr-only">{tn('tabs.tensionAnalysis')}</h1>
+            <h1 className="sr-only">{tn('tabs.tensionAnalysis')}</h1>
             <PageFailure
               variant={failureKind(loadError)}
               pageName={tn('tabs.tensionAnalysis')}
@@ -714,7 +714,7 @@ export default function TensionPage() {
     <div className="tn-shell">
       <div className="tn-shell-main tn-scroll" inert={drawerOverlaying}>
         <div className="tn-page">
-          <h1 className="tn-sr-only">{tn('tabs.tensionAnalysis')}</h1>
+          <h1 className="sr-only">{tn('tabs.tensionAnalysis')}</h1>
           <GuidanceRibbon surface="tension">
             <strong>{t('tension.guide.prefix')}</strong>{' '}
             <Trans i18nKey="tension.guide.body" ns="analysis" components={{ strong: <strong /> }} />

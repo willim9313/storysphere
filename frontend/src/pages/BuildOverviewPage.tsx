@@ -1495,7 +1495,7 @@ export default function BuildOverviewPage() {
   if (isLoading) {
     return (
       <div className="bo-page">
-        <h1 className="bo-sr-only">{tn('tabs.unraveling')}</h1>
+        <h1 className="sr-only">{tn('tabs.unraveling')}</h1>
         <BuildOverviewSkeleton />
       </div>
     );
@@ -1505,7 +1505,7 @@ export default function BuildOverviewPage() {
     return (
       <div className="bo-page">
         <div className="bo-inner">
-        <h1 className="bo-sr-only">{tn('tabs.unraveling')}</h1>
+        <h1 className="sr-only">{tn('tabs.unraveling')}</h1>
           <PageFailure
             variant={failureKind(error)}
             pageName={tn('tabs.unraveling')}
@@ -1531,7 +1531,7 @@ export default function BuildOverviewPage() {
   return (
     <div className="bo-page">
       <div className="bo-inner">
-        <h1 className="bo-sr-only">{tn('tabs.unraveling')}</h1>
+        <h1 className="sr-only">{tn('tabs.unraveling')}</h1>
 
         <GuidanceRibbon surface="build-overview">
           <strong>{t('unraveling.guide.prefix')}</strong>{' '}

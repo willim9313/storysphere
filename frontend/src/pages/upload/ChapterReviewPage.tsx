@@ -1007,7 +1007,7 @@ export default function ChapterReviewPage() {
                             </Tooltip>
                           )}
                           {flagged && (
-                            <span className="cr-sr-only">{t('review.flagMisSplit')}</span>
+                            <span className="sr-only">{t('review.flagMisSplit')}</span>
                           )}
                         </span>
                         {ch.title && <span className="cr-block-title">{ch.title}</span>}

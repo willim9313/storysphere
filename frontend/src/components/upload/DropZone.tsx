@@ -43,7 +43,7 @@ export function DropZone({ onFiles, rejected = false }: DropZoneProps) {
       </span>
       <span className="up-drop-main">{t('dropzone.dragText')}</span>
       <span className="up-drop-sub">{t('dropzone.supportText')}</span>
-      <input id="file-input" type="file" accept={ACCEPT_ATTR} multiple className="up-sr-only" onChange={onChange} />
+      <input id="file-input" type="file" accept={ACCEPT_ATTR} multiple className="sr-only" onChange={onChange} />
     </label>
   );
 }

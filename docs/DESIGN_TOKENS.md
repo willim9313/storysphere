@@ -426,17 +426,7 @@ warm 取 warm arc 四步（romance=赭黃、comedy=橄欖、tragedy=磚紅、iro
 |-------|-----|------|
 | `--fab-clearance` | `88px` | 書內頁主捲動容器的下內距，讓最後一列能捲到聊天泡泡上方（B-130）。= 浮動軌底距 24（`RAIL.slots[0]`）＋ 泡泡 48 ＋ 間隙 16。改 `RAIL` 或泡泡尺寸時要一起改 |
 
-**舊間距（legacy，新程式碼不要用）**：各頁隨 DS v3 重寫遷移，遷完後移除。
-名稱與新階**不對應**（例如 `--space-sm` 是 8px，不是 `--space-2` 的 4px），不可直接改名替換。
-
-| Token | 值 | px |
-|-------|-----|-----|
-| `--space-xs` | `0.25rem` | 4px |
-| `--space-sm` | `0.5rem` | 8px |
-| `--space-md` | `1rem` | 16px |
-| `--space-lg` | `1.5rem` | 24px |
-| `--space-xl` | `2rem` | 32px |
-| `--space-2xl` | `3rem` | 48px |
+**舊間距**（`--space-xs`…`--space-2xl`）已於 2026-10-24 移除：最後 3 處用量（global.css）改為同 px 的新階。
 
 **圓角（跨主題共用；主題分化發生在 §3.15）**
 

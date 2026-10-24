@@ -12,11 +12,7 @@
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: var(--focus-ring-offset);
 }
-.cr-spin { animation: cr-spin 1s linear infinite; }
-.cr-sr-only {
-  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
-  overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0;
-}
+.cr-spin { animation: spin 1s linear infinite; }
 /* 16px 圖示鈕：命中區隱形外擴到 ≥24px（WCAG 2.5.8），外觀與版面不變 */
 .cr-spine-toggle, .cr-icon-btn, .cr-split { position: relative; }
 .cr-spine-toggle::after, .cr-icon-btn::after, .cr-split::after {
@@ -24,7 +20,6 @@
 }
 /* 「＋」貼著捲動欄左緣，往左擴會被裁：只往右擴進段落間距（--space-5） */
 .cr-split::after { inset: calc(-1 * var(--space-2)) calc(-1 * var(--space-4)) calc(-1 * var(--space-2)) 0; }
-@keyframes cr-spin { to { transform: rotate(360deg); } }
 
 /* ── 麵包屑（kit .ss-booknav 沿用，分隔符改 /）── */
 /* 麵包屑（02 稿 28px 列）：2xs secondary、箭頭 accent、書名只換 serif、目前頁 primary */
@@ -224,7 +219,7 @@
 .cr-ch-role { padding: var(--space-3) var(--space-4); }
 .cr-ch-tools { display: flex; align-items: center; gap: var(--space-4); flex-shrink: 0; }
 .cr-divider .ss-btn { flex-shrink: 0; }
-.cr-divider .ss-btn:disabled { opacity: 0.4; }
+.cr-divider .ss-btn:disabled { opacity: 0.5; }
 
 .cr-para { display: flex; align-items: flex-start; gap: var(--space-5); }
 /* 非正文段落只降階文字（0.7，Warm 約 5.3:1）；「＋」與段角色下拉是可操作元件，不降階（1-AJ 修訂 1-X） */
