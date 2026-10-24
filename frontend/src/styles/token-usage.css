@@ -8,7 +8,7 @@
   padding: var(--space-7);
 }
 .tu-inner {
-  max-width: 1280px;
+  max-width: var(--page-content-wide);
   margin: 0 auto;
   display: flex;
   flex-direction: column;

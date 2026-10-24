@@ -24,6 +24,18 @@
 
 `--bg-primary`、`--bg-secondary`、`--bg-tertiary`、`--fg-primary`、`--fg-secondary`、`--fg-muted`、`--border`、`--accent`、`--panel-bg`、`--panel-fg`
 
+### 1.2.1 頁寬（兩檔，2026-10-24）
+
+| 檔 | token | 內容寬 | 對齊 | 頁面 |
+|---|---|---|---|---|
+| 入口／表單 | `--page-width-entry`（960） | 960（設定頁含內距 32 → 896） | 靠左 | 書庫稀疏、上傳 C 態、設定 |
+| 寬版（B 檢視） | `--page-width-wide`（1280，含左右內距 24） | **1232** | 固定寬頁置中；會換密度的頁靠左 | 搜尋、Token 用量、書內 7 頁；書庫滿載、上傳 B 態（靠左） |
+
+- 內距在 max-width 盒**內**的頁（時間軸、敘事、張力、建構概覽、搜尋）取 `--page-width-wide`；內距在外層捲動容器的頁（角色、事件、象徵、Token、書庫滿載、上傳 B）取 `--page-content-wide`（= wide − 2×24）。兩種結構內容寬一樣是 1232。
+- **靠左的理由**：書庫與上傳會在 960 ↔ 1280 間換檔，靠左讓左緣不跳；設定的面板貼著左側導覽。其餘寬版頁置中。
+- **不套這兩檔**：方法論（閱讀頁，rail＋文章＋目錄 1120 置中）、章節審閱與圖譜（工作台，滿版）、任務中心（320 側邊面板）。
+- 本節以下各頁寫的「max-w 1280」指盒寬（含內距），內容一律 1232。
+
 ### 1.3 字體
 
 ```css
@@ -143,7 +155,7 @@ hover 底 `--bg-secondary`；標籤 `settings:guidance.title`「研究者導覽�
 | 狀態 | padding | section | card | row | max-w |
 |---|---|---|---|---|---|
 | 稀疏（預設） | 32 | 24 | 16 | 12 | 960 |
-| 滿載（`.lib-page-full`） | 24 | 16 | 12 | 8 | 1280 |
+| 滿載（`.lib-page-full`） | 24 | 16 | 12 | 8 | 1232（`--page-content-wide`） |
 
 - 書卡＋處理中任務 **> 8 張**切滿載（`FULL_DENSITY_AFTER`），以全書庫計、不隨篩選變。只換間距、欄數與封面高（90／76），
   書卡 anatomy、字級、圓角兩套相同。格線 `repeat(auto-fill, minmax(180px, 1fr))`。下內距一律 `--space-8`。
@@ -214,7 +226,7 @@ hover 底 `--bg-secondary`；標籤 `settings:guidance.title`「研究者導覽�
 | 狀態 | padding | section | card | max-w |
 |---|---|---|---|---|
 | C 入口（頁上沒有任務：投件、填表單） | 32 | 24 | 16 | 960 |
-| B 檢視（頁上有任一任務卡，`data-density="view"`） | 24 | 16 | 12 | 1280 |
+| B 檢視（頁上有任一任務卡，`data-density="view"`） | 24 | 16 | 12 | 1232（`--page-content-wide`） |
 
 內容區靠左、不置中。任務跑著時投件區仍在最上方，可繼續投下一本；任務卡列上方保留既有小標「處理中」。
 
@@ -595,7 +607,7 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 ### 3.4 角色分析頁 `/books/:bookId/characters`
 
 > **DS v3 第 3 批（3-2）改版現況**（以下為準，後文舊描述與其衝突處以此為準）：
-> - **密度 B 檢視**：內容區 padding 24／區塊間距 16／卡片內距 12／列間距 8、max-w 1280、下內距 32；左欄 268 固定。樣式 `character-analysis.css` 只用 `--space-1…8`。
+> - **密度 B 檢視**：內容區 padding 24／區塊間距 16／卡片內距 12／列間距 8、內容寬 1232（`--page-content-wide`）、下內距 32；左欄 268 固定。樣式 `character-analysis.css` 只用 `--space-1…8`。
 > - **文案與結構（2026-10-09，使用者定稿）**：區塊標題一律 h2（頁面 h1＝角色名／「角色群像」）；清單群組標頭只顯示人數（篩選中「顯示 / 總數」，`character.list.groupMeta` 已刪）；已分析列 `isStale` 時狀態點前加 info 小點＋Tooltip；引文已自帶「」『』“”時不再外包（`isQuoted`）；語音卡標頭鈕「重新生成語音風格」（`character.voice.regenerate`，與標題列「覆蓋重新生成」區分）；`persona.profileSub`「整體描繪」；`voice.sentenceLength`「句長分布（字）」；`character.stale.tooltip`／`event.stale.tooltip` 改白話：「這份分析做完後，系統又重新整理過書中的證據段落。內容仍可參考，但可能和目前的資料有些出入；需要時可以覆蓋重新生成。」
 > - **窄寬（2026-10-09）**：象限圖與 ego 關係網的 SVG 以容器實際像素寬為 viewBox（`useElementWidth`），文字維持 CSS 字級不隨寬度縮放；象限高＝寬×0.47（320–470）、泡泡半徑隨寬度縮放（0.5–1 倍）；ego 橢圓橫半徑＝寬/2−46（90–380）。象限主欄放不下 480＋圖例就換行（圖例落到圖下）。內容欄 ≤600px（container query `ca-content`）時語音四格改 2×2、質性欄全寬。
 > - **左欄**：框架 chip（pill）＋說明句固定最上、搜尋、原型篩選、「對照 Jung vs Schmidt」；清單為動作列（姓名／長條＋數值＋「建立」，第二行 28px；長條 px＝6+94√(m/max)）；
@@ -784,7 +796,7 @@ Tooltip「以 LLM 補標事件 visibility（臨時功能，未來可能調整）
 
 決議紀錄 10、批次計畫 `docs/plans/20261002-ds-v3-batch3-analysis.md`。下方舊版面描述與本段衝突處以本段為準。
 
-- **密度**：B 檢視。內容區 padding `--space-7`（24）／下 `--space-8`（32）、內層 `max-width: 1280` 置中、區塊間距 `--space-6`（16）；
+- **密度**：B 檢視。內容區 padding `--space-7`（24）／下 `--space-8`（32）、內層 `max-width: var(--page-content-wide)`（1232）置中、區塊間距 `--space-6`（16）；
   左欄 268 固定、背景 `--bg-primary`、右緣 `--line-weight` 分隔線。間距只用 `--space-1…8`。
 - **批次面板（`BatchEepPanel`）**（第 5 批 09·10 已改寫四態與收合，見下方「第 5 批 · 批次面板」，本條只留按鈕規格）：主鈕「一鍵生成全部 EEP」`ss-btn-primary ss-btn-llm`，走確認框。
   子集區在主鈕正下方**同一張卡**、不收折疊；子集鈕（只生成本章／生成已勾選 (N)）都掛 `ss-btn-llm`（「勾選多筆」是 `ss-btn-secondary`、不掛字符），各佔一行、寬度隨內容靠左，
@@ -1630,7 +1642,7 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 
 ### 3.9 象徵意象頁 `/books/:bookId/symbols`
 
-頁面分為兩欄：左側清單（284px）+ 右側內容。i18n namespace 為 `analysis.json` 的 `symbol.*`。DS v3 第 3 批（3-4）改版，依據 `11 符號意象` 決議紀錄；**B 檢視**密度（頁邊 24／區塊間距 16／卡內距 16／列 8、內容 max-w 1280、下內距 32），熱圖格點為唯一例外（格子尺寸由 12 欄軸決定，列間距 `--space-2`）。
+頁面分為兩欄：左側清單（284px）+ 右側內容。i18n namespace 為 `analysis.json` 的 `symbol.*`。DS v3 第 3 批（3-4）改版，依據 `11 符號意象` 決議紀錄；**B 檢視**密度（頁邊 24／區塊間距 16／卡內距 16／列 8、內容寬 1232（`--page-content-wide`）、下內距 32），熱圖格點為唯一例外（格子尺寸由 12 欄軸決定，列間距 `--space-2`）。
 
 > **以下是草稿・待設計定案**（i18n `symbol.*`，zh-TW 與 en 皆有；稿上已有的 8 句加稿上沒有的 2 句〔`generating.cancelFailed`、`overview.batch.confirmTitle`〕）：
 > `list.trustBelowFloor`、`list.groupMeta`、`error.blockedInline`、`cluster.empty`、`filterEmpty.clear`、
@@ -1647,7 +1659,7 @@ eyebrow ＋ `最新` badge ＋ Frye／Booker chip（chip 前 2xs muted 小標，
 #### 版面結構
 
 ```
-[Left 284px]  [main：GuidanceRibbon → (LlmUnconfiguredNotice) → (觸發失敗橫幅) → 內容；max-w 1280]
+[Left 284px]  [main：GuidanceRibbon → (LlmUnconfiguredNotice) → (觸發失敗橫幅) → 內容；內容寬 1232]
 ```
 
 #### Left Panel — 意象清單（components-rows 動作列）
@@ -2086,7 +2098,7 @@ Booker 小曲線 `aria-hidden`（名稱是 HTML 文字）；Schmidt 無 SVG。
 
 #### 密度與版面
 
-padding 24／section 16／card 12／row 8，內容 max-w 1280。
+padding 24／section 16／card 12／row 8，內容寬 1232（`--page-content-wide`，與搜尋、書內頁同算法）置中。
 
 ```
 [標題「Token 用量」        書籍下拉  範圍 pill ×4]
@@ -2432,7 +2444,7 @@ en 對應：Previewing／Requirement not met: deployed in Standard mode · KG ba
 ```
 
 DS v3 第 2 批（`docs/plans/20261002-ds-v3-batch2-system.md`、決議紀錄 05）。分級 B 檢視。
-頁寬 `max-width: 1280px`；間距全用 `--space-1…8`，輸入框用 `--input-*` token，不掛 sparkles（兩種模式都零成本）。
+頁寬 `max-width: var(--page-width-wide)`（含左右內距 24，內容 1232）置中；間距全用 `--space-1…8`，輸入框用 `--input-*` token，不掛 sparkles（兩種模式都零成本）。
 
 #### 搜尋列（`form`，Enter 送出）
 

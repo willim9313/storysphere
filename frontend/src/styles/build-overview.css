@@ -23,7 +23,7 @@
 /* max-w 1280 含左右內距，與時間軸 .tl-inner 同算法（內容寬 1232） */
 .bo-inner {
   container-type: inline-size;
-  max-width: 1280px;
+  max-width: var(--page-width-wide);
   margin: 0 auto;
   padding-inline: var(--space-7);
   display: flex;

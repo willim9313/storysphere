@@ -7,11 +7,11 @@
 .up-wrap { padding: var(--space-8); min-height: 100%; box-sizing: border-box; display: flex; flex-direction: column; }
 .up-inner {
   flex: 1;
-  max-width: 960px;
+  max-width: var(--page-width-entry);
   display: flex; flex-direction: column; gap: var(--space-7);
 }
 .up-wrap[data-density="view"] { padding: var(--space-7); }
-.up-wrap[data-density="view"] .up-inner { max-width: 1280px; gap: var(--space-6); }
+.up-wrap[data-density="view"] .up-inner { max-width: var(--page-content-wide); gap: var(--space-6); }
 
 .up-title {
   margin: 0; font-family: var(--font-serif); font-size: var(--font-size-2xl);

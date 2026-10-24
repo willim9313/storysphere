@@ -16,7 +16,7 @@
   background: var(--bg-secondary);
 }
 .tn-page {
-  max-width: 1280px; margin: 0 auto; width: 100%;
+  max-width: var(--page-width-wide); margin: 0 auto; width: 100%;
   padding: var(--space-7) var(--space-7) var(--fab-clearance);
   display: flex; flex-direction: column; gap: var(--space-6);
   font-family: var(--font-sans); color: var(--fg-primary);
