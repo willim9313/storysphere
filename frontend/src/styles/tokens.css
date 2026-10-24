@@ -224,6 +224,10 @@
   --space-1: 0.125rem;  --space-2: 0.25rem;  --space-3: 0.375rem; --space-4: 0.5rem;
   --space-5: 0.75rem;   --space-6: 1rem;     --space-7: 1.5rem;   --space-8: 2rem;
 
+  /* 浮動聊天鈕的底部安全區（B-130）：書內頁主捲動容器的下內距，讓最後一列能捲到泡泡上方。
+     = 浮動軌底距 24（RAIL.slots[0]）＋ 泡泡 48 ＋ 間隙 16。 */
+  --fab-clearance: 88px;
+
   /* Legacy — 新程式碼不要用；各頁隨 DS v3 重寫遷完後移除 */
   --space-xs: 0.25rem;
   --space-sm: 0.5rem;
