@@ -252,6 +252,8 @@
   --font-size-xl: 1.25rem;
   --font-size-2xl: 1.5rem;
   --font-size-3xl: 2rem;
+  /* 語意：整句說明（提示、圖例說明、空態／錯誤說明、導覽條）。標籤、計數、eyebrow、徽章仍用 2xs。 */
+  --font-size-note: var(--font-size-xs);
 
   /* Radii */
   --radius-sm: 0.25rem;

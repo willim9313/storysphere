@@ -44,7 +44,7 @@
 .ca-left-label {
   font-size: var(--font-size-2xs); letter-spacing: 0.06em; color: var(--fg-muted);
 }
-.ca-left-note { font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-secondary); }
+.ca-left-note { font-size: var(--font-size-note); line-height: 1.6; color: var(--fg-secondary); }
 
 /* Framework chips — 全頁層級，固定在左欄最上、搜尋框之上 */
 .ca-fw-chips { display: flex; gap: var(--space-4); }
@@ -435,7 +435,7 @@
   font-size: var(--font-size-2xs); color: var(--fg-secondary);
 }
 .ca-ego-legend-dot { width: 9px; height: 9px; border-radius: 50%; border: 1px solid; flex-shrink: 0; }
-.ca-ego-legend-note { font-size: var(--font-size-2xs); color: var(--fg-secondary); }
+.ca-ego-legend-note { font-size: var(--font-size-note); color: var(--fg-secondary); }
 
 /* ─── Grouped relation cards ─── */
 .ca-rel-card-grid {
@@ -502,7 +502,7 @@
 .ca-arc-legend {
   display: flex; flex-direction: column; gap: var(--space-2);
   margin: var(--space-5) 0;
-  font-size: var(--font-size-2xs); color: var(--fg-secondary);
+  font-size: var(--font-size-note); color: var(--fg-secondary);
 }
 .ca-arc-legend-item { display: inline-flex; align-items: center; gap: var(--space-3); color: var(--fg-muted); }
 .ca-arc-legend-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex-shrink: 0; }
@@ -520,7 +520,7 @@
 .ca-arc-card-head { display: flex; align-items: baseline; gap: var(--space-4); margin-bottom: var(--space-3); }
 .ca-arc-card-range { font-size: var(--font-size-2xs); font-family: var(--font-mono); color: var(--accent); }
 .ca-arc-card-phase { font-family: var(--font-serif); font-size: var(--font-size-xs); font-weight: 700; }
-.ca-arc-card-desc { margin: 0; font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-secondary); font-family: var(--font-sans); }
+.ca-arc-card-desc { margin: 0; font-size: var(--font-size-note); line-height: 1.7; color: var(--fg-secondary); font-family: var(--font-sans); }
 
 /* ─── Key events (behavior pane) ─── */
 .ca-keyevent-list { display: flex; flex-direction: column; gap: var(--space-4); }
@@ -653,7 +653,7 @@
 }
 .ca-epi-summary-title { margin: 0; font-family: var(--font-serif); font-size: var(--font-size-lg); font-weight: 700; }
 .ca-epi-summary-chapter { font-size: var(--font-size-2xs); color: var(--fg-muted); font-variant-numeric: tabular-nums; }
-.ca-epi-summary-note { margin-left: auto; font-size: var(--font-size-2xs); color: var(--fg-muted); }
+.ca-epi-summary-note { margin-left: auto; font-size: var(--font-size-note); color: var(--fg-muted); }
 
 /* Chapter timeline / slider.
    The numbers below are chart geometry, not spacing: the row labels (top 44 / 76),
@@ -896,7 +896,7 @@
 .ca-epicompare-note {
   margin: 0; padding: var(--space-5);
   background: var(--bg-secondary); border-radius: var(--radius-sm);
-  font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-secondary);
+  font-size: var(--font-size-note); line-height: 1.7; color: var(--fg-secondary);
 }
 .ca-epicompare-empty { font-size: var(--font-size-2xs); color: var(--fg-muted); }
 
@@ -950,7 +950,7 @@
 .ca-ov-meta strong { color: var(--fg-primary); }
 .ca-ov-meta-item { display: inline-flex; align-items: center; gap: var(--space-2); }
 .ca-ov-head-actions { display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap; }
-.ca-ov-caption { font-size: var(--font-size-2xs); color: var(--fg-secondary); line-height: 1.6; }
+.ca-ov-caption { font-size: var(--font-size-note); color: var(--fg-secondary); line-height: 1.6; }
 
 /* ─── Quadrant view ─── */
 .ca-ov-quadrant-row { display: flex; gap: var(--space-6); align-items: stretch; flex-wrap: wrap; }
@@ -971,7 +971,7 @@
 .ca-ov-axis-label { fill: var(--fg-secondary); font-family: var(--font-sans); font-size: var(--font-size-sm); font-weight: 500; }
 .ca-ov-bubble-label { fill: var(--fg-primary); font-family: var(--font-sans); font-size: var(--font-size-sm); font-weight: 500; }
 .ca-ov-bubble-detail { fill: var(--fg-muted); font-family: var(--font-sans); font-size: var(--font-size-xs); font-weight: 400; }
-.ca-ov-footnote { font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-muted); margin: 0; text-wrap: pretty; }
+.ca-ov-footnote { font-size: var(--font-size-note); line-height: 1.7; color: var(--fg-muted); margin: 0; text-wrap: pretty; }
 .ca-ov-error {
   padding: var(--space-5);
   border: var(--line-weight) var(--border-style) var(--border); border-radius: var(--card-radius);
@@ -1005,7 +1005,7 @@ button.ca-ov-legend-row:hover { background: var(--bg-secondary); }
 .ca-ov-legend-merged { display: flex; flex-direction: column; gap: var(--space-1); }
 .ca-ov-legend-empty { margin: 0; font-size: var(--font-size-2xs); color: var(--fg-secondary); line-height: 1.7; }
 .ca-ov-legend-ring { padding-top: var(--space-4); }
-.ca-ov-legend-note { margin: 0; padding-top: var(--space-4); font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-muted); text-wrap: pretty; }
+.ca-ov-legend-note { margin: 0; padding-top: var(--space-4); font-size: var(--font-size-note); line-height: 1.6; color: var(--fg-muted); text-wrap: pretty; }
 /* 色票：有派系＝填色；無＝只描邊（資料本身沒有歸屬）；ring＝已分析外環 */
 .ca-swatch { display: block; flex-shrink: 0; width: 14px; height: 14px; box-sizing: border-box; border-radius: 50%; }
 .ca-swatch.none { background: transparent; border: var(--line-weight) var(--border-style) var(--cat-none); }

@@ -175,7 +175,7 @@
   padding: var(--space-4) var(--space-5);
   margin: 0;
   font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   line-height: 1.5;
   color: var(--fg-secondary);
   background: var(--bg-secondary);
@@ -371,7 +371,7 @@
   margin: 0;
   border-top: var(--line-weight) var(--border-style) var(--border);
   font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   line-height: 1.6;
   color: var(--fg-muted);
 }
@@ -866,13 +866,13 @@
 .sym-cta-desc {
   margin: 0;
   font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   line-height: 1.7;
   color: var(--fg-secondary);
   text-wrap: pretty;
 }
 .sym-cta-note {
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   line-height: 1.6;
   color: var(--fg-muted);
 }
@@ -882,7 +882,7 @@
   align-items: flex-start;
   gap: 5px;
   font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   line-height: 1.5;
   color: var(--status-partial-fg);
   margin: 8px 0 0;
@@ -1028,7 +1028,7 @@
 }
 .sym-sig-note {
   font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   line-height: 1.7;
   color: var(--fg-muted);
   text-wrap: pretty;
@@ -1124,7 +1124,7 @@
 }
 .sym-dist-note {
   font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   line-height: 1.55;
   color: var(--fg-muted);
   margin: 8px 0 0;
@@ -1147,7 +1147,7 @@
 /* ── Co-occurrence, three columns (D8) ───────────────────── */
 .sym-co-note {
   font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   line-height: 1.6;
   color: var(--fg-muted);
   margin: 0 0 12px;
@@ -1173,7 +1173,7 @@
 }
 .sym-co-col-sub {
   font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   line-height: 1.5;
   color: var(--fg-muted);
   margin-bottom: 4px;
@@ -1335,7 +1335,7 @@
 }
 .sym-occ-front-desc {
   font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   line-height: 1.5;
   color: var(--fg-muted);
   margin: 3px 0 0;
@@ -1574,7 +1574,7 @@
 }
 .sym-dash-card-meta {
   font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   color: var(--fg-muted);
 }
 
@@ -1757,7 +1757,7 @@
 /* ── Single-occurrence cloud (B6) ────────────────────────── */
 .sym-tail-desc {
   font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   line-height: 1.7;
   color: var(--fg-secondary);
   margin: 0;
@@ -1803,7 +1803,7 @@
    row gap is --space-2. */
 .sym-heat-sub {
   font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   line-height: 1.7;
   color: var(--fg-secondary);
   margin: 0;
@@ -1923,7 +1923,7 @@
 }
 .sym-heat-note {
   font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   line-height: 1.7;
   color: var(--fg-muted);
   margin: 0;
@@ -1966,7 +1966,7 @@
   color: var(--fg-primary);
 }
 .sym-empty-step-d {
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   line-height: 1.7;
   color: var(--fg-muted);
 }
@@ -2221,7 +2221,7 @@
    cluster view alike. */
 .sym-cluster-boundary {
   font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   line-height: 1.7;
   color: var(--fg-muted);
   margin: 0;
@@ -2276,7 +2276,7 @@
 }
 .sym-dist-pin-note {
   font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   line-height: 1.55;
   color: var(--fg-muted);
   margin: 8px 0 0;

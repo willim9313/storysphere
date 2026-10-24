@@ -29,7 +29,7 @@
 .tn-nowrap { white-space: nowrap; }
 .tn-esc-hint { padding: 0; background: none; border: 0; cursor: pointer; font-family: var(--font-sans); font-size: var(--font-size-2xs); color: var(--fg-muted); }
 .tn-esc-hint:hover { color: var(--fg-primary); }
-.tn-hint { font-size: var(--font-size-2xs); color: var(--fg-muted); }
+.tn-hint { font-size: var(--font-size-note); color: var(--fg-muted); }
 .tn-alert-mono { font-family: var(--font-mono); }
 .tn-meta-mono { font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-muted); }
 .tn-vs { font-family: var(--font-sans); font-size: var(--font-size-2xs); color: var(--fg-secondary); padding: 0 var(--space-3); }
@@ -62,7 +62,7 @@
 .tn-note {
   padding: var(--space-4) var(--space-5);
   border-radius: var(--radius-sm);
-  font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-primary);
+  font-size: var(--font-size-note); line-height: 1.7; color: var(--fg-primary);
 }
 .tn-note.is-warning { background: var(--color-warning-bg); }
 .tn-note.is-warning strong { color: var(--color-warning); }
@@ -72,7 +72,7 @@
 /* 失敗卡／過期卡：標題＋內文＋動作 */
 .tn-alert { display: flex; flex-direction: column; gap: var(--space-4); padding: var(--space-5); }
 .tn-alert-title { font-size: var(--font-size-xs); font-weight: 600; }
-.tn-alert-body { font-size: var(--font-size-2xs); line-height: 1.7; text-wrap: pretty; }
+.tn-alert-body { font-size: var(--font-size-note); line-height: 1.7; text-wrap: pretty; }
 .tn-alert-actions { display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap; }
 
 .tn-cost-hint {
@@ -199,7 +199,7 @@
 }
 .tn-failure-where { font-family: var(--font-mono); white-space: nowrap; }
 .tn-failure-reason { font-family: var(--font-mono); color: var(--color-error); overflow-wrap: anywhere; }
-.tn-failures-hint { margin: var(--space-5) 0 0; font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-muted); max-width: 78ch; }
+.tn-failures-hint { margin: var(--space-5) 0 0; font-size: var(--font-size-note); line-height: 1.7; color: var(--fg-muted); max-width: 78ch; }
 
 /* ── 階段 0：空態 ───────────────────────────────────────────────── */
 
@@ -241,7 +241,7 @@
 .tn-run-row svg { color: var(--accent); }
 .tn-run-title { font-size: var(--font-size-xs); font-weight: 600; }
 .tn-run-pct { margin-left: auto; font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-muted); }
-.tn-run-hint { font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-secondary); }
+.tn-run-hint { font-size: var(--font-size-note); line-height: 1.7; color: var(--fg-secondary); }
 
 .tn-gate { padding: var(--space-5); display: flex; align-items: center; gap: var(--space-5); flex-wrap: wrap; }
 .tn-gate-text { font-size: var(--font-size-xs); color: var(--fg-secondary); margin-right: auto; }
@@ -594,7 +594,7 @@
   border-top: var(--line-weight) var(--border-style) var(--border); padding-top: var(--space-5);
 }
 .tn-editor-title { font-size: var(--font-size-2xs); font-weight: 600; }
-.tn-editor-hint { margin: 0; font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-secondary); text-wrap: pretty; }
+.tn-editor-hint { margin: 0; font-size: var(--font-size-note); line-height: 1.7; color: var(--fg-secondary); text-wrap: pretty; }
 
 .tn-drawer-foot {
   flex: none; display: flex; align-items: center; gap: var(--space-4);

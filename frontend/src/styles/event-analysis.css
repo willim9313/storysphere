@@ -301,7 +301,7 @@
 .ea-state-meta-row .label { color: var(--fg-muted); }
 .ea-state-meta-row .value { font-weight: 600; color: var(--fg-primary); }
 .ea-state-meta-row .value.plain { font-weight: 400; color: var(--fg-secondary); line-height: 1.7; }
-.ea-state-meta-row .hint { color: var(--fg-muted); }
+.ea-state-meta-row .hint { color: var(--fg-muted); font-size: var(--font-size-note); }
 
 /* 參與者：圖例一行＋兩欄卡片。六桶各自獨立；Ink 下靠文字標籤區分。 */
 [data-role="initiator"] { --ea-role-bg: var(--entity-char-bg); --ea-role-dot: var(--entity-char-dot); }
@@ -355,7 +355,7 @@
 .ea-section-title { font-family: var(--font-sans); font-size: var(--font-size-2xs); font-weight: 600; color: var(--fg-primary); margin: 0; }
 .ea-section-sub { font-size: var(--font-size-2xs); color: var(--fg-muted); font-variant-numeric: tabular-nums; }
 .ea-section-block { display: flex; flex-direction: column; gap: var(--space-3); }
-.ea-section-text { font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-primary); margin: 0; }
+.ea-section-text { font-size: var(--font-size-note); line-height: 1.7; color: var(--fg-primary); margin: 0; }
 .ea-section-failed {
   margin: 0; padding: var(--space-4) var(--space-5);
   background: var(--color-warning-bg); border-radius: var(--radius-sm);
@@ -368,8 +368,8 @@
 .ea-causal-step-n {
   flex: none; font-variant-numeric: tabular-nums; font-size: var(--font-size-2xs); color: var(--accent);
 }
-.ea-causal-step-text { font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-secondary); margin: 0; }
-.ea-causal-summary { font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-secondary); margin: 0; }
+.ea-causal-step-text { font-size: var(--font-size-note); line-height: 1.7; color: var(--fg-secondary); margin: 0; }
+.ea-causal-summary { font-size: var(--font-size-note); line-height: 1.7; color: var(--fg-secondary); margin: 0; }
 
 /* 影響：兩欄 */
 .ea-impact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-5); }
@@ -415,7 +415,7 @@
 .ea-context-empty {
   margin: 0; padding: var(--space-5);
   border: var(--line-weight) dashed var(--border); border-radius: var(--card-radius);
-  font-size: var(--font-size-2xs); color: var(--fg-muted);
+  font-size: var(--font-size-note); color: var(--fg-muted);
 }
 .ea-context-card {
   display: flex; flex-direction: column; gap: 2px; width: 100%; text-align: left;
@@ -434,7 +434,7 @@
 }
 .ea-context-caveat {
   margin: 0; padding: var(--space-5); background: var(--bg-secondary); border-radius: var(--radius-sm);
-  font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-secondary); text-wrap: pretty;
+  font-size: var(--font-size-note); line-height: 1.7; color: var(--fg-secondary); text-wrap: pretty;
 }
 
 /* ─── 重要度徽章小型（稿 impBadge 16px；總覽／上下文／脈絡用） ─── */
@@ -483,7 +483,7 @@
 .ea-ov-head-main { display: flex; flex-direction: column; gap: var(--space-3); }
 .ea-ov-meta { font-size: var(--font-size-2xs); color: var(--fg-muted); font-variant-numeric: tabular-nums; }
 .ea-ov-block { display: flex; flex-direction: column; gap: var(--space-5); }
-.ea-ov-caption { font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-secondary); margin: 0; text-wrap: pretty; }
+.ea-ov-caption { font-size: var(--font-size-note); line-height: 1.7; color: var(--fg-secondary); margin: 0; text-wrap: pretty; }
 .ea-ov-card {
   display: flex; flex-direction: column; gap: var(--space-5);
   background: var(--bg-primary); border: var(--line-weight) var(--border-style) var(--border);
@@ -557,7 +557,7 @@
   border: var(--line-weight) solid var(--fg-muted);
 }
 .ea-ov-map-legend-note { font-size: var(--font-size-2xs); color: var(--fg-muted); }
-.ea-ov-map-footnote { font-size: var(--font-size-2xs); color: var(--fg-muted); }
+.ea-ov-map-footnote { font-size: var(--font-size-note); color: var(--fg-muted); }
 
 /* 重要度排行 */
 .ea-ov-hero {
@@ -612,7 +612,7 @@
   border: var(--line-weight) dashed var(--border); border-radius: var(--card-radius);
 }
 .ea-flow-empty-title { font-family: var(--font-serif); font-size: var(--font-size-base); color: var(--fg-secondary); }
-.ea-flow-empty-body { max-width: 44ch; margin: 0; font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-muted); text-wrap: pretty; }
+.ea-flow-empty-body { max-width: 44ch; margin: 0; font-size: var(--font-size-note); line-height: 1.7; color: var(--fg-muted); text-wrap: pretty; }
 .ea-flow-chains { display: flex; flex-direction: column; gap: var(--space-6); }
 .ea-flow-chain, .ea-flow-step { display: flex; flex-direction: column; gap: var(--space-3); }
 .ea-flow-chain-label { font-size: var(--font-size-2xs); font-weight: 600; color: var(--fg-muted); }
@@ -678,7 +678,7 @@
 .ea-source-meta { display: flex; align-items: center; gap: var(--space-4); font-size: var(--font-size-2xs); color: var(--fg-muted); }
 .ea-source-score { font-variant-numeric: tabular-nums; color: var(--accent); }
 .ea-source-text { margin: 0; font-family: var(--font-serif); font-size: var(--font-size-xs); line-height: 1.8; color: var(--fg-primary); text-wrap: pretty; }
-.ea-source-empty { margin: 0; font-size: var(--font-size-2xs); color: var(--fg-muted); }
+.ea-source-empty { margin: 0; font-size: var(--font-size-note); color: var(--fg-muted); }
 .ea-source-caveat { margin: 0; font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-secondary); text-wrap: pretty; }
 
 /* ─── 批次子集：勾選模式（保留） ─── */
@@ -702,7 +702,7 @@
   padding: var(--space-4) var(--space-5);
   border-top: var(--line-weight) var(--border-style) var(--border);
 }
-.ea-check-note { margin: 0; font-size: var(--font-size-2xs); line-height: 1.6; color: var(--fg-muted); }
+.ea-check-note { margin: 0; font-size: var(--font-size-note); line-height: 1.6; color: var(--fg-muted); }
 /* 「只看失敗」後第二行：第 n 章 · 失敗原因（mono，過長換行，不截斷——原因只此一處可讀） */
 .ea-row-fail-reason { gap: var(--space-3); height: auto; min-height: 28px; align-items: baseline; }
 .ea-row-fail-where { flex: none; white-space: nowrap; }
@@ -724,7 +724,7 @@
 }
 .ea-compare-head { display: flex; align-items: center; justify-content: space-between; gap: var(--space-6); }
 .ea-compare-title { margin: 0; font-family: var(--font-serif); font-size: var(--font-size-base); font-weight: 700; color: var(--fg-primary); }
-.ea-compare-sub { margin: 0; font-size: var(--font-size-2xs); color: var(--fg-muted); line-height: 1.6; }
+.ea-compare-sub { margin: 0; font-size: var(--font-size-note); color: var(--fg-muted); line-height: 1.6; }
 .ea-compare-grid { display: grid; grid-template-columns: 72px 1fr 1fr; gap: 0 var(--space-6); }
 .ea-compare-select {
   width: 100%; padding: var(--space-4) var(--space-5);
@@ -737,7 +737,7 @@
 .ea-compare-cell { font-size: var(--font-size-2xs); line-height: 1.7; color: var(--fg-primary); padding: var(--space-4) 0; min-width: 0; }
 .ea-compare-loading { font-size: var(--font-size-2xs); color: var(--fg-muted); }
 .ea-compare-list { margin: 0; padding-left: var(--space-6); display: flex; flex-direction: column; gap: var(--space-2); }
-.ea-compare-empty { margin: 0; font-size: var(--font-size-2xs); color: var(--fg-muted); }
+.ea-compare-empty { margin: 0; font-size: var(--font-size-note); color: var(--fg-muted); }
 
 /* 減少動態：狀態仍要看得出來，只拿掉循環與位移——
    生成中點改靜態實心（顏色已區分），spinner 放慢到 3s（仍表示「在動」），

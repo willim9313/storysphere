@@ -63,7 +63,7 @@
 .tu-scope-note,
 .tu-daily-note {
   margin: 0;
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   color: var(--fg-muted);
   line-height: 1.5;
 }

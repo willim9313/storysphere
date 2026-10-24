@@ -492,7 +492,7 @@
   border: var(--line-weight) dashed var(--border);
   border-radius: var(--radius-sm);
   font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   line-height: 1.7;
   color: var(--fg-secondary);
   text-wrap: pretty;
@@ -1362,7 +1362,7 @@ a.nl-sd-ev:hover {
 }
 .nl-spine-foot-t {
   font-family: var(--font-sans);
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   color: var(--fg-muted);
 }
 
@@ -1749,7 +1749,7 @@ a.nl-sd-ev:hover {
   font-variant-numeric: tabular-nums;
 }
 .nl-prereq-hint {
-  font-size: var(--font-size-2xs);
+  font-size: var(--font-size-note);
   color: var(--fg-muted);
 }
 .nl-prereq-cta {
@@ -1832,6 +1832,8 @@ a.nl-sd-ev:hover {
   font-size: var(--font-size-2xs);
   line-height: 1.7;
 }
+/* 說明句 12px；標題（strong）與「重新執行 →」鈕各自定字級 */
+.nl-stale > span { font-size: var(--font-size-note); }
 .nl-stale strong {
   display: inline-flex;
   align-items: center;

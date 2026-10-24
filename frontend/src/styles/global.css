@@ -369,3 +369,8 @@
 }
 .ss-chip:hover { background: var(--bg-tertiary); }
 .ss-chip.active, .ss-chip[aria-pressed='true'] { border-color: var(--accent); background: var(--accent); color: var(--accent-fg); }
+
+/* 整句說明 12px（--font-size-note，2026-10-24）。ss-kit.css 是設計端的檔、且在 global.css 之後載入，
+   這裡以 body 前綴提高權重覆寫，不改 ss-kit.css 本身。 */
+body .ss-guidance > p,
+body .ss-taskc-empty-sub { font-size: var(--font-size-note); }
