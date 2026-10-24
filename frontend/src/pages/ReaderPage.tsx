@@ -352,7 +352,14 @@ export default function ReaderPage() {
     return () => io.disconnect();
   }, [readerPrefs.fade, viewingChapterId, chunks]);
 
-  if (bookLoading || chaptersLoading) return <LoadingSpinner />;
+  if (bookLoading || chaptersLoading) {
+    return (
+      <>
+        <h1 className="sr-only">{t('failurePageName')}</h1>
+        <LoadingSpinner />
+      </>
+    );
+  }
   if (bookError || !book) {
     // 404 (or no book at all) is its own fourth state — 「找不到書籍」; anything
     // else is the settled page / backend failure split. The sidebar and the
@@ -360,6 +367,7 @@ export default function ReaderPage() {
     const notFound = !bookError || (bookError instanceof ApiError && bookError.status === 404);
     return (
       <div className="rd-failure">
+        <h1 className="sr-only">{t('failurePageName')}</h1>
         <PageFailure
           variant={bookError ? failureKind(bookError) : 'page'}
           pageName={t('failurePageName')}
@@ -506,6 +514,7 @@ export default function ReaderPage() {
 
   return (
     <div ref={pageRef} className="rd-page">
+      <h1 className="sr-only">{book.title}</h1>
       {/* Column 1: Book Overview */}
       <div
         ref={col1Ref}

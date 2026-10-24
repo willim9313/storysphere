@@ -593,6 +593,13 @@ export default function SymbolsPage() {
     );
   }
 
+  // Dashboard, cluster and symbol views carry their own h1; loading, failure and
+  // the empty state do not, so the page supplies one.
+  const detailHasH1 =
+    !listLoading &&
+    analysis !== null &&
+    (cluster !== null || (selected === null ? entities.length > 0 : selectedSignals !== null));
+
   return (
     <div className="sym-page">
       <SymbolList
@@ -613,6 +620,7 @@ export default function SymbolsPage() {
 
       <main className="sym-detail">
         <div className="sym-detail-inner">
+          {!detailHasH1 && <h1 className="sr-only">{pageName}</h1>}
           <GuidanceRibbon surface="symbols">
             <strong>{t('symbol.guide.prefix')}</strong>{' '}
             <Trans i18nKey="symbol.guide.body" ns="analysis" components={{ strong: <strong /> }} />

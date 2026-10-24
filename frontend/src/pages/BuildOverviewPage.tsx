@@ -1495,6 +1495,7 @@ export default function BuildOverviewPage() {
   if (isLoading) {
     return (
       <div className="bo-page">
+        <h1 className="bo-sr-only">{tn('tabs.unraveling')}</h1>
         <BuildOverviewSkeleton />
       </div>
     );
@@ -1504,6 +1505,7 @@ export default function BuildOverviewPage() {
     return (
       <div className="bo-page">
         <div className="bo-inner">
+        <h1 className="bo-sr-only">{tn('tabs.unraveling')}</h1>
           <PageFailure
             variant={failureKind(error)}
             pageName={tn('tabs.unraveling')}

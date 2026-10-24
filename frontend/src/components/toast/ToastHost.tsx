@@ -49,34 +49,62 @@ function ToastRow({ toast, onDismiss }: Readonly<{ toast: Toast; onDismiss: (id:
   );
 }
 
+/**
+ * What a screen reader hears. Two regions, mounted for the app's lifetime — a
+ * live region inserted together with its content is not reliably announced,
+ * and the visible stack only mounts with its first toast. Each toast is one
+ * node, so it is read once when added (title and body, not the buttons) and
+ * silently when removed; aria-atomic=false keeps a second toast from
+ * re-reading the first. Errors interrupt; everything else waits its turn.
+ */
+function ToastAnnouncer({ toasts }: Readonly<{ toasts: Toast[] }>) {
+  const say = (list: Toast[]) =>
+    list.map((t) => <p key={t.id}>{t.body ? `${t.title} ${t.body}` : t.title}</p>);
+  return (
+    <>
+      <div className="sr-only" role="status" aria-live="polite" aria-atomic="false">
+        {say(toasts.filter((t) => t.type !== 'error'))}
+      </div>
+      <div className="sr-only" role="alert" aria-live="assertive" aria-atomic="false">
+        {say(toasts.filter((t) => t.type === 'error'))}
+      </div>
+    </>
+  );
+}
+
 export function ToastHost() {
   const toasts = useToastState();
   const { dismiss } = useToast();
   const bottom = useToastAnchor();
-  if (toasts.length === 0) return null;
 
+  // One fragment shape in both states, so the announcer is never remounted.
   return (
-    <div
-      style={{
-        position: 'fixed',
-        right: RAIL.right,
-        bottom,
-        zIndex: RAIL.z.toast,
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 'var(--space-5)',
-        width: RAIL.width,
-        alignItems: 'flex-end',
-        pointerEvents: 'none',
-      }}
-    >
-      <style>{TOAST_STYLES}</style>
-      {toasts.map((t) => (
-        <div key={t.id} className="toast-anim" style={{ width: '100%', pointerEvents: 'auto' }}>
-          <ToastRow toast={t} onDismiss={dismiss} />
+    <>
+      <ToastAnnouncer toasts={toasts} />
+      {toasts.length > 0 && (
+        <div
+          style={{
+            position: 'fixed',
+            right: RAIL.right,
+            bottom,
+            zIndex: RAIL.z.toast,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: 'var(--space-5)',
+            width: RAIL.width,
+            alignItems: 'flex-end',
+            pointerEvents: 'none',
+          }}
+        >
+          <style>{TOAST_STYLES}</style>
+          {toasts.map((t) => (
+            <div key={t.id} className="toast-anim" style={{ width: '100%', pointerEvents: 'auto' }}>
+              <ToastRow toast={t} onDismiss={dismiss} />
+            </div>
+          ))}
         </div>
-      ))}
-    </div>
+      )}
+    </>
   );
 }
 

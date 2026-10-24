@@ -704,6 +704,7 @@ export default function TimelinePage() {
     return (
       <div className="tl">
         <div className="tl-inner">
+          <h1 className="sr-only">{tn('tabs.timeline')}</h1>
           <PageFailure
             variant={failureKind(error)}
             pageName={tn('tabs.timeline')}
@@ -725,6 +726,7 @@ export default function TimelinePage() {
     return (
       <div className="tl">
         <div className="tl-inner tl-centered">
+          <h1 className="sr-only">{tn('tabs.timeline')}</h1>
           <Loader2 className="tl-spinner" size={22} />
           <span className="tl-loading-text">{t('timeline.loadingBy.chapter')}</span>
         </div>
@@ -736,6 +738,7 @@ export default function TimelinePage() {
     return (
       <div className="tl">
         <div className="tl-inner">
+          <h1 className="sr-only">{tn('tabs.timeline')}</h1>
           <TimelineOnboardingHero bookId={bookId} />
         </div>
       </div>

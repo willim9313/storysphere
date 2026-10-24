@@ -35,7 +35,8 @@ export function EmptyState({ weight, title, description, hand, icon, action }: R
   return (
     <div className={stage ? 'ss-state ss-state-stage ss-state-ready' : 'ss-state ss-state-stage ss-state-prereq'}>
       {icon && <span className="ss-state-icon">{icon}</span>}
-      {stage ? <h3 className="ss-state-title">{title}</h3> : <h4 className="ss-state-title">{title}</h4>}
+      {/* h2 at every weight: the state sits right under the page h1 or replaces the page body. */}
+      <h2 className="ss-state-title">{title}</h2>
       {description && <p className={hand ? 'ss-state-hand' : 'ss-state-text'}>{description}</p>}
       {action}
     </div>

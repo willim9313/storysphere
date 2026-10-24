@@ -406,7 +406,14 @@ export default function CharacterAnalysisPage() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [flatNavList, selectedEntityId, selectedAnalyzed, handleSelectEntity, drawerOpen]);
 
-  if (isLoading) return <LoadingSpinner />;
+  if (isLoading) {
+    return (
+      <>
+        <h1 className="sr-only">{tn('tabs.characterAnalysis')}</h1>
+        <LoadingSpinner />
+      </>
+    );
+  }
 
   // Header badge: archetype of the active framework — or why there is none.
   const fwName = framework === 'jung' ? 'Jung' : 'Schmidt';
@@ -428,6 +435,8 @@ export default function CharacterAnalysisPage() {
   })();
 
   const pageName = tn('tabs.characterAnalysis');
+  // Branches without a heading of their own (loading, failures, generating).
+  const srTitle = <h1 className="sr-only">{pageName}</h1>;
   const backToBook = (
     <Link to={`/books/${bookId}`} className="ss-btn ss-btn-md ss-btn-secondary">
       {t('character.error.backToBook')}
@@ -451,7 +460,12 @@ export default function CharacterAnalysisPage() {
 
   let body: React.ReactNode;
   if (selectedEntityId && analysisLoading) {
-    body = <LoadingSpinner />;
+    body = (
+      <>
+        {srTitle}
+        <LoadingSpinner />
+      </>
+    );
   } else if (selectedEntityId && entityAnalysis && !gen.taskId) {
     body = (
       <>
@@ -573,6 +587,7 @@ export default function CharacterAnalysisPage() {
     // the failure. The message is the backend's own, unrewritten.
     body = (
       <div className="ca-gen">
+        {srTitle}
         <div className="ca-gen-card ca-gen-fail">
           <div className="ca-gen-fail-head">
             <AlertCircle size={16} />
@@ -594,10 +609,13 @@ export default function CharacterAnalysisPage() {
     );
   } else if (gen.taskId && gen.task?.status !== 'done') {
     body = (
-      <CharacterGenerating
-        task={gen.task}
-        name={selectedUnanalyzed?.name ?? selectedAnalyzed?.title ?? ''}
-      />
+      <>
+        {srTitle}
+        <CharacterGenerating
+          task={gen.task}
+          name={selectedUnanalyzed?.name ?? selectedAnalyzed?.title ?? ''}
+        />
+      </>
     );
   } else if (selectedUnanalyzed) {
     body = (
@@ -612,13 +630,16 @@ export default function CharacterAnalysisPage() {
     );
   } else if (selectedEntityId && analysisError && selectedAnalyzed) {
     body = (
-      <PageFailure
-        variant={failureKind(analysisError)}
-        pageName={pageName}
-        onRetry={() => void refetchAnalysis()}
-        secondaryAction={backToBook}
-        techDetail={techDetailOf(analysisError)}
-      />
+      <>
+        {srTitle}
+        <PageFailure
+          variant={failureKind(analysisError)}
+          pageName={pageName}
+          onRetry={() => void refetchAnalysis()}
+          secondaryAction={backToBook}
+          techDetail={techDetailOf(analysisError)}
+        />
+      </>
     );
   } else if (charData) {
     body = (
@@ -633,13 +654,16 @@ export default function CharacterAnalysisPage() {
   } else {
     // The #6a list itself failed to load (isLoading already gated the spinner).
     body = (
-      <PageFailure
-        variant={failureKind(charError)}
-        pageName={pageName}
-        onRetry={() => void refetchChars()}
-        secondaryAction={backToBook}
-        techDetail={techDetailOf(charError)}
-      />
+      <>
+        {srTitle}
+        <PageFailure
+          variant={failureKind(charError)}
+          pageName={pageName}
+          onRetry={() => void refetchChars()}
+          secondaryAction={backToBook}
+          techDetail={techDetailOf(charError)}
+        />
+      </>
     );
   }
 

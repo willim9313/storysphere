@@ -319,6 +319,7 @@ CircleCheck success「所有步驟皆已補齊。」。
 #### 全域通知（`ToastHost` / `ToastContext`）
 
 **全站唯一一份 toast**（DS v3 · 17 決議 T1；角色／事件頁的頁內 toast 已移除，改 push 進這裡）。
+**讀屏**（2026-10-24）：`ToastHost` 常駐兩個 `.sr-only` live region——`role="status"`（polite：success／info／warning）與 `role="alert"`（assertive：error），皆 `aria-atomic="false"`。每則 toast 是一個節點，加入時念一次「標題 內文」、移除時不念，按鈕不進 region；視覺堆疊本身不帶 live 屬性。region 不隨堆疊掛卸（同一 fragment 形狀），重複推送由 `dedupeKey` 擋。
 右下角堆疊（success/warning/error/info 四型）。外觀依 components-toast 規格卡：卡片外框 + `--shadow-lg`、
 內距 `--space-5 --space-6`，狀態由 26px 圖示盤以**色＋形**雙重編碼（Check／TriangleAlert／TriangleAlert／Info），
 **無左邊框**；標題 sans sm 600、內文 xs secondary、行動鈕 `ss-btn-sm secondary`（標籤後補「 →」）、X 永遠在。
@@ -2758,6 +2759,8 @@ WebSocket 連線，含訊息列表 + 輸入框。
     （書庫為空）。
   - `prerequisite`：半頁，26px 圖示、serif lg 600、一句說明（max 52ch）。
   - `filtered`：`--bg-secondary` 小框、無圖示、serif sm 600 secondary＋小按鈕；篩選列仍在。
+- **標題層級**（2026-10-24）：兩元件的標題一律 `<h2>`（`filtered` 不出 heading）；外觀由 `.ss-state-title` 決定、與 tag 無關。狀態不是緊接頁面 h1 之下，就是取代整個內容區，h2 是唯一正確的層級，故不開 `headingLevel` prop。
+- **每頁一個 h1**：外框（AppLayout／BookLayout／側欄）不出 heading，h1 由頁面自己給，且**每個分支**（載入、空、失敗、成功）都要有。提早 return 的空態／失敗分支補 `<h1 className="sr-only">`（文字＝該頁 h1 或 `pageName`），不能只在成功分支渲染。
 - **LlmUnconfiguredNotice**（DS v3 第 3 批共用層）：`components/ui/LlmUnconfiguredNotice.tsx`。後端對「未設定 LLM provider」回的
   應用層 503（`api/failureKind.ts` 的 `isLlmUnconfigured(err)`：503＋有 JSON body）是**功能狀態而非頁面失敗**——就地顯示、不換掉整頁、不給「重試」。
   版型沿用 `.ss-state-filtered` 小框：「尚未設定 LLM provider，無法執行 LLM 分析。」（`common.failure.llmUnconfigured`）＋

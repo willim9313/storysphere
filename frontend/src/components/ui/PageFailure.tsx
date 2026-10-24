@@ -40,9 +40,9 @@ export function PageFailure({
       <span className={isPage ? 'ss-state-icon ss-state-icon-error' : 'ss-state-icon'}>
         {isPage ? <AlertTriangle size={26} /> : <Unplug size={26} />}
       </span>
-      <h4 className="ss-state-title">
+      <h2 className="ss-state-title">
         {isPage ? (title ?? t('failure.pageTitle', { page: pageName })) : t('failure.backendTitle')}
-      </h4>
+      </h2>
       <p className="ss-state-text">{isPage ? t('failure.pageBody') : t('failure.backendBody')}</p>
       <div className="ss-state-actions">
         <button type="button" className="ss-btn ss-btn-md ss-btn-primary" onClick={onRetry}>

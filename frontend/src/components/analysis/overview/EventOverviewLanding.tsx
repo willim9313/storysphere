@@ -59,21 +59,24 @@ export function EventOverviewLanding({
   // Point at the build step instead of offering a 0-event LLM button.
   if (totalCount === 0) {
     return (
-      <EmptyState
-        weight="prerequisite"
-        icon={<Flag size={26} aria-hidden="true" />}
-        title={t('event.overview.empty.title')}
-        description={t('event.overview.empty.description')}
-        action={
-          <button
-            type="button"
-            className="ss-btn ss-btn-md ss-btn-primary"
-            onClick={() => navigate(`/books/${bookId}/unraveling`)}
-          >
-            {t('graph:onboarding.cta')}
-          </button>
-        }
-      />
+      <>
+        <h1 className="sr-only">{t('event.overview.title')}</h1>
+        <EmptyState
+          weight="prerequisite"
+          icon={<Flag size={26} aria-hidden="true" />}
+          title={t('event.overview.empty.title')}
+          description={t('event.overview.empty.description')}
+          action={
+            <button
+              type="button"
+              className="ss-btn ss-btn-md ss-btn-primary"
+              onClick={() => navigate(`/books/${bookId}/unraveling`)}
+            >
+              {t('graph:onboarding.cta')}
+            </button>
+          }
+        />
+      </>
     );
   }
 
