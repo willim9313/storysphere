@@ -1,0 +1,84 @@
+# The six gates from CLAUDE.md's "完成後必報" section.
+#
+# Commands here are copied verbatim from that list on purpose. If CI runs a
+# variant — an extra flag, a different marker — then "CI is green" and "the
+# gates are green" stop meaning the same thing.
+#
+# Structure carried over from the old storysphere repo's gates.yml.
+name: gates
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+# A new push supersedes the previous run on the same ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Install uv
+        # Pinned to an exact version: setup-uv publishes no floating major tag.
+        uses: astral-sh/setup-uv@v10.0.1
+        with:
+          enable-cache: true
+
+      - name: Set up Python
+        # Matches the local runtime. pyproject says >=3.11, but a CI older than
+        # the machine the code is written on produces failures nobody can
+        # reproduce locally.
+        run: uv python install 3.13
+
+      - name: Install dependencies
+        # The dev group (pytest, ruff) installs by default; there are no extras.
+        run: uv sync --frozen
+
+      - name: Gate 1 — ruff check
+        run: uv run ruff check backend/ tests/
+
+      - name: Gate 2 — pytest
+        # `integration` needs real API keys and is excluded from the gate, but
+        # those tests must still import cleanly.
+        run: |
+          uv run pytest -m "not integration"
+          uv run pytest --collect-only -q > /dev/null
+
+      - name: Gate 3 — registry check
+        run: uv run python -m storysphere.registry check
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Gate 4 — npm run lint
+        run: npm run lint
+
+      - name: Gate 5 — npm run build
+        # Not redundant with lint: only tsc catches a deleted variable with a
+        # live use site.
+        run: npm run build
+
+      - name: Gate 6 — npm run knip
+        run: npm run knip

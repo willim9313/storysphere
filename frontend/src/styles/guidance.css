@@ -1,0 +1,73 @@
+/* Guidance carriers — the three layers of page explanation (B-065).
+ *
+ * Layer 1 (the dismissible page ribbon) is the kit's `.ss-guidance`
+ * (ss-kit.css). This file only adds what the kit leaves open: the close
+ * button and the graph's floating placement. Layers 2 (block notes) and 3
+ * (field provenance) are not carried here and are never dismissible.
+ *
+ * Imported from global.css rather than per page: guidance belongs on every
+ * feature page. Placement rules live in docs/UI_SPEC.md. */
+
+.ss-guidance .gd-close {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  height: 16px;
+  padding: 0;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--fg-muted);
+}
+
+.ss-guidance .gd-close:hover {
+  color: var(--fg-primary);
+}
+
+/* Canvas pages have no document flow to sit in — the knowledge graph is a
+   full-bleed viewport whose overlays are absolutely positioned. The offset is
+   relative to the canvas area, which already starts below the toolbar, so it
+   is the canvas inset — not the old top:140px tuned to a two-row floating
+   toolbar. Not `.ss-guidance-bleed`: a full-width strip would sit over the
+   canvas edge where the unlinked-entity chip and lens card live. */
+.ss-guidance.is-float {
+  position: absolute;
+  top: var(--space-5);
+  left: var(--space-5);
+  z-index: 10;
+  max-width: 430px;
+  box-shadow: var(--shadow-sm);
+}
+
+@media (max-width: 640px) {
+  .ss-guidance.is-float {
+    right: var(--space-5);
+    max-width: none;
+  }
+}
+
+/* Reopen button at the right end of the 28px book title bar — shown only
+   while the surface on screen has its ribbon dismissed. Ghost: 20px tall, a
+   12px info glyph (the same one the ribbon draws), hover fills bg-secondary. */
+.ss-booknav .gd-reopen {
+  margin-left: auto;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  height: 20px;
+  padding: 0 var(--space-3);
+  border: none;
+  border-radius: var(--radius-sm);
+  background: none;
+  font-family: var(--font-sans);
+  font-size: var(--font-size-2xs);
+  color: var(--fg-secondary);
+  cursor: pointer;
+}
+.ss-booknav .gd-reopen svg {
+  color: var(--color-info);
+}
+.ss-booknav .gd-reopen:hover {
+  background: var(--bg-secondary);
+}

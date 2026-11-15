@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="zh-Hant">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Noto+Serif+TC:wght@300;400;500;700&family=Noto+Sans+TC:wght@300;400;500;700&family=Caveat:wght@400;500;600;700&family=Fira+Code:wght@400;500;700&display=swap"
+      rel="stylesheet"
+    />
+    <title>StorySphere v4 原型</title>
+    <script>
+      // 防止主題閃爍（FOUC）：在 React 掛載前先套用已儲存的主題。
+      // 合法值與 src/contexts/ThemeContext.tsx 的 VALID_THEMES 一致。
+      try {
+        var t = localStorage.getItem('storysphere:theme');
+        if (t === 'warm' || t === 'ink') {
+          document.documentElement.dataset.theme = t;
+        }
+      } catch (e) {
+        console.warn('Theme bootstrap skipped:', e);
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>

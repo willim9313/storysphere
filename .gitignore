@@ -1,0 +1,75 @@
+# ============================================================
+# StorySphere v4 prototype .gitignore（沿用舊 repo 的分段）
+# ============================================================
+
+# ========== Claude Code ==========
+.claude/settings.local.json
+
+# ========== Environment & Secrets ==========
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+credentials*
+
+# ========== Python ==========
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg
+*.egg-info/
+dist/
+build/
+.eggs/
+MANIFEST
+
+# ========== Virtual Environments ==========
+.venv/
+venv/
+env/
+ENV/
+
+# ========== Testing & Coverage ==========
+.pytest_cache/
+htmlcov/
+.coverage
+.coverage.*
+coverage.xml
+
+# ========== Linting ==========
+.ruff_cache/
+
+# ========== IDE ==========
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ========== OS ==========
+.DS_Store
+Thumbs.db
+
+# ========== Database ==========
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# ========== Logs ==========
+*.log
+logs/
+
+# ========== Data & Uploads ==========
+# var/ 是使用者資料（var/neo.db、var/settings.yaml）——絕不 commit，git 也救不回來。
+var/
+backend/var/
+frontend/var/
+
+# ========== Frontend ==========
+node_modules/
+
+# ========== uv ==========
+# uv.lock    # Do NOT ignore - commit lock file for reproducibility
