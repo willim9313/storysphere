@@ -1,0 +1,150 @@
+# 進度與後續待辦
+
+最後更新：2026-11-15（T05 完成後）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
+
+## 現況
+
+| 任務 | 狀態 | commit |
+| --- | --- | --- |
+| T01 專案骨架與閘門 | 完成 | `2d56eba` |
+| T02 ACP spike（人工檢查） | 完成，使用者已看過 | `c8245d4` |
+| T03 證據外殼與關聯表 | 完成 | `d5383db` |
+| T04 33 種證據的 model 與內容表 | 完成 | `f1fda7c` |
+| T05 registry | 完成 | `20663fb` |
+| T06 之後 | 未開始 | — |
+
+- 分支：本機 `main`，沒有遠端，沒推過。CI（`.github/workflows/gates.yml`）寫好但從沒跑過。
+- 閘門現況：後端三道（ruff、pytest 383 passed、registry check）exit 0；前端三道在 T01 通過後沒再動過。
+- 相關目錄：
+  - 本專案：`~/Desktop/storysphere_v4_app`
+  - 舊 repo（只讀參考）：`~/Desktop/storysphere_ref`
+  - 規格原稿、上層設計、benchmark：`~/Desktop/storysphere_v4`（`prototype_v0_草案/`、`StorySphere分析契約v2/`、`neo-storysphere-agent-architecture/`、`storysphere_benchmark/`）
+- **`docs/spec/` 已經和原稿 `prototype_v0_草案/` 不同步**：01、02、03、05 在本專案改過，原稿沒回寫。以 `docs/spec/` 為準。
+
+## 工作方式（使用者的指示）
+
+- 一張任務一張做；做完照 `CLAUDE.md` 的 Definition of Done 回報，並逐條列完成標準。
+- checkpoint 四題照寫，但不必等同意就可以動手；**遇到要使用者決定的事才停**。
+- **簡易、機械性的工作交給 subagent**（搭骨架、照規格表填檔、寫大量同型檔案），需要判斷的自己做。subagent 的產出要核對。
+- **安裝與工具鏈盡量照舊 repo**（`pyproject.toml`、`frontend/package.json`、CI、`.env.example`）；依賴只在任務用到時才 `uv add`。
+- **commit 要使用者說了才做**；不要自己推送或建遠端。
+- 人工檢查點（T10、T12、T18、T28）做完就停，用規格 10 的 P2 格式準備材料。
+- 規格有缺口或矛盾：停下來，用 P3 格式回報（位置、問題、影響、最多 3 個選項＋建議）；決定後**先改 `docs/spec/` 再改程式**。
+
+## 環境注意事項
+
+- **npm 官方 registry 連不上**（這台機器的系統 DNS 把 `registry.npmjs.org` 解析到連不通的位址；`dig` 查到的是對的）。目前做法：`npm install --registry=https://registry.npmmirror.com`，裝完把 `package-lock.json` 的 `resolved` 網址換回 `registry.npmjs.org`。`npx` 也要設 `npm_config_registry`。先測 `curl -m 6 https://registry.npmjs.org/react`，通了就用官方。
+- **Claude Code CLI 要另外登入**（桌面 app 的登入不算）。T26 之前確認 `claude auth status` 是 `loggedIn: true`。跑 ACP 相關指令要在沙箱外。
+- 本機：uv 0.7.3、Node 24.3、Python 3.13、SQLite 3.47（支援 FTS5 trigram）。
+- `pytest` 有兩則已知警告，沒處理：Starlette TestClient 建議改用 `httpx2`；pytest-asyncio 的 `asyncio_default_fixture_loop_scope` 未設。
+
+## 等使用者決定的事
+
+| # | 問題 | 最晚何時要決定 | 我的建議 |
+| --- | --- | --- | --- |
+| 1 | **MY1 必讀 `anachrony`，但 NS2 涵蓋率不足時不輸出逐事件位移**（03 §4.1 NS2、§4.2 MY1），這時 MY1 沒有輸入 | T16／T18 前 | MY1 把 `anachrony` 標成 `optional: true`，缺時退回 `text_rank` 並在結果標明 |
+| 2 | **LangGraph 章節審閱的 checkpoint 放哪**：01 §1 說單一 SQLite 檔，舊 repo 用獨立的 `var/ingestion_checkpoints.db` | T07 前 | 維持獨立檔（checkpointer 自管 schema），在 01 §1 與 `CLAUDE.md` 的 `var/` 清單補一行 |
+| 3 | **7 個草擬的方法問句**（EV2、EV3、CH3、NS1、NS3、TM1、MY3；YAML 裡標了「草擬，規格未定」） | T19（「也可以問」清單上線）前 | 使用者過目後把註記拿掉 |
+| 4 | **Design 畫布「StorySphere v4 原型」不在任何資料夾裡**，M6 的完成標準要對照它 | T21 前 | 請使用者提供匯出檔或連結 |
+| 5 | 要不要把 `docs/spec/` 的修改回寫到原稿 `prototype_v0_草案/` | 不急 | 驗收（T28）後一次回寫 |
+
+已決定、已寫進規格的：`character` 的引文取 S2 段落標記的首次提及（01 §3、02 §4）；CH5 不讀 `reveal`（03 §4.1）；Claude Code 的四項隔離設定（05 §5.2）。
+
+## 後續任務
+
+每張的完成標準見 `docs/spec/07_任務清單.md`；這裡只記「做的時候要知道、但規格沒寫」的事。
+
+### M1 剩下的
+
+**T06 LLM 路由與設定**（依據：架構文件「Pipeline 模型配置」、05 §6、04 N-08a–N-08d）
+- `var/settings.yaml` 的 provider → model → task；`llm_for(task)` 用 LangChain `init_chat_model`（含 fallback）；能力檢查；初次啟動測試。
+- task 清單＝入庫 5 個（02 §11）＋方法 2 個（`method_strong`、`method_light`）。registry 已能列出每個方法的 `llm_task`。
+- 新依賴照舊 repo：`langchain`、`langchain-core`、`langchain-google-genai` 等，只加用到的。
+- 金鑰只存環境變數名；`.env.example` 已有 `GEMINI_API_KEY`。真的打 LLM 的測試標 `integration`。
+- 舊 repo 參考：`core/llm_call.py`（`llm_retry`）、`core/error_handling.py`（`classify_step_failure`）、`config/settings.py`。
+
+### M2 入庫前半
+
+**T07 文件處理與章節審閱**（先決定上表 #2）
+- 沿用 `pipelines/document_processing/`、`core/language_detection.py`、`workflows/ingestion_graph.py`。
+- 這張才建 `books`、`chapters`、`paragraphs` 表，並把 **`ParagraphSource` 接上真的 `paragraphs` 表**（`store/evidence_writer.py` 的 Protocol；目前只有測試替身）。
+- `evidence.book_id` 目前沒有外鍵；`books` 建好後決定要不要補，以及 N-01d 刪書的交易。
+- benchmark 路徑用環境變數 `BENCHMARK_DIR`，文本不進 repo。
+
+**T08 抽取單位與斷點續跑**
+- `ingest_units`、`ingest_unit_outputs` 兩張表 T03 沒建，這張建。`jobs` 表已有。
+- `agent_sessions`、`trace_calls`、`methodologies` 三張表也還沒建（T13／T20／T25 用到時建）。
+
+**T09 S1**：prompt 在 `docs/spec/08_prompts/ingest/`，實作時搬到根目錄 `prompts/`，每份開頭標 `version`。
+
+**T10 S2 整併（人工檢查）**
+- 角色引文＝首次提及；完全標不到的角色不入庫。
+- **去重門檻對短摘要很嚴**：10 個字的摘要差 1 個字，3-gram Jaccard 只有 0.55，不會合併。看四簽名的實際結果，可能要調門檻或改比法。
+- 去重只比同一批草稿，不比資料庫裡既有的。
+
+### M3 入庫後半
+
+**T11 S3**、**T12 S4（人工檢查）**
+- `reveal.revealer_id` 目前必填；敘述者直接向讀者揭曉時沒有角色可填，看抽取結果決定要不要放寬（01 §6 已註記）。
+- 推理擴充欄位的枚舉（`mystery_role`、`case_type`）遇到未知值會驗證失敗，不會改成 `other`；LLM 輸出不穩的話要處理。
+- `trick_category` 的分類規格自己說「實作前要對照原典確認」。
+
+### M4 P0 方法
+
+**T13 方法引擎**
+- `registry/checks.py` 已有 `execution_order()`、`producers()` 可用來做上游補跑。
+- 要實作的範圍選擇器：`top_characters(n)`、`main_motifs(n)`、`events_with_out_degree(n)`、`characters_with_utterances(n)`、`events_with_tension_signal()`。
+- 數量門檻（「事件 < 5」等）、NS1 的「無 kernel 事件」、TM3 的「tension_line 0 條」都不在宣告裡，要在各方法的 `check()` 做。
+- run 完成要呼叫 `store/lifecycle.complete_run()`（取代舊證據、第 1 層重抽時傳播依據已變動）。
+
+**T14–T18**：每個方法的 prompt 在 `docs/spec/08_prompts/methods/`，規則摘要在 `docs/spec/08_config/`。T18 是人工檢查。T16／T18 前先決定上表 #1。
+
+### M5 API
+
+**T19 REST 與 SSE**、**T20 MCP server**
+- `assert_no_system_fields()` 已在 `store/evidence_writer.py`，API 層接上回 422。
+- `store/lifecycle.reject_evidence()` 不分層級；「第 1 層回 403」要在 N-05e 擋。
+- **FTS 用 trigram，少於 3 個字的查詢搜不到**（搜「華生」沒結果）。`search_evidence` 與 N-05a 的 `q` 可能要補短查詢的退路（例如 LIKE）。使用者輸入要跳脫 FTS5 語法字元。
+- 從 SQLite 讀回的時間沒有時區資訊，輸出 UTC `Z` 時要補。
+- `evidence_edits` 的 `action`、`reason` 在 04 的 N-05b 回應與 §6.3 沒寫到，實作時同步規格。
+- 新依賴：`mcp`（spike 用的是 2.3.0，`MCPServer`，不是舊的 `FastMCP`）。
+
+### M6 UI
+
+**T21–T24**（先解決上表 #4）
+- T24 的 8 種 view 還沒有規格，動手前要補（00「還沒寫的」）。
+- 前端目前只有 react、react-dom；router、react-query、cytoscape、react-markdown、lucide-react 用到時才裝（knip 會擋沒用到的套件）。
+- `npm run gen:types` 需要後端在 8000 埠跑著。
+
+### M7 大腦
+
+**T25 Gateway＋deepagents**：兩份 skill（`event-analysis`、`mystery-fair-play`）還沒寫（00「還沒寫的」）。
+
+**T26 Claude Code（ACP）**：必讀 `docs/plans/20261115-acp-spike.md`。重點：
+- 建 session 必設 `tools: []`、`settingSources: []`、`strict-mcp-config`，建好後 `set_session_mode("default")`。
+- permission request 依工具名分流，不回 `allow_always`。
+- 待驗證：`settingSources: []` 下 `.claude/skills/` 還會不會被載入；對話中切換權限模式能否擋下；`auth/status_update` 通知要接掉。
+- 新依賴：`agent-client-protocol`（spike 用 1.0.0）。spike 腳本在 `scripts/acp_spike/`。
+
+**T27 Agent 工作區畫面**
+
+### M8
+
+**T28 驗收報告（人工檢查）**：05 §1 三個成功條件＋09 逐列。
+
+## 程式地圖（已完成的部分）
+
+| 位置 | 內容 |
+| --- | --- |
+| `backend/storysphere/api/main.py` | FastAPI，只有 `/api/v2/health` |
+| `backend/storysphere/domain/evidence/` | 33 個內容 model、`base.py`（枚舉轉 `other`＋`raw_label`）、`genre_ext.py` |
+| `backend/storysphere/store/tables.py`、`db.py` | 外殼與關聯表、`runs`、`jobs`、FTS5 與 trigger |
+| `backend/storysphere/store/content_tables.py` | `ev_*` 由 model 產生 |
+| `backend/storysphere/store/evidence_writer.py` | 唯一的寫入路徑：層級、系統欄位、內容驗證、引文驗證 |
+| `backend/storysphere/store/lifecycle.py` | `complete_run`、`mark_basis_changed`、`reject_evidence`、`purge_superseded` |
+| `backend/storysphere/store/quotes.py`、`dedupe.py` | 引文比對、去重 |
+| `backend/storysphere/registry/` | `models.py`、`loader.py`、`checks.py`、CLI |
+| `registry/` | 方法、方法論、view、視角、機制、第 1 層類型的 YAML |
+| `frontend/` | 只有外殼：健康檢查＋ Warm／Ink 切換 |
+| `scripts/acp_spike/` | T02 的 spike 腳本 |
+| `tests/` | `api/`、`registry/`、`domain/`、`store/`；`tests/store/conftest.py` 有建各層證據的輔助 |
