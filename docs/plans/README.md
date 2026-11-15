@@ -4,3 +4,4 @@
 
 | 日期 | 檔案 | 內容 |
 | --- | --- | --- |
+| 2026-11-15 | [20261115-acp-spike.md](20261115-acp-spike.md) | T02：從 Python 經 ACP 驅動 Claude Code 的可行性與必要設定 |
