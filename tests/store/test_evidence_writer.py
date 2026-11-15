@@ -3,8 +3,10 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 from sqlalchemy import select, text
+from storysphere.store.content_tables import get_content
 from storysphere.store.evidence_writer import (
     SYSTEM_FIELDS,
+    ContentValidationError,
     EvidenceDraft,
     EvidenceWriteError,
     GenreExtDraft,
@@ -12,6 +14,7 @@ from storysphere.store.evidence_writer import (
     QuoteDraft,
     SubjectRef,
     SystemFieldForbiddenError,
+    UnknownClaimTypeError,
     UnknownUpstreamError,
     WriteContext,
     assert_no_system_fields,
@@ -20,20 +23,13 @@ from storysphere.store.evidence_writer import (
 from storysphere.store.tables import (
     EvidenceGenreExt,
     EvidenceLink,
-    EvidenceQuote,
     EvidenceSubject,
 )
 
-from tests.store.conftest import BOOK
+from tests.store.conftest import BOOK, DEFAULT_QUOTE, FakeParagraphs, make_draft
 
 EXTRACTION = WriteContext(book_id=BOOK, source="extraction", produced_via="pipeline")
 METHOD = WriteContext(book_id=BOOK, source="method", produced_via="pipeline")
-
-
-def _draft(claim_type: str, **overrides) -> EvidenceDraft:
-    fields = {"claim_type": claim_type, "summary": f"{claim_type} 摘要", "confidence": 0.7}
-    fields.update(overrides)
-    return EvidenceDraft(**fields)
 
 
 class TestLevel:
@@ -63,10 +59,9 @@ class TestLevel:
         event = await store.extracted("event")
         run = await store.run("event.causal_network")
         ctx = WriteContext(book_id=BOOK, source="method", produced_via="pipeline", run_id=run.id)
+        draft = make_draft("causal_link", derived_from=[event.id, run.id])
 
-        causal = await write_evidence(
-            store.session, ctx, _draft("causal_link", derived_from=[event.id, run.id])
-        )
+        causal = await write_evidence(store.session, ctx, draft)
 
         assert causal.level == 2
         links = await store.session.scalars(
@@ -76,20 +71,19 @@ class TestLevel:
 
     async def test_non_extraction_without_upstream_evidence_rejected(self, store):
         with pytest.raises(EvidenceWriteError):
-            await write_evidence(store.session, METHOD, _draft("causal_link"))
+            await write_evidence(store.session, METHOD, make_draft("causal_link"))
 
     async def test_extraction_with_upstream_evidence_rejected(self, store):
         event = await store.extracted("event")
+        draft = make_draft("event", derived_from=[event.id], quotes=[DEFAULT_QUOTE])
 
         with pytest.raises(EvidenceWriteError):
-            await write_evidence(
-                store.session, EXTRACTION, _draft("event", derived_from=[event.id])
-            )
+            await write_evidence(store.session, EXTRACTION, draft, FakeParagraphs())
 
     async def test_unknown_upstream_rejected(self, store):
         with pytest.raises(UnknownUpstreamError) as excinfo:
             await write_evidence(
-                store.session, METHOD, _draft("causal_link", derived_from=["nope"])
+                store.session, METHOD, make_draft("causal_link", derived_from=["nope"])
             )
         assert excinfo.value.ids == ["nope"]
 
@@ -98,12 +92,14 @@ class TestLevel:
 
         with pytest.raises(UnknownUpstreamError):
             await write_evidence(
-                store.session, METHOD, _draft("causal_link", derived_from=[foreign.id])
+                store.session, METHOD, make_draft("causal_link", derived_from=[foreign.id])
             )
 
     async def test_level_1_story_rank_rejected(self, store):
+        draft = make_draft("event", story_rank=3.0, quotes=[DEFAULT_QUOTE])
+
         with pytest.raises(EvidenceWriteError):
-            await write_evidence(store.session, EXTRACTION, _draft("event", story_rank=3.0))
+            await write_evidence(store.session, EXTRACTION, draft, FakeParagraphs())
 
 
 class TestSystemFields:
@@ -133,6 +129,10 @@ class TestSystemFields:
         with pytest.raises(ValidationError):
             EvidenceDraft(claim_type="event", summary="事件", confidence=0.5, **{field: 1})
 
+    def test_quote_draft_cannot_claim_verified(self):
+        with pytest.raises(ValidationError):
+            QuoteDraft(paragraph_id="p-1", text="福爾摩斯", verified=True)
+
     async def test_system_fields_come_from_context(self, store):
         event = await store.extracted("event")
         run = await store.run("character.belief")
@@ -145,7 +145,7 @@ class TestSystemFields:
         )
 
         belief = await write_evidence(
-            store.session, ctx, _draft("belief_state", derived_from=[event.id])
+            store.session, ctx, make_draft("belief_state", derived_from=[event.id])
         )
 
         assert (belief.book_id, belief.source, belief.produced_via) == (BOOK, "method", "agent")
@@ -155,10 +155,78 @@ class TestSystemFields:
         )  # fmt: skip
 
 
-class TestRelations:
-    async def test_subjects_quotes_genre_ext_written(self, store):
-        draft = _draft(
+class TestContent:
+    async def test_content_written_to_its_own_table(self, store):
+        event = await store.extracted("event")
+
+        content = await get_content(store.session, "event", event.id)
+
+        assert content is not None
+        assert content["title"] == make_draft("event").content["title"]
+        assert await get_content(store.session, "character", event.id) is None
+
+    async def test_unknown_enum_value_becomes_other_with_raw_label(self, store):
+        content = {**make_draft("event").content, "event_type": "heist"}
+        draft = make_draft("event", content=content, quotes=[DEFAULT_QUOTE])
+
+        event = await write_evidence(store.session, EXTRACTION, draft, FakeParagraphs())
+
+        stored = await get_content(store.session, "event", event.id)
+        assert (stored["event_type"], stored["raw_label"]) == ("other", "heist")
+
+    async def test_undeclared_claim_type_rejected(self, store):
+        draft = EvidenceDraft(claim_type="made_up", summary="x", confidence=0.5)
+
+        with pytest.raises(UnknownClaimTypeError):
+            await write_evidence(store.session, EXTRACTION, draft)
+
+    async def test_content_with_unknown_field_rejected(self, store):
+        content = {**make_draft("event").content, "is_culprit": True}
+        draft = make_draft("event", content=content, quotes=[DEFAULT_QUOTE])
+
+        with pytest.raises(ContentValidationError):
+            await write_evidence(store.session, EXTRACTION, draft, FakeParagraphs())
+
+    async def test_content_missing_required_field_rejected(self, store):
+        draft = make_draft("event", content={}, quotes=[DEFAULT_QUOTE])
+
+        with pytest.raises(ContentValidationError):
+            await write_evidence(store.session, EXTRACTION, draft, FakeParagraphs())
+
+    async def test_genre_ext_validated_against_its_model(self, store):
+        good = make_draft(
             "character",
+            quotes=[DEFAULT_QUOTE],
+            genre_ext=[GenreExtDraft(genre="mystery", data={"mystery_role": "detective"})],
+        )
+        bad = make_draft(
+            "character",
+            quotes=[DEFAULT_QUOTE],
+            genre_ext=[GenreExtDraft(genre="mystery", data={"is_culprit": True})],
+        )
+        undeclared = make_draft(
+            "event", quotes=[DEFAULT_QUOTE], genre_ext=[GenreExtDraft(genre="mystery", data={})]
+        )
+
+        character = await write_evidence(store.session, EXTRACTION, good, FakeParagraphs())
+        with pytest.raises(ContentValidationError):
+            await write_evidence(store.session, EXTRACTION, bad, FakeParagraphs())
+        with pytest.raises(UnknownClaimTypeError):
+            await write_evidence(store.session, EXTRACTION, undeclared, FakeParagraphs())
+
+        ext = (
+            await store.session.scalars(
+                select(EvidenceGenreExt).where(EvidenceGenreExt.evidence_id == character.id)
+            )
+        ).one()
+        assert (ext.genre, ext.system_tag) == ("mystery", "")
+        assert ext.data_json["mystery_role"] == "detective"
+
+
+class TestRelations:
+    async def test_subjects_and_known_by_written(self, store):
+        draft = make_draft(
+            "event",
             discourse_chapter=1,
             discourse_paragraph_id="p-1",
             known_by=KnownBy(reader=True, characters=["c-watson"]),
@@ -166,49 +234,27 @@ class TestRelations:
                 SubjectRef(subject_id="c-holmes", role="participant"),
                 SubjectRef(subject_id="c-holmes", role="participant"),  # 重複的併成一筆
             ],
-            quotes=[
-                QuoteDraft(paragraph_id="p-1", text="夏洛克·福爾摩斯", start=0, end=8, verified=True),
-                QuoteDraft(paragraph_id="p-2", text="我的朋友"),
-            ],
-            genre_ext=[GenreExtDraft(genre="mystery", data={"mystery_role": "detective"})],
+            quotes=[DEFAULT_QUOTE],
         )
 
-        character = await write_evidence(store.session, EXTRACTION, draft)
+        event = await write_evidence(store.session, EXTRACTION, draft, FakeParagraphs())
 
         subjects = (
             await store.session.scalars(
-                select(EvidenceSubject).where(EvidenceSubject.evidence_id == character.id)
+                select(EvidenceSubject).where(EvidenceSubject.evidence_id == event.id)
             )
         ).all()
-        quotes = (
-            await store.session.scalars(
-                select(EvidenceQuote)
-                .where(EvidenceQuote.evidence_id == character.id)
-                .order_by(EvidenceQuote.seq)
-            )
-        ).all()
-        ext = (
-            await store.session.scalars(
-                select(EvidenceGenreExt).where(EvidenceGenreExt.evidence_id == character.id)
-            )
-        ).one()
         assert [(s.subject_id, s.role) for s in subjects] == [("c-holmes", "participant")]
-        assert [(q.seq, q.text, q.verified) for q in quotes] == [
-            (1, "夏洛克·福爾摩斯", True),
-            (2, "我的朋友", False),
-        ]
-        assert (ext.genre, ext.system_tag, ext.data_json) == (
-            "mystery", "", {"mystery_role": "detective"},
-        )  # fmt: skip
-        assert character.known_by == {"reader": True, "characters": ["c-watson"]}
+        assert event.known_by == {"reader": True, "characters": ["c-watson"]}
+        assert (event.discourse_chapter, event.discourse_paragraph_id) == (1, "p-1")
 
     async def test_written_evidence_is_searchable(self, store):
-        draft = _draft(
+        draft = make_draft(
             "event",
             summary="摩斯坦小姐帶來一封神祕的信",
-            quotes=[QuoteDraft(paragraph_id="p-9", text="每年收到一顆珍珠", verified=True)],
+            quotes=[QuoteDraft(paragraph_id="p-2", text="收到一顆珍珠")],
         )
-        event = await write_evidence(store.session, EXTRACTION, draft)
+        event = await write_evidence(store.session, EXTRACTION, draft, FakeParagraphs())
 
         for query in ("神祕的信", "一顆珍珠"):
             hits = await store.session.execute(
@@ -220,3 +266,4 @@ class TestRelations:
     def test_confidence_out_of_range_rejected(self):
         with pytest.raises(ValidationError):
             EvidenceDraft(claim_type="event", summary="事件", confidence=1.5)
+

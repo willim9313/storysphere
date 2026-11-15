@@ -16,6 +16,8 @@ from sqlalchemy.ext.asyncio import (
     create_async_engine,
 )
 
+# 匯入即註冊 33 張內容表到 Base.metadata，create_all 才會建到它們。
+import storysphere.store.content_tables  # noqa: F401
 from storysphere.store.tables import Base
 
 # 用 trigram tokenizer，中日韓文字才能做子字串搜尋。
