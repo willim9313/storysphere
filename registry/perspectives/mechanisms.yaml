@@ -1,0 +1,31 @@
+# 來源：docs/spec/03_方法宣告.md §5；問題取自契約 v2「七個題材機制與方法」表；id 取自 02 §3 call B
+kind: mechanisms
+mechanisms:
+  - id: info_control
+    name: 資訊控制
+    question: "誰在什麼時候知道什麼？"
+    supported: true
+  - id: world_rules
+    name: 世界規則
+    question: "這個世界怎麼運作？代價是什麼？"
+    supported: false
+  - id: threat
+    name: 威脅與恐懼
+    question: "威脅是什麼？怎麼一步步逼近？"
+    supported: false
+  - id: relations
+    name: 關係演變
+    question: "關係怎麼變？被什麼阻擋？"
+    supported: false
+  - id: journey
+    name: 移動與越界
+    question: "角色去了哪裡？跨過什麼邊界？"
+    supported: false
+  - id: historicity
+    name: 史實對照
+    question: "哪些是真的？哪些被改寫？"
+    supported: false
+  - id: language_form
+    name: 語言與形式
+    question: "文字本身做了什麼？"
+    supported: false

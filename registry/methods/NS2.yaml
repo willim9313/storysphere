@@ -1,0 +1,23 @@
+# 來源：docs/spec/03_方法宣告.md §4.1 通用層（NS2）；basis／grade 取自契約 v2「方法目錄與文獻」
+kind: method
+id: structure.narrative_time
+code: NS2
+version: 1
+layer: universal
+mechanism: 敘事結構
+question: "故事怎麼打亂時間？"
+basis: "Genette 1972"
+grade: 理論
+preconditions: []
+requires:
+  - claim_type: event
+produces: anachrony
+scope: book
+scope_selector: null
+impl:
+  kind: hybrid
+  module: methods/universal/narrative_time.py
+  llm_task: method_strong
+  prompt: prompts/methods/NS2.md
+view: timeline_dual
+priority: P0

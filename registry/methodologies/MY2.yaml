@@ -1,0 +1,19 @@
+# 來源：docs/spec/03_方法宣告.md §1（方法論範例）、§4.2（MY2）；basis／grade 取自契約 v2「方法目錄與文獻」
+kind: methodology
+id: builtin.puzzle_type
+code: MY2
+version: 1
+owner: contract
+question: "這是哪一型的謎題？"
+basis: "Queen 1951"
+grade: 理論
+steps:
+  - method: info.two_story
+  - method: info.trick_class
+  - method: info.fair_play_audit
+  - synthesis:
+      produces: puzzle_type
+      llm_task: method_strong
+      prompt: prompts/methods/MY2.md
+view: label_card
+priority: P1

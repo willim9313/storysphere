@@ -1,0 +1,5 @@
+# 來源：docs/spec/03_方法宣告.md §2 規則 2
+kind: orphans_allowed
+orphans:
+  - claim_type: book_setting
+    reason: "讀者在其他題材"

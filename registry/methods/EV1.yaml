@@ -1,0 +1,25 @@
+# 來源：docs/spec/03_方法宣告.md §4.1 通用層（EV1）；basis／grade 取自契約 v2「方法目錄與文獻」
+kind: method
+id: event.kernel_satellite
+code: EV1
+version: 1
+layer: universal
+mechanism: 事件
+question: "哪些事件撐起整個故事？"
+basis: "Chatman 1978"
+grade: 理論
+preconditions:
+  - exists: causal_link
+requires:
+  - claim_type: event
+  - claim_type: causal_link
+produces: event_role
+scope: book
+scope_selector: null
+impl:
+  kind: hybrid
+  module: methods/universal/kernel_satellite.py
+  llm_task: method_light
+  prompt: prompts/methods/EV1.md
+view: causal_graph
+priority: P0

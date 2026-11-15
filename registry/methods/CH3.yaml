@@ -1,0 +1,24 @@
+# 來源：docs/spec/03_方法宣告.md §4.1 通用層（CH3）；basis／grade 取自契約 v2「方法目錄與文獻」
+kind: method
+id: character.voice
+code: CH3
+version: 1
+layer: universal
+mechanism: 角色
+question: "每個角色說話有什麼特色？"  # question 為草擬，規格未定
+basis: "Burrows 1987"
+grade: 理論
+preconditions: []
+requires:
+  - claim_type: utterance
+  - claim_type: character
+produces: voice_profile
+scope: per_character
+scope_selector: "characters_with_utterances(15)"
+impl:
+  kind: hybrid
+  module: methods/universal/voice.py
+  llm_task: method_light
+  prompt: prompts/methods/CH3.md
+view: label_card
+priority: P1

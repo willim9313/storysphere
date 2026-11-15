@@ -1,0 +1,31 @@
+# 來源：docs/spec/03_方法宣告.md §4.2 推理（資訊控制機制）（MY4）；basis／grade 取自契約 v2「方法目錄與文獻」
+kind: method
+id: info.fair_play_audit
+code: MY4
+version: 1
+layer: genre
+mechanism: 資訊控制
+question: "真相揭曉之前，讀者拿得到足夠的線索嗎？"
+basis: "Knox 1929、Van Dine 1928"
+grade: 理論
+preconditions:
+  - exists: hidden_truth
+  - exists: reveal
+requires:
+  - claim_type: hidden_truth
+  - claim_type: reveal
+  - claim_type: clue_points_to
+    genre_ext: mystery
+produces: fairness_gap
+scope: per_hidden_truth
+scope_selector: null
+impl:
+  kind: hybrid
+  module: methods/info/fair_play_audit.py
+  llm_task: method_strong
+  prompt: prompts/methods/MY4.md
+  config:
+    - config/knox_1929.yaml
+    - config/van_dine_1928.yaml
+view: fairness_matrix
+priority: P0

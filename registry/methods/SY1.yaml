@@ -1,0 +1,24 @@
+# 來源：docs/spec/03_方法宣告.md §4.1 通用層（SY1）；basis／grade 取自契約 v2「方法目錄與文獻」
+kind: method
+id: symbol.reading
+code: SY1
+version: 1
+layer: universal
+mechanism: 象徵
+question: "反覆出現的意象在說什麼？"
+basis: "—"
+grade: 衍生
+preconditions: []
+requires:
+  - claim_type: imagery_motif
+  - claim_type: event
+produces: symbol_reading
+scope: per_motif
+scope_selector: "main_motifs(10)"
+impl:
+  kind: llm
+  module: methods/universal/reading.py
+  llm_task: method_light
+  prompt: prompts/methods/SY1.md
+view: symbol_trend
+priority: P0

@@ -1,0 +1,20 @@
+# 來源：docs/spec/03_方法宣告.md §1（方法論格式）、§4.1（TM3）；basis／grade 取自契約 v2「方法目錄與文獻」
+kind: methodology
+id: builtin.theme_synthesis
+code: TM3
+version: 1
+owner: contract
+question: "這本書在說什麼？"
+basis: "Frye 1957；Booker 2004"
+grade: 理論
+steps:
+  - method: theme.tension_line
+  - method: event.kernel_satellite
+  - method: character.arc
+  - method: symbol.reading
+  - synthesis:
+      produces: theme_reading
+      llm_task: method_strong
+      prompt: prompts/methods/TM3.md
+view: theme_card
+priority: P0

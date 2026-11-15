@@ -1,0 +1,29 @@
+# 來源：docs/spec/01_證據格式與儲存.md §6.1（通用層第 1 層）、§6.2（推理第 1 層，資訊控制機制）
+kind: claim_types
+level_1:
+  - claim_type: character
+    layer: universal
+  - claim_type: event
+    layer: universal
+  - claim_type: relation_state
+    layer: universal
+  - claim_type: utterance
+    layer: universal
+  - claim_type: imagery_motif
+    layer: universal
+  - claim_type: focalization
+    layer: universal
+  - claim_type: book_setting
+    layer: universal
+  - claim_type: hidden_truth
+    layer: genre
+    mechanism: 資訊控制
+  - claim_type: reveal
+    layer: genre
+    mechanism: 資訊控制
+  - claim_type: clue_points_to
+    layer: genre
+    mechanism: 資訊控制
+  - claim_type: trick
+    layer: genre
+    mechanism: 資訊控制

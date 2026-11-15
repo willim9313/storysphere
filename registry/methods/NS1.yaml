@@ -1,0 +1,29 @@
+# 來源：docs/spec/03_方法宣告.md §4.1 通用層（NS1）；basis／grade 取自契約 v2「方法目錄與文獻」
+kind: method
+id: structure.hero_journey
+code: NS1
+version: 1
+layer: universal
+mechanism: 敘事結構
+question: "主角的旅程走過哪些階段？"  # question 為草擬，規格未定
+basis: "Vogler 1992（改寫自 Campbell 1949 的 17 階段）"
+grade: 技法
+preconditions:
+  - exists: event_role
+requires:
+  - claim_type: event_role
+  - claim_type: arc_segment
+  - claim_type: archetype
+    optional: true
+produces: journey_stage
+scope: book
+scope_selector: "top_characters(1)"
+impl:
+  kind: llm
+  module: methods/universal/hero_journey.py
+  llm_task: method_strong
+  prompt: prompts/methods/NS1.md
+  config:
+    - config/hero_journey/
+view: stage_strip
+priority: P1

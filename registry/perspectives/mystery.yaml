@@ -1,0 +1,12 @@
+# 來源：docs/spec/03_方法宣告.md §5 預設觸發（推理）；「A → B」的卡 ref 取最後一步（04 §2.4）
+kind: perspective
+genre: mystery
+cards:
+  - ref: info.two_story
+    question: "真相怎麼被藏起來？"
+  - ref: info.fair_play_audit
+    question: "線索公平嗎？"
+  - ref: info.suspect_matrix
+    question: "讀者被誤導到誰身上？"
+  - ref: character.belief
+    question: "誰在什麼時候知道什麼？"

@@ -1,0 +1,29 @@
+# 來源：docs/spec/05_原型UI與大腦接法.md §4 View 目錄
+kind: views
+views:
+  - view_type: causal_graph
+    description: "事件 DAG，kernel 粗框、satellite 細框，依 `text_rank` 由左到右"
+  - view_type: character_arc
+    description: "每個角色一條章節橫軸，分段標 phase"
+  - view_type: network
+    description: "力導向圖，依派系群聚；沿用既有圖譜頁的群聚手法"
+  - view_type: timeline_dual
+    description: "上下兩軌：敘述順序與故事順序（MY1 換成「犯罪的故事」與「調查的故事」），連線表示對應"
+  - view_type: tension_lines
+    description: "每條張力線一列，章節上的強度"
+  - view_type: theme_card
+    description: "主題命題、Frye mythos、Booker plot、支撐的張力線"
+  - view_type: symbol_trend
+    description: "意象的章節分布與意涵轉變"
+  - view_type: knowledge_matrix
+    description: "角色 × 章節：已知、未知、錯誤認知"
+  - view_type: fairness_matrix
+    description: "真相 × 章節：線索出現、是否讀者可見、是否誤導、揭曉點"
+  - view_type: suspect_matrix
+    description: "嫌疑人 × 線索熱圖＋逐章嫌疑分數折線"
+  - view_type: stage_strip
+    description: "12 階段沿章節排列，標 fit 強弱"
+  - view_type: label_card
+    description: "分類結果＋理由＋依據等級"
+  - view_type: evidence_list
+    description: "通用：證據列表＋引文，任何沒有專屬 view 的類型都能用"

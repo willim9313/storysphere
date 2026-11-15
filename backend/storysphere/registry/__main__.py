@@ -1,41 +1,72 @@
 """Registry command line.
 
-    uv run python -m storysphere.registry check
+    uv run python -m storysphere.registry check    # 閘門 3（CLAUDE.md）：六條檢查
+    uv run python -m storysphere.registry dag      # 輸出證據 DAG（JSON）
 
-閘門 3（CLAUDE.md）。T01 只有骨架：列出 registry/ 下各組宣告檔的數量；
-docs/spec/03 §2 的六條檢查在 T05 實作，屆時有任何宣告檔而檢查未通過就要回非 0。
+從目前工作目錄的 `registry/` 讀取宣告檔。
 """
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
-GROUPS = ("methods", "methodologies", "views", "perspectives")
+from storysphere.registry.checks import build_dag, check_registry
+from storysphere.registry.loader import Registry, RegistryLoadError, load_registry
+
+USAGE = "usage: python -m storysphere.registry (check|dag)"
 
 
-def count_declarations(root: Path) -> dict[str, int]:
-    return {group: len(list((root / group).glob("*.yaml"))) for group in GROUPS}
+def _load(root: Path) -> Registry | None:
+    try:
+        return load_registry(root)
+    except RegistryLoadError as exc:
+        for problem in exc.problems:
+            print(f"[load] {problem}", file=sys.stderr)
+        return None
 
 
 def check(root: Path) -> int:
-    counts = count_declarations(root)
-    for group, n in counts.items():
-        print(f"{group}: {n} declaration file(s)")
-    if any(counts.values()):
-        # 有宣告檔卻還沒有檢查器時不能假裝通過。
-        print("registry checks are not implemented yet (T05)", file=sys.stderr)
+    registry = _load(root)
+    if registry is None:
         return 1
-    print("registry is empty; nothing to check")
+    problems = check_registry(registry)
+    for problem in problems:
+        print(problem, file=sys.stderr)
+    if problems:
+        print(f"registry check failed: {len(problems)} problem(s)", file=sys.stderr)
+        return 1
+    print(
+        f"registry ok: {len(registry.methods)} methods, "
+        f"{len(registry.methodologies)} methodologies, {len(registry.views)} views, "
+        f"{len(registry.perspectives)} perspectives"
+    )
+    return 0
+
+
+def dag(root: Path) -> int:
+    registry = _load(root)
+    if registry is None:
+        return 1
+    problems = check_registry(registry)
+    if problems:
+        for problem in problems:
+            print(problem, file=sys.stderr)
+        return 1
+    print(json.dumps(build_dag(registry), ensure_ascii=False, indent=2))
     return 0
 
 
 def main(argv: list[str] | None = None) -> int:
     args = sys.argv[1:] if argv is None else argv
-    if args != ["check"]:
-        print("usage: python -m storysphere.registry check", file=sys.stderr)
-        return 2
-    return check(Path.cwd() / "registry")
+    root = Path.cwd() / "registry"
+    if args == ["check"]:
+        return check(root)
+    if args == ["dag"]:
+        return dag(root)
+    print(USAGE, file=sys.stderr)
+    return 2
 
 
 if __name__ == "__main__":
