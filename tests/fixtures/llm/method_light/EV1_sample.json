@@ -1,0 +1,3 @@
+{
+  "response_text": "```json\n{\n  \"items\": [\n    {\n      \"event_id\": \"E5\",\n      \"weight\": \"satellite\",\n      \"rationale\": \"Its only link is a perceptual colouring of E4; deleting it leaves the chain intact.\",\n      \"summary\": \"E5 是衛星事件。\",\n      \"derived_from\": [\n        \"E5\",\n        \"L4\"\n      ],\n      \"confidence\": 0.7\n    }\n  ],\n  \"abstain_reason\": null\n}\n```"
+}

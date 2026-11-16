@@ -15,7 +15,7 @@ from storysphere.store.tables import Job, Run
 
 from tests.ingest import test_s4_run as s4t
 from tests.ingest.test_unit_runner import BOOK_TEXT
-from tests.methods.support import BOOK, CountingLlm, FakeMethod, seed
+from tests.methods.support import BOOK, CountingLlm, FakeMethod, no_method_engine, seed
 
 UNIVERSAL_REFS = [
     "event.kernel_satellite",
@@ -180,6 +180,7 @@ class TestIngestGraph:
                 genre_llm=s4t.Llm(lambda *_: s4t.GENRE_REPLY),
                 deep_llm=s4t.Llm(s4t.TestJob.ok_deep),
                 consolidate_llm=s4t.Llm(s4t.TestJob.ok_cons),
+                method_engine=no_method_engine(sf),  # 不註冊實作，避免呼叫真的 LLM
             )
             job_id = await service.create_job(path)
             await service.run_to_review(job_id)

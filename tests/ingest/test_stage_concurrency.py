@@ -45,10 +45,15 @@ async def rows(sf) -> list[IngestUnitRow]:
 
 
 class Probe:
-    """記下同時在跑的呼叫數與每個單位被叫的次數。"""
+    """記下同時在跑的呼叫數與每個單位被叫的次數。
 
-    def __init__(self, delay: float = 0.02) -> None:
-        self.delay = delay
+    `hold_until`：同時在跑的數量達到它時才放行所有人（確定性地證明真的並行）；
+    不給就只讓出一次執行權。
+    """
+
+    def __init__(self, hold_until: int | None = None) -> None:
+        self.hold_until = hold_until
+        self.release = asyncio.Event()
         self.active = 0
         self.max_active = 0
         self.calls: dict[str, int] = {}
@@ -58,7 +63,12 @@ class Probe:
         self.active += 1
         self.max_active = max(self.max_active, self.active)
         try:
-            await asyncio.sleep(self.delay)
+            if self.hold_until is None:
+                await asyncio.sleep(0)
+            else:
+                if self.active >= self.hold_until:
+                    self.release.set()
+                await self.release.wait()
         finally:
             self.active -= 1
         return {"unit": unit.id}
@@ -70,7 +80,7 @@ def stage_of(call) -> UnitStage:
 
 class TestConcurrency:
     async def test_runs_in_parallel_but_not_above_the_limit(self, sf):
-        probe = Probe()
+        probe = Probe(hold_until=3)  # 少於 3 個同時在跑就會卡住
         failed = await run_stage(sf, stage_of(probe), make_units(9), concurrency=3)
 
         assert failed == []
@@ -83,10 +93,15 @@ class TestConcurrency:
         assert probe.max_active == 1
 
     async def test_failed_ids_follow_unit_order(self, sf):
+        five_failed = asyncio.Event()
+
         async def call(unit):
-            if unit.chapter in (2, 5):
+            if unit.chapter == 2:
+                await five_failed.wait()  # 單元 5 先失敗，單元 2 後失敗
                 raise ValueError("bad output")
-            await asyncio.sleep(0.05 if unit.chapter == 2 else 0)
+            if unit.chapter == 5:
+                five_failed.set()
+                raise ValueError("bad output")
             return {}
 
         units = make_units(6)
@@ -114,14 +129,20 @@ class TestConcurrency:
         units = make_units(6)
         attempts: dict[str, int] = {}
 
+        fifth_started = asyncio.Event()
+        resumed = False  # 第二次 run_stage 起，所有單位都立刻完成
+
         async def call(unit):
             attempts[unit.id] = attempts.get(unit.id, 0) + 1
-            if unit.chapter == 1:
-                return {"unit": unit.id}  # 立刻完成
-            if unit.chapter == 2 and attempts[unit.id] == 1:
-                await asyncio.sleep(0.02)
+            first_round = not resumed
+            if unit.chapter == 5:
+                fifth_started.set()  # 並行上限 4：5 號開始時，1 號已完整完成
+            if unit.chapter == 1 or not first_round:
+                return {"unit": unit.id}  # 1 號立刻完成；第二輪全部立刻完成
+            if unit.chapter == 2:
+                await fifth_started.wait()
                 raise RuntimeError("Error code: 429 - quota exceeded")
-            await asyncio.sleep(0.5 if attempts[unit.id] == 1 else 0)  # 第一輪被取消
+            await asyncio.Event().wait()  # 第一輪其餘單位永遠不完成，只會被取消
             return {"unit": unit.id}
 
         with pytest.raises(QuotaPaused):
@@ -133,6 +154,7 @@ class TestConcurrency:
 
         done_before = {r.unit_id for r in await rows(sf) if r.status == "done"}
         before = dict(attempts)
+        resumed = True
         failed = await run_stage(sf, stage_of(call), units, concurrency=4, retry_delay=0)
 
         assert failed == []
@@ -143,7 +165,7 @@ class TestConcurrency:
 
     async def test_llm_unconfigured_aborts_the_stage(self, sf):
         async def call(unit):
-            await asyncio.sleep(0.01)
+            await asyncio.sleep(0)
             raise LlmUnconfigured("deep_extraction")
 
         with pytest.raises(LlmUnconfigured):

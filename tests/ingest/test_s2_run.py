@@ -22,6 +22,7 @@ from storysphere.store.paragraph_entities import ParagraphEntityRow
 from storysphere.store.tables import Evidence, EvidenceQuote, EvidenceSubject, Job, Run
 
 from tests.ingest.test_unit_runner import BOOK_TEXT
+from tests.methods.support import no_method_engine
 
 BOOK_ID = "book-s2"
 FIXTURES = Path(__file__).parents[1] / "fixtures" / "llm"
@@ -598,6 +599,7 @@ class TestIngestGraphIntegration:
                     retry_delay=0,
                     concurrency=1,
                     embedder=fake_embedder,
+                    method_engine=no_method_engine(factory),  # S5 不跑真的方法
                 )
                 job_id = await service.create_job(path)
                 await service.run_to_review(job_id)

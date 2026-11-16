@@ -44,6 +44,7 @@ from storysphere.store.tables import (
 )
 
 from tests.ingest.test_unit_runner import BOOK_TEXT
+from tests.methods.support import no_method_engine
 
 BOOK_ID = "book-s4"
 PARAS = {
@@ -689,6 +690,7 @@ class TestJob:
                 genre_llm=genre,
                 deep_llm=deep,
                 consolidate_llm=cons,
+                method_engine=no_method_engine(sf),  # S5 不跑真的方法
             )
             job_id = await service.create_job(path)
             await service.run_to_review(job_id)

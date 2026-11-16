@@ -159,3 +159,13 @@ async def seed(
     async with sf() as session, session.begin():
         evidence = await write_evidence(session, ctx, draft, FakeParagraphs())
     return evidence.id
+
+
+def no_method_engine(sf) -> MethodEngine:
+    """S5 用的引擎，刻意不註冊任何實作：入庫圖測試不該去呼叫正式方法（它們會用真的 LLM）。"""
+    from storysphere.methods.engine import default_registry
+
+    return MethodEngine(
+        sf, default_registry(), MethodImplementations(),
+        llm_factory=lambda _task: CountingLlm(), model_info=lambda _t: (None, None),
+    )

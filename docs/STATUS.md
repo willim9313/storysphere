@@ -1,6 +1,6 @@
 # 進度與後續待辦
 
-最後更新：2026-11-16（T13 完成後）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
+最後更新：2026-11-16（T14 完成後）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
 
 ## 現況
 
@@ -18,8 +18,9 @@
 | T10 S2 整併 | 完成；B1 有兩項未過（見「T10 現況」）；**人工檢查延到有畫面時** | `649144c` |
 | T11 S3 題材判定 | 完成（四簽名判為推理；`signal_tagging` 升 v2） | `778aa27` |
 | T12 S4 資訊控制的深度抽取 | 完成；四簽名實跑對照 09 E 段通過；人工檢查延到有畫面時 | `44b68c6` |
-| T13 方法引擎 | 完成 | 見 git log |
-| T14 之後 | 未開始 | — |
+| T13 方法引擎 | 完成 | `42a7710` |
+| T14 EV2、EV1 | 完成；F1 過但 kernel 佔 72%，**使用者決定 T15–T18 跑完後再調** | 見 git log |
+| T15 之後 | 未開始 | — |
 
 - 分支：本機 `main`，沒有遠端，沒推過。CI（`.github/workflows/gates.yml`）寫好但從沒跑過。
 - 閘門現況：後端三道（ruff、pytest 沒設 `BENCHMARK_DIR` 時 770 passed、2 skipped、registry check）exit 0；前端三道在 T01 通過後沒再動過。
@@ -152,6 +153,14 @@
 - **寫新方法的方式（T14 起）**：繼承 `methods/base.MethodBase(decl)`，實作 `run(ctx, item)`（必要時覆寫 `check`、`plan`），設 `prompt_version`；在 `methods/implementations.default_implementations()` 註冊。取模型用 `ctx.llm()`，讀證據用 `ctx.evidence.list/get/count`（只能讀宣告的類型）。書層級結論可放 `ctx.summary`。測試範本在 `tests/methods/`（`support.py` 有假方法與假宣告）。
 - 還沒做：方法論執行器（TM3、MY2，T17 前要有）；`reused`；依 `scopeKey` 重跑；`genre_ext`／`requires.source` 的語意；token 用量。
 - 留意：`_execute_item` 在一個交易裡跑 `check → run（含 LLM 呼叫）→ 寫入`。SQLite 讀取不佔寫鎖所以目前沒事，但 T19 有並發寫入時要再確認。
+
+**T14 現況（2026-11-16）**
+- `methods/universal/causal_network.py`（EV2）、`kernel_satellite.py`（EV1）、`_llm.py`（`ainvoke_json`、`gather_limited`，並行上限 6）；prompt 在 `prompts/methods/`。閘門通過（1072 passed）。原型決定寫在 03 §3 末。
+- 四簽名實跑（`var/benchmark_runs/sign_of_four/methods.db`＝`ingest_s4.db`＋EV2＋EV1；log 在同目錄）：EV2 22 窗、402 條連結，依序跑花了 19 分鐘（之後才加並行，沒重跑）；EV1 278 個邊界事件並行 6，6.5 分鐘。
+- 驗收 F1 過（C3、C6、C8 對應的事件都是 kernel）。**但 431 個事件有 309 個是 kernel**，等於沒分。待決：調 EV1 的門檻與 prompt。
+- `tests/ingest/test_stage_concurrency.py` 已改成不靠 sleep 排時序；先前那個偶發失敗應該就是它。
+- **註冊真方法後，入庫圖的測試要傳 `method_engine=no_method_engine(sf)`**（`tests/methods/support.py`），否則 S5 會去建真模型。
+- 實跑腳本：`var/benchmark_runs/scripts/run_method.py <db> <method_id>…`（會寫入該 db，先複製）。
 
 **T13 方法引擎（原提示）**
 - `registry/checks.py` 已有 `execution_order()`、`producers()` 可用來做上游補跑。

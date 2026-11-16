@@ -27,5 +27,14 @@ class MethodImplementations:
 
 
 def default_implementations(registry) -> MethodImplementations:
-    """所有真正的方法實作；T14–T18 完成一個就在這裡註冊一個（現在沒有）。"""
-    return MethodImplementations()
+    """所有真正的方法實作；T14–T18 完成一個就在這裡註冊一個。"""
+    from storysphere.methods.universal.causal_network import CausalNetwork
+    from storysphere.methods.universal.kernel_satellite import KernelSatellite
+
+    impls = MethodImplementations()
+    for method_id, cls in (
+        ("event.causal_network", CausalNetwork),
+        ("event.kernel_satellite", KernelSatellite),
+    ):
+        impls.register(cls(registry.methods[method_id]))
+    return impls
