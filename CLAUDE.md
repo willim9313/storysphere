@@ -67,7 +67,7 @@ StorySphere v4 的 prototype：新版分析契約（證據外殼＋內容表、�
 
 - 備份放到專案目錄外。
 - 先看會動到什麼：`--dry-run`、`git clean -n`，沒有 dry-run 的先 `ls` 目標範圍。
-- **`var/` 是使用者資料**（`var/neo.db`、`var/settings.yaml`），被 `.gitignore` 忽略，git 救不了，預設當成不可逆。
+- **`var/` 是使用者資料**（`var/neo.db`、`var/settings.yaml`、`var/ingestion_checkpoints.db`），被 `.gitignore` 忽略，git 救不了，預設當成不可逆。
 - 還原工作樹用 `git stash` 或另開 checkout。
 
 ## 完成後必報（Definition of Done）

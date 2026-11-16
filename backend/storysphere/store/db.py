@@ -17,6 +17,8 @@ from sqlalchemy.ext.asyncio import (
 )
 
 # 匯入即註冊 33 張內容表到 Base.metadata，create_all 才會建到它們。
+# 匯入即註冊 books／chapters／paragraphs 三張表。
+import storysphere.store.books  # noqa: F401
 import storysphere.store.content_tables  # noqa: F401
 from storysphere.store.tables import Base
 
