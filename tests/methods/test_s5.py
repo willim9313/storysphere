@@ -21,11 +21,8 @@ UNIVERSAL_REFS = [
     "event.kernel_satellite",
     "character.arc",
     "character.network",
-    "structure.narrative_time",
-    "theme.tension_line",
-    "builtin.theme_synthesis",
 ]
-MYSTERY_REFS = ["info.two_story", "info.fair_play_audit", "info.suspect_matrix", "character.belief"]
+MYSTERY_REFS = ["info.fair_play_audit", "character.belief"]
 
 
 @pytest.fixture(scope="module")
@@ -99,7 +96,6 @@ class TestRunS5:
         report = await run_s5(engine, BOOK)
         assert {c.status for c in report.cards} == {"skipped"}
         reasons = {c.ref: c.reason for c in report.cards}
-        assert reasons["builtin.theme_synthesis"] == "methodology"
         assert reasons["character.arc"] == "not_implemented"
         assert llm.calls == 0
         async with sf() as session:
@@ -127,7 +123,7 @@ class TestRunS5:
         by_ref = {c.ref: c.status for c in report.cards}
         assert by_ref["character.network"] == "not_applicable"
         assert by_ref["character.arc"] == "not_applicable"
-        assert by_ref["theme.tension_line"] == "skipped"
+        assert by_ref["event.kernel_satellite"] == "skipped"
 
     async def test_429_stops_and_flags_the_report(self, sf, registry):
         await add_book(sf)
@@ -206,4 +202,4 @@ class TestIngestGraph:
         async with sf() as session, session.begin():
             await set_genre_override(session, BOOK, "mystery")
         report = await run_s5(engine_with(sf, registry)[0], BOOK)
-        assert [c.ref for c in report.cards][-4:] == MYSTERY_REFS
+        assert [c.ref for c in report.cards][-2:] == MYSTERY_REFS

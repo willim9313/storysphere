@@ -1,6 +1,21 @@
 # 進度與後續待辦
 
-最後更新：2026-11-16（T15 完成後）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
+最後更新：2026-11-17（T19 A 批完成）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
+
+## 接手先看這裡（2026-11-16 使用者的決定）
+
+1. **下一張做 T19（REST 與 SSE），不是 T16。** 順序改成 T19 → T20 → M6 UI；方法的部分先停。
+2. **原型的方法砍到 6 個。** 已完成 5 個（EV2、EV1、CH2、CH4、CH5）。還要做的只剩 **MY4（公平性稽核）**，而且排在 UI 之後。**不做**：NS2、TM1、TM2、SY1、TM3、MY1、MY5（以及原本就不在 P0 的 MY2、EV3、CH1、CH3、NS1、NS3、MY3）。它們的宣告留在 `registry/`，引擎會當成「尚未實作」：入庫的 S5 自動跳過，API／UI 要顯示成尚未支援，不能當成錯誤。T16、T17 整張不做；T18 只剩 MY4。
+3. **開發時不要拿整本書去跑真的 LLM。** T09–T15 每張都用整本《四簽名》實跑，共約 480 次 Gemini 呼叫（S1 70、s1b 重跑 36、S4 約 40、EV2 22、EV1 278、CH 系列 30），費用比使用者預期高很多。之後：
+   - 單一任務的驗證**只用 mock LLM 的測試**；真的要打 LLM 時只跑一兩個單位或兩三章，目的只是確認 prompt 與解析能通。
+   - **整本實跑只在里程碑做，先報預估的呼叫次數與模型，使用者說可以才跑。**
+   - 任務清單裡「用四簽名跑一次整合測試、對照 09」的完成標準，先記成「未驗證」，累積到里程碑再一起跑。
+   - subagent 開發也在花使用者的 Claude 額度（每張任務約 10–30 萬 token），交辦要精簡、不要重複派工。
+4. **已經有一份跑好的四簽名資料可以直接用**，T19–T24 開發與手動操作都拿它，不必再叫 LLM：`var/benchmark_runs/sign_of_four/methods.db`（入庫到 S4＋EV2、EV1、CH2、CH4、CH5 的結果；用之前先複製）。
+5. 因為方法減少而要連帶調整、還沒動的地方（做到時再處理，先改 `docs/spec/` 再改程式）：
+   - `registry/perspectives/universal.yaml`、`mystery.yaml` 的預設卡仍列著不做的方法（「故事怎麼打亂時間？」「故事在哪些價值之間拉扯？」「這本書在說什麼？」「真相怎麼被藏起來？」「讀者被誤導到誰身上？」）。要決定是留著顯示「尚未支援」還是從預設卡拿掉。
+   - `docs/spec/07_任務清單.md` 的 M4、`docs/spec/05`「10 張自動結果卡」、`docs/spec/09` 的 F6、F8（MY1、MY5）與 D4（NS2）都還是原本的範圍。
+   - 方法論執行器（TM3、MY2 用）不做。
 
 ## 現況
 
@@ -20,11 +35,16 @@
 | T12 S4 資訊控制的深度抽取 | 完成；四簽名實跑對照 09 E 段通過；人工檢查延到有畫面時 | `44b68c6` |
 | T13 方法引擎 | 完成 | `42a7710` |
 | T14 EV2、EV1 | 完成；F1 過但 kernel 佔 72%，**使用者決定 T15–T18 跑完後再調** | `c72cea5` |
-| T15 CH2、CH4、CH5 | 完成；F2 過、F3 大致過、F4 一項成立、F5 無法判定（見「T15 現況」） | 見 git log |
-| T16 之後 | 未開始 | — |
+| T15 CH2、CH4、CH5 | 完成；F2 過、F3 大致過、F4 一項成立、F5 無法判定（見「T15 現況」） | `9dc6a59` |
+| T16 NS2 | **不做**（範圍調整） | — |
+| T17 TM1、TM2、SY1、TM3 | **不做**（範圍調整） | — |
+| T18 MY1、MY4、MY5 | 只做 MY4，排在 UI 之後；MY1、MY5 不做 | — |
+| **T19 REST 與 SSE** | **進行中**：A 批（底座＋唯讀端點）完成，下一步 B 批；見「T19 現況」 | — |
+| T20 之後 | 未開始 | — |
 
 - 分支：本機 `main`，沒有遠端，沒推過。CI（`.github/workflows/gates.yml`）寫好但從沒跑過。
-- 閘門現況：後端三道（ruff、pytest 沒設 `BENCHMARK_DIR` 時 770 passed、2 skipped、registry check）exit 0；前端三道在 T01 通過後沒再動過。
+- 閘門現況：後端三道（ruff、pytest 沒設 `BENCHMARK_DIR` 時 1202 passed、2 skipped、registry check）exit 0；前端三道在 T01 通過後沒再動過。
+- 這台有 `.env`（`GEMINI_API_KEY`，被 gitignore）。程式不會自己讀 `.env`，要 `uv run --env-file .env`。
 - 相關目錄：
   - 本專案：`~/Desktop/storysphere_v4_app`
   - 舊 repo（只讀參考）：`~/Desktop/storysphere_ref`
@@ -33,8 +53,9 @@
 
 ## 工作方式（使用者的指示）
 
-- **真的呼叫 LLM 產生的資料放 `var/benchmark_runs/`**（被 gitignore；說明見該目錄的 README）。四簽名跑到 S4 的資料庫是 `var/benchmark_runs/sign_of_four/ingest_s4.db`，方法拿它的副本來跑。STATUS 較早段落提到「scratchpad 的 `s1run/`」的地方都已搬到這裡。
-
+- **不拿整本書跑真的 LLM 來驗證單一任務**；整本實跑先報呼叫次數、等同意（見最上面「接手先看這裡」第 3 點）。
+- **真的呼叫 LLM 產生的資料放 `var/benchmark_runs/`**（被 gitignore；說明見該目錄的 README）。`sign_of_four/ingest_s4.db`＝四簽名入庫到 S4；`sign_of_four/methods.db`＝再加上 EV2、EV1、CH2、CH4、CH5 的結果（最新）。用之前先複製。STATUS 較早段落提到「scratchpad 的 `s1run/`」的地方都已搬到這裡。
+- **用 subagent 分擔開發**（使用者要求，減輕主對話的 context 與額度）；回報時標明哪些是 subagent 做的，產出要核對、閘門要自己重跑。
 - 一張任務一張做；做完照 `CLAUDE.md` 的 Definition of Done 回報，並逐條列完成標準。
 - checkpoint 四題照寫，但不必等同意就可以動手；**遇到要使用者決定的事才停**。
 - **簡易、機械性的工作交給 subagent**（搭骨架、照規格表填檔、寫大量同型檔案），需要判斷的自己做。subagent 的產出要核對。
@@ -54,7 +75,10 @@
 
 | # | 問題 | 最晚何時要決定 | 我的建議 |
 | --- | --- | --- | --- |
-| 1 | **MY1 必讀 `anachrony`，但 NS2 涵蓋率不足時不輸出逐事件位移**（03 §4.1 NS2、§4.2 MY1），這時 MY1 沒有輸入 | T16／T18 前 | MY1 把 `anachrony` 標成 `optional: true`，缺時退回 `text_rank` 並在結果標明 |
+| 1 | ~~MY1 必讀 `anachrony`~~ | — | **不用決定了**：MY1、NS2 都不做 |
+| 6 | **CH4 的宣告要不要加讀 `character`**（現在讀不到角色名稱與種類，群體也被當成角色；改 `registry/methods/CH4.yaml` 與 03 §4.1） | 陣營畫面（T24）前 | 加 |
+| 8 | **S4 三件事**：角色的推理屬性（mystery_role 等）怎麼寫入；`reveal.revealer_id` 要不要放寬成可空（現在 33 筆揭曉因此被丟）；`hidden_truth.reveal_id` 回填繞過 `write_evidence` 是否接受 | MY4 前 | 推理屬性先不做；揭曉者放寬成可空；回填接受 |
+| 9 | **使用者說之後再調的**：EV1 的 kernel 佔 72%；S2 有兩個角色沒合併（巴塞洛謬、肖爾托少校）；CH5 的錯誤認知品質 | 里程碑整本實跑前 | 有畫面可看之後再調 |
 | 3 | **7 個草擬的方法問句**（EV2、EV3、CH3、NS1、NS3、TM1、MY3；YAML 裡標了「草擬，規格未定」） | T19（「也可以問」清單上線）前 | 使用者過目後把註記拿掉 |
 | 4 | **Design 畫布「StorySphere v4 原型」不在任何資料夾裡**，M6 的完成標準要對照它 | T21 前 | 請使用者提供匯出檔或連結 |
 | 5 | 要不要把 `docs/spec/` 的修改回寫到原稿 `prototype_v0_草案/` | 不急 | 驗收（T28）後一次回寫 |
@@ -66,6 +90,29 @@
 ## 後續任務
 
 每張的完成標準見 `docs/spec/07_任務清單.md`；這裡只記「做的時候要知道、但規格沒寫」的事。
+
+### T19 現況（2026-11-17）
+
+- 範圍與接法見 `docs/plans/20261116-t19-rest-sse.md`（使用者確認：最小集合三批；不做的方法從預設卡拿掉）。
+- **預設卡已改成 5 張**（EV1、CH2、CH4、CH5、MY4）：`registry/perspectives/`、03 §5（原型決定）、04 N-03b 都已改；拿掉的問句由 N-03c（C 批）標 `implemented=false`。
+- **A 批完成**：lifespan 接上 engine／`init_db`／`mark_interrupted_jobs`／`MethodEngine`（`app.state`）；DB 路徑用環境變數 `STORYSPHERE_DB`，預設 `var/neo.db`。端點 N-01a/c/e、N-03a、N-04b/c/e、N-05a–d、N-07a/b/f/g、N-09a/b，每個都有 API 測試（`tests/api/`，共 73 個）。用 `methods.db` 副本手動打過一輪，回應形狀正確。
+- 程式位置：`api/errors.py`（`{detail, code}`）、`api/deps.py`、`api/schemas/`、`api/routes/`、`api/queries/`（T20 的 MCP 讀取工具共用 `queries/evidence.py`）。測試資料用 `tests/api/support.seed(db_file, fill)`。
+- 已同步到 04：N-05b 的 `edits` 加 `action`、`reason`；N-05a 的 `q` 少於 3 個字改用子字串比對；N-04b 排序與 `summary`／`precheck` 轉 camelCase；N-05d 的 `highlights` 與跨章前後文；N-04e 兩種模式回哪些證據。
+- **還沒接進 lifespan**（B 批）：checkpointer、`IngestService`（`stages=build_s1_stages()`）、`MethodJobs`。
+- **已知不穩定的測試**：`tests/ingest/test_unit_runner.py::TestTwoStages::test_429_in_one_stage_pauses_without_stuck_running_then_resumes` 在整套測試負載下偶爾失敗（3 次裡 1 次），單獨跑 15 次都過。之前就有，不是 T19 造成的；還沒查。
+
+### T19 動工前要知道的（彙整前面各張留下來的）
+
+- **還沒接進 app 啟動的東西**（`api/main.py` 的 lifespan 目前只做 LLM 能力檢查）：engine 與 `init_db`、DB 路徑的設定來源、checkpointer（`ingest/service.open_checkpointer`）、`IngestService`（要傳 `stages=build_s1_stages()`、`method_engine=default_method_engine(sf)`）、`MethodJobs`、啟動時呼叫 `mark_interrupted_jobs()`。
+- **service 層已備好、只差端點的**：
+  - 入庫：`IngestService.create_job()`＋背景跑 `run_to_review()`（N-01b）；`get_review_data()`（N-02d）；`submit_review()`（N-02e）；`resume()`（N-09e）；`ReviewStateError.code`、`JobStateError` 對應 409。service 的 payload 是 snake_case，API 層轉 camelCase。
+  - 方法：`MethodEngine.plan_method()`（N-04a 的 dryRun）、`run_method()`；`MethodJobs.trigger_method()` 回 `TriggerResult(job_id, attached)`；`JobConflictError` 對應 409 `job_conflict`。
+  - LLM 設定：`llm/settings.py`、`llm/startup_test.run_llm_test()`（N-08a–d）。
+  - 題材：`store/books.set_genre_override()`。
+- **還沒有、T19 要新做的**：取消（N-09d，要清 checkpoint）、只重跑失敗單位（N-02f）、從某一步重跑（N-02g）、`genre_s4`（N-02h）、SSE 與 `job.progress`／`last_seq`、N-04a 的 `reused`、依 `scopeKey` 重跑（N-04d）、刪書（N-01d，要在同一交易清所有帶 `book_id` 的表，含 `paragraph_entities`、`ingest_units`、`ingest_unit_outputs`、`runs`、`jobs`）。
+- **範圍建議**：T19 的端點很多（04 全文）。先做讓 UI 能動的最小集合——書單與書的總覽、入庫與審閱、job 狀態與 SSE、證據列表與單筆（含引文與上游）、觸發與查詢方法 run、LLM 設定——其餘（筆記、agent、重跑類）排後面。動工前把要做的端點清單列給使用者確認。
+- 測試全用 mock；手動驗證用 `var/benchmark_runs/sign_of_four/methods.db` 的副本，不叫 LLM。
+- 其他提醒見下方「M5 API」一段（系統欄位 422、第 1 層 403、FTS 短查詢、時間補時區）。
 
 ### T06 留給後面的事
 
@@ -215,7 +262,7 @@
 
 | 位置 | 內容 |
 | --- | --- |
-| `backend/storysphere/api/main.py` | FastAPI，只有 `/api/v2/health`；啟動時做 LLM 能力檢查 |
+| `backend/storysphere/api/` | FastAPI：`main.py`（lifespan）、`errors.py`、`deps.py`、`schemas/`、`routes/`、`queries/`；T19 A 批的唯讀端點 |
 | `backend/storysphere/domain/evidence/` | 33 個內容 model、`base.py`（枚舉轉 `other`＋`raw_label`）、`genre_ext.py` |
 | `backend/storysphere/store/tables.py`、`db.py` | 外殼與關聯表、`runs`、`jobs`、FTS5 與 trigger |
 | `backend/storysphere/store/content_tables.py` | `ev_*` 由 model 產生 |
@@ -229,10 +276,17 @@
 | `backend/storysphere/ingest/review.py`、`graph.py`、`service.py` | 審閱套用、LangGraph 入庫圖、`IngestService`（含續跑、`mark_interrupted_jobs`） |
 | `backend/storysphere/ingest/units.py`、`unit_runner.py` | 切抽取單位；逐單位跑一個 stage（重試、額度暫停） |
 | `backend/storysphere/store/ingest_units.py` | `ingest_units`／`ingest_unit_outputs` 表與存取 |
+| `backend/storysphere/ingest/s2/`、`store/paragraph_entities.py` | S2 整併（`run_s2`）；段落角色索引表 |
+| `backend/storysphere/ingest/s3.py`、`domain/genres.py` | S3 題材判定（`run_s3`）；10 種題材 id |
+| `backend/storysphere/ingest/s4/` | S4 深度抽取與整併（`run_s4`） |
+| `backend/storysphere/methods/base.py`、`reader.py`、`selectors.py`、`engine.py`、`jobs.py`、`s5.py`、`implementations.py` | 方法引擎：介面、唯讀查詢、選擇器、執行與上游補跑、`method_run` job、S5 預設觸發、方法註冊 |
+| `backend/storysphere/methods/universal/` | EV2 `causal_network.py`、EV1 `kernel_satellite.py`、CH2 `arc.py`、CH4 `network.py`、CH5 `belief.py`；共用 `_llm.py` |
+| `prompts/methods/` | 方法的 prompt（EV1、EV2、CH2、CH4、CH5） |
+| `var/benchmark_runs/`（不進 git） | 四簽名的實跑資料庫、log、一次性腳本；見該目錄 README |
 | `backend/storysphere/llm/errors.py` | `classify_step_failure`、`LLMResponseBlocked`、`llm_text` |
 | `backend/storysphere/llm/prompts.py`、`json_output.py` | prompt 載入與 render；4 步 JSON 解析 |
 | `backend/storysphere/ingest/s1.py` | S1 的兩個 stage（`s1a` 核心抽取、`s1b` 訊號標記） |
-| `prompts/ingest/` | 執行用的 prompt（`core_extraction`、`signal_tagging`） |
+| `prompts/ingest/` | 入庫的 prompt（`core_extraction`、`signal_tagging` v2、`genre_detection`、`deep/`、`consolidate/`） |
 | `backend/storysphere/store/books.py` | `books`／`chapters`／`paragraphs` 表與存取、`BookParagraphSource` |
 | `backend/storysphere/registry/` | `models.py`、`loader.py`、`checks.py`、CLI |
 | `registry/` | 方法、方法論、view、視角、機制、第 1 層類型的 YAML |

@@ -385,7 +385,7 @@ pending／running／awaiting_review／paused_quota／interrupted ─(N-09d)─�
 | 項目 | 內容 |
 | --- | --- |
 | 用途 | 自動分析的結果卡格 |
-| Response | `Card[]`（§2.4），依 registry 的視角順序；推理書為 10 張（03 §5） |
+| Response | `Card[]`（§2.4），依 registry 的視角順序；推理書為 5 張（03 §5） |
 | 說明 | 卡片狀態由該 `refId` 最新 run 推得：無 run＝`not_run`；run 為 queued／running＝`running`；`done` 且有 current 證據 `basisChanged=true`＝`basis_changed`；其餘照 run 狀態。即時更新靠 N-09f 的 `run.status` |
 | 對應 | `registry/perspectives/*.yaml`、`runs`、`evidence` |
 
@@ -417,7 +417,7 @@ pending／running／awaiting_review／paused_quota／interrupted ─(N-09d)─�
 | --- | --- |
 | 用途 | 列出 run（結果卡詳情的歷史、開發者檢視） |
 | Query | `refId?`、`status?`、`includeSuperseded?: false`、`includeIngest?: false`；分頁 |
-| Response | `items: Run[]`（不含 `params`、`inputEvidenceIds`） |
+| Response | `items: Run[]`（不含 `params`、`inputEvidenceIds`），依建立時間新到舊。`summary`、`precheck` 的 key 轉 camelCase |
 | 對應 | `runs` |
 
 ### N-04c GET /books/:bookId/runs/:runId
@@ -447,7 +447,7 @@ pending／running／awaiting_review／paused_quota／interrupted ─(N-09d)─�
 | 用途 | view 卡片取資料（05 §4「view 自己向後端取資料」）；結果卡詳情與 agent 的 `show_view` 共用 |
 | Query | `viewType`，加 `runId` 或 `evidenceIds`（逗號分隔，最多 200）二擇一；`includeL1?` |
 | Response | `{viewType, primary: Evidence[], referenced: [{id, claimType, level, label, discourseChapter}], chapters: [{number, title}]}` |
-| 說明 | `primary`＝run 產出的 current 證據或指定的證據（含 `content`）。`referenced`＝`primary` 的 `content` 裡所有 `*_id`／`*_ids` 指到的證據，**只展開一層**，只回畫標籤要的欄位；`label` 取 `character.canonical_name`、`event.title`、`imagery_motif.term`，其餘取 `summary` *（推得）*。view 的形狀（圖、矩陣）由前端從這些證據組，後端不做 view 專屬轉換 |
+| 說明 | `primary`＝run 產出的 current 證據（排除 rejected），或指定的證據（照請求順序，superseded／rejected 照實回）；都含 `content`。`referenced`＝`primary` 的 `content` 裡所有 `*_id`／`*_ids` 指到的證據，**只展開一層**，只回畫標籤要的欄位；`label` 取 `character.canonical_name`、`event.title`、`imagery_motif.term`，其餘取 `summary` *（推得）*。view 的形狀（圖、矩陣）由前端從這些證據組，後端不做 view 專屬轉換 |
 | 錯誤 | 422 `viewType` 不在 05 §4 目錄 |
 | 對應 | `evidence`、`ev_*`、`runs`；05 §4 |
 
@@ -460,7 +460,7 @@ pending／running／awaiting_review／paused_quota／interrupted ─(N-09d)─�
 | 用途 | 證據瀏覽（畫面 7）、結果卡的證據列表（畫面 4） |
 | Query | `claimType`（可多個）、`minLevel?`、`maxLevel?`、`reviewStatus?`、`status?: current`、`basisChanged?`、`chapterFrom?`、`chapterTo?`、`runId?`、`subjectId?`、`source?`、`q?`、`includeL1?: false`、`withContent?: false`、`sort?`（`chapter`／`level`／`confidence`／`createdAt`）；分頁 |
 | Response | `items: EvidenceListItem[]` |
-| 說明 | `q` 走 `evidence_fts`（FTS5，summary＋引文），結果依 FTS rank 排序。可見範圍見 §1.4 |
+| 說明 | `q` 走 `evidence_fts`（FTS5，summary＋引文），整串當一個 phrase 比對（使用者輸入的 FTS5 語法字元不生效）；沒指定 `sort` 時依 FTS rank 排序。原型決定：trigram 搜不到少於 3 個字的查詢，這時改對 summary 與引文做子字串比對。可見範圍見 §1.4 |
 | 對應 | `evidence`、`evidence_subject`、`evidence_quote`、`evidence_fts` |
 
 ### N-05b GET /books/:bookId/evidence/:evidenceId
@@ -468,7 +468,7 @@ pending／running／awaiting_review／paused_quota／interrupted ─(N-09d)─�
 | 項目 | 內容 |
 | --- | --- |
 | 用途 | 單筆證據（含引文、題材擴充、修改紀錄） |
-| Response | `Evidence`（§2.1），加 `edits[{editedAt, before}]`（`evidence_edits` 的原值） |
+| Response | `Evidence`（§2.1），加 `edits[{editedAt, action, reason, before}]`（`evidence_edits`：`action`＝`modify`／`reject`，`before` 是原值，`reason` 是拒絕理由） |
 | 說明 | 第 1 層證據可直接以 id 讀（追溯時點進來），不受 `includeL1` 限制；它只是不出現在列表裡 |
 | 對應 | `evidence`、`ev_*`、`evidence_quote`、`evidence_genre_ext`、`evidence_subject`、`evidence_link`、`evidence_edits` |
 
@@ -489,7 +489,7 @@ pending／running／awaiting_review／paused_quota／interrupted ─(N-09d)─�
 | 用途 | 「↗原文」側板：段落原文並高亮引文 |
 | Query | `context?: 0`（前後各帶幾段，上限 3）、`highlightEvidenceId?` |
 | Response | `{paragraph, before[], after[], highlights[{evidenceId, seq, start, end, verified}]}`；段落欄位沿用既有 `Paragraph`（含 `ParagraphRole`、所屬章） |
-| 說明 | `verified=false` 的引文仍回傳位置（若有），UI 標「引文未對上原文」（01 §3） |
+| 說明 | `highlights` 只回 `highlightEvidenceId` 那筆證據落在本段的引文，沒帶就是空的。`before`／`after` 照全書順序取，會跨章。`verified=false` 的引文仍回傳位置（若有），UI 標「引文未對上原文」（01 §3） |
 | 對應 | `paragraphs`、`evidence_quote` |
 
 ### N-05e POST /books/:bookId/evidence/:evidenceId/review

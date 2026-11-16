@@ -39,7 +39,7 @@ class TestRealRegistry:
              "MY1", "MY4", "MY5"]
         )  # fmt: skip
 
-    def test_default_cards_are_ten_for_a_mystery(self):
+    def test_default_cards_are_five_for_a_mystery(self):
         registry = load_registry(REAL_REGISTRY)
 
         universal = [card.ref for card in registry.perspectives["universal"].cards]
@@ -49,13 +49,9 @@ class TestRealRegistry:
             "event.kernel_satellite",  # 「EV2 → EV1」的卡取最後一步（04 §2.4）
             "character.arc",
             "character.network",
-            "structure.narrative_time",
-            "theme.tension_line",
-            "builtin.theme_synthesis",
         ]
-        assert mystery == [
-            "info.two_story", "info.fair_play_audit", "info.suspect_matrix", "character.belief",
-        ]  # fmt: skip
+        # 原型只做 6 個方法（03 §5 的原型決定）；不做的方法不列在預設卡。
+        assert mystery == ["info.fair_play_audit", "character.belief"]
 
     def test_only_info_control_mechanism_is_supported(self):
         mechanisms = load_registry(REAL_REGISTRY).mechanisms

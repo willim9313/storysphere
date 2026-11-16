@@ -8,9 +8,3 @@ cards:
     question: "主要角色怎麼變？"
   - ref: character.network
     question: "角色分成哪些陣營？"
-  - ref: structure.narrative_time
-    question: "故事怎麼打亂時間？"
-  - ref: theme.tension_line
-    question: "故事在哪些價值之間拉扯？"
-  - ref: builtin.theme_synthesis
-    question: "這本書在說什麼？"
