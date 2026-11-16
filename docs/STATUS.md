@@ -1,6 +1,6 @@
 # 進度與後續待辦
 
-最後更新：2026-11-15（T05 完成後）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
+最後更新：2026-11-16（T07 完成後）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
 
 ## 現況
 
@@ -11,10 +11,12 @@
 | T03 證據外殼與關聯表 | 完成 | `d5383db` |
 | T04 33 種證據的 model 與內容表 | 完成 | `f1fda7c` |
 | T05 registry | 完成 | `20663fb` |
-| T06 之後 | 未開始 | — |
+| T06 LLM 路由與設定 | 完成 | `95c752b` |
+| T07 文件處理與章節審閱 | 完成 | `79ba6f3` |
+| T08 之後 | 未開始 | — |
 
 - 分支：本機 `main`，沒有遠端，沒推過。CI（`.github/workflows/gates.yml`）寫好但從沒跑過。
-- 閘門現況：後端三道（ruff、pytest 383 passed、registry check）exit 0；前端三道在 T01 通過後沒再動過。
+- 閘門現況：後端三道（ruff、pytest 692 passed（設了 `BENCHMARK_DIR`；沒設時 690 passed、2 skipped）、registry check）exit 0；前端三道在 T01 通過後沒再動過。
 - 相關目錄：
   - 本專案：`~/Desktop/storysphere_v4_app`
   - 舊 repo（只讀參考）：`~/Desktop/storysphere_ref`
@@ -43,33 +45,38 @@
 | # | 問題 | 最晚何時要決定 | 我的建議 |
 | --- | --- | --- | --- |
 | 1 | **MY1 必讀 `anachrony`，但 NS2 涵蓋率不足時不輸出逐事件位移**（03 §4.1 NS2、§4.2 MY1），這時 MY1 沒有輸入 | T16／T18 前 | MY1 把 `anachrony` 標成 `optional: true`，缺時退回 `text_rank` 並在結果標明 |
-| 2 | **LangGraph 章節審閱的 checkpoint 放哪**：01 §1 說單一 SQLite 檔，舊 repo 用獨立的 `var/ingestion_checkpoints.db` | T07 前 | 維持獨立檔（checkpointer 自管 schema），在 01 §1 與 `CLAUDE.md` 的 `var/` 清單補一行 |
 | 3 | **7 個草擬的方法問句**（EV2、EV3、CH3、NS1、NS3、TM1、MY3；YAML 裡標了「草擬，規格未定」） | T19（「也可以問」清單上線）前 | 使用者過目後把註記拿掉 |
 | 4 | **Design 畫布「StorySphere v4 原型」不在任何資料夾裡**，M6 的完成標準要對照它 | T21 前 | 請使用者提供匯出檔或連結 |
+| 6 | **Codex（ChatGPT 訂閱）要不要接**：`langchain-openai` 只有私有、標 experimental 的 `_ChatOpenAICodex`，登入要另外用 Deep Agents Code CLI；這台沒有 ChatGPT 登入，驗不了。目前設定檔可寫、選到時回報未支援 | 不急 | 等它成為正式 API 再接 |
 | 5 | 要不要把 `docs/spec/` 的修改回寫到原稿 `prototype_v0_草案/` | 不急 | 驗收（T28）後一次回寫 |
 
-已決定、已寫進規格的：`character` 的引文取 S2 段落標記的首次提及（01 §3、02 §4）；CH5 不讀 `reveal`（03 §4.1）；Claude Code 的四項隔離設定（05 §5.2）。
+已決定、已寫進規格的：checkpoint 用獨立檔 `var/ingestion_checkpoints.db`（01 §1、`CLAUDE.md`）；第一個標題之前的無標題內容預設角色 `other`（02 §1）；書章段不搬舊的摘要／關鍵字／embedding 等欄位、`evidence.book_id` 不設外鍵（01 §2）；`modelId` 用 `<整合>:<模型>` 前綴字串、`var/settings.yaml` 不存在時讀 `config/settings.default.yaml`（04 N-08a、01 §1）；`character` 的引文取 S2 段落標記的首次提及（01 §3、02 §4）；CH5 不讀 `reveal`（03 §4.1）；Claude Code 的四項隔離設定（05 §5.2）。
 
 ## 後續任務
 
 每張的完成標準見 `docs/spec/07_任務清單.md`；這裡只記「做的時候要知道、但規格沒寫」的事。
 
-### M1 剩下的
+### T06 留給後面的事
 
-**T06 LLM 路由與設定**（依據：架構文件「Pipeline 模型配置」、05 §6、04 N-08a–N-08d）
-- `var/settings.yaml` 的 provider → model → task；`llm_for(task)` 用 LangChain `init_chat_model`（含 fallback）；能力檢查；初次啟動測試。
-- task 清單＝入庫 5 個（02 §11）＋方法 2 個（`method_strong`、`method_light`）。registry 已能列出每個方法的 `llm_task`。
-- 新依賴照舊 repo：`langchain`、`langchain-core`、`langchain-google-genai` 等，只加用到的。
-- 金鑰只存環境變數名；`.env.example` 已有 `GEMINI_API_KEY`。真的打 LLM 的測試標 `integration`。
-- 舊 repo 參考：`core/llm_call.py`（`llm_retry`）、`core/error_handling.py`（`classify_step_failure`）、`config/settings.py`。
+- **N-08a–N-08d 的 REST 端點沒做**，留給 T19：`llm/settings.py`（`load_settings`、`caps_ok`、`provider_configured`、`SUBSCRIPTION_RISK_NOTICE`）與 `llm/startup_test.py`（`run_llm_test` 的結果 `model_dump(by_alias=True)` 就是 N-08c 的 `result`）已備好。寫入 `var/settings.yaml`（N-08b）與建 `llm_test` job 也在 T19。
+- 觸發端點的 503 檢查用 `router.task_available()`；run 的 `model` 欄用 `router.primary_model_id()`。
+- 要 structured output 時寫 `llm_for(task, schema=Model)`，不要自己接 `.with_structured_output()`（有備援時回傳的是 fallback 鏈）。
+- `llm_retry`、`classify_step_failure` 沒搬，T08／T09 用到時再搬。
+- **Gemini 沒有實測**：這台沒有 `GEMINI_API_KEY`、沒有 `.env`。T09 前要設好並跑一次 `run_llm_test`。Claude 訂閱（`via: claude_agent_sdk`）實測通過（連線、structured output）。
+- 設定檔路徑可用環境變數 `STORYSPHERE_SETTINGS` 指定；`tests/api/conftest.py` 固定指到預設檔。
 
 ### M2 入庫前半
 
-**T07 文件處理與章節審閱**（先決定上表 #2）
-- 沿用 `pipelines/document_processing/`、`core/language_detection.py`、`workflows/ingestion_graph.py`。
-- 這張才建 `books`、`chapters`、`paragraphs` 表，並把 **`ParagraphSource` 接上真的 `paragraphs` 表**（`store/evidence_writer.py` 的 Protocol；目前只有測試替身）。
-- `evidence.book_id` 目前沒有外鍵；`books` 建好後決定要不要補，以及 N-01d 刪書的交易。
-- benchmark 路徑用環境變數 `BENCHMARK_DIR`，文本不進 repo。
+**T07 留給後面的事**
+- **「段落」是 chunk，不是原文段落**：沿用的 chunker 把一章的文字接起來，再依句界切成最多約 1,200 字的塊。四簽名整本是 70 個 chunk（含 1 個非正文）。引文的 `paragraph_id` 指的是 chunk；T08 的抽取單位（3,000 字）大約是 2–3 個 chunk。每章第一個 chunk 開頭含章名（`title_span`）。
+- REST 沒做（T19）：N-01b 呼叫 `IngestService.create_job()`＋背景跑 `run_to_review()`；N-02d＝`get_review_data()`；N-02e＝`submit_review()`；`ReviewStateError.code` 對應 409。service 的 payload 是 snake_case，API 層轉 camelCase。
+- **審閱省略 `chapters` 時，`role_overrides`、`paragraph_splits` 也不會套用**（舊行為，照搬）。前端要改任何東西都得一併送 `chapters`。
+- `IngestService`、checkpointer、engine 還沒接進 app 的 lifespan（T19）；`store/db.py` 的 DB 路徑也還沒有設定來源。
+- 圖目前是 P1 → 審閱 → `finish_node`（直接把 job 標 `done`）；T09 把 S1 之後的節點插在 `finish_node` 前。`stage` 在完成後仍是 `review`。
+- 失敗或取消的 job 不會清 checkpoint（N-09d 取消時要刪，T19）。
+- `ParagraphSource` 的真實實作是 `store/books.BookParagraphSource(session)`。
+- `evidence.book_id` 沒有外鍵；N-01d 刪書要在同一交易清所有帶 `book_id` 的表。
+- 只有 TXT 用真實書測過；PDF／DOCX／EPUB 只有搬過來的單元測試。
 
 **T08 抽取單位與斷點續跑**
 - `ingest_units`、`ingest_unit_outputs` 兩張表 T03 沒建，這張建。`jobs` 表已有。
@@ -136,15 +143,21 @@
 
 | 位置 | 內容 |
 | --- | --- |
-| `backend/storysphere/api/main.py` | FastAPI，只有 `/api/v2/health` |
+| `backend/storysphere/api/main.py` | FastAPI，只有 `/api/v2/health`；啟動時做 LLM 能力檢查 |
 | `backend/storysphere/domain/evidence/` | 33 個內容 model、`base.py`（枚舉轉 `other`＋`raw_label`）、`genre_ext.py` |
 | `backend/storysphere/store/tables.py`、`db.py` | 外殼與關聯表、`runs`、`jobs`、FTS5 與 trigger |
 | `backend/storysphere/store/content_tables.py` | `ev_*` 由 model 產生 |
 | `backend/storysphere/store/evidence_writer.py` | 唯一的寫入路徑：層級、系統欄位、內容驗證、引文驗證 |
 | `backend/storysphere/store/lifecycle.py` | `complete_run`、`mark_basis_changed`、`reject_evidence`、`purge_superseded` |
 | `backend/storysphere/store/quotes.py`、`dedupe.py` | 引文比對、去重 |
+| `backend/storysphere/llm/` | `settings.py`（三層設定、能力檢查）、`router.py`（`llm_for`）、`startup_test.py`（初次啟動測試） |
+| `config/settings.default.yaml` | 預設 LLM 設定（只有 Gemini） |
+| `backend/storysphere/domain/documents.py` | `Document`／`Chapter`／`Paragraph`、章節與段落角色 |
+| `backend/storysphere/ingest/document_processing/`、`language_detection.py` | P1：載入、章節偵測、切段、語言偵測（搬自舊 repo） |
+| `backend/storysphere/ingest/review.py`、`graph.py`、`service.py` | 審閱套用、LangGraph 入庫圖、`IngestService` |
+| `backend/storysphere/store/books.py` | `books`／`chapters`／`paragraphs` 表與存取、`BookParagraphSource` |
 | `backend/storysphere/registry/` | `models.py`、`loader.py`、`checks.py`、CLI |
 | `registry/` | 方法、方法論、view、視角、機制、第 1 層類型的 YAML |
 | `frontend/` | 只有外殼：健康檢查＋ Warm／Ink 切換 |
 | `scripts/acp_spike/` | T02 的 spike 腳本 |
-| `tests/` | `api/`、`registry/`、`domain/`、`store/`；`tests/store/conftest.py` 有建各層證據的輔助 |
+| `tests/` | `api/`、`ingest/`、`llm/`、`registry/`、`domain/`、`store/`；`tests/store/conftest.py` 有建各層證據的輔助 |
