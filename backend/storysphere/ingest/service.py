@@ -1,13 +1,14 @@
 """Ingestion service: create an ingest job, run it to the review pause, resume it.
 
-REST 端點（N-01b、N-02d、N-02e）之後呼叫的服務層。這裡只做「建 job → 跑到審閱 →
-送出審閱跑完」；SSE、取消、重試、背景工作的管理屬於後面的任務。
+REST 端點（N-01b、N-02d、N-02e）之後呼叫的服務層。這裡做「建 job → 跑到審閱 →
+送出審閱跑完」，以及額度暫停、重啟中斷後的續跑（02 §7）；SSE、取消、背景工作的管理
+屬於後面的任務。
 """
 
 from __future__ import annotations
 
 import logging
-from collections.abc import AsyncIterator
+from collections.abc import AsyncIterator, Sequence
 from contextlib import asynccontextmanager
 from datetime import UTC, datetime
 from pathlib import Path
@@ -15,12 +16,15 @@ from typing import Any
 
 from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
 from langgraph.types import Command
-from sqlalchemy import select
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from storysphere.ingest.graph import NoExtractableText, build_ingest_graph
 from storysphere.ingest.review import build_review_data
+from storysphere.ingest.unit_runner import QuotaPaused, UnitStage
+from storysphere.llm.router import LlmUnconfigured
 from storysphere.store.books import get_book
+from storysphere.store.ingest_units import reset_running_units
 from storysphere.store.tables import Job
 
 logger = logging.getLogger(__name__)
@@ -53,6 +57,25 @@ class ReviewStateError(Exception):
         self.code = code
 
 
+class JobStateError(Exception):
+    """The job is not in a state that allows the action (API 409 `invalid_state`)."""
+
+    code = "invalid_state"
+
+
+async def mark_interrupted_jobs(session_factory: async_sessionmaker[AsyncSession]) -> int:
+    """Server start-up: every job still `running` becomes `interrupted` (02 §7).
+
+    不自動續跑；使用者按續跑才繼續。回傳被改掉的 job 數。
+    """
+    async with session_factory() as session, session.begin():
+        result = await session.execute(
+            update(Job).where(Job.status == "running").values(status="interrupted")
+        )
+        await reset_running_units(session)
+    return result.rowcount
+
+
 def _review_conflict_code(job: Job | None) -> str:
     if job is None:
         return "review_not_open"
@@ -66,6 +89,8 @@ def _review_conflict_code(job: Job | None) -> str:
 def _error_kind(exc: BaseException) -> str:
     if isinstance(exc, NoExtractableText):
         return "no_extractable_text"
+    if isinstance(exc, LlmUnconfigured):
+        return "llm_unconfigured"
     if isinstance(exc, FileNotFoundError):
         return "file_not_found"
     # pipeline 對不認得的副檔名丟 ValueError("Unsupported file type: ...")。
@@ -78,10 +103,20 @@ class IngestService:
     """Drives the ingestion graph for ``ingest`` jobs."""
 
     def __init__(
-        self, session_factory: async_sessionmaker[AsyncSession], checkpointer: Any
+        self,
+        session_factory: async_sessionmaker[AsyncSession],
+        checkpointer: Any,
+        *,
+        stages: Sequence[UnitStage] = (),
+        retry_delay: float = 1.0,
     ) -> None:
         self._session_factory = session_factory
-        self._graph = build_ingest_graph(checkpointer, session_factory=session_factory)
+        self._graph = build_ingest_graph(
+            checkpointer,
+            session_factory=session_factory,
+            stages=stages,
+            retry_delay=retry_delay,
+        )
 
     async def create_job(
         self,
@@ -151,6 +186,25 @@ class IngestService:
         }
         await self._run(job.id, Command(resume=resume_value))
 
+    async def resume(self, job_id: str) -> None:
+        """Continue a `paused_quota`／`interrupted` job; only units not `done` are run."""
+        async with self._session_factory() as session, session.begin():
+            job = await session.get(Job, job_id)
+            if job is None:
+                raise LookupError(f"Job '{job_id}' not found")
+            if job.status not in ("paused_quota", "interrupted"):
+                raise JobStateError(job.status)
+            job.status = "pending"
+
+        config = {"configurable": {"thread_id": job_id}}
+        snapshot = await self._graph.aget_state(config)
+        if snapshot.next:
+            # 從上次沒跑完的節點接著跑。
+            await self._run(job_id, None)
+        else:
+            # 連第一個 checkpoint 都還沒寫就中斷了：從頭來。
+            await self.run_to_review(job_id)
+
     # ── internals ────────────────────────────────────────────────────────────
 
     async def _open_review_job(self, session: AsyncSession, book_id: str) -> Job:
@@ -171,6 +225,12 @@ class IngestService:
         config = {"configurable": {"thread_id": job_id}}
         try:
             await self._graph.ainvoke(graph_input, config=config)
+        except QuotaPaused:
+            # 額度用完不算失敗（04 §3.2）；已完成的單位留著，之後續跑。
+            logger.info("Ingest job %s paused: quota exhausted", job_id)
+            async with self._session_factory() as session, session.begin():
+                job = await session.get(Job, job_id)
+                job.status = "paused_quota"
         except Exception as exc:
             logger.exception("Ingest job %s failed", job_id)
             async with self._session_factory() as session, session.begin():

@@ -1,4 +1,4 @@
-"""LangGraph ingestion graph: P1 → chapter review (HITL pause) → finish.
+"""LangGraph ingestion graph: P1 → chapter review (HITL pause) → unit stages → finish.
 
 沿用舊 repo `workflows/ingestion_graph.py` 的做法：審閱用 `interrupt()` 暫停，圖的狀態
 checkpoint 到 SQLite，伺服器重啟後仍可從審閱點續跑。thread_id == job id。
@@ -9,6 +9,7 @@ job 的狀態轉移（04 §3.2）由各節點自己寫進 `jobs` 表。
 from __future__ import annotations
 
 import logging
+from collections.abc import Sequence
 from datetime import UTC, datetime
 from functools import partial
 from pathlib import Path
@@ -20,7 +21,10 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from storysphere.ingest.document_processing import DocumentProcessingPipeline
 from storysphere.ingest.review import apply_review
+from storysphere.ingest.unit_runner import UnitStage, run_stage
+from storysphere.ingest.units import build_units
 from storysphere.store.books import get_book, replace_chapters, save_book
+from storysphere.store.ingest_units import list_units
 from storysphere.store.tables import Job
 
 logger = logging.getLogger(__name__)
@@ -98,19 +102,48 @@ async def review_node(state: IngestState, *, session_factory: SessionFactory) ->
     return {}
 
 
+async def units_node(
+    state: IngestState,
+    *,
+    session_factory: SessionFactory,
+    stages: Sequence[UnitStage],
+    retry_delay: float,
+) -> dict[str, Any]:
+    """逐單位跑每個抽取步驟（02 §2、§7）。
+
+    續跑時整個節點重跑一次，但 `run_stage` 只處理還沒 `done` 的單位。429 會從這裡
+    往外丟 `QuotaPaused`，由 service 把 job 轉成 `paused_quota`。
+    """
+    if not stages:
+        return {}
+
+    async with session_factory() as session, session.begin():
+        doc = await get_book(session, state["book_id"])
+        job = await session.get(Job, state["job_id"])
+        job.status = "running"
+        job.stage = "s1"
+
+    units = build_units(doc)
+    for stage in stages:
+        await run_stage(session_factory, stage, units, retry_delay=retry_delay)
+    return {}
+
+
 async def finish_node(state: IngestState, *, session_factory: SessionFactory) -> dict[str, Any]:
     """把 job 標成完成。
 
-    這是 S1 還沒做之前暫時的終點；T09 會在這個節點之前插入 S1 之後的入庫步驟。
+    T09 之後的入庫步驟（S2…）插在這個節點之前。有單位失敗也算完成（04 §3.2）。
     """
     async with session_factory() as session, session.begin():
         doc = await get_book(session, state["book_id"])
         job = await session.get(Job, state["job_id"])
+        units = await list_units(session, state["book_id"])
         # result_json 要整個換掉；原地改 dict，SQLAlchemy 不會發現有變動。
         job.result_json = {
             **(job.result_json or {}),
             "chapterCount": doc.body_chapter_count if doc is not None else 0,
             "paragraphCount": doc.total_paragraphs if doc is not None else 0,
+            "failedUnitCount": sum(1 for u in units if u.status == "failed"),
         }
         job.status = "done"
         job.progress = 100
@@ -119,14 +152,27 @@ async def finish_node(state: IngestState, *, session_factory: SessionFactory) ->
     return {}
 
 
-def build_ingest_graph(checkpointer: Any, *, session_factory: SessionFactory) -> Any:
+def build_ingest_graph(
+    checkpointer: Any,
+    *,
+    session_factory: SessionFactory,
+    stages: Sequence[UnitStage] = (),
+    retry_delay: float = 1.0,
+) -> Any:
     """Compile the ingestion graph with the given LangGraph checkpointer."""
     graph: StateGraph = StateGraph(IngestState)
     graph.add_node("p1", partial(p1_node, session_factory=session_factory))
     graph.add_node("review", partial(review_node, session_factory=session_factory))
+    graph.add_node(
+        "units",
+        partial(
+            units_node, session_factory=session_factory, stages=stages, retry_delay=retry_delay
+        ),
+    )
     graph.add_node("finish", partial(finish_node, session_factory=session_factory))
     graph.add_edge(START, "p1")
     graph.add_edge("p1", "review")
-    graph.add_edge("review", "finish")
+    graph.add_edge("review", "units")
+    graph.add_edge("units", "finish")
     graph.add_edge("finish", END)
     return graph.compile(checkpointer=checkpointer)
