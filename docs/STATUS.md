@@ -1,6 +1,6 @@
 # 進度與後續待辦
 
-最後更新：2026-11-16（T14 完成後）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
+最後更新：2026-11-16（T15 完成後）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
 
 ## 現況
 
@@ -19,8 +19,9 @@
 | T11 S3 題材判定 | 完成（四簽名判為推理；`signal_tagging` 升 v2） | `778aa27` |
 | T12 S4 資訊控制的深度抽取 | 完成；四簽名實跑對照 09 E 段通過；人工檢查延到有畫面時 | `44b68c6` |
 | T13 方法引擎 | 完成 | `42a7710` |
-| T14 EV2、EV1 | 完成；F1 過但 kernel 佔 72%，**使用者決定 T15–T18 跑完後再調** | 見 git log |
-| T15 之後 | 未開始 | — |
+| T14 EV2、EV1 | 完成；F1 過但 kernel 佔 72%，**使用者決定 T15–T18 跑完後再調** | `c72cea5` |
+| T15 CH2、CH4、CH5 | 完成；F2 過、F3 大致過、F4 一項成立、F5 無法判定（見「T15 現況」） | 見 git log |
+| T16 之後 | 未開始 | — |
 
 - 分支：本機 `main`，沒有遠端，沒推過。CI（`.github/workflows/gates.yml`）寫好但從沒跑過。
 - 閘門現況：後端三道（ruff、pytest 沒設 `BENCHMARK_DIR` 時 770 passed、2 skipped、registry check）exit 0；前端三道在 T01 通過後沒再動過。
@@ -161,6 +162,13 @@
 - `tests/ingest/test_stage_concurrency.py` 已改成不靠 sleep 排時序；先前那個偶發失敗應該就是它。
 - **註冊真方法後，入庫圖的測試要傳 `method_engine=no_method_engine(sf)`**（`tests/methods/support.py`），否則 S5 會去建真模型。
 - 實跑腳本：`var/benchmark_runs/scripts/run_method.py <db> <method_id>…`（會寫入該 db，先複製）。
+
+**T15 現況（2026-11-16）**
+- `methods/universal/arc.py`（CH2）、`network.py`（CH4）、`belief.py`（CH5）；新依賴 `networkx`。閘門通過（1133 passed）。原型決定在 03 §3 末。
+- 四簽名實跑（結果在 `var/benchmark_runs/sign_of_four/methods.db`，log 是 `log_CH.txt`）：CH2 2.3 分鐘、CH4 20 秒、CH5 8.3 分鐘（60 筆 run 依序跑，其中 24 筆叫 LLM）。
+- 驗收：F2 過（華生的弧線有對瑪麗的感情與訂婚）。F3 大致過（福爾摩斯一方、莫斯坦與肖爾托家、斯莫爾與通加各一個陣營；但四簽名的另外三人在另一個陣營）。F4 只有「瓊斯對撒迪厄斯的錯誤認知」明確成立；另兩項從 `belief_state` 看不出來。F5（讀者與華生同步）沒有資料可判：`belief_state` 沒有讀者這個主體。
+- **待決**：CH4 的宣告要不要加 `requires: character`（改 `registry/methods/CH4.yaml` 與 03 §4.1）。2026-11-16 問過，使用者選擇先提交現狀，尚未決定。
+- CH5 的錯誤認知品質不穩：有猜測語氣，有的「真相」本身說錯（例：說莫斯坦上尉是被殺害的）。
 
 **T13 方法引擎（原提示）**
 - `registry/checks.py` 已有 `execution_order()`、`producers()` 可用來做上游補跑。
