@@ -596,6 +596,7 @@ class TestIngestGraphIntegration:
                         UnitStage(name=n, call=c, model="m", prompt_version="1") for n, c in stages
                     ],
                     retry_delay=0,
+                    concurrency=1,
                     embedder=fake_embedder,
                 )
                 job_id = await service.create_job(path)

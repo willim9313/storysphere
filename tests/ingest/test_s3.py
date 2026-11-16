@@ -459,7 +459,16 @@ class TestJob:
         a, b = S1Call("s1a"), S1Call("s1b")
         stages = [UnitStage(name=n, call=c, model="m", prompt_version="1") for n, c in (("s1a", a), ("s1b", b))]
         async with open_checkpointer(tmp_path / "ckpt.db") as saver:
-            service = IngestService(sf, saver, stages=stages, retry_delay=0, genre_llm=genre_llm)
+            service = IngestService(
+                sf,
+                saver,
+                stages=stages,
+                retry_delay=0,
+                concurrency=1,
+                genre_llm=genre_llm,
+                deep_llm=FakeLlm(json.dumps({"hidden_truth": [], "reveal": []})),
+                consolidate_llm=FakeLlm("{}"),
+            )
             job_id = await service.create_job(path)
             await service.run_to_review(job_id)
             async with sf() as session:
@@ -474,10 +483,10 @@ class TestJob:
             async with sf() as session:
                 job = await session.get(Job, job_id)
                 book = await session.get(BookRow, job.book_id)
-            assert (job.status, job.stage) == ("done", "s3")
+            assert (job.status, job.stage) == ("done", "s4")  # S3 之後接 S4
             assert job.result_json["genre"] == "adventure"
             assert book.genre_profile["mechanism_density"]["info_control"] == 1.0
-            assert [r.ref_id for r in await runs(sf)] == ["ingest.s2", "ingest.s3"]
+            assert [r.ref_id for r in await runs(sf)] == ["ingest.s2", "ingest.s3", "ingest.s4"]
 
     async def test_429_pauses_then_resume_reruns_only_s3(self, tmp_path):
         llm = FakeLlm(RuntimeError("Error code: 429 - quota exceeded"), response(primary="horror"))

@@ -142,7 +142,7 @@ def tag_book(
     return hits, first
 
 
-async def _write_all(
+async def write_all(
     session: AsyncSession,
     ctx: WriteContext,
     drafts: Sequence[EvidenceDraft],
@@ -220,7 +220,7 @@ async def run_s2(
 
         # 角色先寫：其他類型要它的 id。角色已由合併規則決定，不再過去重。
         char_drafts = character_drafts(characters, first_mentions)
-        char_ids = await _write_all(session, ctx, [d for _, d in char_drafts], report)
+        char_ids = await write_all(session, ctx, [d for _, d in char_drafts], report)
         written = {
             index: evidence_id
             for (index, _), evidence_id in zip(char_drafts, char_ids, strict=True)
@@ -239,7 +239,7 @@ async def run_s2(
 
         deduped = dedupe_drafts(drafts)
         report.merged_duplicates = len(drafts) - len(deduped)
-        await _write_all(session, ctx, assign_text_rank(deduped), report)
+        await write_all(session, ctx, assign_text_rank(deduped), report)
 
         await replace_mentions(
             session,

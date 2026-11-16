@@ -112,6 +112,9 @@ class IngestService:
         retry_delay: float = 1.0,
         embedder: Embedder | None = None,
         genre_llm: Any = None,
+        deep_llm: Any = None,
+        consolidate_llm: Any = None,
+        concurrency: int = 4,
     ) -> None:
         self._session_factory = session_factory
         self._graph = build_ingest_graph(
@@ -121,6 +124,9 @@ class IngestService:
             retry_delay=retry_delay,
             embedder=embedder,
             genre_llm=genre_llm,
+            deep_llm=deep_llm,
+            consolidate_llm=consolidate_llm,
+            concurrency=concurrency,
         )
 
     async def create_job(

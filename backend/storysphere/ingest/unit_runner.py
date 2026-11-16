@@ -48,8 +48,13 @@ async def run_stage(
     units: Sequence[IngestUnit],
     *,
     retry_delay: float = 1.0,
+    concurrency: int = 1,
 ) -> list[str]:
-    """Run ``stage`` on every unit that is not `done`; return the ids of failed units."""
+    """Run ``stage`` on every unit that is not `done`; return the ids of failed units.
+
+    ``concurrency`` > 1 時同一 stage 內同時跑多個單位。任一單位遇 429（或 llm 未設定）
+    → 其餘進行中的單位被取消並退回 `pending`，錯誤往外丟；失敗單位 id 依單位順序回傳。
+    """
     if not units:
         return []
     book_id = units[0].book_id
@@ -62,13 +67,27 @@ async def run_stage(
             if row.status == "done"
         }
 
-    failed: list[str] = []
-    for unit in units:
-        if unit.id in done:
-            continue
-        if not await _run_unit(session_factory, stage, unit, retry_delay=retry_delay):
-            failed.append(unit.id)
-    return failed
+    todo = [unit for unit in units if unit.id not in done]
+    if concurrency <= 1:
+        failed: list[str] = []
+        for unit in todo:
+            if not await _run_unit(session_factory, stage, unit, retry_delay=retry_delay):
+                failed.append(unit.id)
+        return failed
+
+    semaphore = asyncio.Semaphore(concurrency)
+
+    async def guarded(unit: IngestUnit) -> bool:
+        async with semaphore:
+            return await _run_unit(session_factory, stage, unit, retry_delay=retry_delay)
+
+    try:
+        async with asyncio.TaskGroup() as group:
+            tasks = [group.create_task(guarded(unit)) for unit in todo]
+    except BaseExceptionGroup as group_exc:
+        errors = list(group_exc.exceptions)
+        raise next((e for e in errors if isinstance(e, QuotaPaused)), errors[0]) from None
+    return [unit.id for unit, task in zip(todo, tasks, strict=True) if not task.result()]
 
 
 async def _run_unit(

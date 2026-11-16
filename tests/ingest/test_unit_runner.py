@@ -68,7 +68,9 @@ async def open_service(
     ]
     try:
         async with open_checkpointer(tmp_path / "ckpt.db") as saver:
-            service = IngestService(session_factory, saver, stages=stages, retry_delay=0)
+            service = IngestService(
+                session_factory, saver, stages=stages, retry_delay=0, concurrency=1
+            )
             yield service, session_factory
     finally:
         await engine.dispose()

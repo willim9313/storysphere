@@ -1,6 +1,6 @@
 # 進度與後續待辦
 
-最後更新：2026-11-16（T11 完成後）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
+最後更新：2026-11-16（T12 完成後）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
 
 ## 現況
 
@@ -16,8 +16,9 @@
 | T08 抽取單位與斷點續跑 | 完成 | `80889bf` |
 | T09 S1 核心抽取＋訊號標記 | 完成（四簽名實跑通過） | `227e075` |
 | T10 S2 整併 | 完成；B1 有兩項未過（見「T10 現況」）；**人工檢查延到有畫面時** | `649144c` |
-| T11 S3 題材判定 | 完成（四簽名判為推理；`signal_tagging` 升 v2） | 見 git log |
-| T12 之後 | 未開始 | — |
+| T11 S3 題材判定 | 完成（四簽名判為推理；`signal_tagging` 升 v2） | `778aa27` |
+| T12 S4 資訊控制的深度抽取 | 完成；四簽名實跑對照 09 E 段通過；人工檢查延到有畫面時 | 見 git log |
+| T13 之後 | 未開始 | — |
 
 - 分支：本機 `main`，沒有遠端，沒推過。CI（`.github/workflows/gates.yml`）寫好但從沒跑過。
 - 閘門現況：後端三道（ruff、pytest 沒設 `BENCHMARK_DIR` 時 770 passed、2 skipped、registry check）exit 0；前端三道在 T01 通過後沒再動過。
@@ -126,6 +127,15 @@
 - 四簽名 v2 實跑（Gemini 2.5 flash）：`s1b` 35/35、1 次解析失敗後重試成功、約 11 分鐘；訊號 245 → 171 筆（每單位 4.9 個）。密度 info_control 1.00、threat 0.80、language_form 0.74、relations 0.66、journey 0.63、world_rules 0.54、historicity 0.51。`primary = mystery`（D2 過）；`mixed`＝thriller（章 3,4,5,7,10,11,12）、romance（1,2,4,6,7）、adventure（3,6,7,10,11,12），第 10、12 章有涵蓋（D3 過）。
 - 仍要注意：info_control 在 35 個單位全是 strong，T12 的 S4 靠它挑單位還是等於全選。
 - 試跑資料庫在 scratchpad 的 `s1run/`：`neo.db`（S1 v1）、`s2work.db`、`s3work.db`（v1 的 S2、S3）、**`v2.db`（s1a v1＋s1b v2＋S2＋S3，T12 用這份）**。重開機可能消失。
+
+**T12 現況（2026-11-16）**
+- `ingest/s4/`（`run_s4`）；入庫圖 P1 → 審閱 → units → s2 → s3 → s4 → finish。`run_stage(concurrency=)`，服務預設 4。閘門通過（933 passed）。
+- **有一個不穩定的測試沒抓到**：全套跑第一次時 1 個失敗，之後 22 次都過。懷疑是 `tests/ingest/test_stage_concurrency.py`（用很短的 sleep 排時序）。
+- 四簽名實跑（Gemini 2.5 flash，`s1run/s4.db`）：S4a 35 單位、1 次解析失敗後重試成功；S4b 4 批；共 15 分鐘。寫入真相 30、揭曉 152、線索 176、詭計 38；引文驗證 545/568＝96%。
+- 對照 09 E 段：E1–E5 五個真相都有且連到對的揭曉章；E6、E7、E8、E10、E11、E12 都有；E9 只找到 1 條（譯文寫「木焦油」）。誤導線索 7 條。每條線索都連到一個真相。
+- 品質問題：(1) 真相併得太粗，一筆包好幾件事（例：寶藏的存在、價值、藏匿地點、鑰匙下落、珍珠去向併成一筆），E2「寶藏沉入河中」沒有獨立一筆；(2) 有瑣碎的真相（福爾摩斯吸古柯鹼、華生的懷疑）；(3) 第 12 章有 6 個真相沒有任何揭曉，是分批造成的；(4) 55 條線索沒有指向任何角色（E8 毒刺沒指向通加，E7 指向「同夥」而非通加）；(5) 33 筆揭曉因為沒有揭曉者被丟。
+- 還沒做、等使用者決定：角色的推理屬性（mystery_role 等）怎麼寫入；`hidden_truth.reveal_id` 的回填繞過 `write_evidence` 是否接受；`reveal.revealer_id` 要不要放寬成可空。
+- fixture `deep_extraction`、`consolidation` 仍是手寫的（真實輸出含 benchmark 譯文，不能放進 repo）。
 
 **T11 S3**、**T12 S4（人工檢查）**
 - `reveal.revealer_id` 目前必填；敘述者直接向讀者揭曉時沒有角色可填，看抽取結果決定要不要放寬（01 §6 已註記）。
