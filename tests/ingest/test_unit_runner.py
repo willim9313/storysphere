@@ -113,7 +113,7 @@ class TestAllUnitsSucceed:
             job = await ingest(service, sf, book_file)
 
             assert job.status == "done", job.error
-            assert job.stage == "s1"
+            assert job.stage == "s2"  # S1 之後接 S2；假 stage 的輸出不是 S1 的形狀，S2 產出 0 筆
             assert job.result_json["failedUnitCount"] == 0
             assert call.chapters() == [1, 2, 3, 4, 5, 6, 7]
 

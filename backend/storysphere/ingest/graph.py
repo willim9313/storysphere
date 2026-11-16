@@ -18,14 +18,17 @@ from typing import Any, TypedDict
 
 from langgraph.graph import END, START, StateGraph
 from langgraph.types import interrupt
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from storysphere.ingest.document_processing import DocumentProcessingPipeline
 from storysphere.ingest.review import apply_review
+from storysphere.ingest.s2 import run_s2
+from storysphere.ingest.s2.imagery import Embedder
 from storysphere.ingest.unit_runner import QuotaPaused, UnitStage, run_stage
 from storysphere.ingest.units import build_units
 from storysphere.store.books import get_book, replace_chapters, save_book
-from storysphere.store.ingest_units import list_units
+from storysphere.store.ingest_units import IngestUnitOutputRow, list_units
 from storysphere.store.tables import Job
 
 logger = logging.getLogger(__name__)
@@ -136,10 +139,41 @@ async def units_node(
     return {}
 
 
+async def s2_node(
+    state: IngestState, *, session_factory: SessionFactory, embedder: Embedder | None
+) -> dict[str, Any]:
+    """S2 整併（02 §4）：把 S1 的原始輸出整併成第 1 層證據。不叫 LLM。
+
+    沒有任何 S1 輸出（沒設 stage）時直接跳過。整個節點可重跑：新的一批取代舊的一批。
+    """
+    book_id = state["book_id"]
+    async with session_factory() as session:
+        has_output = await session.scalar(
+            select(func.count())
+            .select_from(IngestUnitOutputRow)
+            .where(IngestUnitOutputRow.book_id == book_id)
+        )
+    if not has_output:
+        return {}
+
+    async with session_factory() as session, session.begin():
+        job = await session.get(Job, state["job_id"])
+        job.status = "running"
+        job.stage = "s2"
+
+    report = await run_s2(session_factory, book_id, job_id=state["job_id"], embedder=embedder)
+
+    async with session_factory() as session, session.begin():
+        job = await session.get(Job, state["job_id"])
+        # result_json 要整個換掉（見 finish_node）。
+        job.result_json = {**(job.result_json or {}), "s2": report.to_dict()}
+    return {}
+
+
 async def finish_node(state: IngestState, *, session_factory: SessionFactory) -> dict[str, Any]:
     """把 job 標成完成。
 
-    T09 之後的入庫步驟（S2…）插在這個節點之前。有單位失敗也算完成（04 §3.2）。
+    S2 之後的入庫步驟（S3…）插在這個節點之前。有單位失敗也算完成（04 §3.2）。
     """
     async with session_factory() as session, session.begin():
         doc = await get_book(session, state["book_id"])
@@ -165,8 +199,12 @@ def build_ingest_graph(
     session_factory: SessionFactory,
     stages: Sequence[UnitStage] = (),
     retry_delay: float = 1.0,
+    embedder: Embedder | None = None,
 ) -> Any:
-    """Compile the ingestion graph with the given LangGraph checkpointer."""
+    """Compile the ingestion graph with the given LangGraph checkpointer.
+
+    ``embedder`` 是 S2 意象分群用的嵌入函式；沒給時 S2 才 lazy 載入 sentence-transformers。
+    """
     graph: StateGraph = StateGraph(IngestState)
     graph.add_node("p1", partial(p1_node, session_factory=session_factory))
     graph.add_node("review", partial(review_node, session_factory=session_factory))
@@ -176,10 +214,12 @@ def build_ingest_graph(
             units_node, session_factory=session_factory, stages=stages, retry_delay=retry_delay
         ),
     )
+    graph.add_node("s2", partial(s2_node, session_factory=session_factory, embedder=embedder))
     graph.add_node("finish", partial(finish_node, session_factory=session_factory))
     graph.add_edge(START, "p1")
     graph.add_edge("p1", "review")
     graph.add_edge("review", "units")
-    graph.add_edge("units", "finish")
+    graph.add_edge("units", "s2")
+    graph.add_edge("s2", "finish")
     graph.add_edge("finish", END)
     return graph.compile(checkpointer=checkpointer)

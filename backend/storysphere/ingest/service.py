@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from storysphere.ingest.graph import NoExtractableText, build_ingest_graph
 from storysphere.ingest.review import build_review_data
+from storysphere.ingest.s2.imagery import Embedder
 from storysphere.ingest.unit_runner import QuotaPaused, UnitStage
 from storysphere.llm.router import LlmUnconfigured
 from storysphere.store.books import get_book
@@ -109,6 +110,7 @@ class IngestService:
         *,
         stages: Sequence[UnitStage] = (),
         retry_delay: float = 1.0,
+        embedder: Embedder | None = None,
     ) -> None:
         self._session_factory = session_factory
         self._graph = build_ingest_graph(
@@ -116,6 +118,7 @@ class IngestService:
             session_factory=session_factory,
             stages=stages,
             retry_delay=retry_delay,
+            embedder=embedder,
         )
 
     async def create_job(
