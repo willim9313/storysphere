@@ -52,6 +52,7 @@ class TestBuildUnits:
 
     def test_other_language_uses_larger_limit(self):
         units = build_units(book([chapter(1, [3000, 3000, 3000])], language="en"))
+        assert {u.language for u in units} == {"en"}
         assert [len(u.paragraphs) for u in units] == [2, 1]
 
     def test_does_not_cross_chapters(self):

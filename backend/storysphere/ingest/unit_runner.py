@@ -4,6 +4,7 @@
 - 429／額度用完 → 該單位退回 `pending`，丟 `QuotaPaused`（job 轉 `paused_quota`）。
 - 被 provider 拒絕 → 不重試，標 `failed`。
 - 其他錯誤 → 最多試 3 次，仍失敗標 `failed`，其餘單位照跑。
+- 被取消（同時跑的別的 stage 遇到 429）→ 該單位退回 `pending` 再往外丟。
 """
 
 from __future__ import annotations
@@ -77,6 +78,23 @@ async def _run_unit(
     *,
     retry_delay: float,
 ) -> bool:
+    try:
+        return await _attempt_unit(session_factory, stage, unit, retry_delay=retry_delay)
+    except asyncio.CancelledError:
+        # 同時跑的另一個 stage 遇到 429 而把這個 stage 取消：單位退回 pending，不要卡在
+        # running（取消可能落在呼叫中，也可能落在寫回中）。shield 讓這次寫回不被取消打斷。
+        key = (unit.book_id, stage.name, unit.id)
+        await asyncio.shield(_release_running(session_factory, key))
+        raise
+
+
+async def _attempt_unit(
+    session_factory: async_sessionmaker[AsyncSession],
+    stage: UnitStage,
+    unit: IngestUnit,
+    *,
+    retry_delay: float,
+) -> bool:
     key = (unit.book_id, stage.name, unit.id)
     error = ""
     for attempt in range(1, MAX_ATTEMPTS + 1):
@@ -129,3 +147,13 @@ async def _set_status(
         row = await session.get(IngestUnitRow, key)
         row.status = status
         row.error = error
+
+
+async def _release_running(
+    session_factory: async_sessionmaker[AsyncSession], key: tuple[str, str, str]
+) -> None:
+    """`running` → `pending`；已經 `done`／`failed` 的不動。"""
+    async with session_factory() as session, session.begin():
+        row = await session.get(IngestUnitRow, key)
+        if row.status == "running":
+            row.status = "pending"

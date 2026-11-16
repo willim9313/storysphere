@@ -28,6 +28,7 @@ class IngestUnit:
     id: str
     book_id: str
     chapter: int
+    language: str
     paragraphs: tuple[UnitParagraph, ...]
     # 前一單位的最後一段；全書第一個單位沒有。
     context_only: UnitParagraph | None = field(default=None)
@@ -59,6 +60,7 @@ def build_units(doc: Document, *, limit: int | None = None) -> list[IngestUnit]:
                 id=f"{doc.id}:{chapter}:{first_position}",
                 book_id=doc.id,
                 chapter=chapter,
+                language=doc.language,
                 paragraphs=tuple(paragraphs),
                 context_only=previous_last,
             )

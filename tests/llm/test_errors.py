@@ -8,6 +8,7 @@ from storysphere.llm.errors import (
     classify_step_failure,
     describe_exception,
     is_rate_limit_error,
+    llm_text,
 )
 from storysphere.llm.router import LlmUnconfigured
 
@@ -66,3 +67,34 @@ class TestDescribeException:
 
     def test_message(self):
         assert describe_exception(ValueError("bad json")) == "bad json"
+
+
+class FakeResponse:
+    def __init__(self, content, response_metadata=None) -> None:
+        self.content = content
+        self.response_metadata = response_metadata or {}
+
+
+class TestLlmText:
+    def test_string(self):
+        assert llm_text(FakeResponse("hello")) == "hello"
+
+    def test_list_blocks_join_text_and_strings(self):
+        content = [
+            {"type": "thinking", "thinking": "hmm"},
+            {"type": "text", "text": "{\"a\": "},
+            "1}",
+        ]
+        assert llm_text(FakeResponse(content)) == '{"a": 1}'
+
+    @pytest.mark.parametrize("content", ["", "  \n", [], [{"type": "thinking", "thinking": "x"}], None])
+    def test_empty_is_blocked(self, content):
+        with pytest.raises(LLMResponseBlocked) as info:
+            llm_text(FakeResponse(content))
+        assert info.value.reason == "provider_empty"
+
+    def test_block_reason(self):
+        response = FakeResponse("", {"prompt_feedback": {"block_reason": "SAFETY"}})
+        with pytest.raises(LLMResponseBlocked) as info:
+            llm_text(response)
+        assert (info.value.reason, info.value.detail) == ("provider_blocked", "SAFETY")

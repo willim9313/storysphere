@@ -8,6 +8,7 @@ job 的狀態轉移（04 §3.2）由各節點自己寫進 `jobs` 表。
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from collections.abc import Sequence
 from datetime import UTC, datetime
@@ -21,7 +22,7 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from storysphere.ingest.document_processing import DocumentProcessingPipeline
 from storysphere.ingest.review import apply_review
-from storysphere.ingest.unit_runner import UnitStage, run_stage
+from storysphere.ingest.unit_runner import QuotaPaused, UnitStage, run_stage
 from storysphere.ingest.units import build_units
 from storysphere.store.books import get_book, replace_chapters, save_book
 from storysphere.store.ingest_units import list_units
@@ -111,8 +112,9 @@ async def units_node(
 ) -> dict[str, Any]:
     """逐單位跑每個抽取步驟（02 §2、§7）。
 
-    續跑時整個節點重跑一次，但 `run_stage` 只處理還沒 `done` 的單位。429 會從這裡
-    往外丟 `QuotaPaused`，由 service 把 job 轉成 `paused_quota`。
+    所有 stage 同時跑（stage 內部仍依序跑單位）。續跑時整個節點重跑一次，但 `run_stage`
+    只處理還沒 `done` 的單位。429 會從這裡往外丟 `QuotaPaused`，由 service 把 job 轉成
+    `paused_quota`；多個 stage 同時失敗時，有 `QuotaPaused` 就丟它，否則丟第一個例外。
     """
     if not stages:
         return {}
@@ -124,8 +126,13 @@ async def units_node(
         job.stage = "s1"
 
     units = build_units(doc)
-    for stage in stages:
-        await run_stage(session_factory, stage, units, retry_delay=retry_delay)
+    try:
+        async with asyncio.TaskGroup() as group:
+            for stage in stages:
+                group.create_task(run_stage(session_factory, stage, units, retry_delay=retry_delay))
+    except BaseExceptionGroup as group_exc:
+        errors = list(group_exc.exceptions)
+        raise next((e for e in errors if isinstance(e, QuotaPaused)), errors[0]) from None
     return {}
 
 

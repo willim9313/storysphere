@@ -6,7 +6,8 @@
 
 from __future__ import annotations
 
-from typing import Literal
+from collections.abc import Mapping
+from typing import Any, Literal
 
 from storysphere.llm.router import LlmUnconfigured
 
@@ -80,3 +81,50 @@ def classify_step_failure(exc: BaseException) -> StepErrorKind:
 def describe_exception(exc: BaseException) -> str:
     """`str(exc)`, or the type name when that is empty (e.g. `TimeoutError()`)."""
     return str(exc) or type(exc).__name__
+
+
+def raise_if_blocked(response: Any) -> None:
+    """Raise if the provider reported refusing the prompt.
+
+    搬自舊 repo。拒絕是確定性的（同一份 prompt 每次都被拒），所以和「空回應」分開：
+    空回應可能是暫時的。
+    """
+    # 只在真的是 mapping 時才當 metadata 讀；duck-typed 物件的 .get() 會回傳另一個物件，
+    # 不能當成拒絕原因。
+    meta = getattr(response, "response_metadata", None)
+    feedback = meta.get("prompt_feedback") if isinstance(meta, Mapping) else None
+    reason = feedback.get("block_reason") if isinstance(feedback, Mapping) else None
+    if reason is not None:
+        # Gemini 回的是 enum；str() 會帶類別前綴，所以優先取 `.name`。
+        raise LLMResponseBlocked(
+            "provider_blocked", getattr(reason, "name", None) or str(reason)
+        )
+
+
+def llm_text(response: Any) -> str:
+    """Return a response's text; raise `LLMResponseBlocked` when the provider gave none.
+
+    `content` 可能是字串，也可能是 content blocks 的 list（取 `type == "text"` 的 `text`，
+    以及純字串元素）。langchain_google_genai 在 prompt 被擋時不丟例外，只回空內容，
+    所以空內容也要在這裡攔下來。
+    """
+    raise_if_blocked(response)
+
+    content = getattr(response, "content", None)
+    if isinstance(content, str):
+        text = content
+    elif isinstance(content, list):
+        parts: list[str] = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+            elif isinstance(block, Mapping) and block.get("type") == "text":
+                value = block.get("text")
+                if isinstance(value, str):
+                    parts.append(value)
+        text = "".join(parts)
+    else:
+        text = ""
+    if not text.strip():
+        raise LLMResponseBlocked("provider_empty")
+    return text

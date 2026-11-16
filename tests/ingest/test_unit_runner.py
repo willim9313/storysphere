@@ -55,14 +55,20 @@ class FakeCall:
 
 
 @asynccontextmanager
-async def open_service(tmp_path: Path, call: FakeCall) -> AsyncIterator[tuple[IngestService, object]]:
+async def open_service(
+    tmp_path: Path, call: FakeCall, *extra: tuple[str, FakeCall]
+) -> AsyncIterator[tuple[IngestService, object]]:
+    """`call` 是 `s1a`；`extra` 是另外的 `(stage 名, call)`，各 stage 並行跑。"""
     engine = create_engine(tmp_path / "neo.db")
     await init_db(engine)
     session_factory = make_session_factory(engine)
     stage = UnitStage(name="s1a", call=call, model="fake:model", prompt_version="1")
+    stages = [stage] + [
+        UnitStage(name=name, call=c, model="fake:model", prompt_version="1") for name, c in extra
+    ]
     try:
         async with open_checkpointer(tmp_path / "ckpt.db") as saver:
-            service = IngestService(session_factory, saver, stages=[stage], retry_delay=0)
+            service = IngestService(session_factory, saver, stages=stages, retry_delay=0)
             yield service, session_factory
     finally:
         await engine.dispose()
@@ -153,6 +159,49 @@ class TestQuotaPause:
             job = await load_job(sf, job.id)
             assert job.status == "paused_quota"
             assert call.chapters() == [1, 2, 3, 4, 5, 5]
+
+
+class TestTwoStages:
+    async def test_every_unit_has_both_outputs(self, tmp_path, book_file):
+        a, b = FakeCall(), FakeCall()
+        async with open_service(tmp_path, a, ("s1b", b)) as (service, sf):
+            job = await ingest(service, sf, book_file)
+
+            assert job.status == "done", job.error
+            rows = await unit_rows(sf)
+            assert sorted((r.stage, r.status) for r in rows) == (
+                [("s1a", "done")] * 7 + [("s1b", "done")] * 7
+            )
+            outputs = await output_rows(sf)
+            assert sorted(o.stage for o in outputs) == ["s1a"] * 7 + ["s1b"] * 7
+
+    async def test_429_in_one_stage_pauses_without_stuck_running_then_resumes(
+        self, tmp_path, book_file
+    ):
+        a, b = FakeCall(), FakeCall({3: RuntimeError("Error code: 429 - quota exceeded")})
+        async with open_service(tmp_path, a, ("s1b", b)) as (service, sf):
+            job = await ingest(service, sf, book_file)
+
+            assert job.status == "paused_quota"
+            rows = await unit_rows(sf)
+            assert all(r.status != "running" for r in rows)
+            done_before = {(r.stage, r.unit_id) for r in rows if r.status == "done"}
+            assert ("s1b", next(r.unit_id for r in rows if r.stage == "s1b")) in done_before
+
+            a.calls.clear()
+            b.calls.clear()
+            b.plan.clear()
+            await service.resume(job.id)
+
+            job = await load_job(sf, job.id)
+            assert job.status == "done", job.error
+            rows = await unit_rows(sf)
+            assert [(r.stage, r.status) for r in rows if r.status != "done"] == []
+            assert len(rows) == 14
+            # 已 done 的單位沒有被重叫。
+            recalled = {("s1a", u) for u in a.calls} | {("s1b", u) for u in b.calls}
+            assert recalled.isdisjoint(done_before)
+            assert len(recalled) + len(done_before) == 14
 
 
 class TestRetry:

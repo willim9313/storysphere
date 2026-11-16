@@ -1,6 +1,6 @@
 # 進度與後續待辦
 
-最後更新：2026-11-16（T08 完成後）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
+最後更新：2026-11-16（T09 完成後）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
 
 ## 現況
 
@@ -13,11 +13,12 @@
 | T05 registry | 完成 | `20663fb` |
 | T06 LLM 路由與設定 | 完成 | `95c752b` |
 | T07 文件處理與章節審閱 | 完成 | `79ba6f3` |
-| T08 抽取單位與斷點續跑 | 完成 | 見 git log |
-| T09 之後 | 未開始 | — |
+| T08 抽取單位與斷點續跑 | 完成 | `80889bf` |
+| T09 S1 核心抽取＋訊號標記 | 完成（四簽名實跑通過） | 見 git log |
+| T10 之後 | 未開始 | — |
 
 - 分支：本機 `main`，沒有遠端，沒推過。CI（`.github/workflows/gates.yml`）寫好但從沒跑過。
-- 閘門現況：後端三道（ruff、pytest 728 passed（設了 `BENCHMARK_DIR`；沒設時 726 passed、2 skipped）、registry check）exit 0；前端三道在 T01 通過後沒再動過。
+- 閘門現況：後端三道（ruff、pytest 沒設 `BENCHMARK_DIR` 時 770 passed、2 skipped、registry check）exit 0；前端三道在 T01 通過後沒再動過。
 - 相關目錄：
   - 本專案：`~/Desktop/storysphere_v4_app`
   - 舊 repo（只讀參考）：`~/Desktop/storysphere_ref`
@@ -91,7 +92,16 @@
 - `job.progress` 在單位階段不更新（T19 的 SSE 一起做）。
 - `agent_sessions`、`trace_calls`、`methodologies` 三張表也還沒建（T13／T20／T25 用到時建）。
 
-**T09 S1**：prompt 在 `docs/spec/08_prompts/ingest/`，實作時搬到根目錄 `prompts/`，每份開頭標 `version`。
+**T09 留給後面的事**
+- `ingest/s1.build_s1_stages(settings)` 回傳 `s1a`、`s1b` 兩個 stage；**還沒接進 `IngestService` 的建構**（T19 在 app 啟動時傳 `stages=build_s1_stages()`）。
+- **四簽名整本實跑結果（Gemini 2.5 flash，2026-11-16）**：35 個單位，`s1a`、`s1b` 各 35 份輸出，0 個失敗單位；72 次呼叫中 2 次 JSON 語法壞掉（2.8%），重試後成功；沒遇到 429。總計：角色 333、事件 442、關係 206、話語 333、意象 174、設定提示 143、訊號 245（都是整併前、跨單位重複的數字）。
+- **太慢：整本 S1 跑了 34 分鐘。** `s1a` 每個單位 50–60 秒，而同一個 stage 內單位是依序跑的。要在 `run_stage` 加同一 stage 內的併發（02 §3 本來就要 `ingestion_concurrency`）。
+- **訊號幾乎都標 strong**：`info_control` 35 個單位全是 strong、`language_form` 33 個 strong。prompt 要的是「拿不準標 weak」，實際上模型很少用 weak。T11 題材判定算密度時要注意，可能要改 prompt（改了要升 version）。
+- 這台已有 `.env`（`GEMINI_API_KEY`，被 gitignore）；程式不會自己讀 `.env`，要 `uv run --env-file .env`。Gemini 初次啟動測試通過。
+- `tests/fixtures/llm/core_extraction/sample.json`、`signal_tagging/sample.json` 是那次實跑的真實輸出（合成文本，不是 benchmark）。
+- 被取消的單位退回 `pending`（一個 stage 遇到 429 時另一個 stage 會被取消）。
+- prompt 載入器 `llm/prompts.load_prompt("ingest/core_extraction")`；之後的 prompt（S3、S4、方法）照同一格式放 `prompts/`。
+- S1 的 `raw_json` 沒有做欄位驗證；T10 讀的時候要容錯（缺欄位、枚舉外的值、`quote` 不是逐字）。
 
 **T10 S2 整併（人工檢查）**
 - 角色引文＝首次提及；完全標不到的角色不入庫。
@@ -166,7 +176,10 @@
 | `backend/storysphere/ingest/review.py`、`graph.py`、`service.py` | 審閱套用、LangGraph 入庫圖、`IngestService`（含續跑、`mark_interrupted_jobs`） |
 | `backend/storysphere/ingest/units.py`、`unit_runner.py` | 切抽取單位；逐單位跑一個 stage（重試、額度暫停） |
 | `backend/storysphere/store/ingest_units.py` | `ingest_units`／`ingest_unit_outputs` 表與存取 |
-| `backend/storysphere/llm/errors.py` | `classify_step_failure`、`LLMResponseBlocked` |
+| `backend/storysphere/llm/errors.py` | `classify_step_failure`、`LLMResponseBlocked`、`llm_text` |
+| `backend/storysphere/llm/prompts.py`、`json_output.py` | prompt 載入與 render；4 步 JSON 解析 |
+| `backend/storysphere/ingest/s1.py` | S1 的兩個 stage（`s1a` 核心抽取、`s1b` 訊號標記） |
+| `prompts/ingest/` | 執行用的 prompt（`core_extraction`、`signal_tagging`） |
 | `backend/storysphere/store/books.py` | `books`／`chapters`／`paragraphs` 表與存取、`BookParagraphSource` |
 | `backend/storysphere/registry/` | `models.py`、`loader.py`、`checks.py`、CLI |
 | `registry/` | 方法、方法論、view、視角、機制、第 1 層類型的 YAML |
