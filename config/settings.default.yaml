@@ -1,0 +1,21 @@
+# StorySphere v4 預設 LLM 設定（provider → model → task 三層，docs/spec/04 N-08a）。
+# `var/settings.yaml` 不存在時讀這份；這份只有 Gemini。
+# 金鑰不寫在這裡：provider 只放環境變數「名稱」。
+
+providers:
+  gemini: { type: api_key, api_key_env: GEMINI_API_KEY }
+
+models:
+  flash:
+    provider: gemini
+    id: "google_genai:gemini-2.5-flash"
+    caps: [structured_output, long_context]
+
+tasks:
+  core_extraction: { model: flash, requires: [structured_output] }
+  signal_tagging: { model: flash, requires: [structured_output] }
+  genre_detection: { model: flash, requires: [structured_output] }
+  deep_extraction: { model: flash, requires: [structured_output] }
+  consolidation: { model: flash, requires: [structured_output] }
+  method_strong: { model: flash, requires: [structured_output] }
+  method_light: { model: flash, requires: [structured_output] }

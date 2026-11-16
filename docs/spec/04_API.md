@@ -630,7 +630,7 @@ Registry 從 YAML 載入、唯讀（使用者方法論除外），回應把 YAML
 | --- | --- |
 | 用途 | provider → model → task 三層設定（架構文件「Pipeline 模型配置」） |
 | Response | `providers[{name, type, apiKeyEnv, configured, via?, baseUrl?, riskNotice?}]`、`models[{name, provider, modelId, caps[]}]`、`tasks[{task, model, fallback[], requires[], capsOk}]` |
-| 說明 | **不回傳 key 本身**，只回環境變數名與 `configured`（該變數是否有值）。`type=subscription` 帶 `riskNotice`（架構文件「設定畫面需提示」）。`capsOk=false`＝task 的 `requires` 與模型 `caps` 不符。task 清單＝02 §11 的 5 個入庫 task ＋ 03 方法用到的 `llm_task` |
+| 說明 | **不回傳 key 本身**，只回環境變數名與 `configured`（該變數是否有值）。`type=subscription` 帶 `riskNotice`（架構文件「設定畫面需提示」）。`capsOk=false`＝task 的 `requires` 與模型 `caps` 不符。task 清單＝02 §11 的 5 個入庫 task ＋ 03 方法用到的 `llm_task`。`modelId` 用 LangChain `init_chat_model` 的 `<整合>:<模型>` 字串（如 `google_genai:gemini-2.5-flash`），整合由前綴決定，provider 只管憑證；`type=openai_compatible` 與 `type=subscription` 的整合由 `type`／`via` 決定，`modelId` 不帶前綴。`var/settings.yaml` 不存在時讀 repo 的 `config/settings.default.yaml`（只有 Gemini），不自動建檔；N-08b 才寫入 `var/` |
 | 對應 | 設定檔 |
 
 ### N-08b PUT /settings/llm
