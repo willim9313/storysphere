@@ -42,7 +42,9 @@ class TestRealPrompts:
     )
     def test_loads(self, name, prompt_id, task):
         prompt = load_prompt(name)
-        assert (prompt.id, prompt.version, prompt.task) == (prompt_id, "1", task)
+        assert (prompt.id, prompt.task) == (prompt_id, task)
+        # 版本號會隨 prompt 修改而升，這裡只檢查形狀。
+        assert prompt.version.isdigit()
         assert "{{language_name}}" in prompt.system
         assert "{{unit_text}}" in prompt.user
 

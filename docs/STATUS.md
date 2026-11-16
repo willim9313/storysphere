@@ -1,6 +1,6 @@
 # 進度與後續待辦
 
-最後更新：2026-11-16（T10 程式完成，等人工檢查）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
+最後更新：2026-11-16（T11 完成後）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
 
 ## 現況
 
@@ -15,8 +15,9 @@
 | T07 文件處理與章節審閱 | 完成 | `79ba6f3` |
 | T08 抽取單位與斷點續跑 | 完成 | `80889bf` |
 | T09 S1 核心抽取＋訊號標記 | 完成（四簽名實跑通過） | `227e075` |
-| T10 S2 整併 | 完成；B1 有兩項未過（見「T10 現況」）；**人工檢查延到有畫面時** | 見 git log |
-| T11 之後 | 未開始 | — |
+| T10 S2 整併 | 完成；B1 有兩項未過（見「T10 現況」）；**人工檢查延到有畫面時** | `649144c` |
+| T11 S3 題材判定 | 完成（四簽名判為推理；`signal_tagging` 升 v2） | 見 git log |
+| T12 之後 | 未開始 | — |
 
 - 分支：本機 `main`，沒有遠端，沒推過。CI（`.github/workflows/gates.yml`）寫好但從沒跑過。
 - 閘門現況：後端三道（ruff、pytest 沒設 `BENCHMARK_DIR` 時 770 passed、2 skipped、registry check）exit 0；前端三道在 T01 通過後沒再動過。
@@ -118,6 +119,13 @@
 - 去重只比同一批草稿，不比資料庫裡既有的。
 
 ### M3 入庫後半
+
+**T11 現況（2026-11-16）**
+- `ingest/s3.run_s3`；入庫圖 P1 → 審閱 → units → s2 → s3 → finish。`domain/genres.GENRES`、`store/books.set_genre_override`。閘門通過（870 passed）。
+- **`signal_tagging` 已升到 v2**（使用者同意）。v1 每個單位把七個機制全標一遍，密度全是 1.00；v2 只列真的出現的。執行用的 prompt 在 `prompts/ingest/signal_tagging.md`，`docs/spec/08_prompts/` 那份仍是 v1，沒同步。
+- 四簽名 v2 實跑（Gemini 2.5 flash）：`s1b` 35/35、1 次解析失敗後重試成功、約 11 分鐘；訊號 245 → 171 筆（每單位 4.9 個）。密度 info_control 1.00、threat 0.80、language_form 0.74、relations 0.66、journey 0.63、world_rules 0.54、historicity 0.51。`primary = mystery`（D2 過）；`mixed`＝thriller（章 3,4,5,7,10,11,12）、romance（1,2,4,6,7）、adventure（3,6,7,10,11,12），第 10、12 章有涵蓋（D3 過）。
+- 仍要注意：info_control 在 35 個單位全是 strong，T12 的 S4 靠它挑單位還是等於全選。
+- 試跑資料庫在 scratchpad 的 `s1run/`：`neo.db`（S1 v1）、`s2work.db`、`s3work.db`（v1 的 S2、S3）、**`v2.db`（s1a v1＋s1b v2＋S2＋S3，T12 用這份）**。重開機可能消失。
 
 **T11 S3**、**T12 S4（人工檢查）**
 - `reveal.revealer_id` 目前必填；敘述者直接向讀者揭曉時沒有角色可填，看抽取結果決定要不要放寬（01 §6 已註記）。

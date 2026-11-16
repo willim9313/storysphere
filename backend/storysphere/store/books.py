@@ -24,6 +24,7 @@ from storysphere.domain.documents import (
     Paragraph,
     ParagraphRole,
 )
+from storysphere.domain.genres import GENRES
 from storysphere.store.tables import Base, _NullableJSON, _utcnow
 
 
@@ -185,6 +186,31 @@ async def get_book(session: AsyncSession, book_id: str) -> Document | None:
         uploaded_at=_as_utc(book.uploaded_at),
         processed_at=_as_utc(book.processed_at),
     )
+
+
+async def set_genre_profile(
+    session: AsyncSession, book_id: str, profile: dict[str, Any] | None
+) -> None:
+    """Write ``books.genre_profile`` (S3 的產出)；不動 ``genre_override``。"""
+    book = await session.get(BookRow, book_id)
+    if book is None:
+        raise LookupError(f"Book '{book_id}' not found")
+    book.genre_profile = profile
+    await session.flush()
+
+
+async def set_genre_override(session: AsyncSession, book_id: str, genre: str | None) -> None:
+    """Write ``books.genre_override`` (使用者改主題材；``None`` 清除)；不動 ``genre_profile``。
+
+    只寫這一欄，不讀原文、不叫 LLM（02 §5）。
+    """
+    if genre is not None and genre not in GENRES:
+        raise ValueError(f"Unknown genre '{genre}'")
+    book = await session.get(BookRow, book_id)
+    if book is None:
+        raise LookupError(f"Book '{book_id}' not found")
+    book.genre_override = genre
+    await session.flush()
 
 
 async def replace_chapters(session: AsyncSession, document: Document) -> None:

@@ -25,6 +25,7 @@ from storysphere.ingest.document_processing import DocumentProcessingPipeline
 from storysphere.ingest.review import apply_review
 from storysphere.ingest.s2 import run_s2
 from storysphere.ingest.s2.imagery import Embedder
+from storysphere.ingest.s3 import has_s3_input, run_s3
 from storysphere.ingest.unit_runner import QuotaPaused, UnitStage, run_stage
 from storysphere.ingest.units import build_units
 from storysphere.store.books import get_book, replace_chapters, save_book
@@ -170,21 +171,46 @@ async def s2_node(
     return {}
 
 
+async def s3_node(
+    state: IngestState, *, session_factory: SessionFactory, genre_llm: Any, retry_delay: float
+) -> dict[str, Any]:
+    """S3 題材判定（02 §5）：一次 LLM 呼叫，寫 `books.genre_profile`。
+
+    沒有可用的 S1b 訊號（沒設 stage、輸出不是 S1b 的形狀、或一個訊號都沒有）時跳過，
+    不建模型也不叫 LLM。429 會從這裡往外丟 `QuotaPaused`，續跑時重跑這個節點。
+    """
+    book_id = state["book_id"]
+    if not await has_s3_input(session_factory, book_id):
+        return {}
+
+    async with session_factory() as session, session.begin():
+        job = await session.get(Job, state["job_id"])
+        job.status = "running"
+        job.stage = "s3"
+
+    await run_s3(
+        session_factory, book_id, job_id=state["job_id"], llm=genre_llm, retry_delay=retry_delay
+    )
+    return {}
+
+
 async def finish_node(state: IngestState, *, session_factory: SessionFactory) -> dict[str, Any]:
     """把 job 標成完成。
 
-    S2 之後的入庫步驟（S3…）插在這個節點之前。有單位失敗也算完成（04 §3.2）。
+    S3 之後的入庫步驟插在這個節點之前。有單位失敗也算完成（04 §3.2）。
     """
     async with session_factory() as session, session.begin():
         doc = await get_book(session, state["book_id"])
         job = await session.get(Job, state["job_id"])
         units = await list_units(session, state["book_id"])
+        profile = doc.genre_profile if doc is not None else None
         # result_json 要整個換掉；原地改 dict，SQLAlchemy 不會發現有變動。
         job.result_json = {
             **(job.result_json or {}),
             "chapterCount": doc.body_chapter_count if doc is not None else 0,
             "paragraphCount": doc.total_paragraphs if doc is not None else 0,
             "failedUnitCount": sum(1 for u in units if u.status == "failed"),
+            "genre": profile.get("primary") if profile else None,
         }
         job.status = "done"
         job.progress = 100
@@ -200,10 +226,12 @@ def build_ingest_graph(
     stages: Sequence[UnitStage] = (),
     retry_delay: float = 1.0,
     embedder: Embedder | None = None,
+    genre_llm: Any = None,
 ) -> Any:
     """Compile the ingestion graph with the given LangGraph checkpointer.
 
     ``embedder`` 是 S2 意象分群用的嵌入函式；沒給時 S2 才 lazy 載入 sentence-transformers。
+    ``genre_llm`` 是 S3 用的 LLM（測試注入）；沒給時 S3 才呼叫 `llm_for("genre_detection")`。
     """
     graph: StateGraph = StateGraph(IngestState)
     graph.add_node("p1", partial(p1_node, session_factory=session_factory))
@@ -215,11 +243,16 @@ def build_ingest_graph(
         ),
     )
     graph.add_node("s2", partial(s2_node, session_factory=session_factory, embedder=embedder))
+    graph.add_node(
+        "s3",
+        partial(s3_node, session_factory=session_factory, genre_llm=genre_llm, retry_delay=retry_delay),
+    )
     graph.add_node("finish", partial(finish_node, session_factory=session_factory))
     graph.add_edge(START, "p1")
     graph.add_edge("p1", "review")
     graph.add_edge("review", "units")
     graph.add_edge("units", "s2")
-    graph.add_edge("s2", "finish")
+    graph.add_edge("s2", "s3")
+    graph.add_edge("s3", "finish")
     graph.add_edge("finish", END)
     return graph.compile(checkpointer=checkpointer)

@@ -195,7 +195,7 @@ class TestSubmitReviewAccept:
         assert job.status == "done", job.error
         assert job.progress == 100
         assert job.finished_at is not None
-        assert job.result_json == {"bookId": book_id, "chapterCount": 3, "paragraphCount": 5, "failedUnitCount": 0}
+        assert job.result_json == {"bookId": book_id, "chapterCount": 3, "paragraphCount": 5, "failedUnitCount": 0, "genre": None}
         assert await load_book(sf, book_id) == before
 
 
@@ -234,7 +234,7 @@ class TestSubmitReviewEdited:
         job = await load_job(sf, job_id)
         assert job.status == "done", job.error
         # chapterCount 只算正文章
-        assert job.result_json == {"bookId": book_id, "chapterCount": 1, "paragraphCount": 5, "failedUnitCount": 0}
+        assert job.result_json == {"bookId": book_id, "chapterCount": 1, "paragraphCount": 5, "failedUnitCount": 0, "genre": None}
 
     async def test_splits_and_role_overrides_applied(self, env, book_file):
         service, sf = env
@@ -401,6 +401,6 @@ class TestRestart:
 
             job = await load_job(sf, job_id)
             assert job.status == "done", job.error
-            assert job.result_json == {"bookId": book_id, "chapterCount": 2, "paragraphCount": 5, "failedUnitCount": 0}
+            assert job.result_json == {"bookId": book_id, "chapterCount": 2, "paragraphCount": 5, "failedUnitCount": 0, "genre": None}
             doc = await load_book(sf, book_id)
             assert [c.title for c in doc.chapters] == ["上", "下"]

@@ -6,7 +6,7 @@
 
 ```yaml
 id: ingest.signal_tagging
-version: 1
+version: 2
 task: signal_tagging
 used_by: 02 §3 呼叫 B（每個抽取單位一次，用便宜模型）
 inputs:
@@ -51,12 +51,22 @@ Return ONLY a JSON object with these keys.
   - "value" (str): short, in {{language_name}}.
   - "quote" (str)
 
-"signals": which of the seven mechanisms below are present in PASSAGE. Judge
-all seven, not only the obvious one. Be GENEROUS: tag "weak" when in doubt;
-later steps are strict and can discard a false signal, but a missed signal is
-never read again.
+"signals": which of the seven mechanisms below are present in PASSAGE.
+Consider all seven, but list ONLY the ones that actually show up in this
+passage. Most passages carry one to three mechanisms; leave the others out.
+Never add an entry just so that a mechanism is covered, and give at most one
+entry per mechanism.
   - "mechanism" (str): one of the ids below.
-  - "strength" (str): "weak" or "strong".
+  - "strength" (str):
+      "strong" = this mechanism is what the passage is DOING: it is explicit
+        and central here (a clue is examined, a pursuit is under way, a rule
+        of the world is stated or used).
+      "weak" = it is present but incidental, brief or only hinted.
+    If you are unsure whether a mechanism is present at all, tag it "weak":
+    later steps are strict and can discard a false signal, but a missed signal
+    is never read again. If you are unsure between weak and strong, choose
+    "weak". A whole book where every passage is "strong" for a mechanism is
+    almost always a tagging mistake.
   - "subtags" (list[str]): zero or more from that mechanism's list.
   - "quote" (str)
 
@@ -78,10 +88,12 @@ never read again.
     routes, dangers met on the way, crossing into another world, quests.
     Subtags: departure, danger, chance, treasure, world_crossing.
   - historicity: real history in the story. Historical people, events,
-    period customs, anachronisms. Subtags: historical_person,
+    period customs, anachronisms. The passage must point at them; a story
+    merely being set in the past is not a signal. Subtags: historical_person,
     historical_event, period_custom, anachronism.
   - language_form: the writing itself doing work. Marked style, rendering of
-    inner thought, defamiliarization, invented words. Subtags: style,
+    inner thought, defamiliarization, invented words. Ordinary competent
+    narration or dialogue is not a signal. Subtags: style,
     interior_monologue, defamiliarization, neologism.
 
 Every "quote" must be copied EXACTLY from PASSAGE, at most 120 characters.

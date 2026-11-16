@@ -111,6 +111,7 @@ class IngestService:
         stages: Sequence[UnitStage] = (),
         retry_delay: float = 1.0,
         embedder: Embedder | None = None,
+        genre_llm: Any = None,
     ) -> None:
         self._session_factory = session_factory
         self._graph = build_ingest_graph(
@@ -119,6 +120,7 @@ class IngestService:
             stages=stages,
             retry_delay=retry_delay,
             embedder=embedder,
+            genre_llm=genre_llm,
         )
 
     async def create_job(

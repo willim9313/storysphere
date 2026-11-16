@@ -114,5 +114,8 @@ class TestBuildS1Stages:
 
         assert tasks == ["core_extraction", "signal_tagging"]
         assert [s.name for s in stages] == ["s1a", "s1b"]
-        assert all(s.prompt_version == "1" for s in stages)
+        assert [s.prompt_version for s in stages] == [
+            load_prompt("ingest/core_extraction").version,
+            load_prompt("ingest/signal_tagging").version,
+        ]
         assert all(s.model for s in stages)
