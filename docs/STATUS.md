@@ -1,6 +1,6 @@
 # 進度與後續待辦
 
-最後更新：2026-11-16（T12 完成後）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
+最後更新：2026-11-16（T13 完成後）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
 
 ## 現況
 
@@ -17,8 +17,9 @@
 | T09 S1 核心抽取＋訊號標記 | 完成（四簽名實跑通過） | `227e075` |
 | T10 S2 整併 | 完成；B1 有兩項未過（見「T10 現況」）；**人工檢查延到有畫面時** | `649144c` |
 | T11 S3 題材判定 | 完成（四簽名判為推理；`signal_tagging` 升 v2） | `778aa27` |
-| T12 S4 資訊控制的深度抽取 | 完成；四簽名實跑對照 09 E 段通過；人工檢查延到有畫面時 | 見 git log |
-| T13 之後 | 未開始 | — |
+| T12 S4 資訊控制的深度抽取 | 完成；四簽名實跑對照 09 E 段通過；人工檢查延到有畫面時 | `44b68c6` |
+| T13 方法引擎 | 完成 | 見 git log |
+| T14 之後 | 未開始 | — |
 
 - 分支：本機 `main`，沒有遠端，沒推過。CI（`.github/workflows/gates.yml`）寫好但從沒跑過。
 - 閘門現況：後端三道（ruff、pytest 沒設 `BENCHMARK_DIR` 時 770 passed、2 skipped、registry check）exit 0；前端三道在 T01 通過後沒再動過。
@@ -29,6 +30,8 @@
 - **`docs/spec/` 已經和原稿 `prototype_v0_草案/` 不同步**：01、02、03、05 在本專案改過，原稿沒回寫。以 `docs/spec/` 為準。
 
 ## 工作方式（使用者的指示）
+
+- **真的呼叫 LLM 產生的資料放 `var/benchmark_runs/`**（被 gitignore；說明見該目錄的 README）。四簽名跑到 S4 的資料庫是 `var/benchmark_runs/sign_of_four/ingest_s4.db`，方法拿它的副本來跑。STATUS 較早段落提到「scratchpad 的 `s1run/`」的地方都已搬到這裡。
 
 - 一張任務一張做；做完照 `CLAUDE.md` 的 Definition of Done 回報，並逐條列完成標準。
 - checkpoint 四題照寫，但不必等同意就可以動手；**遇到要使用者決定的事才停**。
@@ -144,7 +147,13 @@
 
 ### M4 P0 方法
 
-**T13 方法引擎**
+**T13 現況（2026-11-16）**
+- `methods/`：`MethodEngine`（`run_method`、`plan_method`）、`MethodJobs.trigger_method`、`EvidenceReader`、選擇器、`run_s5`；入庫圖 … s4 → s5 → finish。閘門通過（1016 passed，連跑 3 次穩定）。原型決定寫在 03 §3 末。
+- **寫新方法的方式（T14 起）**：繼承 `methods/base.MethodBase(decl)`，實作 `run(ctx, item)`（必要時覆寫 `check`、`plan`），設 `prompt_version`；在 `methods/implementations.default_implementations()` 註冊。取模型用 `ctx.llm()`，讀證據用 `ctx.evidence.list/get/count`（只能讀宣告的類型）。書層級結論可放 `ctx.summary`。測試範本在 `tests/methods/`（`support.py` 有假方法與假宣告）。
+- 還沒做：方法論執行器（TM3、MY2，T17 前要有）；`reused`；依 `scopeKey` 重跑；`genre_ext`／`requires.source` 的語意；token 用量。
+- 留意：`_execute_item` 在一個交易裡跑 `check → run（含 LLM 呼叫）→ 寫入`。SQLite 讀取不佔寫鎖所以目前沒事，但 T19 有並發寫入時要再確認。
+
+**T13 方法引擎（原提示）**
 - `registry/checks.py` 已有 `execution_order()`、`producers()` 可用來做上游補跑。
 - 要實作的範圍選擇器：`top_characters(n)`、`main_motifs(n)`、`events_with_out_degree(n)`、`characters_with_utterances(n)`、`events_with_tension_signal()`。
 - 數量門檻（「事件 < 5」等）、NS1 的「無 kernel 事件」、TM3 的「tension_line 0 條」都不在宣告裡，要在各方法的 `check()` 做。

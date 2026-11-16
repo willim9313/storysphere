@@ -115,6 +115,7 @@ class IngestService:
         deep_llm: Any = None,
         consolidate_llm: Any = None,
         concurrency: int = 4,
+        method_engine: Any = None,
     ) -> None:
         self._session_factory = session_factory
         self._graph = build_ingest_graph(
@@ -127,6 +128,7 @@ class IngestService:
             deep_llm=deep_llm,
             consolidate_llm=consolidate_llm,
             concurrency=concurrency,
+            method_engine=method_engine,
         )
 
     async def create_job(

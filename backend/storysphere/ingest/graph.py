@@ -1,4 +1,4 @@
-"""LangGraph ingestion graph: P1 → chapter review (HITL pause) → unit stages → finish.
+"""LangGraph ingestion graph: P1 → chapter review (HITL pause) → unit stages → S2–S5 → finish.
 
 沿用舊 repo `workflows/ingestion_graph.py` 的做法：審閱用 `interrupt()` 暫停，圖的狀態
 checkpoint 到 SQLite，伺服器重啟後仍可從審閱點續跑。thread_id == job id。
@@ -29,6 +29,8 @@ from storysphere.ingest.s3 import has_s3_input, run_s3
 from storysphere.ingest.s4 import has_s4_input, run_s4
 from storysphere.ingest.unit_runner import QuotaPaused, UnitStage, run_stage
 from storysphere.ingest.units import build_units
+from storysphere.methods.engine import default_method_engine
+from storysphere.methods.s5 import has_runnable_card, has_s5_input, run_s5
 from storysphere.store.books import get_book, replace_chapters, save_book
 from storysphere.store.ingest_units import IngestUnitOutputRow, list_units
 from storysphere.store.tables import Job
@@ -245,10 +247,42 @@ async def s4_node(
     return {}
 
 
+async def s5_node(
+    state: IngestState, *, session_factory: SessionFactory, method_engine: Any
+) -> dict[str, Any]:
+    """S5 預設觸發（02 §8）：依題材的視角逐張結果卡經方法引擎執行。
+
+    書裡沒有任何證據時跳過；尚未實作的方法跳過並記在 `result_json["s5"]`，不讓入庫失敗
+    （全部跳過時 job 的 stage 不變）。
+    429 會從這裡往外丟 `QuotaPaused`；續跑時重跑這個節點，本 job 已完成的卡不重跑。
+    """
+    book_id = state["book_id"]
+    if not await has_s5_input(session_factory, book_id):
+        return {}
+
+    engine = method_engine or default_method_engine(session_factory)
+    if await has_runnable_card(engine, book_id):
+        # 全部要跳過時不動 job 的 stage（和 S2–S4 跳過時一樣）。
+        async with session_factory() as session, session.begin():
+            job = await session.get(Job, state["job_id"])
+            job.status = "running"
+            job.stage = "s5"
+
+    report = await run_s5(engine, book_id, job_id=state["job_id"])
+
+    async with session_factory() as session, session.begin():
+        job = await session.get(Job, state["job_id"])
+        # result_json 要整個換掉（見 finish_node）。
+        job.result_json = {**(job.result_json or {}), "s5": report.to_dict()}
+    if report.quota_paused:
+        raise QuotaPaused
+    return {}
+
+
 async def finish_node(state: IngestState, *, session_factory: SessionFactory) -> dict[str, Any]:
     """把 job 標成完成。
 
-    S4 之後的入庫步驟插在這個節點之前。有單位失敗也算完成（04 §3.2）。
+    S5 之後的入庫步驟插在這個節點之前。有單位失敗也算完成（04 §3.2）。
     """
     async with session_factory() as session, session.begin():
         doc = await get_book(session, state["book_id"])
@@ -281,6 +315,7 @@ def build_ingest_graph(
     deep_llm: Any = None,
     consolidate_llm: Any = None,
     concurrency: int = 4,
+    method_engine: Any = None,
 ) -> Any:
     """Compile the ingestion graph with the given LangGraph checkpointer.
 
@@ -288,6 +323,7 @@ def build_ingest_graph(
     ``genre_llm`` 是 S3 用的 LLM（測試注入）；沒給時 S3 才呼叫 `llm_for("genre_detection")`。
     ``deep_llm``／``consolidate_llm`` 是 S4a／S4b 用的，沒給時 S4 才呼叫 `llm_for(...)`。
     ``concurrency`` 是每個 stage 內同時跑的單位數（S1、S4a）。
+    ``method_engine`` 是 S5 用的方法引擎；沒給時 S5 才載入正式的 registry 與實作。
     """
     graph: StateGraph = StateGraph(IngestState)
     graph.add_node("p1", partial(p1_node, session_factory=session_factory))
@@ -318,6 +354,9 @@ def build_ingest_graph(
             concurrency=concurrency,
         ),
     )
+    graph.add_node(
+        "s5", partial(s5_node, session_factory=session_factory, method_engine=method_engine)
+    )
     graph.add_node("finish", partial(finish_node, session_factory=session_factory))
     graph.add_edge(START, "p1")
     graph.add_edge("p1", "review")
@@ -325,6 +364,7 @@ def build_ingest_graph(
     graph.add_edge("units", "s2")
     graph.add_edge("s2", "s3")
     graph.add_edge("s3", "s4")
-    graph.add_edge("s4", "finish")
+    graph.add_edge("s4", "s5")
+    graph.add_edge("s5", "finish")
     graph.add_edge("finish", END)
     return graph.compile(checkpointer=checkpointer)
