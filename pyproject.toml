@@ -36,6 +36,7 @@ dependencies = [
     "ebooklib>=0.20",
     "sentence-transformers>=6.3.0",
     "networkx>=3.0",
+    "python-multipart>=0.0.20",
 ]
 
 [dependency-groups]

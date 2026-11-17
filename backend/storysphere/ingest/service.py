@@ -25,8 +25,8 @@ from storysphere.ingest.s2.imagery import Embedder
 from storysphere.ingest.unit_runner import QuotaPaused, UnitStage
 from storysphere.llm.router import LlmUnconfigured
 from storysphere.store.books import get_book
-from storysphere.store.ingest_units import reset_running_units
-from storysphere.store.tables import Job
+from storysphere.store.ingest_units import IngestUnitRow, reset_running_units
+from storysphere.store.tables import Job, Run
 
 logger = logging.getLogger(__name__)
 
@@ -34,6 +34,7 @@ logger = logging.getLogger(__name__)
 CHECKPOINT_PATH = Path(__file__).resolve().parents[3] / "var" / "ingestion_checkpoints.db"
 
 INGEST_KIND = "ingest"
+TERMINAL_STATUSES = ("done", "error", "cancelled")
 
 
 @asynccontextmanager
@@ -98,6 +99,64 @@ def _error_kind(exc: BaseException) -> str:
     if isinstance(exc, ValueError) and str(exc).startswith("Unsupported file type"):
         return "unsupported_format"
     return "internal"
+
+
+async def open_review_job(session: AsyncSession, book_id: str) -> Job:
+    """該書最近一個 ingest job；不在 `awaiting_review` 就丟 ReviewStateError。"""
+    job = (
+        await session.scalars(
+            select(Job)
+            .where(Job.book_id == book_id, Job.kind == INGEST_KIND)
+            .order_by(Job.created_at.desc())
+            .limit(1)
+        )
+    ).first()
+    if job is None or job.status != "awaiting_review":
+        raise ReviewStateError(_review_conflict_code(job))
+    return job
+
+
+async def mark_cancelled(
+    session_factory: async_sessionmaker[AsyncSession], checkpointer: Any, job_id: str
+) -> None:
+    """Bookkeeping of N-09d, after the job's background task (if any) has stopped.
+
+    job 標 `cancelled`；它還在跑的 run 標 `cancelled`；這本書執行中的單位退回 `pending`；
+    刪掉這個 job 的 checkpoint（取消是終態，不會再續跑）。已完成的單位與已寫入的證據保留。
+    不需要模型，所以不經 `IngestService`。
+    """
+    async with session_factory() as session, session.begin():
+        job = await session.get(Job, job_id)
+        if job is None:
+            raise LookupError(f"Job '{job_id}' not found")
+        if job.status in TERMINAL_STATUSES:
+            raise JobStateError(job.status)
+        job.status = "cancelled"
+        job.finished_at = datetime.now(UTC)
+        await session.execute(
+            update(Run)
+            .where(Run.job_id == job_id, Run.status.in_(("queued", "running")))
+            .values(status="cancelled", finished_at=datetime.now(UTC))
+        )
+        if job.book_id is not None:
+            await session.execute(
+                update(IngestUnitRow)
+                .where(IngestUnitRow.book_id == job.book_id, IngestUnitRow.status == "running")
+                .values(status="pending")
+            )
+    await checkpointer.adelete_thread(job_id)
+
+
+async def review_data(
+    session_factory: async_sessionmaker[AsyncSession], book_id: str
+) -> dict[str, Any]:
+    """N-02d 的資料（snake_case）；不需要模型，所以不經 `IngestService`。"""
+    async with session_factory() as session:
+        await open_review_job(session, book_id)
+        doc = await get_book(session, book_id)
+    if doc is None:
+        raise ReviewStateError("review_not_open")
+    return build_review_data(doc)
 
 
 class IngestService:
@@ -178,18 +237,26 @@ class IngestService:
 
     async def get_review_data(self, book_id: str) -> dict[str, Any]:
         """Chapter/paragraph data for review; only while the job is ``awaiting_review``."""
-        async with self._session_factory() as session:
-            await self._open_review_job(session, book_id)
-            doc = await get_book(session, book_id)
-        if doc is None:
-            raise ReviewStateError("review_not_open")
-        return build_review_data(doc)
+        return await review_data(self._session_factory, book_id)
 
     async def submit_review(self, book_id: str, payload: dict[str, Any]) -> None:
         """Submit the review and run the rest of the graph to the end."""
-        async with self._session_factory() as session:
-            job = await self._open_review_job(session, book_id)
+        job_id = await self.claim_review(book_id)
+        await self.continue_after_review(job_id, payload)
 
+    async def claim_review(self, book_id: str) -> str:
+        """Check the review is open and mark the job `running`; return the job id.
+
+        REST 先呼叫這個（同步回 409），再把 `continue_after_review` 丟到背景跑。標成 `running`
+        之後同一份審閱不能再送第二次（`review_submitted`）。
+        """
+        async with self._session_factory() as session, session.begin():
+            job = await self._open_review_job(session, book_id)
+            job.status = "running"
+            return job.id
+
+    async def continue_after_review(self, job_id: str, payload: dict[str, Any]) -> None:
+        """Run the graph from the review pause to the end (the job was claimed)."""
         # 一定要是帶固定 key 的 dict：Command(resume=None) 與 Command(resume={})
         # 都會被 LangGraph 當成「沒有給續跑值」。
         resume_value = {
@@ -197,10 +264,15 @@ class IngestService:
             "role_overrides": payload.get("role_overrides") or {},
             "paragraph_splits": payload.get("paragraph_splits") or {},
         }
-        await self._run(job.id, Command(resume=resume_value))
+        await self._run(job_id, Command(resume=resume_value))
 
     async def resume(self, job_id: str) -> None:
         """Continue a `paused_quota`／`interrupted` job; only units not `done` are run."""
+        await self.claim_resume(job_id)
+        await self.continue_resumed(job_id)
+
+    async def claim_resume(self, job_id: str) -> None:
+        """Check the job can be resumed and put it back to `pending` (04 §3.2)."""
         async with self._session_factory() as session, session.begin():
             job = await session.get(Job, job_id)
             if job is None:
@@ -209,6 +281,8 @@ class IngestService:
                 raise JobStateError(job.status)
             job.status = "pending"
 
+    async def continue_resumed(self, job_id: str) -> None:
+        """Run a claimed job from where it stopped."""
         config = {"configurable": {"thread_id": job_id}}
         snapshot = await self._graph.aget_state(config)
         if snapshot.next:
@@ -221,18 +295,7 @@ class IngestService:
     # ── internals ────────────────────────────────────────────────────────────
 
     async def _open_review_job(self, session: AsyncSession, book_id: str) -> Job:
-        """該書最近一個 ingest job；不在 `awaiting_review` 就丟 ReviewStateError。"""
-        job = (
-            await session.scalars(
-                select(Job)
-                .where(Job.book_id == book_id, Job.kind == INGEST_KIND)
-                .order_by(Job.created_at.desc())
-                .limit(1)
-            )
-        ).first()
-        if job is None or job.status != "awaiting_review":
-            raise ReviewStateError(_review_conflict_code(job))
-        return job
+        return await open_review_job(session, book_id)
 
     async def _run(self, job_id: str, graph_input: Any) -> None:
         config = {"configurable": {"thread_id": job_id}}

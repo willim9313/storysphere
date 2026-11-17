@@ -1,6 +1,6 @@
 # 進度與後續待辦
 
-最後更新：2026-11-17（T19 A 批完成）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
+最後更新：2026-11-17（T19 B 批完成）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
 
 ## 接手先看這裡（2026-11-16 使用者的決定）
 
@@ -39,11 +39,11 @@
 | T16 NS2 | **不做**（範圍調整） | — |
 | T17 TM1、TM2、SY1、TM3 | **不做**（範圍調整） | — |
 | T18 MY1、MY4、MY5 | 只做 MY4，排在 UI 之後；MY1、MY5 不做 | — |
-| **T19 REST 與 SSE** | **進行中**：A 批（底座＋唯讀端點）完成，下一步 B 批；見「T19 現況」 | — |
+| **T19 REST 與 SSE** | **進行中**：A 批（`6e2d9c1`）、B 批完成，下一步 C 批；見「T19 現況」 | — |
 | T20 之後 | 未開始 | — |
 
 - 分支：本機 `main`，沒有遠端，沒推過。CI（`.github/workflows/gates.yml`）寫好但從沒跑過。
-- 閘門現況：後端三道（ruff、pytest 沒設 `BENCHMARK_DIR` 時 1202 passed、2 skipped、registry check）exit 0；前端三道在 T01 通過後沒再動過。
+- 閘門現況：後端三道（ruff、pytest 沒設 `BENCHMARK_DIR` 時 1250 passed、2 skipped、registry check）exit 0；前端三道在 T01 通過後沒再動過。
 - 這台有 `.env`（`GEMINI_API_KEY`，被 gitignore）。程式不會自己讀 `.env`，要 `uv run --env-file .env`。
 - 相關目錄：
   - 本專案：`~/Desktop/storysphere_v4_app`
@@ -98,8 +98,11 @@
 - **A 批完成**：lifespan 接上 engine／`init_db`／`mark_interrupted_jobs`／`MethodEngine`（`app.state`）；DB 路徑用環境變數 `STORYSPHERE_DB`，預設 `var/neo.db`。端點 N-01a/c/e、N-03a、N-04b/c/e、N-05a–d、N-07a/b/f/g、N-09a/b，每個都有 API 測試（`tests/api/`，共 73 個）。用 `methods.db` 副本手動打過一輪，回應形狀正確。
 - 程式位置：`api/errors.py`（`{detail, code}`）、`api/deps.py`、`api/schemas/`、`api/routes/`、`api/queries/`（T20 的 MCP 讀取工具共用 `queries/evidence.py`）。測試資料用 `tests/api/support.seed(db_file, fill)`。
 - 已同步到 04：N-05b 的 `edits` 加 `action`、`reason`；N-05a 的 `q` 少於 3 個字改用子字串比對；N-04b 排序與 `summary`／`precheck` 轉 camelCase；N-05d 的 `highlights` 與跨章前後文；N-04e 兩種模式回哪些證據。
-- **還沒接進 lifespan**（B 批）：checkpointer、`IngestService`（`stages=build_s1_stages()`）、`MethodJobs`。
-- **已知不穩定的測試**：`tests/ingest/test_unit_runner.py::TestTwoStages::test_429_in_one_stage_pauses_without_stuck_running_then_resumes` 在整套測試負載下偶爾失敗（3 次裡 1 次），單獨跑 15 次都過。之前就有，不是 T19 造成的；還沒查。
+- **B 批完成**：N-01b、N-02a–e、N-09c–f。lifespan 另外接上 checkpointer、`EventBus`、監看迴圈、`MethodJobs`、入庫背景工作表（`api/tasks.py`）；`IngestService` 第一次用到才建（建 S1 的 stage 需要可用模型）。新環境變數：`STORYSPHERE_CHECKPOINT_DB`、`STORYSPHERE_UPLOAD_DIR`（預設 `var/uploads`）、`STORYSPHERE_WATCH_INTERVAL`（0＝不監看，API 測試用）。新依賴 `python-multipart`（原本就是間接依賴，改成明列）。
+- **SSE 事件來源改成監看資料庫**（使用者 2026-11-17 決定，取代規劃裡的 emit callback）：`api/watcher.py` 每 0.5 秒比對非終態 job、單位、run，發 `job.status`、`ingest.step`、`ingest.unit`、`run.status`，寫回 `progress`、`last_seq`。已寫進 04 §3.4。`basis.changed` 還沒有（C 批的 N-05e 拒絕證據才會產生）。
+- service 層的小改動：`IngestService` 的審閱與續跑拆成 `claim_*`（檢查狀態，同步回 409）＋`continue_*`（背景跑）；`review_data`、`open_review_job`、`mark_cancelled` 改成模組函式（不需要模型）；`MethodJobs` 加 `start`、`task`。
+- **SQLite 改用 WAL、等鎖上限 30 秒**（`store/db.py`，01 §1 已註記）。原因：`test_unit_runner` 的 429 測試在整套跑時偶爾 `database is locked`（另一個 stage 被取消時連線握著寫入鎖超過 5 秒）。改了之後整套連跑 8 次全過，原本約 3 次失敗 1 次；整套也從約 37 秒變約 30 秒。試過用 `asyncio.shield` 包住單位的寫入，反而讓單位卡在 `running`，已還原。副作用：`var/neo.db` 旁邊會有 `-wal`、`-shm` 兩個檔，伺服器開著時備份要一起複製。
+- 監看迴圈與 SSE 沒有開真的伺服器長時間跑過；測試是直接呼叫 `poll_once` 與預先放好事件的串流。
 
 ### T19 動工前要知道的（彙整前面各張留下來的）
 
@@ -262,7 +265,7 @@
 
 | 位置 | 內容 |
 | --- | --- |
-| `backend/storysphere/api/` | FastAPI：`main.py`（lifespan）、`errors.py`、`deps.py`、`schemas/`、`routes/`、`queries/`；T19 A 批的唯讀端點 |
+| `backend/storysphere/api/` | FastAPI：`main.py`（lifespan）、`errors.py`、`deps.py`、`schemas/`、`routes/`、`queries/`、`events.py`（SSE 緩衝）、`watcher.py`（監看資料庫發事件）、`tasks.py`（入庫背景工作） |
 | `backend/storysphere/domain/evidence/` | 33 個內容 model、`base.py`（枚舉轉 `other`＋`raw_label`）、`genre_ext.py` |
 | `backend/storysphere/store/tables.py`、`db.py` | 外殼與關聯表、`runs`、`jobs`、FTS5 與 trigger |
 | `backend/storysphere/store/content_tables.py` | `ev_*` 由 model 產生 |

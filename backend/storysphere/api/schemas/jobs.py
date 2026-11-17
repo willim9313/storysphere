@@ -27,6 +27,10 @@ class Job(ApiModel):
     finished_at: UtcDatetime | None
 
 
+class JobAccepted(ApiModel):
+    job_id: str
+
+
 def job_out(row: JobRow) -> Job:
     return Job(
         id=row.id,

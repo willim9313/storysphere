@@ -126,10 +126,19 @@ class MethodJobs:
             job_id = job.id
 
         if start:
-            task = asyncio.create_task(self.execute_job(job_id))
-            self._tasks[job_id] = task
-            task.add_done_callback(lambda _t, jid=job_id: self._tasks.pop(jid, None))
+            self.start(job_id)
         return TriggerResult(job_id, attached=False)
+
+    def start(self, job_id: str) -> asyncio.Task[None]:
+        """Run a `pending` job in the background (also used to resume a paused one)."""
+        task = asyncio.create_task(self.execute_job(job_id))
+        self._tasks[job_id] = task
+        task.add_done_callback(lambda _t, jid=job_id: self._tasks.pop(jid, None))
+        return task
+
+    def task(self, job_id: str) -> asyncio.Task[None] | None:
+        """The background task of `job_id` in this process, if it is still running."""
+        return self._tasks.get(job_id)
 
     async def wait(self, job_id: str) -> None:
         """Wait until the background task of `job_id` (if still running here) finishes."""

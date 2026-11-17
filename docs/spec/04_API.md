@@ -228,6 +228,7 @@ pending／running／awaiting_review／paused_quota／interrupted ─(N-09d)─�
 | 緩衝 | 原型決定：每條串流在記憶體保留最近 1,000 筆；要求的 seq 已被丟掉時先送 `resync`，前端重新抓 REST 狀態 |
 | 心跳 | 每 15 秒送一行 SSE 註解 `: ping` |
 | 輪詢備案 | 不能用 SSE 時輪詢 N-09b，`lastSeq` 判斷有沒有新東西 |
+| 事件來源 | 原型決定（2026-11-17）：入庫圖、單位、方法引擎都把狀態寫進資料庫；後端每 0.5 秒比對一次非終態 job 的狀態、單位與 run，有變就發事件，並寫回 `progress`、`lastSeq`。事件最多晚 0.5 秒；一個間隔內出現又消失的中間狀態不會發。伺服器重啟後 job 串流從 `jobs.last_seq` 接著編號，書的串流從 0 起算 |
 
 ### 3.5 事件型別
 
@@ -262,7 +263,7 @@ pending／running／awaiting_review／paused_quota／interrupted ─(N-09d)─�
 | 用途 | 上傳並建立 `ingest` job |
 | Request | `multipart/form-data`：`file`（PDF／DOCX／TXT／EPUB，≤ 200 MB）、`title?`、`author?`、`language?`（沿用既有 #2） |
 | Response 202 | `{jobId, duplicateTitle}`；`bookId` 在 P1 寫入 `books` 後出現在 `job.result.bookId` |
-| 錯誤 | 413 檔案過大；422 格式不支援；503 `core_extraction` 沒有模型 |
+| 錯誤 | 413 `file_too_large`；422 格式不支援（副檔名不是 pdf／docx／txt／epub）；503 `core_extraction` 沒有模型。三者都不建 job |
 | 對應 | 02 P1；寫 `jobs`，P1 寫 `books`、`chapters`、`paragraphs` |
 
 ### N-01c GET /books/:bookId
@@ -297,7 +298,7 @@ pending／running／awaiting_review／paused_quota／interrupted ─(N-09d)─�
 | --- | --- |
 | 用途 | 入庫步驟條與單位統計 |
 | Response | `jobId`、`jobStatus`、`steps[{step, state, startedAt, finishedAt, runId}]`、`units{s1a, s1b, s4a: {total, done, failed, pending}}`、`failedUnits[{stage, unitId, chapter, error}]`、`genreProfile` |
-| 說明 | `steps[].state`：`pending`／`running`／`done`／`failed`／`skipped`／`paused`；`runId` 是該入庫步驟的 run（`refId=ingest.s1` 等） |
+| 說明 | `steps[].state`：`pending`／`running`／`done`／`failed`／`skipped`／`paused`；`runId` 是該入庫步驟的 run（`refId=ingest.s2` 等；P1、審閱、S1 沒有 run）。原型決定：已經走過的 S2–S4 沒有 run＝`skipped`，S5 沒有 `result.s5`＝`skipped`；job 為 `cancelled` 時當下那一步標 `failed`。`units.*.pending` 含執行中的單位 |
 | 對應 | `jobs`、`ingest_units`、`runs`；02 §1、§7 |
 
 ### N-02b GET /books/:bookId/ingest/units
@@ -305,7 +306,7 @@ pending／running／awaiting_review／paused_quota／interrupted ─(N-09d)─�
 | 項目 | 內容 |
 | --- | --- |
 | 用途 | 單位格狀圖（完成、失敗、暫停） |
-| Query | `stage`（`s1a`／`s1b`／`s4a`）、`status?`、`chapter?`；分頁 |
+| Query | `stage`（必填：`s1a`／`s1b`／`s4a`）、`status?`、`chapter?`；分頁。依書中順序（章、單位第一段的位置） |
 | Response | `items[{unitId, stage, chapter, firstParagraphPosition, status, attempts, model, promptVersion, error}]` |
 | 說明 | `status`：`pending`／`running`／`done`／`failed`（01 §8）。job 為 `paused_quota` 時 UI 把非 done 的格子畫成「暫停」，不另存狀態 |
 | 對應 | `ingest_units` |
@@ -722,7 +723,7 @@ Registry 從 YAML 載入、唯讀（使用者方法論除外），回應把 YAML
 | --- | --- |
 | 用途 | 取消 |
 | Response | 204；已終態 → `409 invalid_state` |
-| 說明 | `awaiting_review` 的 ingest 取消時刪除 LangGraph checkpoint（沿用既有 #8b）。已完成的單位與已寫入的證據保留 |
+| 說明 | 先停下背景工作再標 `cancelled`。入庫類 job 取消時刪除 LangGraph checkpoint（沿用既有 #8b；取消是終態，不會再續跑）；執行中的單位退回 `pending`、該 job 還在跑的 run 標 `cancelled`。已完成的單位與已寫入的證據保留 |
 | 對應 | `jobs`、`ingest_units` |
 
 ### N-09e POST /jobs/:jobId/resume
@@ -731,7 +732,7 @@ Registry 從 YAML 載入、唯讀（使用者方法論除外），回應把 YAML
 | --- | --- |
 | 用途 | 續跑 `paused_quota`／`interrupted` 的 job（02 §7） |
 | Response 202 | `{jobId}`（同一個 id） |
-| 錯誤 | 其他狀態 → `409 invalid_state`；503（額度沒恢復時 job 會再進 `paused_quota`，不是 503） |
+| 錯誤 | 其他狀態 → `409 invalid_state`；503（`ingest` 的 `core_extraction` 沒有模型時；額度沒恢復時 job 會再進 `paused_quota`，不是 503）。原型只支援續跑 `ingest` 與 `method_run`，其他種類回 409 |
 | 對應 | `jobs`、`ingest_units` |
 
 ### N-09f GET /books/:bookId/events

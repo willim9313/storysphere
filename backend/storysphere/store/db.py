@@ -114,6 +114,9 @@ _FTS_DDL = (
 )
 
 
+BUSY_TIMEOUT_MS = 30_000
+
+
 def create_engine(db_path: str | Path) -> AsyncEngine:
     """Build the async SQLite engine for the database file at ``db_path``."""
     path = Path(db_path)
@@ -125,6 +128,9 @@ def create_engine(db_path: str | Path) -> AsyncEngine:
     def _enable_foreign_keys(dbapi_connection: Any, _connection_record: Any) -> None:
         cursor = dbapi_connection.cursor()
         cursor.execute("PRAGMA foreign_keys=ON")
+        # 入庫、方法、API、監看迴圈會同時讀寫：WAL 讓讀寫互不阻擋，寫入撞鎖時最多等 30 秒。
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute(f"PRAGMA busy_timeout={BUSY_TIMEOUT_MS}")
         cursor.close()
 
     return engine
