@@ -691,7 +691,7 @@ Registry 從 YAML 載入、唯讀（使用者方法論除外），回應把 YAML
 | 用途 | 「大腦」那一列的測試（05 §6） |
 | Request | `{backend: deepagents／claude-code}` |
 | Response 202 | `{jobId}`（`kind=brain_test`）；`result.checks[{check, ok, detail}]`，`check` 值：deepagents＝`session`、`tool_call`；claude-code＝`npx`、`adapter`、`login`、`session`、`tool_call` |
-| 說明 | `tool_call`＝開一個暫時 session，請大腦呼叫一次 `list_genre_elements`，以 `trace_calls` 有這筆為準。原型決定（T25）：session 用書庫裡最早上傳的書，沒有書時只回一項 `session` 不通過；測完關掉 session；`result` 另帶 `backend`。claude-code 的 `npx`／`adapter`／`login` 三項在 T26 |
+| 說明 | `tool_call`＝開一個暫時 session，請大腦呼叫一次 `list_genre_elements`，以 `trace_calls` 有這筆為準。原型決定（T25）：session 用書庫裡最早上傳的書，沒有書時只回一項 `session` 不通過；測完關掉 session；`result` 另帶 `backend`。claude-code 的順序是 `npx`（啟動命令找得到）→ `login`（`claude auth status`）→ `adapter`（子 process 啟動、建 session）→ `session` → `tool_call`，前面有一項失敗就停（T26） |
 | 對應 | Agent Gateway、`agent_sessions`、`trace_calls` |
 
 ### 4.9 工作中心（側欄抽屜）

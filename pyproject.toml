@@ -39,6 +39,7 @@ dependencies = [
     "python-multipart>=0.0.20",
     "mcp>=2.3.0",
     "deepagents>=0.7.39",
+    "agent-client-protocol>=1.0.0",
 ]
 
 [dependency-groups]

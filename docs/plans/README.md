@@ -11,3 +11,4 @@
 | 2026-11-17 | [20261117-t22-overview-detail-views.md](20261117-t22-overview-detail-views.md) | T22：總覽、結果卡詳情，view 範圍改成有資料的先做 |
 | 2026-11-17 | [20261117-t23-evidence-notes-registry-settings.md](20261117-t23-evidence-notes-registry-settings.md) | T23：筆記端點範圍、方法論唯讀、設定頁不含大腦 |
 | 2026-11-17 | [20261117-t25-gateway-deepagents.md](20261117-t25-gateway-deepagents.md) | T25：自寫 MCP 轉接（langchain-mcp-adapters 與 mcp 2 衝突）、完成標準換題、分兩批 |
+| 2026-11-17 | [20261117-t26-claude-code-acp.md](20261117-t26-claude-code-acp.md) | T26：skill 經 ACP 的 plugins 帶過去、session 目錄放 repo 外（避免 CLAUDE.md 與 auto-memory） |

@@ -32,6 +32,7 @@ from storysphere.api.routes import (
 )
 from storysphere.api.tasks import JobTasks
 from storysphere.api.watcher import JobWatcher
+from storysphere.gateway.acp_backend import AcpBackend
 from storysphere.gateway.deepagents_backend import DeepAgentsBackend
 from storysphere.gateway.service import Gateway, close_stale_sessions
 from storysphere.ingest.service import CHECKPOINT_PATH, mark_interrupted_jobs, open_checkpointer
@@ -118,7 +119,10 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         gateway = Gateway(
             session_factory,
             mcp_env,
-            {"deepagents": DeepAgentsBackend()},
+            {
+                "deepagents": DeepAgentsBackend(),
+                "claude-code": AcpBackend(mcp_env, settings.launch_command),
+            },
             workspace_root=_env_path(AGENT_DIR_ENV, DEFAULT_AGENT_DIR),
             mcp_url=os.environ.get(MCP_URL_ENV) or DEFAULT_MCP_URL,
         )

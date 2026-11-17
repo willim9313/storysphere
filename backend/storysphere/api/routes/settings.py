@@ -227,6 +227,11 @@ def _raw_brain() -> dict[str, Any]:
     return brain if isinstance(brain, dict) else {}
 
 
+def launch_command() -> str:
+    """N-08e 的 `claudeCode.launchCommand`；ACP 後端每次開 session 時讀。"""
+    return (_raw_brain().get("claude_code") or {}).get("launch_command", DEFAULT_LAUNCH_COMMAND)
+
+
 async def _claude_code_available(session) -> bool | None:
     jobs = await session.scalars(
         select(Job)
@@ -249,9 +254,7 @@ async def get_brain_settings(session: SessionDep) -> BrainSettingsOut:
         default_backend=brain.get("default_backend", "none"),
         deepagents=DeepAgentsBrain(model=task.model if task else None),
         claude_code=ClaudeCodeBrainOut(
-            launch_command=(brain.get("claude_code") or {}).get(
-                "launch_command", DEFAULT_LAUNCH_COMMAND
-            ),
+            launch_command=launch_command(),
             available=await _claude_code_available(session),
         ),
     )
@@ -288,7 +291,9 @@ async def _run_brain_test(request: Request, job_id: str, backend: str) -> None:
         job = await session.get(Job, job_id)
         job.status, job.started_at = "running", datetime.now(UTC)
     try:
-        result = await run_brain_test(request.app.state.gateway, backend)
+        result = await run_brain_test(
+            request.app.state.gateway, backend, launch_command=launch_command()
+        )
     except Exception as exc:
         logger.exception("Brain test job %s failed", job_id)
         async with session_factory() as session, session.begin():

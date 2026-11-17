@@ -6,6 +6,7 @@ import time
 
 import pytest
 import yaml
+from storysphere.gateway import brain_test
 from storysphere.llm.settings import SETTINGS_ENV
 
 from tests.api.support import add_book, seed
@@ -103,12 +104,34 @@ class TestBrainTest:
         sessions = client.get(f"{P}/books/{BOOK}/agent/sessions").json()
         assert all(s["status"] == "closed" for s in sessions)
 
-    def test_claude_code_failure_reports_session_check(self, client, db_file):
+    def test_claude_code_adapter_failure(self, client, db_file, monkeypatch):
         seed(db_file, lambda store: add_book(store.session))
+        monkeypatch.setattr(brain_test, "claude_login_status", _logged_in)
+        monkeypatch.setattr(brain_test.shutil, "which", lambda _cmd: "/usr/bin/npx")
         client.app.state.gateway.backends["claude-code"] = EchoBackend(fail=True)
         res = client.post(f"{P}/settings/brain/test", json={"backend": "claude-code"})
         wait_job(client, res.json()["jobId"])
         result = client.get(f"{P}/settings/llm/test/latest").json()["brainTest"]["result"]
-        assert result["checks"][0]["ok"] is False
-        assert "backend_start_failed" in result["checks"][0]["detail"]
+        assert [(c["check"], c["ok"]) for c in result["checks"]] == [
+            ("npx", True), ("login", True), ("adapter", False)
+        ]
+        assert "backend_start_failed" in result["checks"][2]["detail"]
         assert client.get(f"{P}/settings/brain").json()["claudeCode"]["available"] is False
+
+    def test_claude_code_not_logged_in_stops_early(self, client, db_file, monkeypatch):
+        seed(db_file, lambda store: add_book(store.session))
+
+        async def logged_out():
+            return False, "未登入"
+
+        monkeypatch.setattr(brain_test, "claude_login_status", logged_out)
+        monkeypatch.setattr(brain_test.shutil, "which", lambda _cmd: "/usr/bin/npx")
+        res = client.post(f"{P}/settings/brain/test", json={"backend": "claude-code"})
+        wait_job(client, res.json()["jobId"])
+        result = client.get(f"{P}/settings/llm/test/latest").json()["brainTest"]["result"]
+        assert [(c["check"], c["ok"]) for c in result["checks"]] == [("npx", True), ("login", False)]
+        assert client.get(f"{P}/books/{BOOK}/agent/sessions").json() == []
+
+
+async def _logged_in():
+    return True, "已登入"

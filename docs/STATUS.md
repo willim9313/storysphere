@@ -1,6 +1,6 @@
 # 進度與後續待辦
 
-最後更新：2026-11-17（T25 程式完成、Gemini 實測待同意，未 commit）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
+最後更新：2026-11-17（T26 完成，未 commit）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
 
 ## 接手先看這裡（2026-11-16 使用者的決定）
 
@@ -46,7 +46,8 @@
 | **T23 證據瀏覽、筆記、方法目錄、設定** | 完成；見「T23 現況」 | — |
 | T24 | 3 種 view 已在 T22 做掉；其餘等方法 | — |
 | **T25 Gateway＋deepagents** | 完成；Gemini 實測兩題都過（加了 `character-analysis` skill 之後）；見「T25 現況」 | — |
-| T26 之後 | 未開始 | — |
+| **T26 Claude Code（ACP）** | 完成；實測兩題與擋工具都過；見「T26 現況」 | — |
+| T27 之後 | 未開始 | — |
 
 - 分支：本機 `main`，沒有遠端，沒推過。CI（`.github/workflows/gates.yml`）寫好但從沒跑過。
 - 閘門現況：六道全部 exit 0（pytest 沒設 `BENCHMARK_DIR` 時 1297 passed、2 skipped）。
@@ -113,6 +114,19 @@
 - **前端型別**：`frontend/src/api/generated.ts` 已產生（35 條路徑）。產生方式是從 app 匯出 `openapi.json` 再跑 `openapi-typescript`，結果與 `npm run gen:types` 相同，只是不必在 8000 埠開伺服器（開伺服器會在 `var/` 建出 `neo.db`）。`knip.jsonc` 把它列為忽略，T21 的 API client import 之後可以拿掉。
 - **T19 完成標準對照**（07）：「`npm run gen:types` 產出型別」達成；「SSE 斷線帶 `Last-Event-ID` 能補抓」達成；「04 每個端點都有 API 測試」**部分**——做了的端點都有，延後的沒有。
 - **延後的端點**（使用者 2026-11-16 確認）：N-02f／g／h（重跑失敗單位、從某步重跑、改主題材）、N-06*（筆記、詮釋）、N-07c／d／e（方法論）、N-08e–g 與 N-10*（大腦，T25）。N-04d 的 `rerunUpstream=true` 也還沒做（回 422）。
+
+### T26 現況（2026-11-17）
+
+- 規劃：`docs/plans/20261117-t26-claude-code-acp.md`。**使用者決定**：skill 經 ACP 建 session 時一起帶（`_meta.claudeCode.options.plugins` 指向 session 目錄的本機 plugin），不靠 `settingSources`。05 §5.2 已改（`tools: ["Skill"]`、plugins、session 目錄放 repo 外）。
+- 實測發現（用 Claude 訂閱，不叫 Gemini）：`tools: []` 會連 skill 都看不到；`settingSources: ["project"]` 會讀進上層 repo 的 `CLAUDE.md`；session 目錄在 repo 裡時會帶進本機 auto-memory（`MEMORY.md`）。所以 Claude Code 的 session 目錄放 `tempfile.gettempdir()/storysphere-agent/<id>`（關 session 時刪），子 process 設 `CLAUDE_CODE_DISABLE_AUTO_MEMORY=1`（有沒有作用沒測出來：放 repo 外時本來就沒有）。CLI 內建 skill（code-review 等）仍會出現，但沒有工具可用。
+- 程式：`gateway/acp_backend.py`（常駐 task 持有 adapter 子 process；環境變數白名單；權限分流：L0 的 `mcp__storysphere__*` 與 `Skill` 回 `allow_once`，其餘拒絕並記 `trace_calls.status=denied`；模式被切離 `default` 就切回；`auth/status_update` 的錯誤日誌用 logging filter 擋掉）；`gateway/brain_test.py` 加 `npx`、`login`（`claude auth status`）、`adapter`；`api/routes/settings.launch_command()` 給後端讀 N-08e。新依賴 `agent-client-protocol` 1.0.0。
+- 測試：`tests/gateway/test_acp_backend.py`（假 adapter 連線，4 個）、`test_brain_settings.py` 加 claude-code 兩個。
+- **實測**（`var/benchmark_runs/sign_of_four/t25_brain/cc_*.txt`）：
+  - 第一題：`get_entity`×2 → `search_evidence(arc_segment)`×2，與 deepagents 相同；之後多拿 CH4、沿 trace 讀原文、`show_view(character_arc)`。不重跑，約 38 秒。**回覆文字引原文但沒附證據 id**（system prompt 有要求），之後可在 prompt 或 T27 畫面補。
+  - 第二題：組合 CH2、EV1、CH5 的查詢，`create_note` 草稿 `check.ok`、引用 14 筆、內文沒有錯的 id；`show_view`。約 50 秒。
+  - 擋工具：請它用 Bash、Write、WebFetch，它回報沒有這些工具；只有 `Skill`＋14 個 StorySphere 工具；沒有產生檔案。
+  - N-08g claude-code 五項全過，N-08e `available=true`。
+- 沒驗的：大腦在對話中切權限模式（只用假連線測了切回）；長時間工具呼叫；未登入時的實際錯誤訊息（只用假的 login 檢查測）。
 
 ### T25 現況（2026-11-17）
 
