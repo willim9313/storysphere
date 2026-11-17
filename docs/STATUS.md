@@ -1,6 +1,6 @@
 # 進度與後續待辦
 
-最後更新：2026-11-17（T27 完成，commit `4d18949`）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
+最後更新：2026-11-17（T18 MY4 完成）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
 
 ## 接手先看這裡（2026-11-16 使用者的決定）
 
@@ -38,7 +38,7 @@
 | T15 CH2、CH4、CH5 | 完成；F2 過、F3 大致過、F4 一項成立、F5 無法判定（見「T15 現況」） | `9dc6a59` |
 | T16 NS2 | **不做**（範圍調整） | — |
 | T17 TM1、TM2、SY1、TM3 | **不做**（範圍調整） | — |
-| T18 MY1、MY4、MY5 | 只做 MY4，排在 UI 之後；MY1、MY5 不做 | — |
+| **T18 MY4** | 完成；四簽名只實跑 E1（F7 過）；人工檢查等整本實跑；見「T18 MY4 現況」。MY1、MY5 不做 | 見 git log |
 | **T19 REST 與 SSE** | **三批完成**（A `6e2d9c1`、B `02c0e83`、C 見 git log）；延後的端點見「T19 現況」 | — |
 | **T20 MCP server** | 完成；見「T20 現況」 | — |
 | **T21 外框、書庫、入庫進度、工作中心** | 完成；見「T21 現況」 | — |
@@ -48,10 +48,10 @@
 | **T25 Gateway＋deepagents** | 完成；Gemini 實測兩題都過（加了 `character-analysis` skill 之後）；見「T25 現況」 | — |
 | **T26 Claude Code（ACP）** | 完成；實測兩題與擋工具都過；見「T26 現況」 | — |
 | **T27 Agent 工作區畫面** | 完成；見「T27 現況」 | `4d18949` |
-| T28 驗收 | 未開始（MY4 也還沒做，排在 UI 之後） | — |
+| T28 驗收 | 未開始；先要整本實跑（含 MY4 15 次呼叫）與 T18 人工檢查 | — |
 
 - 分支：本機 `main`，沒有遠端，沒推過。CI（`.github/workflows/gates.yml`）寫好但從沒跑過。
-- 閘門現況：六道全部 exit 0（pytest 沒設 `BENCHMARK_DIR` 時 1434 passed、2 skipped）。
+- 閘門現況：六道全部 exit 0（pytest 沒設 `BENCHMARK_DIR` 時 1449 passed、2 skipped）。
 - 這台有 `.env`（`GEMINI_API_KEY`，被 gitignore）。程式不會自己讀 `.env`，要 `uv run --env-file .env`。
 - 相關目錄：
   - 本專案：`~/Desktop/storysphere_v4_app`
@@ -85,7 +85,7 @@
 | --- | --- | --- | --- |
 | 1 | ~~MY1 必讀 `anachrony`~~ | — | **不用決定了**：MY1、NS2 都不做 |
 | 6 | **CH4 的宣告要不要加讀 `character`**（現在讀不到角色名稱與種類，群體也被當成角色；改 `registry/methods/CH4.yaml` 與 03 §4.1） | 陣營畫面（T24）前 | 加 |
-| 8 | **S4 三件事**：角色的推理屬性（mystery_role 等）怎麼寫入；`reveal.revealer_id` 要不要放寬成可空（現在 33 筆揭曉因此被丟）；`hidden_truth.reveal_id` 回填繞過 `write_evidence` 是否接受 | MY4 前 | 推理屬性先不做；揭曉者放寬成可空；回填接受 |
+| 8 | **S4 三件事**：角色的推理屬性（mystery_role 等）怎麼寫入；`reveal.revealer_id` 要不要放寬成可空（現在 33 筆揭曉因此被丟）；`hidden_truth.reveal_id` 回填繞過 `write_evidence` 是否接受。**MY4 不依賴這三件事**（用 `reveal.hidden_truth_id` 找揭曉） | 整本實跑（T28）前 | 推理屬性先不做；揭曉者放寬成可空；回填接受 |
 | 9 | **使用者說之後再調的**：EV1 的 kernel 佔 72%；S2 有兩個角色沒合併（巴塞洛謬、肖爾托少校）；CH5 的錯誤認知品質 | 里程碑整本實跑前 | 有畫面可看之後再調 |
 | 3 | **7 個草擬的方法問句**（EV2、EV3、CH3、NS1、NS3、TM1、MY3；YAML 裡標了「草擬，規格未定」） | T19（「也可以問」清單上線）前 | 使用者過目後把註記拿掉 |
 | 4 | ~~Design 畫布「StorySphere v4 原型」在哪~~ | — | **已提供（2026-11-17）**，快照存在 `docs/design/`：https://claude.ai/code/artifact/e5513b26-1509-4b8b-bf2c-840bd0415439 。12 個 artboard（App 層 5、書籍層 5、Ink 2）；Warm 為準，Ink 標「先前的版本，暫不更新」。畫布早於範圍調整：總覽畫 10 張卡、工作中心出現 MY5／TM3／TM2，實作照 5 張卡＋「尚未支援」 |
@@ -115,6 +115,21 @@
 - **前端型別**：`frontend/src/api/generated.ts` 已產生（35 條路徑）。產生方式是從 app 匯出 `openapi.json` 再跑 `openapi-typescript`，結果與 `npm run gen:types` 相同，只是不必在 8000 埠開伺服器（開伺服器會在 `var/` 建出 `neo.db`）。`knip.jsonc` 把它列為忽略，T21 的 API client import 之後可以拿掉。
 - **T19 完成標準對照**（07）：「`npm run gen:types` 產出型別」達成；「SSE 斷線帶 `Last-Event-ID` 能補抓」達成；「04 每個端點都有 API 測試」**部分**——做了的端點都有，延後的沒有。
 - **延後的端點**（使用者 2026-11-16 確認）：N-02f／g／h（重跑失敗單位、從某步重跑、改主題材）、N-06*（筆記、詮釋）、N-07c／d／e（方法論）、N-08e–g 與 N-10*（大腦，T25）。N-04d 的 `rerunUpstream=true` 也還沒做（回 422）。
+
+### T18 MY4 現況（2026-11-17）
+
+- 規劃：`docs/plans/20261117-my4-fair-play-audit.md`。**使用者決定**：
+  - 只瞞角色（`concealed_from=characters`，讀者本來就知道）的真相不稽核，和「沒有揭曉」一樣回不適用、零次 LLM（03 §4.2）。
+  - **揭曉章取讀者看得到的揭曉中最後的一章**（完整解答）。規劃原本寫最早的一章，實跑 E1 被判 `unfair` 後改掉：S4 把 E1 併成一個大真相，揭曉從第 6 章分散到第 12 章，取最早只拿第 1–5 章的線索去判。03 §4.2 已註記；規劃文件照規定沒回頭改。
+  - **結果卡狀態**：各 scope 最新的 run 中任一筆 `done` 就算完成，卡片連到最新完成的那筆（04 N-03b、`api/queries/cards.py`）。原因：MY4 每個真相一筆 run，最後一筆剛好不適用時整張卡顯示「不適用」。CH2、CH5 也照這個規則。
+- 程式：`methods/info/fair_play_audit.py`（數字由演算法算；LLM 只給判定、違反的規則、缺口描述；送 LLM 用短代號；規則只送 `fairness_relevant: true` 且非 `excluded`；語言偵測用真相＋所有線索與揭曉摘要）。`prompts/methods/MY4.md`（v1，只改了 meta 的 reveals 說明）、`config/knox_1929.yaml`、`config/van_dine_1928.yaml` 從 08 複製。測試 `tests/methods/test_fair_play_audit.py`（13）、fixture `method_strong/MY4_sample.json`（手寫）。
+- view：`frontend/src/components/views/FairnessMatrixView.tsx`（05 §4.1 已補畫法）。用假 LLM 跑出的資料在瀏覽器看過。
+- **實跑**（Gemini 2.5 flash，共 2 次呼叫，資料在 `var/benchmark_runs/sign_of_four/my4_real/`，`run_e1.py` 是驅動腳本）：
+  - `e1.json`：揭曉章取最早（第 6 章）→ `unfair`，F7 不過。
+  - `e1_last.json`：取最後（第 12 章）→ `partially_fair`，揭曉前 67 條線索（讀者可見 64、誤導 6），**F7 過**。違反 Knox 8、Van Dine 1、15，理由是 K41、K44 等線索被 S4 標成讀者看不到（抽取品質問題，不是 MY4 的問題）。
+- 整本四簽名有 15 個真相會叫 LLM（21 個有揭曉，扣掉 6 個只瞞角色的）。
+- 假資料：`var/benchmark_runs/sign_of_four/my4_view_fake/`（假 LLM 固定輪流回三種判定，只供看 view；`.claude/launch.json` 的 `backend-my4-fake` 用它）。
+- **沒做**：T18 人工檢查（預設 5 張結果卡由使用者看過）——MY4 現在只有 E1 一筆真資料，等整本實跑後再準備 P2 材料。
 
 ### T27 現況（2026-11-17）
 

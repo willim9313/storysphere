@@ -1,0 +1,3 @@
+{
+  "response_text": "```json\n{\n  \"items\": [\n    {\n      \"hidden_truth_id\": \"T1\",\n      \"verdict\": \"partially_fair\",\n      \"violations\": [\n        {\n          \"rule_set\": \"knox\",\n          \"rule_no\": 8,\n          \"explanation\": \"毒刺的來歷到揭曉章才交代。\"\n        },\n        {\n          \"rule_set\": \"knox\",\n          \"rule_no\": 5,\n          \"explanation\": \"不該出現的條目。\"\n        }\n      ],\n      \"gap_description\": \"讀者在揭曉前看得到腳印與木腿印，但毒刺的來歷要到揭曉才說明。\",\n      \"summary\": \"大致公平：關鍵線索多半先給了讀者，只有毒刺的來歷留到揭曉。\",\n      \"derived_from\": [\n        \"T1\",\n        \"R1\",\n        \"K1\",\n        \"K2\"\n      ],\n      \"confidence\": 0.7\n    }\n  ],\n  \"abstain_reason\": null\n}\n```"
+}

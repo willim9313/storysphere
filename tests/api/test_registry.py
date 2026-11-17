@@ -11,7 +11,7 @@ class TestMethods:
         methods = {m["code"]: m for m in client.get(f"{P}/registry/methods").json()}
         assert len(methods) == 18
         assert {code for code, m in methods.items() if m["implemented"]} == {
-            "EV1", "EV2", "CH2", "CH4", "CH5",
+            "EV1", "EV2", "CH2", "CH4", "CH5", "MY4",
         }  # fmt: skip
         ev1 = methods["EV1"]
         assert ev1["id"] == "event.kernel_satellite" and ev1["implKind"] == "hybrid"

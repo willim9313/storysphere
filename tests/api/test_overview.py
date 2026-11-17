@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from datetime import UTC, datetime, timedelta
 
 import pytest
 from storysphere.store.ingest_units import IngestUnitOutputRow, IngestUnitRow
@@ -72,8 +73,7 @@ class TestCards:
         assert network["maxLevel"] == 2 and network["viewType"] == "network"
         assert network["question"] == "角色分成哪些陣營？"
         assert by_code["EV1"]["state"] == "not_run" and by_code["EV1"]["implemented"] is True
-        # 原型尚未支援的方法：不是錯誤，標 implemented=false
-        assert by_code["MY4"]["state"] == "not_run" and by_code["MY4"]["implemented"] is False
+        assert by_code["MY4"]["state"] == "not_run" and by_code["MY4"]["implemented"] is True
 
     def test_basis_changed_and_running(self, ids, db_file, client):
         async def fill(store):
@@ -144,8 +144,8 @@ class TestTrigger:
         assert self._post(client, refId="character.network").json()["status"] == "queued"
 
     def test_unimplemented_method_is_not_an_error(self, ids, client, started):
-        body = self._post(client, refId="info.fair_play_audit").json()
-        assert body["status"] == "not_implemented" and body["notImplemented"] == ["info.fair_play_audit"]
+        body = self._post(client, refId="info.two_story").json()
+        assert body["status"] == "not_implemented" and body["notImplemented"] == ["info.two_story"]
 
     def test_missing_level_1_type_is_not_applicable(self, ids, client, started):
         body = self._post(client, refId="event.causal_network").json()
@@ -167,6 +167,34 @@ class TestTrigger:
         response = self._post(client, refId="character.network", force=True)
         assert response.status_code == 503 and response.json()["code"] == "llm_unconfigured"
         assert started == [] and client.get(f"{P}/jobs").json() == []
+
+
+class TestPerSubjectCardState:
+    """每個主體一筆 run 的方法：任一 scope 完成就算完成（04 N-03b，2026-11-17）。"""
+
+    def fill(self, db_file, statuses: list[str]) -> None:
+        async def go(store):
+            await add_book(store.session, profile=PROFILE)
+            start = datetime(2026, 11, 17, tzinfo=UTC)
+            for i, status in enumerate(statuses):
+                store.session.add(Run(id=f"r{i}", book_id=BOOK, ref_id="info.fair_play_audit", status=status,
+                                      scope_key=f"subject:t{i}", created_at=start + timedelta(minutes=i),
+                                      precheck_json={"missing": ["reveal"]} if status == "not_applicable" else None))  # fmt: skip
+
+        seed(db_file, go)
+
+    def my4(self, client) -> dict:
+        return next(c for c in client.get(f"{P}/books/{BOOK}/cards").json() if c["code"] == "MY4")
+
+    def test_any_done_scope_makes_the_card_done(self, db_file, client):
+        self.fill(db_file, ["done", "done", "not_applicable"])  # 最新的一筆不適用
+        card = self.my4(client)
+        assert card["state"] == "done" and card["runId"] == "r1"
+
+    def test_all_not_applicable_stays_not_applicable(self, db_file, client):
+        self.fill(db_file, ["not_applicable", "not_applicable"])
+        card = self.my4(client)
+        assert card["state"] == "not_applicable" and card["precheck"]["missing"] == ["reveal"]
 
 
 class TestRerun:

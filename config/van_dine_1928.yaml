@@ -1,0 +1,66 @@
+# ⚠️ 原型草案（2026-11-15）：本資料夾只服務 prototype，之後可能整個打掉。
+# Van Dine, S. S. "Twenty Rules for Writing Detective Stories" (1928). 條目為自己的話摘要，不是原文。
+# fairness_relevant: MY4 只用 true 的條目；其餘是 Van Dine 個人的類型偏好，不判定公平性。
+rule_set: van_dine
+source: Van Dine 1928
+rules:
+  - rule_no: 1
+    summary: The reader must have the same opportunity as the detective to solve the mystery; all clues must be plainly stated.
+    fairness_relevant: true
+  - rule_no: 2
+    summary: No tricks may be played on the reader other than those the criminal legitimately plays on the detective.
+    fairness_relevant: true
+  - rule_no: 3
+    summary: No love interest should distract from the puzzle.
+    fairness_relevant: false
+  - rule_no: 4
+    summary: The detective or an official investigator must never turn out to be the culprit.
+    fairness_relevant: true
+  - rule_no: 5
+    summary: The culprit must be found by logical deduction, not by accident, coincidence or an unmotivated confession.
+    fairness_relevant: true
+  - rule_no: 6
+    summary: There must be a detective, and the detective must actually detect.
+    fairness_relevant: false
+  - rule_no: 7
+    summary: There should be a dead body; a lesser crime is not enough.
+    fairness_relevant: false
+  - rule_no: 8
+    summary: The mystery must be solved by naturalistic means; no séances, mind-reading or the like.
+    fairness_relevant: true
+  - rule_no: 9
+    summary: There should be only one detective.
+    fairness_relevant: false
+  - rule_no: 10
+    summary: The culprit must be a character who has played a reasonably prominent part in the story.
+    fairness_relevant: true
+  - rule_no: 11
+    summary: A servant should not be chosen as the culprit.
+    fairness_relevant: false
+  - rule_no: 12
+    summary: There should be only one culprit, though accomplices may play minor parts.
+    fairness_relevant: false
+  - rule_no: 13
+    summary: Secret societies or criminal organizations have no place in the story.
+    fairness_relevant: false
+  - rule_no: 14
+    summary: The method of the crime and of its detection must be rational and scientific; no imaginary devices.
+    fairness_relevant: true
+  - rule_no: 15
+    summary: The truth must be apparent all along to a sufficiently shrewd reader; on rereading, the solution should be visible in the text.
+    fairness_relevant: true
+  - rule_no: 16
+    summary: No long descriptive passages or literary digressions that do not serve the puzzle.
+    fairness_relevant: false
+  - rule_no: 17
+    summary: A professional criminal should not be the culprit.
+    fairness_relevant: false
+  - rule_no: 18
+    summary: The crime must not turn out to be an accident or a suicide.
+    fairness_relevant: true
+  - rule_no: 19
+    summary: The motive should be personal.
+    fairness_relevant: false
+  - rule_no: 20
+    summary: Avoid a list of worn-out devices (a forged fingerprint, the dog that did not bark, twins, a cipher, and similar).
+    fairness_relevant: false

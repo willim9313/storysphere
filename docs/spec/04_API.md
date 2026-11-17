@@ -389,7 +389,7 @@ pending／running／awaiting_review／paused_quota／interrupted ─(N-09d)─�
 | --- | --- |
 | 用途 | 自動分析的結果卡格 |
 | Response | `Card[]`（§2.4），依 registry 的視角順序；推理書為 5 張（03 §5） |
-| 說明 | 卡片狀態由該 `refId` 最新 run 推得：無 run＝`not_run`；有 queued／running 的 run，或有該方法未結束的 `method_run` job＝`running`；`done` 且各 scope 最新 run 的 current 證據有 `basisChanged=true`＝`basis_changed`；`cancelled` 的 run 當 `failed`；其餘照 run 狀態。`maxLevel` 取各 scope 最新 run 的 current 證據。即時更新靠 N-09f 的 `run.status` |
+| 說明 | 卡片狀態由該 `refId` 的 run 推得：無 run＝`not_run`；有 queued／running 的 run，或有該方法未結束的 `method_run` job＝`running`；`done` 且各 scope 最新 run 的 current 證據有 `basisChanged=true`＝`basis_changed`；`cancelled` 的 run 當 `failed`；**各 scope 最新 run 中有任一筆 `done` → 卡片照那筆（取最新完成的一筆）算 `done`／`basis_changed`，`runId` 指向它**（每個主體一筆 run 的方法常常只有部分主體適用，T18 MY4 實測發現，使用者 2026-11-17 決定）；都沒有完成時照最新 run 的狀態。`maxLevel` 取各 scope 最新 run 的 current 證據。即時更新靠 N-09f 的 `run.status` |
 | 對應 | `registry/perspectives/*.yaml`、`runs`、`evidence` |
 
 ### N-03c GET /books/:bookId/askable

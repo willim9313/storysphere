@@ -28,6 +28,7 @@ class MethodImplementations:
 
 def default_implementations(registry) -> MethodImplementations:
     """所有真正的方法實作；T14–T18 完成一個就在這裡註冊一個。"""
+    from storysphere.methods.info.fair_play_audit import FairPlayAudit
     from storysphere.methods.universal.arc import CharacterArc
     from storysphere.methods.universal.belief import CharacterBelief
     from storysphere.methods.universal.causal_network import CausalNetwork
@@ -41,6 +42,7 @@ def default_implementations(registry) -> MethodImplementations:
         ("character.arc", CharacterArc),
         ("character.network", CharacterNetwork),
         ("character.belief", CharacterBelief),
+        ("info.fair_play_audit", FairPlayAudit),
     ):
         impls.register(cls(registry.methods[method_id]))
     return impls

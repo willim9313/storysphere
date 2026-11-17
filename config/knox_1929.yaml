@@ -1,0 +1,37 @@
+# ⚠️ 原型草案（2026-11-15）：本資料夾只服務 prototype，之後可能整個打掉。
+# Knox, R. "Detective Story Decalogue" (1929). 條目為自己的話摘要，不是原文。
+# fairness_relevant: MY4 公平性稽核只用 true 的條目；false 的是類型慣例，與「對讀者公平」無關。
+rule_set: knox
+source: Knox 1929
+rules:
+  - rule_no: 1
+    summary: The criminal must appear early in the story, and must not be a character whose thoughts the reader has been allowed to follow.
+    fairness_relevant: true
+  - rule_no: 2
+    summary: Supernatural or preternatural agencies are ruled out as the solution.
+    fairness_relevant: true
+  - rule_no: 3
+    summary: No more than one secret room or passage is allowed.
+    fairness_relevant: true
+  - rule_no: 4
+    summary: No hitherto unknown poisons, nor devices that need a long scientific explanation at the end.
+    fairness_relevant: true
+  - rule_no: 5
+    summary: (Rests on an ethnic stereotype of its time. Historical only; never applied.)
+    fairness_relevant: false
+    excluded: true
+  - rule_no: 6
+    summary: No accident or unexplained intuition may help the detective reach the solution.
+    fairness_relevant: true
+  - rule_no: 7
+    summary: The detective must not himself commit the crime.
+    fairness_relevant: false
+  - rule_no: 8
+    summary: The detective must not rely on clues that are not shown to the reader at the time they are found.
+    fairness_relevant: true
+  - rule_no: 9
+    summary: The detective's companion (the "Watson") must not hide any thought from the reader, and should be slightly less perceptive than the average reader.
+    fairness_relevant: true
+  - rule_no: 10
+    summary: Twins or doubles must not be used unless the reader has been prepared for them.
+    fairness_relevant: true

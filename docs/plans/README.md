@@ -13,3 +13,4 @@
 | 2026-11-17 | [20261117-t25-gateway-deepagents.md](20261117-t25-gateway-deepagents.md) | T25：自寫 MCP 轉接（langchain-mcp-adapters 與 mcp 2 衝突）、完成標準換題、分兩批 |
 | 2026-11-17 | [20261117-t26-claude-code-acp.md](20261117-t26-claude-code-acp.md) | T26：skill 經 ACP 的 plugins 帶過去、session 目錄放 repo 外（避免 CLAUDE.md 與 auto-memory） |
 | 2026-11-17 | [20261117-t27-agent-workspace.md](20261117-t27-agent-workspace.md) | T27：N-06c draft、N-07e 照規格只取 run_method（大腦多半不重跑，按鈕常停用）、畫面 5 從 REST 重建 |
+| 2026-11-17 | [20261117-my4-fair-play-audit.md](20261117-my4-fair-play-audit.md) | T18 MY4：一個真相一筆 run、數字由演算法算、只瞞角色的真相跳過、fairness_matrix 一起做 |

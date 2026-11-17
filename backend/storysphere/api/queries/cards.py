@@ -56,10 +56,13 @@ async def card_state(
     if not runs:
         return CardState("not_run")
 
-    latest = runs[0]
     newest = await latest_done(session, book_id)
     # 每個 scope（例如每個角色）最新的那筆才算數。
-    current_ids = [run.id for run in runs if not is_superseded(run, newest)]
+    current = [run for run in runs if not is_superseded(run, newest)]
+    current_ids = [run.id for run in current]
+    # 每個主體一筆 run 的方法（CH2、CH5、MY4）常常只有部分主體適用：
+    # 任一 scope 完成就算完成，卡片連到最新完成的那筆（使用者 2026-11-17 決定，04 N-03b）。
+    latest = next((run for run in current if run.status == "done"), runs[0])
     max_level, changed = (
         await session.execute(
             select(func.max(Evidence.level), func.max(Evidence.basis_changed.cast(Integer)))
