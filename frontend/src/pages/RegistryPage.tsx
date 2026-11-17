@@ -82,12 +82,12 @@ export function RegistryPage() {
       <PageHeader title="方法目錄" meta={meta} />
 
       <div style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-4)' }}>
-        <nav className="ss-utabs" aria-label="檢視">
+        <nav className="ss-tabs" aria-label="檢視">
           {tabs.map((t) => (
             <button
               key={t.id}
               type="button"
-              className={`ss-utab${tab === t.id ? ' active' : ''}`}
+              className={`ss-tab${tab === t.id ? ' active' : ''}`}
               aria-pressed={tab === t.id}
               onClick={() => update({ tab: t.id === 'methods' ? null : t.id })}
             >

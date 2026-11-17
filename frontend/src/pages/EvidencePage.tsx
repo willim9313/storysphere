@@ -8,7 +8,8 @@ import { EvidenceCard, type SourceRef } from '@/components/detail/EvidenceCard';
 import { SourcePanel } from '@/components/detail/SourcePanel';
 import { EvidenceFilters } from '@/components/evidence/EvidenceFilters';
 import { EvidenceTable } from '@/components/evidence/EvidenceTable';
-import { useEvidenceBrowse, type EvidenceFilter } from '@/components/evidence/useEvidenceBrowse';
+import { EvidenceFacts } from '@/components/evidence/EvidenceFacts';
+import { useEvidenceBrowse, useEvidenceCounts, type EvidenceFilter } from '@/components/evidence/useEvidenceBrowse';
 import { BookNav } from '@/components/layout/BookNav';
 import { PageMain, PageHeader } from '@/components/layout/PageMain';
 import { useDevView } from '@/hooks/useDevView';
@@ -75,6 +76,7 @@ export function EvidencePage() {
   const levels = useMemo(() => [...new Set(claimTypes.map((t) => t.level).filter((l): l is number => l !== null))].sort((a, b) => a - b), [claimTypes]);
 
   const list = useEvidenceBrowse(bookId, filter, devView);
+  const counts = useEvidenceCounts(bookId, devView);
   const items = list.data?.pages.flatMap((page) => page.items) ?? [];
   const total = list.data?.pages[0]?.total ?? 0;
   const selected = items.find((item) => item.id === selectedId);
@@ -83,7 +85,16 @@ export function EvidencePage() {
     <>
       <BookNav view="證據瀏覽" />
       <PageMain>
-        <PageHeader title="證據瀏覽" meta={list.data ? `符合 ${total.toLocaleString()} 筆` : '…'} />
+        <PageHeader
+          title="證據瀏覽"
+          meta={[
+            list.data ? `符合 ${total.toLocaleString()} 筆` : '…',
+            counts.data?.level1 != null ? `全書第 1 層 ${counts.data.level1.toLocaleString()}` : null,
+            counts.data ? `第 2 層以上 ${counts.data.upper.toLocaleString()}` : null,
+          ]
+            .filter(Boolean)
+            .join(' · ')}
+        />
         <EvidenceFilters
           filter={filter}
           onChange={(patch) => update(patch)}
@@ -140,6 +151,7 @@ export function EvidencePage() {
             {selectedId !== null && !selected && !list.isLoading && (
               <OutsideEvidence key={selectedId} bookId={bookId} evidenceId={selectedId} onOpenSource={setSource} />
             )}
+            {selectedId !== null && <EvidenceFacts key={`facts-${selectedId}`} bookId={bookId} evidenceId={selectedId} />}
             {source && <SourcePanel bookId={bookId} source={source} onClose={() => setSource(null)} />}
           </div>
         </div>

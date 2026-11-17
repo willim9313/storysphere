@@ -48,7 +48,7 @@
 | **T25 Gateway＋deepagents** | 完成；Gemini 實測兩題都過（加了 `character-analysis` skill 之後）；見「T25 現況」 | — |
 | **T26 Claude Code（ACP）** | 完成；實測兩題與擋工具都過；見「T26 現況」 | — |
 | **T27 Agent 工作區畫面** | 完成；見「T27 現況」 | `4d18949` |
-| **UI 對齊設計稿**（T28 前插入） | 進行中：第 0 批（比對）、第 1 批（kit）、第 2 批（Agent 工作區）、第 3 批（設定）完成；見「UI 對齊現況」 | `fcb2e1f` |
+| **UI 對齊設計稿**（T28 前插入） | 進行中：第 0 批（比對）、第 1 批（kit）、第 2 批（Agent 工作區）、第 3 批（設定）、第 4 批（筆記、詳情、證據瀏覽）完成；**UI 對齊五批全部做完**；見「UI 對齊現況」 | `fcb2e1f` |
 | T28 驗收 | 未開始；先要整本實跑（含 MY4 15 次呼叫）與 T18 人工檢查 | — |
 
 - 分支：本機 `main`，沒有遠端，沒推過。CI（`.github/workflows/gates.yml`）寫好但從沒跑過。
@@ -109,6 +109,13 @@
 - 第 1 批：`ss-kit.css` 補 `ss-tabs`／`ss-tab`、`ss-panel*`、`ss-option-card*`、`a.ss-card-link`。`.ss-toggle` 沒搬（`global.css` 已有按鈕版，同名保留）；`.ss-theme-*` 第 3 批和色票 token 一起補。05 §2 已同步。
 - 第 2 批：Agent 工作區照設計稿重做（`ChatPane`、`ResultCard`、`AgentPage`）；新依賴 `remark-gfm`，共用 `components/Prose.tsx`＋`.ss-prose`（筆記頁也換上，N2 已修）。截圖在 `var/ui_compare/batch2/`。05 §3.3 補了原型決定。**沒驗到的**：開著的 session（加框、寫入確認卡、存成筆記與捨棄按鈕的新位置）——要真的問大腦才有，先用已關閉的 session 看版面。
 - 第 3 批：設定頁補「Agent 大腦」卡（`components/settings/BrainSection.tsx`，N-08e–g；改了就存，LLM 設定未存時停用）；主題卡照設計稿加色票（`tokens.css` 的 `--theme-preview-*`，Ink 下也畫自己的顏色）。05 §6 補原型決定。截圖在 `var/ui_compare/batch3/`。**沒按過**大腦卡的選項、模型、測試大腦——會寫 `var/settings.yaml` 或叫 LLM。
+- 第 4 批：
+  - N1：agent 筆記的方法論 trace（`kind=mcp`）在筆記頁顯示（預設只列有貢獻的呼叫，可展開全部；`run_method` 標「重跑時重放」）。
+  - D1–D6：詳情頁大標題改用結果卡問句；加機制標籤、方法問句橫幅（registry 沒有方法說明欄位，橫幅放方法的完整問句與依據，不是設計稿那段注意事項）、右上「存成筆記」（打開頁尾的表單）；view 區標題用 view 名稱（`views/labels.ts` 的 `viewTitle`）；公平性 view 的選取側欄改成矩陣下方每個真相一張判定卡（Agent 結果裡的同一個 view 也一起變）。
+  - E1：副標加全書第 1 層與第 2 層以上的筆數；「引文未對上原文」的筆數沒做（N-05a 沒有這個篩選，要加 API）。E2：右欄在證據卡下面加 `ss-panel` 詳細資料（內容欄位、引文位置與是否對上原文、產生方式）；設計稿的「誰引用它」沒做（沒有反向查詢的 API）。
+  - K1：詳情、方法目錄的分頁改用 `ss-tabs`；`ss-kit.css` 裡的 `.ss-utabs` 已沒有使用者，沒刪（待使用者決定）。
+  - L1：不用改——書庫副標本來就照設計稿，為 0 的項目不列；第 0 批是誤判。
+  - 截圖在 `var/ui_compare/batch4/`。詳情頁用 `backend-my4-fake`（假 LLM 的 MY4 資料）看。
 
 ### T19 現況（2026-11-17）
 

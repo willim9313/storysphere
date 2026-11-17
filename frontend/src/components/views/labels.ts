@@ -23,3 +23,18 @@ const CLAIM_TYPES: Record<string, string> = {
 export function claimTypeLabel(claimType: string): string {
   return CLAIM_TYPES[claimType] ?? claimType;
 }
+
+// view 的標題（registry/views/views.yaml 的 description 冒號前那段；詳情頁、Agent 結果的 view 區標題）。
+const VIEW_TITLES: Record<string, string> = {
+  causal_graph: '事件因果圖',
+  character_arc: '角色 × 章節的弧線',
+  network: '角色網路',
+  knowledge_matrix: '角色 × 章節的知情狀態',
+  fairness_matrix: '真相 × 章節',
+  suspect_matrix: '嫌疑人 × 線索',
+  evidence_list: '證據列表',
+};
+
+export function viewTitle(viewType: string | null): string {
+  return (viewType && VIEW_TITLES[viewType]) ?? '證據列表';
+}

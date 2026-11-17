@@ -126,12 +126,15 @@ export function FairnessMatrixView({ bookId, evidenceIds, onSelectEvidence }: Re
   // 只畫正文章（role=body）；格寬固定，線索多時在格內換行。
   const columns = (chapters.data ?? []).filter((c) => c.role === 'body').map((c) => c.number);
   const chapterTitle = new Map((chapters.data ?? []).map((c) => [c.number, c.title]));
-  const selected = gaps.find((g) => g.evidenceId === selectedId) ?? null;
-  const clueSummary = (id: string) => (cluesByTruth.get(selected?.truthId ?? '') ?? []).find((c) => c.id === id)?.summary ?? id.slice(0, 8);
+  const clueSummary = (truthId: string, id: string) => (cluesByTruth.get(truthId) ?? []).find((c) => c.id === id)?.summary ?? id.slice(0, 8);
+  const select = (gap: Gap) => {
+    setSelectedId(gap.evidenceId);
+    onSelectEvidence?.(gap.evidenceId);
+  };
 
   return (
-    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-5)', alignItems: 'flex-start' }}>
-      <div style={{ flex: '1 1 520px', minWidth: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+      <div style={{ minWidth: 0, display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
         <div style={{ overflowX: 'auto' }}>
           <div
             role="table"
@@ -158,10 +161,7 @@ export function FairnessMatrixView({ bookId, evidenceIds, onSelectEvidence }: Re
                     type="button"
                     role="rowheader"
                     aria-pressed={isSel}
-                    onClick={() => {
-                      setSelectedId(gap.evidenceId);
-                      onSelectEvidence?.(gap.evidenceId);
-                    }}
+                    onClick={() => select(gap)}
                     style={{
                       all: 'unset',
                       cursor: 'pointer',
@@ -216,61 +216,62 @@ export function FairnessMatrixView({ bookId, evidenceIds, onSelectEvidence }: Re
         <Legend />
       </div>
 
-      <aside
-        aria-live="polite"
-        style={{
-          flex: '0 1 320px',
-          minWidth: 240,
-          padding: 'var(--space-4)',
-          border: 'var(--border-width) var(--border-style) var(--border)',
-          borderRadius: 'var(--radius-md)',
-          background: 'var(--bg-secondary)',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 'var(--space-3)',
-        }}
-      >
-        {selected ? (
-          <>
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
-              <span className={VERDICTS[selected.verdict].className}>{VERDICTS[selected.verdict].label}</span>
-              <span style={{ fontSize: 'var(--font-size-xs)', color: 'var(--fg-muted)' }}>
-                {selected.revealChapter !== null ? `第 ${selected.revealChapter} 章揭曉` : '揭曉章不明'}
+      {/* 逐項判定卡（畫布 Detail.dc.html）：每個真相一張；點矩陣的列或卡片會選中並加框。 */}
+      <section aria-label="判定" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-5)' }}>
+        {gaps.map((gap) => {
+          const isSel = gap.evidenceId === selectedId;
+          return (
+            <article
+              key={gap.evidenceId}
+              aria-current={isSel || undefined}
+              onClick={() => select(gap)}
+              style={{
+                cursor: 'pointer',
+                background: 'var(--bg-primary)',
+                border: isSel ? '2px var(--border-style) var(--accent)' : 'var(--card-border-width) var(--border-style) var(--border)',
+                borderRadius: 'var(--card-radius)',
+                boxShadow: 'var(--card-shadow)',
+                padding: 'var(--space-5) var(--space-6)',
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 'var(--space-4)',
+              }}
+            >
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-4)' }}>
+                <span style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-sm)', fontWeight: 600 }}>{statement.get(gap.truthId) ?? '（找不到真相）'}</span>
+                <span className={VERDICTS[gap.verdict].className} style={{ flexShrink: 0 }}>
+                  {VERDICTS[gap.verdict].label}
+                </span>
+              </div>
+              <span style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)', fontVariantNumeric: 'tabular-nums' }}>
+                揭曉前 {gap.before.length} 條線索 · 讀者可見 {gap.visible} · 誤導 {gap.misdirection} ·{' '}
+                {gap.revealChapter !== null ? `揭曉於第 ${gap.revealChapter} 章` : '揭曉章不明'}
               </span>
-            </div>
-            <div style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600 }}>{statement.get(selected.truthId)}</div>
-            <p style={small}>
-              揭曉前 {selected.before.length} 條線索：讀者看得到 {selected.visible} 條、誤導 {selected.misdirection} 條。
-            </p>
-            {selected.gapDescription && <p style={small}>{selected.gapDescription}</p>}
-            {selected.violations.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)' }}>
-                <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600 }}>違反的規則</span>
-                {selected.violations.map((v) => (
-                  <p key={`${v.ruleSet}-${v.ruleNo}`} style={small}>
-                    <strong>
-                      {RULE_SET[v.ruleSet] ?? v.ruleSet} 第 {v.ruleNo} 條
-                    </strong>
-                    ：{v.explanation}
-                  </p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', fontSize: 'var(--font-size-xs)', lineHeight: 1.6 }}>
+                {gap.violations.map((v) => (
+                  <div key={`${v.ruleSet}-${v.ruleNo}`} style={{ display: 'flex', gap: 'var(--space-3)' }}>
+                    <span style={{ flexShrink: 0, color: 'var(--fg-secondary)' }}>可能違反</span>
+                    <span>
+                      {RULE_SET[v.ruleSet] ?? v.ruleSet} 第 {v.ruleNo} 條：{v.explanation}
+                    </span>
+                  </div>
                 ))}
+                {gap.gapDescription && <span>{gap.gapDescription}</span>}
               </div>
-            )}
-            {selected.before.length > 0 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
-                <span style={{ fontSize: 'var(--font-size-xs)', fontWeight: 600 }}>揭曉前的線索</span>
-                <ul style={{ ...small, paddingLeft: 'var(--space-5)' }}>
-                  {selected.before.map((id) => (
-                    <li key={id}>{clueSummary(id)}</li>
-                  ))}
-                </ul>
-              </div>
-            )}
-          </>
-        ) : (
-          <p style={{ ...small, color: 'var(--fg-muted)' }}>點一列看判定、違反的規則與揭曉前的線索。</p>
-        )}
-      </aside>
+              {gap.before.length > 0 && (
+                <details onClick={(e) => e.stopPropagation()}>
+                  <summary style={{ ...small, cursor: 'pointer' }}>揭曉前的線索 · {gap.before.length}</summary>
+                  <ul style={{ ...small, paddingLeft: 'var(--space-5)' }}>
+                    {gap.before.map((id) => (
+                      <li key={id}>{clueSummary(gap.truthId, id)}</li>
+                    ))}
+                  </ul>
+                </details>
+              )}
+            </article>
+          );
+        })}
+      </section>
     </div>
   );
 }

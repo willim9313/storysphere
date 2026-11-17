@@ -1,4 +1,4 @@
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useInfiniteQuery, useQuery } from '@tanstack/react-query';
 import { apiFetch, type Schemas } from '@/api/client';
 import { queryKeys } from '@/api/queryKeys';
 
@@ -47,5 +47,18 @@ export function useEvidenceBrowse(bookId: string, filter: EvidenceFilter, includ
       return apiFetch<Schemas['EvidencePage']>(`/books/${encodeURIComponent(bookId)}/evidence?${page}`);
     },
     getNextPageParam: (last) => last.nextCursor,
+  });
+}
+
+/** 全書的層級分布（副標用）：各打一次 N-05a 只取 total。`includeL1` 關掉時不查第 1 層。 */
+export function useEvidenceCounts(bookId: string, includeL1: boolean) {
+  const count = (query: string) =>
+    apiFetch<Schemas['EvidencePage']>(`/books/${encodeURIComponent(bookId)}/evidence?limit=1&${query}`).then((page) => page.total);
+  return useQuery({
+    queryKey: queryKeys.bookData(bookId, 'evidence-counts', includeL1),
+    queryFn: async () => ({
+      upper: await count(''),
+      level1: includeL1 ? await count('includeL1=true&minLevel=1&maxLevel=1') : null,
+    }),
   });
 }

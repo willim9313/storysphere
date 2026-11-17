@@ -31,6 +31,78 @@ interface TraceRun {
   model?: string | null;
 }
 
+/** agent 筆記的 trace（04 §5.6 `kind=mcp`）：該次 create_note 之前的 ok 呼叫。 */
+interface TraceCall {
+  seq: number;
+  tool: string;
+  args: Record<string, unknown>;
+  resultRunIds?: string[];
+  contributing?: boolean;
+}
+
+// 一步的主要參數（方法、run、view、查詢字…），放在工具名後面。
+// trace 存的參數有 snake_case 也有 camelCase（API 層轉過），兩種都認。
+const STEP_KEYS = ['method_id', 'methodId', 'run_id', 'runId', 'view_type', 'viewType', 'query', 'entity_id', 'entityId', 'name', 'title'];
+
+function stepTitle(call: TraceCall): string {
+  const key = STEP_KEYS.map((k) => call.args[k]).find((v) => typeof v === 'string');
+  const id = call.args.evidenceId ?? call.args.evidence_id;
+  if (key) return `${call.tool} · ${key}`;
+  return typeof id === 'string' ? `${call.tool} · ${id.slice(0, 8)}` : call.tool;
+}
+
+/** 其餘參數一行＋貢獻與重放說明（N-06d：只重放 run_method，讀取類不重放）。 */
+function stepDesc(call: TraceCall): string {
+  const rest = Object.entries(call.args)
+    .filter(([k, v]) => !STEP_KEYS.includes(k) && k !== 'evidenceId' && k !== 'evidence_id' && v !== null && v !== undefined && typeof v !== 'object')
+    .map(([k, v]) => `${k}=${String(v)}`)
+    .slice(0, 3);
+  return [
+    ...rest,
+    call.contributing ? '產出或回傳了被引用的證據' : null,
+    call.tool === 'run_method' ? '重跑時重放' : '讀取，重跑時不重放',
+  ]
+    .filter(Boolean)
+    .join(' · ');
+}
+
+const stepH: CSSProperties = { margin: 0, fontFamily: 'var(--font-sans)', fontSize: 'var(--font-size-2xs)', fontWeight: 600, letterSpacing: '0.06em', color: 'var(--fg-muted)' };
+
+/** 產生它的方法論（畫布 Notes.dc.html）：預設只列有貢獻的呼叫，可展開全部。 */
+function McpTrace({ calls, sessionId }: Readonly<{ calls: TraceCall[]; sessionId?: string }>) {
+  const [all, setAll] = useState(false);
+  const key = calls.filter((c) => c.contributing);
+  const shown = all || key.length === 0 ? calls : key;
+  return (
+    <section aria-labelledby="trace-h" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+      <h3 id="trace-h" style={stepH}>
+        產生它的方法論（{sessionId ? `session ${sessionId.slice(0, 4)} 的` : ''}工具呼叫）
+      </h3>
+      <div className="ss-steps">
+        {shown.map((call, index) => (
+          <div key={call.seq} className="ss-step done">
+            <div className="ss-step-rail">
+              <div className="ss-step-marker">{index + 1}</div>
+              <div className="ss-step-line" />
+            </div>
+            <div className="ss-step-body">
+              <div className="ss-step-title" style={{ fontFamily: 'var(--font-mono)', fontWeight: 500 }}>
+                {stepTitle(call)}
+              </div>
+              <div className="ss-step-desc">{stepDesc(call)}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+      {key.length > 0 && key.length < calls.length && (
+        <button type="button" className="ss-btn ss-btn-sm ss-btn-ghost" style={{ alignSelf: 'flex-start' }} aria-expanded={all} onClick={() => setAll(!all)}>
+          {all ? `只看有貢獻的 ${key.length} 步` : `顯示全部 ${calls.length} 次呼叫`}
+        </button>
+      )}
+    </section>
+  );
+}
+
 /** 打開的一篇筆記：結論、引用證據、產生它的方法論 trace、詮釋（05 §3 畫面 6）。 */
 function NoteView({ bookId, noteId }: Readonly<{ bookId: string; noteId: string }>) {
   const { data: note, error } = useNote(bookId, noteId);
@@ -44,7 +116,7 @@ function NoteView({ bookId, noteId }: Readonly<{ bookId: string; noteId: string 
     title: string;
     conclusion: string;
     question?: string | null;
-    methodologyTrace?: { kind?: string; runs?: TraceRun[] };
+    methodologyTrace?: { kind?: string; runs?: TraceRun[]; calls?: TraceCall[]; sessionId?: string };
   };
   const trace = content.methodologyTrace ?? {};
   const source = note.producedVia === 'agent' ? `agent · ${note.agentBackend ?? ''}` : '結果卡';
@@ -128,6 +200,8 @@ function NoteView({ bookId, noteId }: Readonly<{ bookId: string; noteId: string 
           </div>
         </section>
       )}
+
+      {trace.kind === 'mcp' && trace.calls && trace.calls.length > 0 && <McpTrace calls={trace.calls} sessionId={trace.sessionId} />}
 
       <section aria-labelledby="int-h" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
         <h3 id="int-h" style={h3}>

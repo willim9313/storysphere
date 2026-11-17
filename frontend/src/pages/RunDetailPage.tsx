@@ -10,6 +10,7 @@ import { SaveNote } from '@/components/detail/SaveNote';
 import { SourcePanel } from '@/components/detail/SourcePanel';
 import { BookNav } from '@/components/layout/BookNav';
 import { PageMain } from '@/components/layout/PageMain';
+import { viewTitle } from '@/components/views/labels';
 import { ViewRenderer } from '@/components/views/ViewRenderer';
 
 const GRADE: Record<string, string> = { theory: '理論', technique: '技法', derived: '衍生' };
@@ -55,6 +56,7 @@ export function RunDetailPage() {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]['id']>('all');
   const [selected, setSelected] = useState<string | null>(null);
   const [source, setSource] = useState<SourceRef | null>(null);
+  const [saving, setSaving] = useState(false);
 
   const method = methods.find((m) => m.id === run?.refId);
   const card = cards.find((c) => c.refId === run?.refId);
@@ -86,7 +88,7 @@ export function RunDetailPage() {
               回總覽
             </Link>
             <h1 style={{ margin: 0, fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-3xl)', fontWeight: 700, lineHeight: 1.2 }}>
-              {run?.question ?? card?.question ?? '…'}
+              {card?.question ?? run?.question ?? '…'}
             </h1>
             <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--space-3)', fontSize: 'var(--font-size-xs)', color: 'var(--fg-secondary)' }}>
               <span style={{ fontFamily: 'var(--font-mono)' }}>{run?.code}</span>
@@ -97,19 +99,39 @@ export function RunDetailPage() {
                 </>
               )}
               {run?.grade && <span className="ss-badge ss-badge-neutral">{GRADE[run.grade] ?? run.grade}</span>}
+              {method?.mechanism && <span className="ss-badge ss-badge-neutral">{method.mechanism}機制</span>}
               {run?.superseded && <span className="ss-badge ss-badge-warning">已有較新的結果</span>}
             </div>
             <span style={{ ...small, fontFamily: 'var(--font-mono)' }}>{runMeta}</span>
           </div>
-          <button
-            type="button"
-            className="ss-btn ss-btn-md ss-btn-secondary ss-btn-llm"
-            disabled={!run || rerun.isPending}
-            onClick={() => rerun.mutate(runId)}
-          >
-            重跑
-          </button>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
+            <button
+              type="button"
+              className="ss-btn ss-btn-md ss-btn-secondary ss-btn-llm"
+              disabled={!run || rerun.isPending}
+              onClick={() => rerun.mutate(runId)}
+            >
+              重跑
+            </button>
+            <button
+              type="button"
+              className="ss-btn ss-btn-md ss-btn-primary"
+              disabled={!run || evidenceLoading || saving}
+              onClick={() => {
+                setSaving(true);
+                document.getElementById('save-note')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              }}
+            >
+              存成筆記
+            </button>
+          </div>
         </div>
+        {method && method.question !== (card?.question ?? run?.question) && (
+          <p style={{ margin: 0, padding: 'var(--space-4) var(--space-5)', background: 'var(--color-info-bg)', color: 'var(--fg-secondary)', borderRadius: 'var(--radius-sm)', fontSize: 'var(--font-size-xs)', lineHeight: 1.6 }}>
+            這張卡回答的是：{method.question}
+            {method.basis ? `（依據 ${method.basis}）` : ''}
+          </p>
+        )}
         {rerun.data && <p style={small}>已排入重跑（{rerun.data.status}）；完成後總覽的結果卡會更新。</p>}
         {rerun.error && <p role="alert" style={{ ...small, color: 'var(--color-error)' }}>{errorText(rerun.error)}</p>}
         {error && <p role="alert" style={{ margin: 0, color: 'var(--color-error)' }}>讀不到這個 run：{errorText(error)}</p>}
@@ -118,7 +140,7 @@ export function RunDetailPage() {
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 'var(--space-6)', alignItems: 'flex-start' }}>
             <section aria-labelledby="view-h" style={{ ...panel, flex: '3 1 640px', minWidth: 0 }}>
               <h2 id="view-h" style={h2}>
-                {method?.question ?? run.question}
+                {viewTitle(viewType)}
               </h2>
               <ViewRenderer viewType={viewType} bookId={bookId} runId={runId} onSelectEvidence={setSelected} />
             </section>
@@ -129,12 +151,12 @@ export function RunDetailPage() {
                   <h2 id="ev-h" style={h2}>
                     證據
                   </h2>
-                  <nav className="ss-utabs" aria-label="篩選證據">
+                  <nav className="ss-tabs" aria-label="篩選證據">
                     {FILTERS.map((f) => (
                       <button
                         key={f.id}
                         type="button"
-                        className={`ss-utab${filter === f.id ? ' active' : ''}`}
+                        className={`ss-tab${filter === f.id ? ' active' : ''}`}
                         aria-pressed={filter === f.id}
                         onClick={() => setFilter(f.id)}
                       >
@@ -157,7 +179,7 @@ export function RunDetailPage() {
           </div>
         )}
         {run && !evidenceLoading && (
-          <SaveNote bookId={bookId} runId={runId} question={run.question ?? card?.question ?? ''} evidence={evidence} />
+          <SaveNote bookId={bookId} runId={runId} question={card?.question ?? run.question ?? ''} evidence={evidence} open={saving} onOpenChange={setSaving} />
         )}
       </PageMain>
     </>

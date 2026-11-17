@@ -24,16 +24,18 @@ export function SaveNote({
   runId,
   question,
   evidence,
-}: Readonly<{ bookId: string; runId: string; question: string; evidence: EvidenceItem[] }>) {
+  open,
+  onOpenChange,
+}: Readonly<{ bookId: string; runId: string; question: string; evidence: EvidenceItem[]; open: boolean; onOpenChange: (open: boolean) => void }>) {
   const navigate = useNavigate();
   const create = useCreateNote(bookId);
   const citable = evidence.filter((e) => e.level >= 2 && e.status === 'current');
-  const [open, setOpen] = useState(false);
   const [title, setTitle] = useState(question);
   const [conclusion, setConclusion] = useState('');
 
   return (
     <section
+      id="save-note"
       aria-labelledby="save-h"
       style={{
         background: 'var(--bg-secondary)',
@@ -54,7 +56,7 @@ export function SaveNote({
           </span>
         </div>
         {!open && (
-          <button type="button" className="ss-btn ss-btn-md ss-btn-primary" disabled={citable.length === 0} onClick={() => setOpen(true)}>
+          <button type="button" className="ss-btn ss-btn-md ss-btn-primary" disabled={citable.length === 0} onClick={() => onOpenChange(true)}>
             存成筆記
           </button>
         )}
@@ -89,7 +91,7 @@ export function SaveNote({
             >
               確認存成筆記
             </button>
-            <button type="button" className="ss-btn ss-btn-md ss-btn-ghost" onClick={() => setOpen(false)}>
+            <button type="button" className="ss-btn ss-btn-md ss-btn-ghost" onClick={() => onOpenChange(false)}>
               取消
             </button>
           </div>
