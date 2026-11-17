@@ -1,6 +1,6 @@
 # 進度與後續待辦
 
-最後更新：2026-11-17（T19 B 批完成）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
+最後更新：2026-11-17（T19 C 批完成）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
 
 ## 接手先看這裡（2026-11-16 使用者的決定）
 
@@ -39,11 +39,11 @@
 | T16 NS2 | **不做**（範圍調整） | — |
 | T17 TM1、TM2、SY1、TM3 | **不做**（範圍調整） | — |
 | T18 MY1、MY4、MY5 | 只做 MY4，排在 UI 之後；MY1、MY5 不做 | — |
-| **T19 REST 與 SSE** | **進行中**：A 批（`6e2d9c1`）、B 批完成，下一步 C 批；見「T19 現況」 | — |
+| **T19 REST 與 SSE** | **三批完成**（A `6e2d9c1`、B `02c0e83`、C 見 git log）；延後的端點見「T19 現況」 | — |
 | T20 之後 | 未開始 | — |
 
 - 分支：本機 `main`，沒有遠端，沒推過。CI（`.github/workflows/gates.yml`）寫好但從沒跑過。
-- 閘門現況：後端三道（ruff、pytest 沒設 `BENCHMARK_DIR` 時 1250 passed、2 skipped、registry check）exit 0；前端三道在 T01 通過後沒再動過。
+- 閘門現況：六道全部 exit 0（pytest 沒設 `BENCHMARK_DIR` 時 1297 passed、2 skipped）。
 - 這台有 `.env`（`GEMINI_API_KEY`，被 gitignore）。程式不會自己讀 `.env`，要 `uv run --env-file .env`。
 - 相關目錄：
   - 本專案：`~/Desktop/storysphere_v4_app`
@@ -103,6 +103,10 @@
 - service 層的小改動：`IngestService` 的審閱與續跑拆成 `claim_*`（檢查狀態，同步回 409）＋`continue_*`（背景跑）；`review_data`、`open_review_job`、`mark_cancelled` 改成模組函式（不需要模型）；`MethodJobs` 加 `start`、`task`。
 - **SQLite 改用 WAL、等鎖上限 30 秒**（`store/db.py`，01 §1 已註記）。原因：`test_unit_runner` 的 429 測試在整套跑時偶爾 `database is locked`（另一個 stage 被取消時連線握著寫入鎖超過 5 秒）。改了之後整套連跑 8 次全過，原本約 3 次失敗 1 次；整套也從約 37 秒變約 30 秒。試過用 `asyncio.shield` 包住單位的寫入，反而讓單位卡在 `running`，已還原。副作用：`var/neo.db` 旁邊會有 `-wal`、`-shm` 兩個檔，伺服器開著時備份要一起複製。
 - 監看迴圈與 SSE 沒有開真的伺服器長時間跑過；測試是直接呼叫 `poll_once` 與預先放好事件的串流。
+- **C 批完成**：N-01d 刪書（`store/purge.py`）、N-03b 結果卡、N-03c 也可以問、N-04a 觸發（`planned`／`reused`／`not_applicable`／`not_implemented`／`queued`／`attached`）、N-04d 重跑、N-05e 審核（拒絕時在書的串流發 `basis.changed`）、N-08a–d LLM 設定與測試。04 已同步（`Card.implemented`、`not_implemented` 狀態、`reused` 的條件、N-04d 的 scope、N-08b 的寫入規則、N-08d 的形狀）。
+- **前端型別**：`frontend/src/api/generated.ts` 已產生（35 條路徑）。產生方式是從 app 匯出 `openapi.json` 再跑 `openapi-typescript`，結果與 `npm run gen:types` 相同，只是不必在 8000 埠開伺服器（開伺服器會在 `var/` 建出 `neo.db`）。`knip.jsonc` 把它列為忽略，T21 的 API client import 之後可以拿掉。
+- **T19 完成標準對照**（07）：「`npm run gen:types` 產出型別」達成；「SSE 斷線帶 `Last-Event-ID` 能補抓」達成；「04 每個端點都有 API 測試」**部分**——做了的端點都有，延後的沒有。
+- **延後的端點**（使用者 2026-11-16 確認）：N-02f／g／h（重跑失敗單位、從某步重跑、改主題材）、N-06*（筆記、詮釋）、N-07c／d／e（方法論）、N-08e–g 與 N-10*（大腦，T25）。N-04d 的 `rerunUpstream=true` 也還沒做（回 422）。
 
 ### T19 動工前要知道的（彙整前面各張留下來的）
 

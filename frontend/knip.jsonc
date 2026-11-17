@@ -3,6 +3,8 @@
   // export 層級（有 export 但只在檔內使用）刻意不擋：本身有在用、雜訊多，修正只是拿掉 export 關鍵字。
   // CSS class 不在 knip 偵測範圍，仍需人工清點。
   "$schema": "https://unpkg.com/knip@5/schema-jsonc.json",
+  // npm run gen:types 從後端 openapi.json 產生；T21 的 API client 才會 import，產生的檔不算「沒人用」。
+  "ignore": ["src/api/generated.ts"],
   "rules": {
     "exports": "off",
     "types": "off",

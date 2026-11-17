@@ -1,16 +1,18 @@
-"""N-01a、N-01c、N-01e 書庫；N-03a 題材判定卡。"""
+"""N-01a、N-01c、N-01d、N-01e 書庫；N-03a 題材判定卡。"""
 
 from __future__ import annotations
 
 from typing import Any
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Request, Response
 from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from storysphere.api.deps import BookDep, SessionDep
+from storysphere.api.errors import ApiError
 from storysphere.api.schemas.books import Book, BookDetail, ChapterItem, GenreCard, MixedGenre
 from storysphere.api.schemas.common import camelize
+from storysphere.store import purge
 from storysphere.store.books import BookRow, ChapterRow, ParagraphRow
 from storysphere.store.tables import Job
 
@@ -18,6 +20,7 @@ router = APIRouter(tags=["books"])
 
 # 同一本書同時只會有一個（04 §3.3）。
 INGEST_KINDS = ("ingest", "ingest_retry", "ingest_rerun", "genre_s4")
+TERMINAL_STATUSES = ("done", "error", "cancelled")
 _PROFILE_RAW_KEYS = frozenset({"mechanism_density"})
 
 
@@ -124,3 +127,23 @@ async def get_genre(book: BookDep) -> GenreCard:
         override=book.genre_override,
         effective_genre=effective_genre(book),
     )
+
+
+@router.delete("/books/{book_id}", status_code=204)
+async def delete_book(book: BookDep, session: SessionDep, request: Request) -> Response:
+    """N-01d 刪書：同一交易刪掉所有帶 `book_id` 的列；有非終態 job 時 409。
+
+    上傳的原始檔（`var/uploads/`）不刪。
+    """
+    job_ids = list(await session.scalars(select(Job.id).where(Job.book_id == book.id)))
+    active = await session.scalar(
+        select(Job.id).where(Job.book_id == book.id, Job.status.not_in(TERMINAL_STATUSES))
+    )
+    if active is not None:
+        raise ApiError(409, "job_conflict", f"Job {active} of this book is not finished.", jobId=active)
+    await purge.delete_book(session, book.id)
+    await session.commit()
+    # 審閱 checkpoint 在另一個檔，不在上面的交易裡；thread 以 job id 為鍵。
+    for job_id in job_ids:
+        await request.app.state.checkpointer.adelete_thread(job_id)
+    return Response(status_code=204)

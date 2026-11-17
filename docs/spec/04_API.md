@@ -153,6 +153,7 @@
 | `viewType` | 05 §4 |
 | `state` | `not_run`／`running`／`done`／`not_applicable`／`failed`／`basis_changed`（05 §3.1 的六態） |
 | `runId`、`jobId`、`maxLevel`、`finishedAt`、`precheck` | 依狀態有值 |
+| `implemented` | 原型決定（2026-11-17）：`false`＝原型尚未支援這個方法（範圍調整後只做 6 個方法），`state` 是 `not_run`，UI 標「尚未支援」，不當成錯誤 |
 
 原型決定：03 §5 寫成 `EV2 → EV1`、`TM1 → TM2` 的卡，`refId` 取**最後一步**（EV1、TM2），前面的步驟靠一致性規則 7 的上游自動補跑，不另外宣告方法論。
 
@@ -279,7 +280,7 @@ pending／running／awaiting_review／paused_quota／interrupted ─(N-09d)─�
 | 項目 | 內容 |
 | --- | --- |
 | 用途 | 刪書；單一 SQLite 檔，同一交易刪除該書所有列（01 §1 的理由） |
-| Response | 204；有非終態 job → `409 job_conflict` |
+| Response | 204；有非終態 job → `409 job_conflict`（帶 `jobId`）。同時刪掉該書各 job 的審閱 checkpoint；上傳的原始檔（`var/uploads/`）不刪 |
 | 對應 | 01 §2 所有帶 `book_id` 的表 |
 
 ### N-01e GET /books/:bookId/chapters
@@ -387,7 +388,7 @@ pending／running／awaiting_review／paused_quota／interrupted ─(N-09d)─�
 | --- | --- |
 | 用途 | 自動分析的結果卡格 |
 | Response | `Card[]`（§2.4），依 registry 的視角順序；推理書為 5 張（03 §5） |
-| 說明 | 卡片狀態由該 `refId` 最新 run 推得：無 run＝`not_run`；run 為 queued／running＝`running`；`done` 且有 current 證據 `basisChanged=true`＝`basis_changed`；其餘照 run 狀態。即時更新靠 N-09f 的 `run.status` |
+| 說明 | 卡片狀態由該 `refId` 最新 run 推得：無 run＝`not_run`；有 queued／running 的 run，或有該方法未結束的 `method_run` job＝`running`；`done` 且各 scope 最新 run 的 current 證據有 `basisChanged=true`＝`basis_changed`；`cancelled` 的 run 當 `failed`；其餘照 run 狀態。`maxLevel` 取各 scope 最新 run 的 current 證據。即時更新靠 N-09f 的 `run.status` |
 | 對應 | `registry/perspectives/*.yaml`、`runs`、`evidence` |
 
 ### N-03c GET /books/:bookId/askable
@@ -396,7 +397,7 @@ pending／running／awaiting_review／paused_quota／interrupted ─(N-09d)─�
 | --- | --- |
 | 用途 | 「也可以問」清單與其他題材訊號推薦 |
 | Response | `askable[{refId, code, question, refKind, layer, mechanism, grade, priority, implemented, precheck}]`；`otherSignals[{mechanism, density, chapters, suggestedQuestion, supported}]` |
-| 說明 | `askable`＝registry 所有 `question` 扣掉 N-03b 已列的（03 §5）。`precheck` 是不叫 LLM 的前提檢查結果（03 §6 `check`），讓 UI 先標「不適用」。`otherSignals` 來自 `genre_profile` 中非主機制、密度 > 0 的機制；`supported=false` 對應 05 §3.1「尚未支援」。`suggestedQuestion` 取自 `registry/perspectives/mechanisms.yaml`（03 §5） |
+| 說明 | `askable`＝registry 所有 `question` 扣掉 N-03b 已列的（03 §5）；方法論一律 `implemented=false`（方法論執行器不做）。`precheck` 是不叫 LLM 的前提檢查：原型只檢查「要讀的第 1 層類型這本書沒有、方法也補不出來」（`plan_method` 的缺項），方法自己的 `check()`（數量門檻等）在 job 裡才跑。`otherSignals[].chapters`＝S1b 輸出裡有這個機制訊號的章；主機制原型只定義推理＝`info_control`。`otherSignals` 來自 `genre_profile` 中非主機制、密度 > 0 的機制；`supported=false` 對應 05 §3.1「尚未支援」。`suggestedQuestion` 取自 `registry/perspectives/mechanisms.yaml`（03 §5） |
 | 對應 | registry、`books.genre_profile` |
 
 ### 4.4 Run 與方法執行（畫面 3、4）
@@ -407,7 +408,7 @@ pending／running／awaiting_review／paused_quota／interrupted ─(N-09d)─�
 | --- | --- |
 | 用途 | 觸發一個方法或方法論：點結果卡、點「也可以問」 |
 | Request | `{refId, subjectIds?, params?, force?: false, dryRun?: false}` |
-| Response 200／202 | `{status, jobId?, runId?, plan[], precheck?}`。`status`：`queued`（202，新 job）／`attached`（已有同一分析在跑，§3.3）／`reused`（已有 current 的 done run 且依據未變動，直接回 `runId`；`force=true` 時不重用）／`not_applicable`（前提不成立，不叫 LLM，回 `precheck`）／`planned`（`dryRun=true`） |
+| Response 200／202 | `{status, jobId?, runId?, plan[], precheck?, notImplemented[]}`。`status`：`queued`（202，新 job）／`attached`（已有同一分析在跑，§3.3）／`reused`（已有 current 的 done run 且依據未變動，直接回 `runId`；`force=true`、或帶了 `subjectIds`／`params` 時不重用）／`not_applicable`（前提不成立，不叫 LLM，回 `precheck`）／`not_implemented`（原型決定：原型尚未支援的方法，200、不建 job、不算錯誤）／`planned`（`dryRun=true`）。`notImplemented[]` 列出會被跳過的方法 |
 | 說明 | `plan[]`＝要跑的方法 id，依 DAG 排序，含上游自動補跑（一致性規則 7）。`subjectIds` 覆寫 03 的 `scope_selector`（例如只跑某個角色），不給就照宣告。`dryRun` 讓 UI 在花 token 前顯示會跑哪些（03 §3「花 token 之前說清楚」） |
 | 錯誤 | 422 `unknown_ref`；409 `job_conflict`（入庫未完成）；503 |
 | 對應 | 03 §3、§6（`plan`／`check`／`run`）；寫 `jobs`、`runs`、`evidence*` |
@@ -437,7 +438,7 @@ pending／running／awaiting_review／paused_quota／interrupted ─(N-09d)─�
 | 用途 | 結果卡的「重跑」：同 `refId`、`scopeKey`、`params` 再跑一次 |
 | Request | `{rerunUpstream?: false}`；`true` 時連上游一起重跑 |
 | Response 202 | `{jobId}` |
-| 說明 | 新 run 成功後舊 run 的證據變 `superseded`（01 §4）；被筆記引用的保留。用目前的 registry 版本與模型設定，與舊 run 不同時 run 上會看得出來 |
+| 說明 | 新 run 成功後舊 run 的證據變 `superseded`（01 §4）；被筆記引用的保留。用目前的 registry 版本與模型設定，與舊 run 不同時 run 上會看得出來。原型決定：回應與 N-04a 相同形狀（`status`＝`queued`／`attached`／`not_applicable`…）；主體取自舊 run 的 `scopeKey`（每章一筆的方法會重跑該角色的所有章）；`rerunUpstream=true` 尚未支援，回 422 |
 | 錯誤 | 409；503 |
 | 對應 | 03 §3；01 §4 取代規則 |
 
@@ -500,7 +501,7 @@ pending／running／awaiting_review／paused_quota／interrupted ─(N-09d)─�
 | 用途 | 審核第 2 層以上的證據：確認、修改、拒絕（01 §7、契約 v2 決策 #8） |
 | Request | `{action: "approve"}`；`{action: "modify", summary?, content: {…部分內容欄位}}`；`{action: "reject", reason?}`（`reason` 存 `evidence_edits`，01 §7） |
 | Response 200 | `{evidence: Evidence, propagation?: {evidenceCount, noteCount}}` |
-| 規則 | 第 1 層 → `403 level1_readonly`。`modify` 的 `content` 只能改 01 §6 的內容欄位，且**不能改 `*_id`／`*_ids` 參照欄位**（改了等於改 `derived_from`，層級會變；原型決定，違反 → 422）；原值寫 `evidence_edits`，`reviewStatus=modified`。`reject` 同步做 01 §4 的反向 BFS，完成後發 `basis.changed`。狀態轉移：`pending`／`approved`／`modified` 可互轉或轉 `rejected`；`rejected` 為終態（原型決定，再審 → `409 invalid_state`） |
+| 規則 | 第 1 層 → `403 level1_readonly`。`modify` 的 `content` 只能改 01 §6 的內容欄位（不是該類型的欄位 → 422），且**不能改 `*_id`／`*_ids` 參照欄位**（改了等於改 `derived_from`，層級會變；原型決定，違反 → 422）；原值寫 `evidence_edits`，`reviewStatus=modified`。`reject` 同步做 01 §4 的反向 BFS，完成後發 `basis.changed`。狀態轉移：`pending`／`approved`／`modified` 可互轉或轉 `rejected`；`rejected` 為終態（原型決定，再審 → `409 invalid_state`） |
 | 對應 | `evidence.review_status`、`ev_*`、`evidence_edits`、`evidence.basis_changed`（下游） |
 
 ### 4.6 筆記（畫面 4、5、6）
@@ -639,7 +640,7 @@ Registry 從 YAML 載入、唯讀（使用者方法論除外），回應把 YAML
 | 項目 | 內容 |
 | --- | --- |
 | 用途 | 更新三層設定 |
-| Request | 與 N-08a 相同形狀，去掉推得欄位（`configured`、`riskNotice`、`capsOk`）；provider 只能填環境變數名，**帶 key 值 → 422** |
+| Request | 與 N-08a 相同形狀；推得欄位（`configured`、`riskNotice`、`capsOk`）可以帶回來，不採用；其他多出來的 key → 422。provider 只能填環境變數名，**帶 key 值 → 422**（錯誤訊息不回顯輸入值）。`model=null` 的 task 不寫入。設定檔裡這個端點不管的頂層 key（如 `brain:`）保留 |
 | Response | 同 N-08a |
 | 錯誤 | 422：task 指到不存在的 model、caps 不符 |
 | 對應 | 設定檔 |
@@ -658,7 +659,7 @@ Registry 從 YAML 載入、唯讀（使用者方法論除外），回應把 YAML
 | 項目 | 內容 |
 | --- | --- |
 | 用途 | 設定頁載入時顯示上次測試表 |
-| Response | 最近一次 `llm_test` 與 `brain_test` job 的 `result` 與 `finishedAt`；沒測過回 `null` |
+| Response | `{llmTest, brainTest}`：最近一次 `done` 的 `llm_test`／`brain_test` job 的 `{result, finishedAt}`；沒測過是 `null` |
 | 對應 | `jobs` |
 
 ### N-08e GET /settings/brain

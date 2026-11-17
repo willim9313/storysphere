@@ -16,7 +16,17 @@ from fastapi import APIRouter, FastAPI
 
 from storysphere.api.errors import install_error_handlers
 from storysphere.api.events import EventBus
-from storysphere.api.routes import books, events, evidence, ingest, jobs, registry, runs
+from storysphere.api.routes import (
+    books,
+    events,
+    evidence,
+    ingest,
+    jobs,
+    overview,
+    registry,
+    runs,
+    settings,
+)
 from storysphere.api.tasks import JobTasks
 from storysphere.api.watcher import JobWatcher
 from storysphere.ingest.service import CHECKPOINT_PATH, mark_interrupted_jobs, open_checkpointer
@@ -102,5 +112,5 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(title="StorySphere v4 prototype", version="0.1.0", lifespan=lifespan)
 install_error_handlers(app)
 app.include_router(router)
-for _group in (books, ingest, evidence, runs, registry, jobs, events):
+for _group in (books, ingest, overview, evidence, runs, registry, settings, jobs, events):
     app.include_router(_group.router, prefix=API_PREFIX)

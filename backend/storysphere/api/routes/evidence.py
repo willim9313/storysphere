@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
-from typing import Annotated, Literal
+from typing import Annotated, Any, Literal
 
-from fastapi import APIRouter, Query
-from sqlalchemy import select
+from fastapi import APIRouter, Body, Query
+from pydantic import BaseModel, ConfigDict, ValidationError
+from pydantic.alias_generators import to_snake
+from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from storysphere.api.deps import BookDep, PagingDep, RegistryDep, SessionDep
-from storysphere.api.errors import not_found
+from storysphere.api.deps import BookDep, EventBusDep, PagingDep, RegistryDep, SessionDep
+from storysphere.api.errors import ApiError, not_found, validation_error
 from storysphere.api.queries.evidence import (
     FIRST_QUOTE_CHARS,
+    RAW_KEY_FIELDS,
     EvidenceFilter,
     list_evidence,
     to_evidence,
@@ -25,11 +28,17 @@ from storysphere.api.schemas.evidence import (
     HighlightOut,
     ParagraphOut,
     ParagraphView,
+    Propagation,
+    ReviewResult,
     Trace,
     TraceEdge,
     TraceNode,
 )
+from storysphere.domain.evidence import CONTENT_MODELS
 from storysphere.store.books import ChapterRow, ParagraphRow
+from storysphere.store.content_tables import CONTENT_TABLES, get_content
+from storysphere.store.evidence_writer import SystemFieldForbiddenError, assert_no_system_fields
+from storysphere.store.lifecycle import reject_evidence
 from storysphere.store.tables import Evidence as EvidenceRow
 from storysphere.store.tables import EvidenceEdit, EvidenceLink, EvidenceQuote, Run
 
@@ -289,3 +298,132 @@ async def get_paragraph(
         after=[_paragraph_out(row, titles) for row in after],
         highlights=highlights,
     )
+
+
+# ── N-05e 審核 ─────────────────────────────────────────────────
+
+MAX_BASIS_EVENT_IDS = 200
+
+
+class _ReviewIn(BaseModel):
+    """N-05e 的請求；系統欄位先在 `_check_system_fields` 擋掉（422 而不是默默忽略）。"""
+
+    model_config = ConfigDict(extra="forbid")
+
+    action: Literal["approve", "modify", "reject"]
+    summary: str | None = None
+    content: dict[str, Any] | None = None
+    reason: str | None = None
+
+
+def _check_system_fields(body: dict[str, Any]) -> None:
+    try:
+        assert_no_system_fields(body)
+        if isinstance(body.get("content"), dict):
+            assert_no_system_fields(body["content"])
+    except SystemFieldForbiddenError as exc:
+        raise ApiError(422, "system_field_forbidden", str(exc)) from exc
+
+
+def _snake_keys(value: Any) -> Any:
+    """camelCase content from the client → the snake_case names of 01 §6（資料當 key 的欄位不轉）."""
+    if isinstance(value, dict):
+        return {
+            to_snake(key): (item if to_snake(key) in RAW_KEY_FIELDS else _snake_keys(item))
+            for key, item in value.items()
+        }
+    if isinstance(value, list):
+        return [_snake_keys(item) for item in value]
+    return value
+
+
+async def _modify(
+    session: AsyncSession, row: EvidenceRow, summary: str | None, changes: dict[str, Any]
+) -> None:
+    """Apply a user edit; the old values go to `evidence_edits` (01 §7)."""
+    refs = sorted(key for key in changes if key.endswith(("_id", "_ids")))
+    if refs:
+        # 改參照等於改 derived_from，層級會變（04 N-05e 原型決定）。
+        raise validation_error(f"content: reference fields cannot be modified: {', '.join(refs)}")
+    current = await get_content(session, row.claim_type, row.id) or {}
+    unknown = sorted(changes.keys() - current.keys())
+    if unknown:
+        raise validation_error(f"content: unknown fields for {row.claim_type}: {', '.join(unknown)}")
+    try:
+        merged = CONTENT_MODELS[row.claim_type].model_validate({**current, **changes})
+    except ValidationError as exc:
+        first = exc.errors()[0]
+        where = ".".join(str(part) for part in first["loc"])
+        raise validation_error(f"content.{where}: {first['msg']}") from exc
+    new_values = merged.model_dump(mode="json")
+
+    before: dict[str, Any] = {}
+    if summary is not None and summary != row.summary:
+        before["summary"] = row.summary
+        row.summary = summary
+    if changes:
+        before["content"] = {key: current[key] for key in changes}
+        table = CONTENT_TABLES[row.claim_type]
+        await session.execute(
+            update(table)
+            .where(table.c.evidence_id == row.id)
+            .values({key: new_values[key] for key in changes})
+        )
+    session.add(EvidenceEdit(evidence_id=row.id, action="modify", before_json=before))
+    row.review_status = "modified"
+
+
+@router.post("/books/{book_id}/evidence/{evidence_id}/review", response_model=ReviewResult)
+async def review_evidence(
+    book: BookDep,
+    evidence_id: str,
+    session: SessionDep,
+    bus: EventBusDep,
+    raw: Annotated[dict[str, Any], Body()],
+) -> ReviewResult:
+    """N-05e 審核第 2 層以上的證據：確認、修改（只能改內容欄位，不能改參照）、拒絕。
+
+    拒絕會把下游標「依據已變動」並在書的串流發 `basis.changed`。`rejected` 是終態。
+    """
+    row = await evidence_or_404(session, book.id, evidence_id)
+    _check_system_fields(raw)
+    try:
+        body = _ReviewIn.model_validate(raw)
+    except ValidationError as exc:
+        first = exc.errors()[0]
+        where = ".".join(str(part) for part in first["loc"])
+        raise validation_error(f"{where}: {first['msg']}") from exc
+    if row.level == 1:
+        raise ApiError(403, "level1_readonly", f"Evidence {evidence_id} is level 1 and cannot be reviewed.")
+    if row.review_status == "rejected":
+        raise ApiError(409, "invalid_state", f"Evidence {evidence_id} is already rejected.")
+
+    propagation = None
+    if body.action == "approve":
+        row.review_status = "approved"
+    elif body.action == "modify":
+        if body.summary is None and not body.content:
+            raise validation_error("modify needs summary or content.")
+        await _modify(session, row, body.summary, _snake_keys(body.content or {}))
+    else:
+        change = await reject_evidence(session, row.id, body.reason)
+        propagation = Propagation(
+            evidence_count=len(change.evidence_ids), note_count=len(change.note_ids)
+        )
+    await session.commit()
+
+    if body.action == "reject" and propagation is not None:
+        bus.publish(
+            "basis.changed",
+            {
+                "bookId": book.id,
+                "cause": {"kind": "rejected", "evidenceId": evidence_id},
+                "evidenceCount": len(change.evidence_ids),
+                "evidenceIds": change.evidence_ids[:MAX_BASIS_EVENT_IDS],
+                "noteIds": change.note_ids,
+            },
+            book_id=book.id,
+        )
+    await session.refresh(row)
+    (evidence,) = await to_evidence(session, [row])
+    return ReviewResult(evidence=evidence, propagation=propagation)

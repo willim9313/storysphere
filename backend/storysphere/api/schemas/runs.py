@@ -79,3 +79,29 @@ class ViewData(ApiModel):
     primary: list[Evidence]
     referenced: list[ReferencedEvidence]
     chapters: list[ViewChapter]
+
+
+class TriggerIn(ApiModel):
+    """N-04a。"""
+
+    ref_id: str
+    subject_ids: list[str] | None = None  # 覆寫宣告的 scope_selector
+    params: dict[str, Any] | None = None
+    force: bool = False  # true＝不重用既有結果
+    dry_run: bool = False
+
+
+class TriggerOut(ApiModel):
+    # queued（202）／attached／reused／not_applicable／not_implemented／planned
+    status: str
+    job_id: str | None = None
+    run_id: str | None = None
+    plan: list[str]  # 要跑的方法 id，依 DAG 順序，含上游補跑
+    precheck: dict[str, Any] | None = None
+    not_implemented: list[str] = []  # 原型尚未支援、會被跳過的方法
+
+
+class RerunIn(ApiModel):
+    """N-04d。"""
+
+    rerun_upstream: bool = False

@@ -147,3 +147,15 @@ class ParagraphView(ApiModel):
     before: list[ParagraphOut]
     after: list[ParagraphOut]
     highlights: list[HighlightOut]
+
+
+class Propagation(ApiModel):
+    evidence_count: int  # 被標「依據已變動」的下游證據（含筆記）
+    note_count: int
+
+
+class ReviewResult(ApiModel):
+    """N-05e。"""
+
+    evidence: Evidence
+    propagation: Propagation | None = None
