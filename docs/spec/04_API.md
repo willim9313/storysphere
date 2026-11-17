@@ -903,6 +903,15 @@ Registry 從 YAML 載入、唯讀（使用者方法論除外），回應把 YAML
 - 參數與回傳 snake_case，證據內容欄位與 01 同名（§1.1）。
 - 錯誤回傳 MCP tool error，內容 `{code, message, hint}`；`hint` 告訴大腦下一步（例：「先呼叫 run_method('event.causal_network')」）。
 
+原型決定（T20，2026-11-17，見 `docs/plans/20261117-t20-mcp-server.md`）：
+
+- **錯誤的形狀**：tool error（`isError=true`）的文字內容就是 `{code, message, hint}` 的 JSON 本身，不加 SDK 預設的「Error executing tool …」前綴。成功時文字內容是回傳值的 JSON，`structuredContent` 同值。
+- **路徑與 Host**：`/mcp` 直接服務（不轉址到 `/mcp/`）；token 不對回 HTTP 401 `{detail, code: unauthorized}`。沿用 MCP SDK 的 DNS rebinding 防護，只接受本機 Host（`127.0.0.1`、`localhost`），其他回 421。
+- **session 狀態放記憶體**：`agent_sessions` 只存 01 §8 的欄位；目前的 `turn_id` 與該輪使用者訊息（草稿的 `question`）由 Gateway 每輪設定（`SessionRegistry.set_turn`，T25 接上）。
+- **AgentEvent 去處**：MCP server 發的事件（`tool_call`、`tool_result`、`approval_request`、`view`、`note_draft`）進記憶體事件緩衝的 `session:<sessionId>` 串流，形狀 `{sessionId, turnId, ts, data}`，`seq` 由串流給；N-10 的 SSE 端點讀它（T25）。
+- **確認的等待點**：`add_interpretation` 發 `approval_request` 後等使用者回應，不設逾時；T25 的回應端點呼叫 `Approvals.resolve(requestId, allow)`，session 關閉時全部當成拒絕。
+- **系統欄位**：MCP SDK 會默默丟掉 schema 外的參數；寫入工具改看原始參數，帶了 §1.5 的 key 回 `system_field_forbidden`。
+
 ### 5.3 讀取工具
 
 | 工具 | 參數 | 回傳 |
@@ -915,6 +924,15 @@ Registry 從 YAML 載入、唯讀（使用者方法論除外），回應把 YAML
 | `list_genre_elements` | 無 | `{genre: {primary, mixed, effective}, elements[{claim_type, layer, mechanism, genre_ext?, level, count}]}`，`count` 是本書 current 證據數；05 §6 的大腦測試呼叫的就是它 |
 | `list_methods` | `query?`（比對 `question`）、`layer?`、`mechanism?` | `methods[{id, code, kind: method／methodology, question, grade, requires[], produces, precheck{ok, missing[]}, has_current_run, run_id?, implemented}]` |
 | `get_run` | `run_id`，或 `method_id`（取該方法最新 current run） | `{run_id, method_id, code, status, model, prompt_version, finished_at, summary, evidence_ids[]（上限 100）, evidence_count, precheck?}` |
+
+原型決定（T20）：
+
+- 回傳的 `content`、`genre_ext.data`、`precheck` 一律用 01 的 snake_case 原名（REST 是 camelCase）。
+- `search_evidence` 的 `OR`：拆成各段分別查再合併，`total` 是合併後的筆數；不帶 `OR` 的多個詞當一個片語。
+- `limit`、`context`、`trace_depth` 超出範圍時夾到上下限，不報錯；`get_events` 的 `limit` 上限 100，每筆另回 `basis_changed`，`participant_id` 比對 `role=participant` 的主體，章節篩選用內容的 `chapter`。
+- `get_run` 帶 `method_id`：取最新、未被取代的 `done` run；沒有就回最新一筆任何狀態的 run（`not_applicable` 也能看到 `precheck`）。`evidence_ids` 只含 current、未被拒絕的證據。
+- `list_methods` 的 `precheck`＝`{ok, missing[]}`（`plan_method` 的結果）；方法論的 `requires` 為空、`produces` 為 null。`list_genre_elements` 列 DAG 裡所有類型，`genre_ext` 是這類 current 證據實際帶的題材。
+- 「讀過」的判定（§5.5 規則 1）：工具回傳值裡的證據 id 都算；`get_evidence` 的 `derived_from` 只是上游 id，不算，帶 `include_trace` 時追溯樹的節點才算。
 
 ### 5.4 分析工具
 
@@ -940,6 +958,13 @@ Registry 從 YAML 載入、唯讀（使用者方法論除外），回應把 YAML
 2. 套筆記規則：第 1 層、`rejected` 不能引用；`create_note` 的草稿不擋，只寫進 `check.problems`，讓使用者在草稿卡上看到為什麼存不了。
 3. `derived_from`＝通過驗證的 `cited_evidence_ids`。
 
+原型決定（T20）：
+
+- `check.problems[]` 每項 `{code, message, evidenceId?}`；`code` 用 `note_cites_level1`、`note_cites_rejected`、`not_found`（不在本書），一筆都沒引用時 `no_citation`。
+- `add_interpretation` 在發確認前就套規則 2，不通過直接回該 `code` 的 tool error（不問使用者）；寫入的 `confidence` 記 1.0（使用者已確認）。
+- `show_view` 的 `data_ref` 只驗證存在於本書，**不算讀過**：它回傳的 id 不進 `trace_calls.result_evidence_ids`，否則大腦能用 `show_view` 繞過規則 1。`view_type` 不在 05 §4 目錄回 `unknown_view`，`hint` 列出可用的。
+- `run_method` 產出的證據 `agent_backend` 由 `runs.agent_session_id` 查 session 的 `backend` 補上。
+
 `link_evidence` 原型決定只作用於草稿：01 §4 規定層級「寫入後不變」，已寫入的證據再加引用會改層級，所以不開放。
 
 ### 5.6 Trace（`trace_calls`）
@@ -951,9 +976,9 @@ MCP server 收到每一次工具呼叫時寫一筆，回傳前補完結果；這
 | `id`、`session_id`、`seq` | `seq` 在 session 內遞增，也是 AgentEvent 的 `callId` |
 | `turn_id` | 哪一輪使用者訊息 |
 | `tool`、`args_json` | 原樣記錄參數 |
-| `status` | `ok`／`error`／`denied`／`pending_approval` |
+| `status` | `ok`／`error`／`denied`／`pending_approval`；原型補充 `running`（收到呼叫、還沒回傳） |
 | `result_evidence_ids`、`result_run_ids` | json 陣列；寫入驗證與 `methodology_trace` 都靠它 |
-| `job_id`、`approval_request_id`、`error_code` | |
+| `job_id`、`approval_request_id`、`error_code`、`error` | `error`＝給人看的錯誤訊息（原型補充） |
 | `started_at`、`duration_ms` | |
 
 筆記的 `methodology_trace`（01 §5）形狀，原型決定：

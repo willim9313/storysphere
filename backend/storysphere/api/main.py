@@ -13,6 +13,7 @@ from contextlib import AsyncExitStack, asynccontextmanager
 from pathlib import Path
 
 from fastapi import APIRouter, FastAPI
+from starlette.routing import Route
 
 from storysphere.api.errors import install_error_handlers
 from storysphere.api.events import EventBus
@@ -31,6 +32,8 @@ from storysphere.api.tasks import JobTasks
 from storysphere.api.watcher import JobWatcher
 from storysphere.ingest.service import CHECKPOINT_PATH, mark_interrupted_jobs, open_checkpointer
 from storysphere.llm.settings import check_capabilities, load_settings
+from storysphere.mcp.runtime import ToolEnv
+from storysphere.mcp.server import MCP_PATH, McpMount, build_mcp_server, mcp_asgi_app
 from storysphere.methods.engine import default_method_engine
 from storysphere.methods.jobs import MethodJobs
 from storysphere.store.db import create_engine, init_db, make_session_factory
@@ -96,6 +99,13 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.job_tasks = tasks
         app.state.event_bus = bus
 
+        # MCP server（04 §5）：每次 lifespan 建一個新的，session manager 只能 run 一次。
+        mcp_env = ToolEnv(session_factory, method_engine, method_jobs, bus)
+        mcp_server = build_mcp_server(mcp_env)
+        app.state.mcp_app = mcp_asgi_app(mcp_server, mcp_env)  # 要先建 app 才有 session manager
+        await stack.enter_async_context(mcp_server.session_manager.run())
+        app.state.mcp_env = mcp_env
+
         interval = float(os.environ.get(WATCH_INTERVAL_ENV, DEFAULT_WATCH_INTERVAL))
         watcher = JobWatcher(session_factory, bus, method_engine.registry, interval=interval)
         app.state.watcher = watcher
@@ -114,3 +124,6 @@ install_error_handlers(app)
 app.include_router(router)
 for _group in (books, ingest, overview, evidence, runs, registry, settings, jobs, events):
     app.include_router(_group.router, prefix=API_PREFIX)
+# 不在 /api/v2 下，UI 不呼叫（04 §1）。
+# 用 Route 而不是 Mount：Mount 會把 `/mcp` 307 轉到 `/mcp/`，不是每個 MCP client 都會跟。
+app.router.routes.append(Route(MCP_PATH, McpMount(lambda: getattr(app.state, "mcp_app", None))))

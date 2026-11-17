@@ -6,9 +6,10 @@
 
 from __future__ import annotations
 
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from storysphere.store.agent import AgentSessionRow, TraceCallRow
 from storysphere.store.books import BookRow, ChapterRow, ParagraphRow
 from storysphere.store.ingest_units import IngestUnitOutputRow, IngestUnitRow
 from storysphere.store.paragraph_entities import ParagraphEntityRow
@@ -28,6 +29,10 @@ _BOOK_TABLES = (
 
 
 async def delete_book(session: AsyncSession, book_id: str) -> None:
+    # trace_calls 沒有 book_id，跟著 session 刪。
+    sessions = select(AgentSessionRow.id).where(AgentSessionRow.book_id == book_id)
+    await session.execute(delete(TraceCallRow).where(TraceCallRow.session_id.in_(sessions)))
+    await session.execute(delete(AgentSessionRow).where(AgentSessionRow.book_id == book_id))
     for model in _BOOK_TABLES:
         await session.execute(delete(model).where(model.book_id == book_id))
     await session.execute(delete(BookRow).where(BookRow.id == book_id))

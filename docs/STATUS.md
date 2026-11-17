@@ -1,6 +1,6 @@
 # 進度與後續待辦
 
-最後更新：2026-11-17（T19 C 批完成）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
+最後更新：2026-11-17（T20 完成，未 commit）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
 
 ## 接手先看這裡（2026-11-16 使用者的決定）
 
@@ -40,7 +40,8 @@
 | T17 TM1、TM2、SY1、TM3 | **不做**（範圍調整） | — |
 | T18 MY1、MY4、MY5 | 只做 MY4，排在 UI 之後；MY1、MY5 不做 | — |
 | **T19 REST 與 SSE** | **三批完成**（A `6e2d9c1`、B `02c0e83`、C 見 git log）；延後的端點見「T19 現況」 | — |
-| T20 之後 | 未開始 | — |
+| **T20 MCP server** | 完成；見「T20 現況」 | — |
+| T21 之後 | 未開始 | — |
 
 - 分支：本機 `main`，沒有遠端，沒推過。CI（`.github/workflows/gates.yml`）寫好但從沒跑過。
 - 閘門現況：六道全部 exit 0（pytest 沒設 `BENCHMARK_DIR` 時 1297 passed、2 skipped）。
@@ -107,6 +108,15 @@
 - **前端型別**：`frontend/src/api/generated.ts` 已產生（35 條路徑）。產生方式是從 app 匯出 `openapi.json` 再跑 `openapi-typescript`，結果與 `npm run gen:types` 相同，只是不必在 8000 埠開伺服器（開伺服器會在 `var/` 建出 `neo.db`）。`knip.jsonc` 把它列為忽略，T21 的 API client import 之後可以拿掉。
 - **T19 完成標準對照**（07）：「`npm run gen:types` 產出型別」達成；「SSE 斷線帶 `Last-Event-ID` 能補抓」達成；「04 每個端點都有 API 測試」**部分**——做了的端點都有，延後的沒有。
 - **延後的端點**（使用者 2026-11-16 確認）：N-02f／g／h（重跑失敗單位、從某步重跑、改主題材）、N-06*（筆記、詮釋）、N-07c／d／e（方法論）、N-08e–g 與 N-10*（大腦，T25）。N-04d 的 `rerunUpstream=true` 也還沒做（回 422）。
+
+### T20 現況（2026-11-17）
+
+- 規劃：`docs/plans/20261117-t20-mcp-server.md`；實作決定已寫進 04 §5.2／§5.3／§5.5／§5.6。
+- 程式：`store/agent.py`（`agent_sessions`、`trace_calls`、`create_session`、`traced_evidence_ids`）、`mcp/runtime.py`（`run_tool`、`SessionRegistry`、`Approvals`、`ToolEnv`）、`mcp/server.py`（Bearer 驗證、`/mcp` 用 Route 掛）、`mcp/tools_read.py`（10 個讀取／分析工具，subagent 做的）、`mcp/tools_write.py`（4 個寫入／呈現工具）。N-04a 的判斷流程搬到 `api/queries/trigger.py` 與 MCP 共用。方法引擎在 agent 觸發時補 `agent_backend`。刪書也清這兩張表。
+- **留給 T25 接的**：建 session（`store/agent.create_session` 回 token）、每輪 `env.sessions.set_turn(session_id, turn_id, question)`、確認端點呼叫 `env.approvals.resolve(request_id, allow)`、session 關閉時 `cancel_all()`、N-10 的 SSE 讀 EventBus 的 `session:<id>` 串流（`mcp/runtime.session_stream`）。`app.state.mcp_env` 就是那個 env。
+- 新依賴：`mcp>=2.3.0` 改成直接依賴（原本就是間接依賴）。
+- 測試：`tests/mcp/`（in-process MCP client＋HTTP 驗證），全部 mock，沒叫 LLM。沒有用真的大腦（Claude Code／deepagents）連過 `/mcp`，T25／T26 再驗。
+- MCP SDK 的 Host 防護只收本機 Host；Claude Code 從同一台機器連 `http://127.0.0.1:8000/mcp` 沒問題。
 
 ### T19 動工前要知道的（彙整前面各張留下來的）
 

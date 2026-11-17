@@ -34,6 +34,7 @@ from storysphere.methods.reader import EvidenceReader
 from storysphere.registry.checks import execution_order, producers
 from storysphere.registry.loader import Registry, load_registry
 from storysphere.registry.models import MethodDecl
+from storysphere.store.agent import AgentSessionRow
 from storysphere.store.evidence_writer import EvidenceDraft, WriteContext, write_evidence
 from storysphere.store.lifecycle import complete_run
 from storysphere.store.tables import Evidence, Run
@@ -119,6 +120,15 @@ class _Call:
     agent_session_id: str | None
     done: dict[str, MethodRunResult] = field(default_factory=dict)  # 每個上游只補跑一次
     active: list[str] = field(default_factory=list)  # 防循環
+
+
+async def _agent_backend(session: AsyncSession, agent_session_id: str | None) -> str | None:
+    """`agent_backend` of evidence produced by an agent-triggered run (04 §5.4)."""
+    if agent_session_id is None:
+        return None
+    return await session.scalar(
+        select(AgentSessionRow.backend).where(AgentSessionRow.id == agent_session_id)
+    )
 
 
 def default_registry() -> Registry:
@@ -440,6 +450,7 @@ class MethodEngine:
                     source="method",
                     produced_via=_PRODUCED_VIA[call.triggered_by],
                     run_id=run_id,
+                    agent_backend=await _agent_backend(session, call.agent_session_id),
                 )
                 for draft in drafts:
                     await write_evidence(session, write_ctx, draft)

@@ -227,6 +227,17 @@ class TestExecution:
         (link,) = await evidence_of(sf, "causal_link")
         assert link.produced_via == via
 
+    async def test_agent_run_records_the_sessions_backend(self, sf):
+        from storysphere.store.agent import create_session
+
+        await seed(sf, "event")
+        async with sf() as session, session.begin():
+            row, _ = await create_session(session, book_id=BOOK, backend="claude_code")
+        engine, _ = make_engine(sf, make_registry(A), FakeMethod(A))
+        await engine.run_method(BOOK, "test.a", triggered_by="agent", agent_session_id=row.id)
+        (link,) = await evidence_of(sf, "causal_link")
+        assert link.agent_backend == "claude_code"
+
     async def test_rerun_supersedes_the_old_result_of_the_same_analysis(self, sf):
         await seed(sf, "event")
         engine, _ = make_engine(sf, make_registry(A), FakeMethod(A))

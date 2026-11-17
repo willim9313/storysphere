@@ -1,6 +1,7 @@
 """In-memory SSE event buffer (docs/spec/04 §3.4, §3.5).
 
-兩種串流：每個 job 一條（`job:<id>`），每本書一條（`book:<id>`，該書所有 job 的事件）。
+串流：每個 job 一條（`job:<id>`），每本書一條（`book:<id>`，該書所有 job 的事件），
+每個 agent session 一條（`session:<id>`，MCP server 發的 AgentEvent，04 §5.1）。
 每條串流各自有單調遞增的 seq，記憶體只留最近 ``BUFFER_SIZE`` 筆；要求的 seq 已被丟掉
 （或伺服器重啟過）時送 `resync`，前端重新抓 REST 狀態。
 
@@ -92,6 +93,12 @@ class EventBus:
             seq = self._stream(job_stream(job_id), job_last_seq).append(event_type, data).seq
         if book_id is not None:
             self._stream(book_stream(book_id)).append(event_type, data)
+        return seq
+
+    def append(self, key: str, event_type: str, data: dict[str, Any]) -> int:
+        """Append to one arbitrary stream (e.g. an agent session's); return its seq."""
+        seq = self._stream(key).append(event_type, data).seq
+        assert seq is not None
         return seq
 
     def replay(self, key: str, after: int | None, *, start_seq: int = 0) -> list[Event]:
