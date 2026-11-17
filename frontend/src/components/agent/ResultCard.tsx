@@ -1,10 +1,11 @@
 import { useState, type CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import { ApiError } from '@/api/client';
-import { useConfirmDraft, useDiscardDraft, useSaveMethodology, type NoteDraft } from '@/api/agent';
+import { useConfirmDraft, useDiscardDraft, useSaveMethodology, useSendMessage, type NoteDraft } from '@/api/agent';
 import type { MethodSummary } from '@/api/registry';
 import { useViewData } from '@/api/runs';
 import { Prose } from '@/components/Prose';
+import { viewTitle } from '@/components/views/labels';
 import { ViewRenderer } from '@/components/views/ViewRenderer';
 import { callKey, methodSteps, resultState, resultTitle, reusedResults, strayIds, turnTime, type Turn } from './turns';
 
@@ -105,7 +106,18 @@ export function ResultCard({
   methods,
   readOnly,
   highlight,
-}: Readonly<{ bookId: string; sessionId: string; turn: Turn; label: string; methods: Map<string, MethodSummary>; readOnly: boolean; highlight: boolean }>) {
+  busy,
+}: Readonly<{
+  bookId: string;
+  sessionId: string;
+  turn: Turn;
+  label: string;
+  methods: Map<string, MethodSummary>;
+  readOnly: boolean;
+  highlight: boolean;
+  /** 大腦正在回答（不能再送訊息）。 */
+  busy: boolean;
+}>) {
   const state = resultState(turn);
   const badge = STATE_BADGE[state];
   // 一輪通常只有一份草稿；有多份時以還開著的為準。
@@ -115,6 +127,17 @@ export function ResultCard({
   const [conclusion, setConclusion] = useState(draft?.conclusion ?? '');
   const [cited, setCited] = useState(draft?.citedEvidenceIds ?? []);
   const [editing, setEditing] = useState(false);
+  // 卡片常在 show_view 時就先出現、草稿晚一步才進來（或之後被大腦改過）：草稿換了就重新帶入，
+  // 否則標題、結論、引用會停在空的，「存成筆記」一直停用。使用者正在修改時不蓋掉。
+  const draftKey = draft ? `${draft.draftId}:${draft.updatedAt}` : null;
+  const [syncedKey, setSyncedKey] = useState(draftKey);
+  if (draftKey !== syncedKey && !editing) {
+    setSyncedKey(draftKey);
+    setTitle(draft?.title ?? '');
+    setConclusion(draft?.conclusion ?? '');
+    setCited(draft?.citedEvidenceIds ?? []);
+  }
+  const send = useSendMessage(sessionId);
   const confirm = useConfirmDraft(bookId, sessionId);
   const discard = useDiscardDraft(sessionId);
   const saveMethodology = useSaveMethodology();
@@ -258,7 +281,28 @@ export function ResultCard({
               {open && <span style={small}>按下「存成筆記」＝人工審核；引用的證據都要是第 2 層以上。</span>}
             </>
           ) : (
-            <p style={small}>這一輪大腦沒有寫筆記草稿，所以不能直接存成筆記；可以請它「整理成筆記」。</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              <p style={small}>這一輪大腦只畫了 view、沒有寫筆記草稿，所以還不能存成筆記。</p>
+              {readOnly ? (
+                <p style={small}>這段對話已結束；開新對話後可以請大腦整理。</p>
+              ) : (
+                <button
+                  type="button"
+                  className="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm"
+                  style={{ alignSelf: 'flex-start' }}
+                  disabled={busy || send.isPending}
+                  title="替你送出一則訊息，請大腦把這個結果寫成筆記草稿（會呼叫 LLM）"
+                  onClick={() =>
+                    send.mutate(
+                      `請把結果 ${code}（${turn.views.map((v) => viewTitle(v.viewType)).join('、') || '這一輪的結果'}；問句「${turn.question}」）整理成筆記草稿。`,
+                    )
+                  }
+                >
+                  請大腦整理成筆記
+                </button>
+              )}
+              {send.error && <p role="alert" style={{ ...small, color: 'var(--color-error)' }}>{errorText(send.error)}</p>}
+            </div>
           )}
           {errors.map((e, i) => (
             <p key={i} role="alert" style={{ ...small, color: 'var(--color-error)' }}>

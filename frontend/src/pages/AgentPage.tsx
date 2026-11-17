@@ -173,6 +173,7 @@ export function AgentPage() {
                   methods={methods}
                   readOnly={readOnly}
                   highlight={turn.turnId === latestUnsaved}
+                  busy={session.status === 'busy'}
                 />
               ))}
             {shown.length === 0 && <p style={small}>{results.length === 0 ? '還沒有結果。大腦呼叫 show_view 或寫筆記草稿時，結果會出現在這裡。' : '沒有符合的結果。'}</p>}

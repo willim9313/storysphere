@@ -99,6 +99,10 @@ a.ss-card-link{color:inherit}
               <button type="button" class="ss-btn ss-btn-sm ss-btn-ghost">拒絕</button>
             </div>
           </article>
+          <div style="align-self: flex-end; max-width: 88%; background: var(--bg-tertiary); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5); font-size: var(--font-size-sm); line-height: 1.6;">用圖呈現肖爾托家與四簽名的關係</div>
+          <button type="button" aria-expanded="false" style="align-self: flex-start; background: none; border: none; padding: 0; cursor: pointer; font-family: var(--font-sans); font-size: var(--font-size-2xs); color: var(--fg-secondary); text-align: left;">▸ 使用了 2 個工具 · <span style="font-family: var(--font-mono); color: var(--fg-muted);">get_run、show_view</span></button>
+          <p style="margin: 0; font-family: var(--font-serif); font-size: var(--font-size-sm); line-height: 1.75;">我取用了 CH4 的陣營結果，用角色網路畫出兩家的關係。</p>
+          <a href="#rd" style="align-self: flex-start; font-size: var(--font-size-2xs); text-decoration: none; display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border: var(--border-width) var(--border-style) var(--accent); border-radius: var(--radius-sm);">結果 D · 用圖呈現肖爾托家與四簽名的關係</a>
         </div>
         <div style="border-top: var(--border-width) var(--border-style) var(--border); padding: var(--space-4) var(--space-5); display: flex; flex-direction: column; gap: var(--space-3);">
           <label for="ask" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">輸入問題</label>
@@ -114,12 +118,12 @@ a.ss-card-link{color:inherit}
         <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-4);">
           <div style="display: flex; flex-direction: column; gap: var(--space-1);">
             <h2 id="res-h" style="margin: 0; font-family: var(--font-serif); font-size: var(--font-size-xl); font-weight: 700;">本次分析結果</h2>
-            <span style="font-size: var(--font-size-2xs); color: var(--fg-muted);">3 個結果 · 未儲存 2 · 已存成筆記 1</span>
+            <span style="font-size: var(--font-size-2xs); color: var(--fg-muted);">4 個結果 · 未儲存 3 · 已存成筆記 1</span>
           </div>
           <div style="display: flex; align-items: center; gap: var(--space-4);">
             <nav class="ss-tabs" aria-label="篩選結果">
-              <button type="button" class="ss-tab active" aria-pressed="true">全部 3</button>
-              <button type="button" class="ss-tab" aria-pressed="false">未儲存 2</button>
+              <button type="button" class="ss-tab active" aria-pressed="true">全部 4</button>
+              <button type="button" class="ss-tab" aria-pressed="false">未儲存 3</button>
               <button type="button" class="ss-tab" aria-pressed="false">已儲存 1</button>
             </nav>
           </div>
@@ -271,6 +275,38 @@ a.ss-card-link{color:inherit}
           <span class="ss-badge ss-badge-success">已存成筆記</span>
           <span style="font-size: var(--font-size-2xs); color: var(--fg-muted);">取用結果卡 MY4 · 18:44</span>
           <a href="Notes.dc.html" style="margin-left: auto; font-size: var(--font-size-2xs); text-decoration: none;">在筆記中開啟</a>
+        </article>
+
+        <article id="rd" aria-labelledby="rd-h" style="background: var(--bg-primary); border: var(--card-border-width) var(--border-style) var(--border); border-radius: var(--card-radius); box-shadow: var(--card-shadow); display: flex; flex-direction: column;">
+          <header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--space-4); padding: var(--space-5) var(--space-6); border-bottom: var(--border-width) var(--border-style) var(--border);">
+            <div style="display: flex; flex-direction: column; gap: var(--space-2); min-width: 0;">
+              <div style="display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center;">
+                <span style="font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-muted);">結果 D</span>
+                <span class="ss-badge ss-badge-warning">未儲存</span>
+                <span class="ss-badge ss-badge-neutral">取用結果卡 CH4</span>
+              </div>
+              <h3 id="rd-h" style="margin: 0; font-family: var(--font-serif); font-size: var(--font-size-xl); font-weight: 700;">用圖呈現肖爾托家與四簽名的關係</h3>
+              <span style="font-size: var(--font-size-2xs); color: var(--fg-muted);">問句：用圖呈現肖爾托家與四簽名的關係 · 19:03</span>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: var(--space-3);">
+              <button type="button" class="ss-btn ss-btn-sm ss-btn-secondary" disabled title="這一輪沒有執行任何方法（run_method），沒有可存的方法論步驟">另存方法論</button>
+            </div>
+          </header>
+          <div style="display: flex; flex-wrap: wrap; gap: var(--space-6); padding: var(--space-5) var(--space-6);">
+            <div style="flex: 3 1 420px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-3);">
+              <span style="font-size: var(--font-size-2xs); font-weight: 600; letter-spacing: 0.06em; color: var(--fg-muted);">角色網路</span>
+              <div style="height: 180px; border: var(--border-width) dashed var(--border); border-radius: var(--radius-md); display: flex; align-items: center; justify-content: center; font-size: var(--font-size-2xs); color: var(--fg-muted);">[view：network]</div>
+            </div>
+            <div style="flex: 2 1 300px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-3);">
+              <p style="margin: 0; font-size: var(--font-size-2xs); color: var(--fg-muted); line-height: 1.6;">這一輪大腦只畫了 view、沒有寫筆記草稿，所以還不能存成筆記。</p>
+              <button type="button" class="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm" style="align-self: flex-start;">請大腦整理成筆記</button>
+            </div>
+          </div>
+          <footer style="display: flex; flex-wrap: wrap; gap: var(--space-4); align-items: center; padding: var(--space-4) var(--space-6); background: var(--bg-secondary); border-top: var(--border-width) var(--border-style) var(--border); border-radius: 0 0 var(--card-radius) var(--card-radius); font-size: var(--font-size-2xs); color: var(--fg-secondary);">
+            <span style="font-weight: 600;">怎麼得出的</span>
+            <span style="font-family: var(--font-mono);">get_run character.network</span><span>→</span>
+            <span style="font-family: var(--font-mono);">show_view network</span>
+          </footer>
         </article>
       </section>
     </div>
