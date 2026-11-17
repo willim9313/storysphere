@@ -1,4 +1,4 @@
-import { useState, type CSSProperties } from 'react';
+import { useEffect, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { ApiError } from '@/api/client';
 import { useCancelTurn, useResolveApproval, useSendMessage, type TraceItem } from '@/api/agent';
 import { useDevView } from '@/hooks/useDevView';
@@ -93,6 +93,40 @@ function ApprovalCard({ sessionId, call }: Readonly<{ sessionId: string; call: T
   );
 }
 
+/** 一輪的工具呼叫：預設收合成「使用了 N 個工具」；等你確認的寫入一律直接顯示。 */
+function ToolCalls({ sessionId, calls, closed }: Readonly<{ sessionId: string | null; calls: TraceItem[]; closed: boolean }>) {
+  const [open, setOpen] = useState(false);
+  const pending = calls.filter((c) => c.status === 'pending_approval' && !closed && sessionId);
+  const rest = calls.filter((c) => !pending.includes(c));
+  const names = [...new Set(rest.map((c) => c.tool))];
+  const failed = rest.some((c) => c.status === 'error' || c.status === 'denied');
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)', overflowWrap: 'anywhere' }}>
+      {rest.length > 0 && (
+        <button
+          type="button"
+          aria-expanded={open}
+          onClick={() => setOpen(!open)}
+          style={{ alignSelf: 'flex-start', background: 'none', border: 'none', padding: 0, cursor: 'pointer', font: 'inherit', color: 'inherit', textAlign: 'left' }}
+        >
+          {open ? '▾' : '▸'} 使用了 {rest.length} 個工具
+          {failed && <span style={{ color: 'var(--color-error)' }}> · 有失敗</span>}
+          {!open && (
+            <span style={{ ...mono, color: 'var(--fg-muted)' }}>
+              {' '}· {names.slice(0, 3).join('、')}
+              {names.length > 3 ? '…' : ''}
+            </span>
+          )}
+        </button>
+      )}
+      {open && rest.map((call) => <ToolLine key={call.seq} call={call} />)}
+      {pending.map((call) => (
+        <ApprovalCard key={call.seq} sessionId={sessionId!} call={call} />
+      ))}
+    </div>
+  );
+}
+
 /** 大腦的旁白；有結果的輪次預設折成 3 行，可展開全文。 */
 function Narration({ text, folded: foldable }: Readonly<{ text: string; folded: boolean }>) {
   const [open, setOpen] = useState(false);
@@ -126,6 +160,7 @@ export function ChatPane({
   live,
   status,
   error,
+  meta,
 }: Readonly<{
   sessionId: string | null;
   turns: Turn[];
@@ -133,12 +168,26 @@ export function ChatPane({
   live: Record<string, string>;
   status: string;
   error: string | null;
+  /** 對話卡標頭（session、題材、L0…）。 */
+  meta: ReactNode;
 }>) {
   const send = useSendMessage(sessionId ?? '');
   const cancel = useCancelTurn(sessionId ?? '');
   const [text, setText] = useState('');
   const busy = status === 'busy' || send.isPending;
   const closed = !sessionId || status === 'closed' || status === 'error';
+  const scroller = useRef<HTMLDivElement>(null);
+  const stick = useRef(true);
+  const liveLength = Object.values(live).reduce((n, t) => n + t.length, 0);
+
+  // 新內容進來時，若使用者本來就在底部，就跟著捲到最下面；換對話時回到最下面。
+  useEffect(() => {
+    stick.current = true;
+  }, [sessionId]);
+  useEffect(() => {
+    const el = scroller.current;
+    if (el && stick.current) el.scrollTop = el.scrollHeight;
+  }, [turns, liveLength, busy, sessionId]);
 
   const submit = () => {
     const value = text.trim();
@@ -146,15 +195,24 @@ export function ChatPane({
     send.mutate(value, { onSuccess: () => setText('') });
   };
 
-  const placeholder = !sessionId
-    ? '先按右上的「新對話」開始。'
-    : closed
-      ? '這個 session 已關閉；開新對話才能繼續問。'
-      : '輸入問題……（Enter 送出，Shift+Enter 換行）';
+  const footer: CSSProperties = { borderTop: 'var(--border-width) var(--border-style) var(--border)', padding: 'var(--space-4) var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' };
 
   return (
-    <section aria-label="對話" style={{ ...pane, flex: '1 1 340px', maxWidth: 420, alignSelf: 'stretch' }}>
-      <div style={{ flex: 1, padding: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}>
+    <section
+      aria-label="對話"
+      style={{ ...pane, flex: '1 1 360px', maxWidth: 420, height: 'calc(100vh - 96px)', minHeight: 480, position: 'sticky', top: 'var(--space-5)' }}
+    >
+      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-4) var(--space-5)', borderBottom: 'var(--border-width) var(--border-style) var(--border)' }}>
+        {meta}
+      </div>
+      <div
+        ref={scroller}
+        onScroll={(e) => {
+          const el = e.currentTarget;
+          stick.current = el.scrollHeight - el.scrollTop - el.clientHeight < 40;
+        }}
+        style={{ flex: 1, minHeight: 0, overflowY: 'auto', padding: 'var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-5)' }}
+      >
         {turns.length === 0 && <p style={small}>還沒有對話。問一個關於這本書的問題，答案會在右側組成一個結果。</p>}
         {turns.map((turn) => {
           const answer = turn.answer ?? live[turn.turnId] ?? null;
@@ -162,17 +220,7 @@ export function ChatPane({
           return (
             <div key={turn.turnId} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
               <div style={bubble}>{turn.question}</div>
-              {turn.calls.length > 0 && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-2)', fontSize: 'var(--font-size-2xs)', color: 'var(--fg-secondary)', overflowWrap: 'anywhere' }}>
-                  {turn.calls.map((call) =>
-                    call.status === 'pending_approval' && !closed && sessionId ? (
-                      <ApprovalCard key={call.seq} sessionId={sessionId} call={call} />
-                    ) : (
-                      <ToolLine key={call.seq} call={call} />
-                    ),
-                  )}
-                </div>
-              )}
+              {turn.calls.length > 0 && <ToolCalls sessionId={sessionId} calls={turn.calls} closed={closed} />}
               {answer && <Narration text={answer} folded={result && turn.answer !== null} />}
               {result && (
                 <button
@@ -201,46 +249,53 @@ export function ChatPane({
         {error && <p role="alert" style={{ ...small, color: 'var(--color-error)' }}>{error}</p>}
       </div>
 
-      <div style={{ borderTop: 'var(--border-width) var(--border-style) var(--border)', padding: 'var(--space-4) var(--space-5)', display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
-        <textarea
-          aria-label="輸入問題"
-          rows={3}
-          value={text}
-          disabled={closed}
-          placeholder={placeholder}
-          onChange={(e) => setText(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
-              e.preventDefault();
-              submit();
-            }
-          }}
-          style={{
-            resize: 'none',
-            fontFamily: 'var(--font-sans)',
-            fontSize: 'var(--font-size-sm)',
-            padding: 'var(--space-4) var(--space-5)',
-            border: 'var(--input-border-width) solid var(--border)',
-            borderRadius: 'var(--input-radius)',
-            background: 'var(--input-bg)',
-            color: 'var(--fg-primary)',
-          }}
-        />
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-4)' }}>
-          <span style={small}>回答會在右側產生新的結果</span>
-          <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-            {busy && (
-              <button type="button" className="ss-btn ss-btn-sm ss-btn-ghost" disabled={cancel.isPending} onClick={() => cancel.mutate()}>
-                中止
-              </button>
-            )}
-            <button type="button" className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm" disabled={!text.trim() || busy || closed} onClick={submit}>
-              送出
-            </button>
-          </div>
+      {closed ? (
+        <div style={footer}>
+          <p style={{ ...small, fontSize: 'var(--font-size-xs)' }}>
+            {sessionId ? '這段對話已結束，只能看；按左側「＋ 新對話」接著問。' : '按左側「＋ 新對話」開始。'}
+          </p>
         </div>
-        {send.error && <p role="alert" style={{ ...small, color: 'var(--color-error)' }}>{errorText(send.error)}</p>}
-      </div>
+      ) : (
+        <div style={footer}>
+          <textarea
+            aria-label="輸入問題"
+            rows={3}
+            value={text}
+            placeholder="輸入問題……（Enter 送出，Shift+Enter 換行）"
+            onChange={(e) => setText(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) {
+                e.preventDefault();
+                submit();
+              }
+            }}
+            style={{
+              resize: 'none',
+              fontFamily: 'var(--font-sans)',
+              fontSize: 'var(--font-size-sm)',
+              padding: 'var(--space-4) var(--space-5)',
+              border: 'var(--input-border-width) solid var(--border)',
+              borderRadius: 'var(--input-radius)',
+              background: 'var(--input-bg)',
+              color: 'var(--fg-primary)',
+            }}
+          />
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 'var(--space-4)' }}>
+            <span style={small}>回答會在右側產生新的結果</span>
+            <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+              {busy && (
+                <button type="button" className="ss-btn ss-btn-sm ss-btn-ghost" disabled={cancel.isPending} onClick={() => cancel.mutate()}>
+                  中止
+                </button>
+              )}
+              <button type="button" className="ss-btn ss-btn-md ss-btn-primary ss-btn-llm" disabled={!text.trim() || busy} onClick={submit}>
+                送出
+              </button>
+            </div>
+          </div>
+          {send.error && <p role="alert" style={{ ...small, color: 'var(--color-error)' }}>{errorText(send.error)}</p>}
+        </div>
+      )}
     </section>
   );
 }

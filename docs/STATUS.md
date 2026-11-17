@@ -100,6 +100,11 @@
 
 每張的完成標準見 `docs/spec/07_任務清單.md`；這裡只記「做的時候要知道、但規格沒寫」的事。
 
+### Agent 對話介面（2026-11-17，UI 對齊之後）
+
+- 規劃：`docs/plans/20261117-agent-chat-ux.md`。使用者實際操作後覺得「看既有對話」很難用，改成主流 chat 用法：左側常駐對話清單（N-10b 加 `firstQuestion` 當標題）、對話卡固定高度內部捲動＋自動捲到底、工具呼叫收合、已結束的對話換成說明。**設計稿 `Agent.dc.html` 同批改過**（`docs/design/README.md` 記了本地修改；claude.ai 上的畫布沒改）。截圖在 `var/ui_compare/chat_ux/`。
+- 沒驗到的：開著的對話裡打字送出、自動捲到底、寫入確認卡在收合狀態下仍顯示——要真的問大腦。
+
 ### UI 對齊現況（2026-11-17）
 
 - 規劃：`docs/plans/20261117-ui-align-canvas.md`；原因：T21–T27 沒人渲染過設計稿（README 寫錯）、驗收只驗功能。**做 UI 先渲染設計稿**（`docs/design/README.md`），完成報告附並排截圖。

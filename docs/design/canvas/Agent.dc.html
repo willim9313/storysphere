@@ -42,39 +42,52 @@ a.ss-card-link{color:inherit}
     <span class="ss-badge ss-badge-info" style="margin-left: auto; align-self: center;">原型示意資料</span>
   </header>
   <main style="width: 100%; box-sizing: border-box; padding: var(--space-5) var(--space-6) var(--space-8); display: flex; flex-direction: column; gap: var(--space-5);">
-    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--bg-secondary); border: var(--border-width) var(--border-style) var(--border); border-radius: var(--radius-md);">
-      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4);">
-        <label for="brain" style="font-size: var(--font-size-2xs); color: var(--fg-muted);">大腦</label>
-        <select id="brain" style="font-family: var(--font-sans); font-size: var(--font-size-xs); padding: var(--space-3) var(--space-5); border: var(--input-border-width) solid var(--border); border-radius: var(--input-radius); background: var(--input-bg); color: var(--fg-primary);">
-          <option>deepagents · gemini-2.5-flash</option><option>Claude Code（ACP）</option>
-        </select>
-        <span style="font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-muted);">session 8c1e · 題材：推理</span>
-        <span class="ss-badge ss-badge-neutral">L0 · 只用 StorySphere 工具</span>
-      </div>
-      <div style="display: flex; gap: var(--space-3);">
-        <button type="button" class="ss-btn ss-btn-sm ss-btn-ghost">之前的對話</button>
-        <button type="button" class="ss-btn ss-btn-sm ss-btn-secondary">新對話</button>
-      </div>
-    </div>
+    <div style="display: flex; gap: var(--space-6); align-items: flex-start;">
 
-    <div style="display: flex; flex-wrap: wrap; gap: var(--space-6); align-items: flex-start;">
+      <aside aria-label="對話清單" style="flex: 0 0 220px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4); position: sticky; top: var(--space-5);">
+        <button type="button" class="ss-btn ss-btn-sm ss-btn-secondary" style="justify-content: center;">＋ 新對話</button>
+        <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+          <label for="brain" style="font-size: var(--font-size-2xs); color: var(--fg-muted);">新對話用的大腦</label>
+          <select id="brain" style="font-family: var(--font-sans); font-size: var(--font-size-xs); padding: var(--space-3) var(--space-4); border: var(--input-border-width) solid var(--border); border-radius: var(--input-radius); background: var(--input-bg); color: var(--fg-primary);">
+            <option>deepagents · gemini-2.5-flash</option><option>Claude Code（ACP）</option>
+          </select>
+        </div>
+        <hr style="border: 0; border-top: var(--border-width) var(--border-style) var(--border); margin: 0;">
+        <span style="font-size: var(--font-size-2xs); font-weight: 600; letter-spacing: 0.06em; color: var(--fg-muted);">這本書的對話 · 4</span>
+        <nav aria-label="之前的對話" style="display: flex; flex-direction: column; gap: var(--space-1);">
+          <button type="button" class="ss-tab active" aria-current="true" style="width: 100%; text-align: left; display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3) var(--space-4);">
+            <span style="font-size: var(--font-size-xs); color: var(--fg-primary); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">華生知道真相的時間，比讀者早還是晚？</span>
+            <span style="font-size: var(--font-size-2xs); color: var(--fg-muted); font-weight: 400;">18:52 · deepagents · 2 份草稿</span>
+          </button>
+          <button type="button" class="ss-tab" style="width: 100%; text-align: left; display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3) var(--space-4);">
+            <span style="font-size: var(--font-size-xs); color: var(--fg-primary); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">線索公平嗎？</span>
+            <span style="font-size: var(--font-size-2xs); color: var(--fg-muted); font-weight: 400;">18:40 · deepagents · 已結束</span>
+          </button>
+          <button type="button" class="ss-tab" style="width: 100%; text-align: left; display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3) var(--space-4);">
+            <span style="font-size: var(--font-size-xs); color: var(--fg-primary); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">福爾摩斯和華生的關係怎麼變？</span>
+            <span style="font-size: var(--font-size-2xs); color: var(--fg-muted); font-weight: 400;">11-16 · Claude Code · 已結束</span>
+          </button>
+          <button type="button" class="ss-tab" style="width: 100%; text-align: left; display: flex; flex-direction: column; gap: var(--space-1); padding: var(--space-3) var(--space-4);">
+            <span style="font-size: var(--font-size-xs); color: var(--fg-primary); line-height: 1.45; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">華生對莫斯坦小姐的感情變化，和案件的關鍵事件有什麼關聯？</span>
+            <span style="font-size: var(--font-size-2xs); color: var(--fg-muted); font-weight: 400;">11-16 · deepagents · 已結束</span>
+          </button>
+        </nav>
+        <button type="button" class="ss-btn ss-btn-sm ss-btn-ghost" style="align-self: flex-start;">‹ 收合清單</button>
+      </aside>
 
-      <section aria-label="對話" style="flex: 1 1 340px; max-width: 420px; min-width: 0; background: var(--bg-primary); border: var(--card-border-width) var(--border-style) var(--border); border-radius: var(--card-radius); box-shadow: var(--card-shadow); display: flex; flex-direction: column; min-height: 1340px;">
-        <div style="flex: 1; padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-5);">
+      <section aria-label="對話" style="flex: 1 1 360px; max-width: 420px; min-width: 0; background: var(--bg-primary); border: var(--card-border-width) var(--border-style) var(--border); border-radius: var(--card-radius); box-shadow: var(--card-shadow); display: flex; flex-direction: column; height: 900px; position: sticky; top: var(--space-5);">
+        <div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-3); padding: var(--space-4) var(--space-5); border-bottom: var(--border-width) var(--border-style) var(--border);">
+          <span style="font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-muted);">session 8c1e · 題材：推理</span>
+          <span class="ss-badge ss-badge-neutral">L0 · 只用 StorySphere 工具</span>
+        </div>
+        <div style="flex: 1; min-height: 0; overflow-y: auto; padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-5);">
           <div style="align-self: flex-end; max-width: 88%; background: var(--bg-tertiary); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5); font-size: var(--font-size-sm); line-height: 1.6;">華生知道真相的時間，比讀者早還是晚？</div>
-          <div style="display: flex; flex-direction: column; gap: var(--space-2); font-size: var(--font-size-2xs); color: var(--fg-secondary);">
-            <span>› <span style="font-family: var(--font-mono);">list_methods</span> 找到 CH5、MY1</span>
-            <span>› <span style="font-family: var(--font-mono);">run_method</span> character.belief · 41 s</span>
-            <span>› <span style="font-family: var(--font-mono);">get_run</span> info.two_story</span>
-          </div>
+          <button type="button" aria-expanded="false" style="align-self: flex-start; background: none; border: none; padding: 0; cursor: pointer; font-family: var(--font-sans); font-size: var(--font-size-2xs); color: var(--fg-secondary); text-align: left;">▸ 使用了 3 個工具 · <span style="font-family: var(--font-mono); color: var(--fg-muted);">list_methods、run_method、get_run</span></button>
           <p style="margin: 0; font-family: var(--font-serif); font-size: var(--font-size-sm); line-height: 1.75;">我把 CH5 認知狀態和 MY1 雙故事拆解組合起來看。這本書是華生的第一人稱，讀者和華生同步知情；福爾摩斯比兩人早兩章推得同伴的來歷。</p>
           <a href="#ra" style="align-self: flex-start; font-size: var(--font-size-2xs); text-decoration: none; display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border: var(--border-width) var(--border-style) var(--accent); border-radius: var(--radius-sm);">結果 A · 誰知道同伴的來歷？</a>
 
           <div style="align-self: flex-end; max-width: 88%; background: var(--bg-tertiary); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5); font-size: var(--font-size-sm); line-height: 1.6;">那讀者被誤導到誰身上？</div>
-          <div style="display: flex; flex-direction: column; gap: var(--space-2); font-size: var(--font-size-2xs); color: var(--fg-secondary);">
-            <span>› <span style="font-family: var(--font-mono);">get_run</span> info.suspect_matrix · 已完成</span>
-            <span>› <span style="font-family: var(--font-mono);">get_events</span> 第 6–7 章 · 9 筆</span>
-          </div>
+          <button type="button" aria-expanded="false" style="align-self: flex-start; background: none; border: none; padding: 0; cursor: pointer; font-family: var(--font-sans); font-size: var(--font-size-2xs); color: var(--fg-secondary); text-align: left;">▸ 使用了 2 個工具 · <span style="font-family: var(--font-mono); color: var(--fg-muted);">get_run、get_events</span></button>
           <p style="margin: 0; font-family: var(--font-serif); font-size: var(--font-size-sm); line-height: 1.75;">結果卡已經跑過，我直接取用，再補上第 6–7 章的事件。誤導集中在撒迪厄斯·肖爾托身上。</p>
           <a href="#rb" style="align-self: flex-start; font-size: var(--font-size-2xs); text-decoration: none; display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border: var(--border-width) var(--border-style) var(--accent); border-radius: var(--radius-sm);">結果 B · 讀者被誤導到誰身上？</a>
 
@@ -97,7 +110,7 @@ a.ss-card-link{color:inherit}
         </div>
       </section>
 
-      <section aria-labelledby="res-h" style="flex: 999 1 760px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-5);">
+      <section aria-labelledby="res-h" style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-5);">
         <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-4);">
           <div style="display: flex; flex-direction: column; gap: var(--space-1);">
             <h2 id="res-h" style="margin: 0; font-family: var(--font-serif); font-size: var(--font-size-xl); font-weight: 700;">本次分析結果</h2>

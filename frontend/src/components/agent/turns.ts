@@ -18,6 +18,9 @@ export interface Turn {
   drafts: NoteDraft[];
 }
 
+/** 大腦後端的顯示名稱。 */
+export const BACKEND_LABEL: Record<string, string> = { deepagents: 'deepagents', 'claude-code': 'Claude Code' };
+
 export type ResultState = 'unsaved' | 'saved' | 'discarded';
 
 function viewOf(call: TraceItem): ShownView | null {
