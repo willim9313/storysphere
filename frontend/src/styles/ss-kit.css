@@ -923,3 +923,64 @@
 
 /* 中性徽章（畫布各頁 helmet 裡的補充樣式）：排隊中、已取消這類沒有好壞的狀態。 */
 .ss-badge-neutral { background: var(--bg-secondary); color: var(--fg-secondary); }
+
+/* ── UI 對齊設計稿（第 1 批，docs/plans/20261117-ui-align-canvas.md）──────────
+   照抄設計稿 DS v3 kit.css（docs/design/canvas/ds/…/web_app/kit.css）裡前端缺的 class。
+   規則：缺的照設計稿補；前端已有的同名 class 保留現有定義，不覆蓋。
+   因此 .ss-toggle 沒搬（global.css 已有按鈕版），.ss-theme-* 在第 3 批跟色票 token 一起補。 */
+
+/* Tabs（膠囊樣式；取代 .ss-utabs 的地方在各頁的批次裡換） */
+.ss-tabs { display: flex; gap: 2px; }
+.ss-tab {
+  background: none; border: none; cursor: pointer;
+  font-family: var(--font-sans); font-size: var(--font-size-xs); font-weight: 500;
+  padding: var(--space-3) var(--space-5); border-radius: var(--radius-md);
+  color: var(--fg-secondary);
+  transition: background-color var(--transition-fast) ease, color var(--transition-fast) ease;
+}
+.ss-tab:hover { background: var(--bg-secondary); }
+.ss-tab.active { background: var(--bg-tertiary); color: var(--accent); }
+
+/* Panel（側欄詳情：證據瀏覽、方法目錄） */
+.ss-panel {
+  background: var(--bg-secondary);
+  border-left: var(--card-border-width) var(--border-style) var(--border);
+  display: flex; flex-direction: column;
+  flex-shrink: 0;
+}
+.ss-panel-head {
+  padding: var(--space-5);
+  border-bottom: var(--border-width) var(--border-style) var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.ss-panel-head h3 { margin: 0; font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 700; }
+.ss-panel-close { background: none; border: none; cursor: pointer; color: var(--fg-muted); padding: var(--space-2); }
+.ss-panel-body { padding: var(--space-5); overflow: auto; display: flex; flex-direction: column; gap: var(--space-4); }
+.ss-panel-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+.ss-panel-meta { font-size: var(--font-size-2xs); color: var(--fg-muted); font-family: var(--font-sans); }
+.ss-panel-rule { border: 0; border-top: var(--border-width) var(--border-style) var(--border); margin: var(--space-4) 0; }
+
+/* OptionCard（設定頁的大腦選擇）。結構：
+     .ss-option-card[.selected] > .ss-option-card-body > .ss-option-card-title + .ss-option-card-desc */
+.ss-option-card {
+  display: flex; align-items: flex-start; gap: var(--space-6);
+  padding: var(--space-6); background: var(--bg-primary);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius); cursor: pointer;
+  transition: background-color var(--transition-fast) ease, border-color var(--transition-fast) ease;
+}
+.ss-option-card:hover { background: var(--bg-secondary); }
+.ss-option-card.selected { border-color: var(--accent); border-width: 2px; background: var(--bg-secondary); }
+.ss-option-card-body { flex: 1; min-width: 0; }
+.ss-option-card-title {
+  font-family: var(--font-sans); font-size: var(--font-size-xs); font-weight: 600;
+  color: var(--fg-primary); line-height: 1.35;
+}
+.ss-option-card-desc {
+  font-family: var(--font-sans); font-size: var(--font-size-2xs);
+  color: var(--fg-muted); margin-top: var(--space-1);
+}
+
+/* 整張卡是連結時（設計稿各頁 helmet 的補充樣式） */
+a.ss-card-link { color: inherit; text-decoration: none; }
+a.ss-card-link:hover { background: var(--bg-secondary); }
