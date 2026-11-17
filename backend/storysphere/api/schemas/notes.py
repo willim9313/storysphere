@@ -34,7 +34,7 @@ class NoteDetail(Evidence):
 
 
 class NoteFromRunIn(ApiModel):
-    """N-06c 從結果卡建立（`origin=run`）；`origin=draft` 在 T25／T27。"""
+    """N-06c 從結果卡建立（`origin=run`）。"""
 
     model_config = ConfigDict(extra="forbid", populate_by_name=True)
 
@@ -43,6 +43,19 @@ class NoteFromRunIn(ApiModel):
     title: str = Field(min_length=1)
     conclusion: str
     cited_evidence_ids: list[str]
+
+
+class NoteFromDraftIn(ApiModel):
+    """N-06c 從 agent 草稿建立（`origin=draft`）；帶了任一可改欄位＝使用者改過。"""
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    origin: str
+    session_id: str
+    draft_id: str
+    title: str | None = Field(default=None, min_length=1)
+    conclusion: str | None = None
+    cited_evidence_ids: list[str] | None = None
 
 
 class NoteCreated(ApiModel):

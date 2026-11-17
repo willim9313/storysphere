@@ -87,6 +87,8 @@ def draft_event(draft: dict[str, Any]) -> dict[str, Any]:
         "conclusion": draft["conclusion"],
         "citedEvidenceIds": draft["cited_evidence_ids"],
         "question": draft["question"],
+        # T27 之前建立的草稿沒有這個欄位。
+        "turnId": draft.get("turn_id"),
         "state": draft["state"],
         "check": draft["check"],
         "noteId": draft["note_id"],
@@ -124,6 +126,10 @@ def register(server: MCPServer, env: ToolEnv) -> None:
                 "conclusion": conclusion,
                 "cited_evidence_ids": ids,
                 "question": call.session.question,
+                # 前端用 turn_id 把草稿放回它那一輪（05 §3.3）；call_seq 是確認時切 trace 的位置
+                # （04 §5.6「到該次 create_note 為止」），不對外。
+                "turn_id": call.trace.turn_id,
+                "call_seq": call.trace.seq,
                 "state": "open",
                 "check": _check(await _note_problems(call, ids)),
                 "note_id": None,

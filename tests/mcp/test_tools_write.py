@@ -55,8 +55,10 @@ class TestCreateNote:
         (draft,) = await _drafts(agent)
         assert draft["draft_id"] == out["draft_id"]
         assert (draft["question"], draft["state"]) == ("線索公平嗎？", "open")
+        # 草稿記住它那一輪與 create_note 在 trace 的位置（T27：確認時切 methodology_trace）。
+        assert (draft["turn_id"], draft["call_seq"]) == ("t1", 2)
         (event,) = _events(agent, "note_draft")
-        assert event["op"] == "created"
+        assert event["op"] == "created" and event["draft"]["turnId"] == "t1"
         assert event["draft"]["citedEvidenceIds"] == [ids["l2"]]
 
     async def test_no_evidence_is_written(self, agent):

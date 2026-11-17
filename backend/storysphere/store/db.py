@@ -26,6 +26,9 @@ import storysphere.store.content_tables  # noqa: F401
 # 匯入即註冊 ingest_units／ingest_unit_outputs 兩張表。
 import storysphere.store.ingest_units  # noqa: F401
 
+# 匯入即註冊 methodologies 表（使用者存下的方法論，N-07e）。
+import storysphere.store.methodologies  # noqa: F401
+
 # 匯入即註冊 paragraph_entities 表（S2 段落標記索引）。
 import storysphere.store.paragraph_entities  # noqa: F401
 from storysphere.store.tables import Base

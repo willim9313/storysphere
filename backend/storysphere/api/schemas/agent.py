@@ -99,6 +99,8 @@ class NoteDraft(ApiModel):
     conclusion: str
     cited_evidence_ids: list[str]
     question: str | None
+    # 產生草稿的那一輪；T27 之前建立的草稿是 null。
+    turn_id: str | None = None
     state: Literal["open", "confirmed", "discarded"]
     check: dict[str, Any]
     note_id: str | None

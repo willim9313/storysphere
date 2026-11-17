@@ -1,12 +1,13 @@
 """N-06a–e：筆記與詮釋（04 §4.6）。
 
-原型範圍（使用者 2026-11-17 決定）：筆記只從結果卡建立（`origin=run`），重跑只支援
-`methodologyTrace.kind=ui_run`；從 agent 草稿建立與重放 agent trace 在 T25／T27。
+原型範圍（使用者 2026-11-17 決定）：重跑只支援 `methodologyTrace.kind=ui_run`。
+從 agent 草稿建立（`origin=draft`）在 T27 補上。
 筆記與詮釋都是使用者在 UI 按確認才寫入（01 §5），agent 不能呼叫這些端點。
 """
 
 from __future__ import annotations
 
+from datetime import UTC, datetime
 from typing import Annotated, Any, TypeVar
 
 from fastapi import APIRouter, Body, Query
@@ -24,17 +25,21 @@ from storysphere.api.queries.evidence import (
     to_list_items,
 )
 from storysphere.api.queries.trigger import scope_of, trigger_method
+from storysphere.api.routes.agent import GatewayDep
 from storysphere.api.schemas.common import next_cursor
 from storysphere.api.schemas.notes import (
     InterpretationCreated,
     InterpretationIn,
     NoteCreated,
     NoteDetail,
+    NoteFromDraftIn,
     NoteFromRunIn,
     NoteListItem,
     NotePage,
 )
 from storysphere.api.schemas.runs import TriggerOut
+from storysphere.gateway.service import Gateway, invalid_state
+from storysphere.store.agent import AgentSessionRow, mcp_methodology_trace
 from storysphere.store.content_tables import get_content
 from storysphere.store.evidence_writer import (
     EvidenceDraft,
@@ -187,19 +192,73 @@ async def _ui_run_trace(session: AsyncSession, run: RunRow) -> dict[str, Any]:
     }
 
 
+async def _note_from_draft(
+    book_id: str, session: AsyncSession, gateway: Gateway, body: NoteFromDraftIn
+) -> NoteCreated:
+    """N-06c `origin=draft`：寫筆記、草稿標 confirmed、發 `note_draft`（op=confirmed）。"""
+    row = await session.get(AgentSessionRow, body.session_id)
+    if row is None or row.book_id != book_id:
+        raise not_found("Agent session", body.session_id)
+    drafts = [dict(d) for d in row.drafts_json]
+    draft = next((d for d in drafts if d["draft_id"] == body.draft_id), None)
+    if draft is None:
+        raise not_found("Draft", body.draft_id)
+    if draft["state"] != "open":
+        raise invalid_state(f"Draft {body.draft_id} is {draft['state']}.")
+
+    edited = any(
+        value is not None for value in (body.title, body.conclusion, body.cited_evidence_ids)
+    )
+    title = body.title if body.title is not None else draft["title"]
+    conclusion = body.conclusion if body.conclusion is not None else draft["conclusion"]
+    cited = body.cited_evidence_ids
+    ids = list(dict.fromkeys(cited if cited is not None else draft["cited_evidence_ids"]))
+    await _check_citations(session, book_id, ids)
+
+    ctx = WriteContext(
+        book_id=book_id,
+        source="agent",
+        produced_via="agent",
+        agent_backend=row.backend,
+        review_status="modified" if edited else "approved",
+    )
+    note_draft = EvidenceDraft(
+        claim_type="note",
+        summary=title[:SUMMARY_CHARS],
+        confidence=1.0,
+        content={
+            "title": title,
+            "conclusion": conclusion,
+            # 從草稿建立的筆記以 trace 為準（01 §5）。
+            "methodology_run_id": None,
+            "methodology_trace": await mcp_methodology_trace(session, row, draft, ids),
+            "question": draft.get("question"),
+        },
+        derived_from=ids,
+    )
+    note_row = await write_evidence(session, ctx, note_draft)
+    draft.update(state="confirmed", note_id=note_row.id, updated_at=datetime.now(UTC).isoformat().replace("+00:00", "Z"))
+    row.drafts_json = drafts
+    await session.commit()
+    gateway.notify_draft(row, "confirmed", draft)
+    (note,) = await to_evidence(session, [note_row])
+    return NoteCreated(note=note)
+
+
 @router.post("/books/{book_id}/notes", response_model=NoteCreated, status_code=201)
 async def create_note(
     book: BookDep,
     session: SessionDep,
     engine: MethodEngineDep,
+    gateway: GatewayDep,
     raw: Annotated[dict[str, Any], Body()],
 ) -> NoteCreated:
-    """N-06c 從結果卡存成筆記（使用者按確認＝人工審核，01 §5）。"""
+    """N-06c 存成筆記：從結果卡或 agent 草稿（使用者按確認＝人工審核，01 §5）。"""
     if raw.get("origin") == "draft":
-        raise validation_error("origin=draft is not supported in the prototype yet (T25/T27).")
+        return await _note_from_draft(book.id, session, gateway, _parse(NoteFromDraftIn, raw))
     body = _parse(NoteFromRunIn, raw)
     if body.origin != "run":
-        raise validation_error("origin must be 'run'.")
+        raise validation_error("origin must be 'run' or 'draft'.")
     run = await session.get(RunRow, body.from_run_id)
     if run is None or run.book_id != book.id:
         raise not_found("Run", body.from_run_id)

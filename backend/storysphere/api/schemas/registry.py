@@ -5,7 +5,9 @@ registry YAML 的 key 是 snake_case，這裡轉成 camelCase；值（方法 id�
 
 from __future__ import annotations
 
-from pydantic import Field
+from typing import Any
+
+from pydantic import ConfigDict, Field
 
 from storysphere.api.schemas.common import ApiModel
 
@@ -72,6 +74,8 @@ class StepOut(ApiModel):
 
     method: str | None
     synthesis: SynthesisOut | None
+    # 使用者方法論的步驟可帶 run_method 當時的 `inputs`（N-07e）；內建的沒有。
+    input: dict[str, Any] | None = None
 
 
 class MethodologyOut(ApiModel):
@@ -130,3 +134,19 @@ class ViewCatalogOut(ApiModel):
     perspectives: list[PerspectiveOut]
 
 
+class SessionTurnIn(ApiModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    session_id: str
+    turn_id: str
+
+
+class MethodologyIn(ApiModel):
+    """N-07e 的 request。原型只做 `fromSession`；`steps`、`fromNoteId` 收下來只為了回 422。"""
+
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+
+    question: str = Field(min_length=1)
+    from_session: SessionTurnIn | None = None
+    steps: list[dict[str, Any]] | None = None
+    from_note_id: str | None = None

@@ -9,6 +9,7 @@ import { NotesPage } from '@/pages/NotesPage';
 import { EvidencePage } from '@/pages/EvidencePage';
 import { RegistryPage } from '@/pages/RegistryPage';
 import { SettingsPage } from '@/pages/SettingsPage';
+import { AgentPage } from '@/pages/AgentPage';
 
 // 05 §3 的九個畫面；工作中心是抽屜，不是路由。
 export const router = createBrowserRouter([
@@ -19,7 +20,7 @@ export const router = createBrowserRouter([
       { path: '/books/:bookId', element: <OverviewPage /> },
       { path: '/books/:bookId/ingest', element: <IngestPage /> },
       { path: '/books/:bookId/runs/:runId', element: <RunDetailPage /> },
-      { path: '/books/:bookId/agent', element: <NotBuiltPage title="Agent 工作區" inBook /> },
+      { path: '/books/:bookId/agent', element: <AgentPage /> },
       { path: '/books/:bookId/notes', element: <NotesPage /> },
       { path: '/books/:bookId/evidence', element: <EvidencePage /> },
       { path: '/registry', element: <RegistryPage /> },

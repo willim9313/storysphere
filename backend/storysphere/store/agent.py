@@ -138,3 +138,51 @@ async def traced_evidence_ids(session: AsyncSession, session_id: str) -> set[str
     run_ids = select(Run.id).where(Run.agent_session_id == session_id)
     found.update(await session.scalars(select(Evidence.id).where(Evidence.run_id.in_(run_ids))))
     return found
+
+
+async def mcp_methodology_trace(
+    session: AsyncSession,
+    row: AgentSessionRow,
+    draft: dict[str, Any],
+    cited_ids: list[str],
+) -> dict[str, Any]:
+    """筆記的 `methodology_trace`（04 §5.6 `kind=mcp`），N-06c 從草稿確認時用。
+
+    `calls`＝本 session 在這次 `create_note` 之前的所有 `ok` 呼叫（不含 `create_note` 本身）。
+    T27 之前的草稿沒有 `call_seq`，改用草稿的建立時間切。
+    `contributing`：回傳的證據與引用有交集，或回傳的 run 產出了被引用的證據。
+    """
+    stmt = select(TraceCallRow).where(
+        TraceCallRow.session_id == row.id, TraceCallRow.status == "ok"
+    )
+    if draft.get("call_seq") is not None:
+        stmt = stmt.where(TraceCallRow.seq < draft["call_seq"])
+    else:
+        created = datetime.fromisoformat(draft["created_at"].replace("Z", "+00:00"))
+        stmt = stmt.where(TraceCallRow.started_at <= created)
+    calls = list(await session.scalars(stmt.order_by(TraceCallRow.seq)))
+
+    cited = set(cited_ids)
+    cited_runs = set(
+        await session.scalars(
+            select(Evidence.run_id).where(Evidence.id.in_(cited), Evidence.run_id.is_not(None))
+        )
+    )
+    return {
+        "kind": "mcp",
+        "session_id": row.id,
+        "agent_backend": row.backend,
+        "calls": [
+            {
+                "seq": call.seq,
+                "tool": call.tool,
+                "args": call.args_json,
+                "result_run_ids": call.result_run_ids or [],
+                "contributing": bool(
+                    cited & set(call.result_evidence_ids or [])
+                    or cited_runs & set(call.result_run_ids or [])
+                ),
+            }
+            for call in calls
+        ],
+    }

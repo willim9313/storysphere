@@ -681,7 +681,7 @@ export interface paths {
         put?: never;
         /**
          * Create Note
-         * @description N-06c 從結果卡存成筆記（使用者按確認＝人工審核，01 §5）。
+         * @description N-06c 存成筆記：從結果卡或 agent 草稿（使用者按確認＝人工審核，01 §5）。
          */
         post: operations["create_note_api_v2_books__book_id__notes_post"];
         delete?: never;
@@ -801,11 +801,15 @@ export interface paths {
         };
         /**
          * List Methodologies
-         * @description N-07c 方法論清單（原型只有內建的；使用者方法論 N-07e 在 T27）。
+         * @description N-07c 方法論清單：內建的（依代碼）在前，使用者存的（依建立時間）在後。
          */
         get: operations["list_methodologies_api_v2_registry_methodologies_get"];
         put?: never;
-        post?: never;
+        /**
+         * Create Methodology
+         * @description N-07e 另存方法論。原型只做 `fromSession`：步驟＝該輪的 `run_method` 順序（05 §3.3）。
+         */
+        post: operations["create_methodology_api_v2_registry_methodologies_post"];
         delete?: never;
         options?: never;
         head?: never;
@@ -2039,6 +2043,8 @@ export interface components {
             citedEvidenceIds: string[];
             /** Question */
             question: string | null;
+            /** Turnid */
+            turnId?: string | null;
             /**
              * State
              * @enum {string}
@@ -2595,6 +2601,10 @@ export interface components {
             /** Method */
             method: string | null;
             synthesis: components["schemas"]["SynthesisOut"] | null;
+            /** Input */
+            input?: {
+                [key: string]: unknown;
+            } | null;
         };
         /** SubjectOut */
         SubjectOut: {
@@ -4316,6 +4326,41 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MethodologyOut"][];
+                };
+            };
+        };
+    };
+    create_methodology_api_v2_registry_methodologies_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MethodologyOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

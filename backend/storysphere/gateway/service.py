@@ -308,6 +308,13 @@ class Gateway:
         for draft in discarded:
             self._emit(session_id, "note_draft", {"op": "discarded", "draft": draft_event(draft)})
 
+    # ---- N-06c（origin=draft）----
+
+    def notify_draft(self, row: AgentSessionRow, op: str, draft: dict[str, Any]) -> None:
+        """草稿在 Gateway 之外改了狀態（N-06c 確認）時，在 session 的串流發 `note_draft`。"""
+        self._ctx(row)
+        self._emit(row.id, "note_draft", {"op": op, "draft": draft_event(draft)})
+
     # ---- N-10k ----
 
     async def discard_draft(self, session_id: str, draft_id: str) -> None:

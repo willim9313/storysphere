@@ -11,20 +11,35 @@ const EVENT_TYPES = [
   'resync',
 ] as const;
 
-export type StreamEventType = (typeof EVENT_TYPES)[number];
+// 04 §5.1 AgentEvent 的型別（N-10e），加上補不了時的 resync。
+export const AGENT_EVENT_TYPES = [
+  'text_delta',
+  'tool_call',
+  'tool_result',
+  'approval_request',
+  'view',
+  'note_draft',
+  'done',
+  'error',
+  'resync',
+] as const;
 
 export interface StreamEvent {
-  type: StreamEventType;
+  type: string;
   data: Record<string, unknown>;
 }
 
 /**
- * 訂閱一條 SSE 串流（N-09c 單一 job、N-09f 整本書）。
+ * 訂閱一條 SSE 串流（N-09c 單一 job、N-09f 整本書；傳 `AGENT_EVENT_TYPES` 時是 N-10e）。
  *
  * 斷線時瀏覽器會自己帶 `Last-Event-ID` 重連，後端補送漏掉的事件；補不了時送 `resync`，
  * 呼叫端收到就重抓 REST 狀態。`path` 為 null 時不連。
  */
-export function useEventStream(path: string | null, onEvent: (event: StreamEvent) => void) {
+export function useEventStream(
+  path: string | null,
+  onEvent: (event: StreamEvent) => void,
+  types: readonly string[] = EVENT_TYPES,
+) {
   // 用 ref 拿最新的 callback，避免每次 render 都重連。
   const handler = useRef(onEvent);
   useEffect(() => {
@@ -34,7 +49,7 @@ export function useEventStream(path: string | null, onEvent: (event: StreamEvent
   useEffect(() => {
     if (path === null) return;
     const source = new EventSource(streamUrl(path));
-    const listeners = EVENT_TYPES.map((type) => {
+    const listeners = types.map((type) => {
       const listener = (message: MessageEvent<string>) => {
         let data: Record<string, unknown> = {};
         try {
@@ -51,5 +66,5 @@ export function useEventStream(path: string | null, onEvent: (event: StreamEvent
       for (const [type, listener] of listeners) source.removeEventListener(type, listener);
       source.close();
     };
-  }, [path]);
+  }, [path, types]);
 }

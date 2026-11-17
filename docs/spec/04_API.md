@@ -166,6 +166,7 @@
 | `draftId`、`sessionId` | |
 | `title`、`conclusion`、`citedEvidenceIds[]` | agent 給的（使用者確認時可改） |
 | `question` | 系統填：觸發這次 `create_note` 的那則使用者訊息 |
+| `turnId` | 系統填：產生草稿的那一輪（原型補充，T27）。前端用它把草稿放回那一輪的結果；`note_draft` 事件信封的 `turnId` 是發事件當下的輪次（例如確認時），不一定相同。T27 之前建立的草稿是 null |
 | `state` | `open`／`confirmed`／`discarded` |
 | `check` | `{ok, problems[]}`：即時套 N-06c 的筆記規則，讓卡片先顯示能不能存 |
 | `noteId` | 確認後的筆記 id |
@@ -506,7 +507,7 @@ pending／running／awaiting_review／paused_quota／interrupted ─(N-09d)─�
 
 ### 4.6 筆記（畫面 4、5、6）
 
-原型範圍（T23，2026-11-17，使用者決定）：N-06c 只做 `origin=draft` 以外的 `origin=run`（`draft` 回 422，T25／T27 補）；N-06d 只支援 `methodologyTrace.kind=ui_run`，回應用 N-04a 的 `TriggerOut` 形狀（含 `jobId`、`status`）；`methodologyTrace` 在 REST 回應裡和其他內容欄位一樣轉 camelCase。筆記與詮釋的 `confidence` 記 1.0（使用者已確認）。引用不在本書或一筆都沒有時回 `422 validation_error`。
+原型範圍（T23，2026-11-17，使用者決定）：N-06c 先做 `origin=run`，`origin=draft` 在 T27 補上；N-06d 只支援 `methodologyTrace.kind=ui_run`，回應用 N-04a 的 `TriggerOut` 形狀（含 `jobId`、`status`）；`methodologyTrace` 在 REST 回應裡和其他內容欄位一樣轉 camelCase。筆記與詮釋的 `confidence` 記 1.0（使用者已確認）。引用不在本書或一筆都沒有時回 `422 validation_error`。
 
 ### N-06a GET /books/:bookId/notes
 
@@ -536,6 +537,7 @@ pending／running／awaiting_review／paused_quota／interrupted ─(N-09d)─�
 | 規則 | (1) `citedEvidenceIds` 全部 `level ≥ 2`，否則 `422 note_cites_level1`；(2) 不得有 `rejected`，否則 `422 note_cites_rejected`（01 §5）；(3) 所有 id 屬於本書。使用者按確認本身就是審核，不要求先確認個別證據（01 §5） |
 | 系統補上 | `level`＝引用最高層＋1；`source`（從 run＝`method`、從草稿＝`agent`，01 §5）；`producedVia`（`ui`／`agent`）；`agentBackend`（從草稿時取 session）；`reviewStatus`（從 run＝`approved`；從草稿：未改＝`approved`、改過＝`modified`）；`derivedFrom`＝`citedEvidenceIds`（從草稿時已在 §5.5 驗過）；`methodologyRunId`（從 run＝`fromRunId`；從草稿＝null，以 `methodologyTrace` 為準，01 §5）；`methodologyTrace`（從 run＝run 樹的執行紀錄；從草稿＝§5.6 的 trace 片段）；`question`（從 run＝run 的 `question`；從草稿＝草稿的 `question`） |
 | 對應 | 寫 `evidence`、`ev_note`、`evidence_link`、`evidence_fts`；更新 `agent_sessions`（草稿狀態） |
+| 原型決定（T27） | 從草稿：`sessionId` 不屬於本書或 `draftId` 不在該 session → 404；草稿不是 `open` → `409 invalid_state`。`methodologyTrace.calls` 取到該次 `create_note` **之前**的 `ok` 呼叫（不含 `create_note` 本身）；T27 之前的草稿沒有記 trace 位置，改用草稿的 `createdAt` 切 |
 
 ### N-06d POST /books/:bookId/notes/:noteId/rerun
 
@@ -581,7 +583,7 @@ Registry 從 YAML 載入、唯讀（使用者方法論除外），回應把 YAML
 | Response | 宣告內容，加 `usedByMethodologies[]`、`downstreamMethods[]` *（推得自 DAG）* |
 | 對應 | `registry/methods/*.yaml` |
 
-原型（T23）：N-07c／d 只回內建方法論（`registry/methodologies/*.yaml`），每筆加 `implemented`（原型沒有方法論執行器，都是 `false`）；N-07e 在 T27。
+原型（T23）：N-07c／d 回內建方法論（`registry/methodologies/*.yaml`），每筆加 `implemented`（原型沒有方法論執行器，都是 `false`）。T27 起也列出使用者存的（`methodologies` 表，排在內建的後面，`implemented=false`）；使用者方法論的步驟多一個 `input`（`run_method` 當時的 `inputs`）。
 
 ### N-07c GET /registry/methodologies
 
@@ -608,6 +610,7 @@ Registry 從 YAML 載入、唯讀（使用者方法論除外），回應把 YAML
 | 規則 | 步驟只能是已登錄的方法或方法論（契約 v2 風險表）；存前跑 03 §2 的 DAG 檢查。沒有 `synthesis`，產出是筆記（03 §1） |
 | 說明 | 05 畫面 8 的「另存方法論」（P1）；方法論開放給誰建是契約 v2 待決問題 |
 | 對應 | 寫 `methodologies` |
+| 原型決定（T27，2026-11-17 使用者決定） | 只做 `fromSession`；`steps`、`fromNoteId` 回 `422 validation_error`。步驟＝該輪 `status=ok` 的 `run_method`（不含 `dry_run`），依 trace 順序，同方法同 `inputs` 只留第一次；**沒有就回 `422 no_steps`**。大腦取用現成結果（`get_run`、`search_evidence`）不算步驟，所以實際的結果多半存不了；要不要改成「從引用的證據回推用到的方法」，T28 後再議。session 不存在 → 404。`id`＝`user.<8 位 hex>`（問句多半是中文，不做轉寫） |
 
 ### N-07f GET /registry/dag
 
