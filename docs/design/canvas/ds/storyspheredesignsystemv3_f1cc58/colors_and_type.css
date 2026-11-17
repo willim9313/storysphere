@@ -1,0 +1,401 @@
+/* ============================================================
+   StorySphere — Colors & Type  (v2 · "Ink on Paper")
+   Source of truth: design tokens for the two themes.
+
+   The system is a line-art / ink aesthetic: a reader drawn in thin
+   ink strokes on warm paper. There are exactly TWO themes, applied
+   via [data-theme="…"] on <html>:
+     - (default / :root / "warm")  → Warm  — warm ivory paper, warm ink,
+                                       one burnt-sienna accent, entity
+                                       types as a low-chroma WARM hue arc.
+     - [data-theme="ink"]          → Ink   — pure black & white line art;
+                                       everything monochrome, meaning is
+                                       carried by glyph + label, not hue.
+
+   Setting data-theme to anything other than "ink" resolves to the
+   Warm base (:root). The old default/manuscript/minimal-ink/pulp
+   themes and their four color palettes have been removed entirely.
+   ============================================================ */
+
+/* ── Webfonts ─────────────────────────────────────────────────
+   Single Google Fonts request:
+     Spectral        → literary serif for content (body, titles, chunk text)
+     DM Sans         → UI chrome (buttons, meta, badges, nav)
+     Noto Serif TC   → CJK serif fallback (shares metrics with Spectral)
+     Noto Sans TC    → CJK sans fallback
+     Caveat          → hand-drawn accent — ILLUSTRATIVE USE ONLY
+                       (doodle labels, empty-state captions, splash flourish).
+                       Never for product chrome or body copy.
+     Fira Code       → mono (logs, code, keys)
+   Both themes use this same request. */
+@import url('https://fonts.googleapis.com/css2?family=Spectral:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400;1,500&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&family=Noto+Serif+TC:wght@300;400;500;700&family=Noto+Sans+TC:wght@300;400;500;700&family=Caveat:wght@400;500;600;700&family=Fira+Code:wght@400;500;700&display=swap');
+
+/* ============================================================
+   WARM  — default theme  (ink on warm ivory paper)
+   ============================================================ */
+:root {
+  /* Surfaces — warm ivory paper, three layered steps */
+  --bg-primary:   #f8f3e7;   /* warm ivory — main reading surface / paper */
+  --bg-secondary: #f1e8d5;   /* sidebar, sub-surfaces, panels */
+  --bg-tertiary:  #e9ddc6;   /* hovers, active chips, insets */
+
+  /* Text — warm ink */
+  --fg-primary:   #2a2620;   /* ink — body, headings, illustration strokes */
+  --fg-secondary: #5f5648;   /* secondary copy, labels */
+  --fg-muted:     #938876;   /* metadata, timestamps, counts */
+
+  /* Line & accent */
+  --border:       #ddceb2;   /* soft warm hairline for UI chrome */
+  --accent:       #b05a34;   /* burnt sienna — primary action, links, active */
+  --accent-fg:    #f8f3e7;   /* text/icon ON an accent fill (paper-tint white) */
+
+  /* Focus ring — keyboard a11y. One spec everywhere; applied via
+     :focus-visible as `outline: var(--focus-ring-width) solid
+     var(--focus-ring-color); outline-offset: var(--focus-ring-offset)`.
+     Distinct from the softer selected-state ring (--timeline-selected-ring). */
+  --focus-ring-color:  #b05a34;
+  --focus-ring-width:  2px;
+  --focus-ring-offset: 2px;
+
+  /* Tool panels (graph side panels, settings cards) */
+  --panel-bg:       #efe6d3;
+  --panel-bg-card:  #e7dcc6;
+  --panel-border:   #d3c3a4;
+  --panel-fg:       #2a2620;
+  --panel-fg-muted: #938876;
+
+  /* Status — warm, functional. Muted so hues sit on paper.
+     success olive · warning ochre · error brick · info dusty-denim */
+  --color-success: #5f7d3b; --color-success-bg: #eef1df;
+  --color-warning: #ad7519; --color-warning-bg: #f6edd6;
+  --color-error:   #a8482c; --color-error-bg:   #f4e4da;
+  --color-info:    #5f6a88; --color-info-bg:    #e8e7ee;
+
+  /* Entity pills — 7-type taxonomy as a WARM low-chroma hue arc.
+     clay → ochre → olive, dipping into rose & mauve. Every tint reads
+     as tinted paper; the dot carries a touch more chroma for legibility.
+     Consumed by kit `.ss-pill-<type>` and graph nodes `--entity-<type>-{bg,fg}`. */
+  --entity-character-bg:oklch(0.945 0.032 55);  --entity-character-border:oklch(0.83 0.055 52); --entity-character-fg:oklch(0.43 0.075 48);  --entity-character-dot:oklch(0.62 0.105 50);
+  --entity-location-bg: oklch(0.945 0.030 118); --entity-location-border: oklch(0.83 0.050 118);--entity-location-fg: oklch(0.43 0.060 120); --entity-location-dot: oklch(0.58 0.075 120);
+  --entity-organization-bg:oklch(0.950 0.038 85);--entity-organization-border:oklch(0.84 0.060 84);--entity-organization-fg:oklch(0.45 0.070 80);--entity-organization-dot:oklch(0.64 0.100 82);
+  --entity-object-bg:   oklch(0.940 0.035 33);  --entity-object-border:   oklch(0.82 0.060 33); --entity-object-fg:   oklch(0.44 0.080 30);  --entity-object-dot:   oklch(0.59 0.110 32);
+  --entity-concept-bg:  oklch(0.935 0.030 345); --entity-concept-border:  oklch(0.81 0.050 345);--entity-concept-fg:  oklch(0.44 0.065 345); --entity-concept-dot:  oklch(0.57 0.090 348);
+  --entity-event-bg:    oklch(0.935 0.038 22);  --entity-event-border:    oklch(0.81 0.065 22); --entity-event-fg:    oklch(0.45 0.090 20);  --entity-event-dot:    oklch(0.57 0.120 22);
+  --entity-other-bg:    oklch(0.935 0.012 75);  --entity-other-border:    oklch(0.81 0.020 72); --entity-other-fg:    oklch(0.46 0.020 70);  --entity-other-dot:    oklch(0.58 0.030 70);
+
+  /* Symbol pills (6 categories) — same warm arc, reused mapping */
+  --symbol-object-bg:oklch(0.940 0.035 33);  --symbol-object-fg:oklch(0.44 0.080 30);  --symbol-object-dot:oklch(0.59 0.110 32);
+  --symbol-nature-bg:oklch(0.945 0.030 118); --symbol-nature-fg:oklch(0.43 0.060 120); --symbol-nature-dot:oklch(0.58 0.075 120);
+  --symbol-spatial-bg:oklch(0.950 0.038 85); --symbol-spatial-fg:oklch(0.45 0.070 80); --symbol-spatial-dot:oklch(0.64 0.100 82);
+  --symbol-body-bg:oklch(0.935 0.038 22);    --symbol-body-fg:oklch(0.45 0.090 20);    --symbol-body-dot:oklch(0.57 0.120 22);
+  --symbol-color-bg:oklch(0.935 0.030 345);  --symbol-color-fg:oklch(0.44 0.065 345);  --symbol-color-dot:oklch(0.57 0.090 348);
+  --symbol-other-bg:oklch(0.935 0.012 75);   --symbol-other-fg:oklch(0.46 0.020 70);   --symbol-other-dot:oklch(0.58 0.030 70);
+
+  /* Unraveling DAG node status */
+  --status-complete-bg:#eef1df; --status-complete-border:#5f7d3b; --status-complete-fg:#4a6330;
+  --status-partial-bg: #f6edd6; --status-partial-border: #ad7519; --status-partial-fg: #8a5c13;
+  --status-empty-bg:   #f1e8d5; --status-empty-border:   #ddceb2; --status-empty-fg:   #938876;
+
+  /* ── Domain token families ─────────────────────────────────────
+     Product-specific analysis palettes. All derived by the README
+     rule: NEVER a new hue — reuse an entity/symbol/status hue or an
+     unused step of the warm arc. Every family has a Warm value here
+     and a monochrome Ink override below. */
+
+  /* Symbol interpretation polarity — LLM-scored 4-value tag on the
+     symbol-imagery page. Warm derives from status hues (positive=olive,
+     negative=brick, neutral=paper, mixed=ochre); Ink uses fill polarity. */
+  --polarity-positive-bg:#eef1df; --polarity-positive-fg:#4a6330; --polarity-positive-edge:#b7c78e; --polarity-positive-dot:#5f7d3b;
+  --polarity-negative-bg:#f4e4da; --polarity-negative-fg:#8a3a22; --polarity-negative-edge:#d3a78f; --polarity-negative-dot:#a8482c;
+  --polarity-neutral-bg: #f1e8d5; --polarity-neutral-fg: #5f5648; --polarity-neutral-edge: #ddceb2; --polarity-neutral-dot: #938876;
+  --polarity-mixed-bg:   #f6edd6; --polarity-mixed-fg:   #8a5c13; --polarity-mixed-edge:   #dcc08a; --polarity-mixed-dot:   #ad7519;
+
+  /* Symbol chapter density — single burnt-sienna ramp (paper → sienna →
+     deep sienna) for ChapterDistChart bars + DensityStrip. 3 steps + peak. */
+  --symbol-density-low:  #e9ddc6;
+  --symbol-density-mid:  #cf9a72;   /* interpolated step on the sienna ramp */
+  --symbol-density-high: #b05a34;
+  --symbol-density-peak: #7d3e22;
+
+  /* Tension intensity — discrete 3-step, same sienna-ramp logic.
+     high uses the accent as a large fill (sanctioned here for data density). */
+  --tension-intensity-low-bg: #f1e8d5; --tension-intensity-low-fg: #938876; --tension-intensity-low-edge: #ddceb2;
+  --tension-intensity-mid-bg: #cf9a72; --tension-intensity-mid-fg: #52301c; --tension-intensity-mid-edge: #a96a44;
+  --tension-intensity-high-bg:#b05a34; --tension-intensity-high-fg:#f8f3e7; --tension-intensity-high-edge:#7d3e22;
+
+  /* Narrative mode — timeline card border/bg, 5 modes.
+     present=accent · flashback=info · flashforward=warning · parallel=concept · unknown=muted */
+  --narrative-present-border:#b05a34;      --narrative-present-bg:#f3e3d8;
+  --narrative-flashback-border:#5f6a88;    --narrative-flashback-bg:#e8e7ee;
+  --narrative-flashforward-border:#ad7519; --narrative-flashforward-bg:#f6edd6;
+  --narrative-parallel-border:#9e6181;     --narrative-parallel-bg:#f9e2ee;
+  --narrative-unknown-border:#938876;      --narrative-unknown-bg:#f1e8d5;
+
+  /* Timeline structure — causal stroke=accent; parallel band = concept-mauve
+     rgba; selected ring shared with the app-wide selected convention. */
+  --timeline-chapter-bg:      rgba(233,221,198,0.15);
+  --timeline-parallel-bg:     rgba(158,97,129,0.06);
+  --timeline-parallel-border: rgba(158,97,129,0.30);
+  --timeline-causal-stroke:   #b05a34;
+  --timeline-selected-ring:   rgba(176,90,52,0.30);
+
+  /* Frye Mythos — 4 status hues remapped:
+     romance=ochre · comedy=olive · tragedy=brick · irony=info. */
+  --frye-romance-bg:#f6edd6; --frye-romance-fg:#8a5c13; --frye-romance-border:#dcc08a;
+  --frye-comedy-bg: #eef1df; --frye-comedy-fg: #4a6330; --frye-comedy-border: #b7c78e;
+  --frye-tragedy-bg:#f4e4da; --frye-tragedy-fg:#8a3a22; --frye-tragedy-border:#d3a78f;
+  --frye-irony-bg:  #e8e7ee; --frye-irony-fg:  #47506b; --frye-irony-border:  #a9aec4;
+
+  /* Booker Plot — the 7 basic plots share ONE frame: paper + sienna accent. */
+  --booker-bg:#f1e8d5; --booker-fg:#5f5648; --booker-border:#d3c3a4; --booker-accent:#b05a34;
+
+  /* Knowledge-graph nodes — CANONICAL sRGB hex mirror of the oklch entity
+     arc (fill=bg, stroke=dot, label=fg). Canvas consumers (Cytoscape's color
+     parser does NOT accept oklch()) read these instead of the oklch tokens.
+     SHARED across themes — the graph taxonomy reads identically in Ink. */
+  --graph-character-fill:#ffe8d9;    --graph-character-stroke:#b97249;    --graph-character-label:#714229;
+  --graph-location-fill:#ebf0da;     --graph-location-stroke:#74814d;     --graph-location-label:#4b552e;
+  --graph-organization-fill:#faedd2; --graph-organization-stroke:#aa863e; --graph-organization-label:#6a5124;
+  --graph-object-fill:#ffe3dc;       --graph-object-stroke:#b56353;       --graph-object-label:#794037;
+  --graph-concept-fill:#f9e2ee;      --graph-concept-stroke:#9e6181;      --graph-concept-label:#6c445b;
+  --graph-event-fill:#ffe0de;        --graph-event-stroke:#b35757;        --graph-event-label:#803f40;
+  --graph-other-fill:#eee9e1;        --graph-other-stroke:#867867;        --graph-other-label:#5f564c;
+
+  /* Splash line-art wash — how "gently" the illustration sits behind the
+     wordmark. Warm: warm sepia wash; Ink: pure grayscale (set below). */
+  --splash-image-opacity: 0.42;                    /* @kind other */
+  --splash-image-filter:  sepia(0.15) contrast(1.05);  /* @kind other */
+
+  /* ── Illustration language ──
+     Line-art spot illustrations (empty states, splash, section marks) are
+     drawn in thin ink strokes on paper — no fills, slightly loose. Use these
+     tokens for SVG stroke/weight so illustrations follow the theme. */
+  --illustration-stroke:      var(--fg-primary);   /* primary ink line */
+  --illustration-stroke-soft: var(--fg-muted);     /* secondary / distant line */
+  --illustration-accent:      var(--accent);       /* rare warm highlight */
+  --illustration-fill:        none;                /* line-only, never filled */
+  /* LLM action glyph — Lucide `sparkles` as a mask source, so any element
+     (not just a button) can carry the marker in currentColor. .ss-btn-llm masks
+     it via ::before; everything else masks it too.
+     One glyph per page — never two shapes for the same meaning. */
+  --ss-llm-glyph: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M9.937 15.5A2 2 0 0 0 8.5 14.063l-6.135-1.582a.5.5 0 0 1 0-.962L8.5 9.936A2 2 0 0 0 9.937 8.5l1.582-6.135a.5.5 0 0 1 .963 0L14.063 8.5A2 2 0 0 0 15.5 9.937l6.135 1.581a.5.5 0 0 1 0 .964L15.5 14.063a2 2 0 0 0-1.437 1.437l-1.582 6.135a.5.5 0 0 1-.963 0z'/%3E%3Cpath d='M20 3v4'/%3E%3Cpath d='M22 5h-4'/%3E%3Cpath d='M4 17v2'/%3E%3Cpath d='M3 18h2'/%3E%3C/svg%3E"); /* @kind other */
+  --illustration-weight:      1.5px;               /* nominal stroke width */
+  --illustration-weight-fine: 1px;                 /* detail strokes */
+
+  /* ── Typography ──
+     serif → content: titles (h1–h4), body/chunk text, blockquote
+     sans  → chrome: UI, buttons, meta, badges, nav
+     hand  → illustrative labels only (Caveat) — never chrome or body
+     cjk   → Chinese fallback (serif + sans), only defined here
+     Rule: a thing is serif if it IS content, sans if it's ABOUT content. */
+  --font-serif: 'Spectral', 'Noto Serif TC', Georgia, serif;
+  --font-sans:  'DM Sans', 'Noto Sans TC', system-ui, sans-serif;
+  --font-hand:  'Caveat', 'Noto Serif TC', cursive;
+  --font-cjk:   'Noto Sans TC', sans-serif;
+  --font-mono:  'Fira Code', 'Noto Sans TC', 'Courier New', monospace;
+
+  --font-size-2xs:  0.6875rem;  /* 11px — meta, badges, pill labels, dense counts */
+  --font-size-xs:   0.75rem;
+  --font-size-sm:   0.875rem;
+  --font-size-base: 1rem;
+  --font-size-lg:   1.125rem;
+  --font-size-xl:   1.25rem;
+  --font-size-2xl:  1.5rem;
+  --font-size-3xl:  2rem;
+
+  /* ── Spacing ──
+     TWO scales coexist during migration. Use the numbered one; the
+     legacy xs…2xl set stays only until the UI kit and the app have been
+     moved across, then it is removed.
+
+     Why it changed: the legacy scale skipped 2, 6 and 12px — which is
+     where a fifth of real spacing actually lands. Measured against 1,679
+     declarations in the app, xs…2xl matched only 25.9% of them exactly,
+     so almost nobody used it (~3% adoption) and spacing was hand-written
+     instead. The numbered scale matches 51.3%; the rest move by 1.24px on
+     average. 89.8% of all spacing is ≤16px, so the scale is dense at the
+     bottom and stops at 32. See the "Spacing Scale — 8 step" card.
+
+     Numeric names, not t-shirt names: the old names do not map onto the
+     new values, and reusing them would shift layouts silently. */
+  --space-1: 0.125rem;  --space-2: 0.25rem;  --space-3: 0.375rem; --space-4: 0.5rem;  /*  2 ·  4 ·  6 ·  8 px */
+  --space-5: 0.75rem;   --space-6: 1rem;     --space-7: 1.5rem;   --space-8: 2rem;    /* 12 · 16 · 24 · 32 px */
+
+  /* Legacy — do not use in new work. Removed once the kit is migrated. */
+  --space-xs: 0.25rem; --space-sm: 0.5rem; --space-md: 1rem;
+  --space-lg: 1.5rem;  --space-xl: 2rem;   --space-2xl: 3rem;
+
+  /* ── Radii / shadows / transitions ── */
+  --radius-sm: 0.25rem; --radius-md: 0.5rem; --radius-lg: 0.75rem; --radius-xl: 1rem;
+  --shadow-sm: 0 1px 2px rgba(42,38,32,0.07);
+  --shadow-md: 0 2px 8px rgba(42,38,32,0.09);
+  --shadow-lg: 0 4px 16px rgba(42,38,32,0.11);
+  --transition-fast: 150ms ease;   /* @kind other */
+  --transition-normal: 250ms ease; /* @kind other */
+
+  /* ── Line / border character (theme-tunable) ── */
+  --line-weight:   1px;
+  --border-width:  var(--line-weight);   /* alias — kit.css uses --border-width */
+  --border-style:  solid;                /* @kind other */
+  --node-shadow:   none;
+  --divider-style: 1px solid var(--border);  /* @kind other */
+
+  /* ── Component SHAPE tokens (theme-tunable) ───────────────────
+     These let a theme change component *structure*, not just color.
+     Warm = soft paper: rounded corners, hairline borders, soft shadow,
+     fully-rounded pills. The Ink block overrides them for a crisp,
+     flat pen-and-ink draft. Add more component shape tokens here as the
+     two themes need to diverge further (e.g. --tab-*). */
+  --card-radius:       var(--radius-lg);   /* book/settings cards, panels */
+  --card-border-width: var(--border-width);
+  --card-shadow:       var(--shadow-sm);
+  --btn-radius:        var(--radius-md);
+  --btn-border-width:  var(--border-width);
+  --btn-shadow:        none;               /* @kind other */
+  --pill-radius:       20px;               /* fully rounded in Warm */
+  --pill-border-width: 0.5px;
+  --badge-radius:      20px;
+  --control-radius:    var(--radius-md);   /* inputs, toggles, selects */
+  --input-radius:       var(--control-radius); /* text field, search, select */
+  --input-border-width: 1px;
+  --input-bg:           var(--bg-primary);
+}
+
+/* ── Semantic role aliases ───────────────────────────────────
+   Use these, not raw size tokens, so themes can swap fonts. */
+.h1, h1 { font-family: var(--font-serif); font-size: var(--font-size-3xl); font-weight: 700; line-height: 1.2; color: var(--fg-primary); }
+.h2, h2 { font-family: var(--font-serif); font-size: var(--font-size-2xl); font-weight: 700; line-height: 1.25; color: var(--fg-primary); }
+.h3, h3 { font-family: var(--font-serif); font-size: var(--font-size-xl); font-weight: 600; line-height: 1.3; color: var(--fg-primary); }
+.h4, h4 { font-family: var(--font-serif); font-size: var(--font-size-lg); font-weight: 600; line-height: 1.4; color: var(--fg-primary); }
+.body, p { font-family: var(--font-serif); font-size: var(--font-size-base); line-height: 1.75; color: var(--fg-primary); }
+.body-sans { font-family: var(--font-sans); font-size: var(--font-size-sm); line-height: 1.6; color: var(--fg-primary); }
+.label    { font-family: var(--font-sans); font-size: var(--font-size-xs); font-weight: 500; letter-spacing: 0.02em; color: var(--fg-secondary); }
+.meta     { font-family: var(--font-sans); font-size: var(--font-size-xs); color: var(--fg-muted); }
+.hand     { font-family: var(--font-hand); color: var(--fg-secondary); }  /* illustrative labels only */
+.code, code { font-family: var(--font-mono); font-size: 0.85em; background: var(--bg-tertiary); padding: 0.1em 0.35em; border-radius: 3px; }
+
+/* ============================================================
+   INK  — pure black & white line art
+   Everything monochrome. Type/status meaning is carried by glyph
+   + label, never by hue. Crisp thin ink lines on white paper.
+   ============================================================ */
+[data-theme="ink"] {
+  --bg-primary: #ffffff; --bg-secondary: #f6f6f4; --bg-tertiary: #ececea;
+  --fg-primary: #151515; --fg-secondary: #3f3f3f; --fg-muted: #8c8c8c;
+  --border: #1a1a1a; --accent: #111111;
+  --accent-fg: #ffffff;
+  --focus-ring-color: #151515;
+  --panel-bg: #f6f6f4; --panel-bg-card: #ededeb; --panel-border: #1a1a1a;
+  --panel-fg: #151515; --panel-fg-muted: #8c8c8c;
+
+  /* Status — all one monochrome treatment; the icon carries meaning */
+  --color-success: #151515; --color-success-bg: #ececea;
+  --color-warning: #151515; --color-warning-bg: #ececea;
+  --color-error:   #151515; --color-error-bg:   #ececea;
+  --color-info:    #151515; --color-info-bg:    #ececea;
+
+  /* Entity & symbol pills — SHARED with Warm.
+     Ink intentionally reuses the warm entity/symbol arc (inherited from
+     :root) so pill colors are identical across both themes — the taxonomy
+     reads and operates the same way regardless of theme. Only the surrounding
+     chrome (surfaces, lines, status) goes monochrome in Ink. */
+
+  /* DAG status — monochrome steps (fill polarity + weight carry state) */
+  --status-complete-bg:#151515; --status-complete-border:#151515; --status-complete-fg:#ffffff;
+  --status-partial-bg: #ffffff; --status-partial-border: #1a1a1a; --status-partial-fg: #151515;
+  --status-empty-bg:   #ffffff; --status-empty-border:   #cfcfcf; --status-empty-fg:   #8c8c8c;
+
+  /* Domain token families — Ink monochrome overrides.
+     Entity/symbol pills and the graph hex arc are SHARED (inherited from
+     :root), so they are intentionally absent here. Everything else goes
+     monochrome: hue → fill polarity + grayscale ramp + line weight. */
+
+  /* Polarity — fill polarity (negative = black-on-white inverted) */
+  --polarity-positive-bg:#ffffff; --polarity-positive-fg:#151515; --polarity-positive-edge:#151515; --polarity-positive-dot:#151515;
+  --polarity-negative-bg:#151515; --polarity-negative-fg:#ffffff; --polarity-negative-edge:#000000; --polarity-negative-dot:#ffffff;
+  --polarity-neutral-bg: #f6f6f4; --polarity-neutral-fg: #8c8c8c; --polarity-neutral-edge: #cfcfcf; --polarity-neutral-dot: #8c8c8c;
+  --polarity-mixed-bg:   #d8d8d8; --polarity-mixed-fg:   #151515; --polarity-mixed-edge:   #8c8c8c; --polarity-mixed-dot:   #3f3f3f;
+
+  /* Symbol density — grayscale ramp */
+  --symbol-density-low:  #ececea;
+  --symbol-density-mid:  #8c8c8c;
+  --symbol-density-high: #151515;
+  --symbol-density-peak: #000000;
+
+  /* Tension intensity — grayscale ramp */
+  --tension-intensity-low-bg: #ffffff; --tension-intensity-low-fg: #8c8c8c; --tension-intensity-low-edge: #cfcfcf;
+  --tension-intensity-mid-bg: #8c8c8c; --tension-intensity-mid-fg: #ffffff; --tension-intensity-mid-edge: #3f3f3f;
+  --tension-intensity-high-bg:#151515; --tension-intensity-high-fg:#ffffff; --tension-intensity-high-edge:#000000;
+
+  /* Narrative mode — five grayscale steps + light/dark bg (differentiated
+     by line weight in the component, not by hue) */
+  --narrative-present-border:#151515;      --narrative-present-bg:#ececea;
+  --narrative-flashback-border:#6b6b6b;    --narrative-flashback-bg:#e4e4e2;
+  --narrative-flashforward-border:#3f3f3f; --narrative-flashforward-bg:#d8d8d6;
+  --narrative-parallel-border:#8c8c8c;     --narrative-parallel-bg:#f6f6f4;
+  --narrative-unknown-border:#cfcfcf;      --narrative-unknown-bg:#fafafa;
+
+  /* Timeline structure — neutral rgba, monochrome causal stroke */
+  --timeline-chapter-bg:      rgba(0,0,0,0.02);
+  --timeline-parallel-bg:     rgba(0,0,0,0.02);
+  --timeline-parallel-border: rgba(0,0,0,0.12);
+  --timeline-causal-stroke:   #151515;
+  --timeline-selected-ring:   rgba(0,0,0,0.20);
+
+  /* Frye Mythos — grayscale fill polarity (tragedy = black-on-white) */
+  --frye-romance-bg:#ffffff; --frye-romance-fg:#151515; --frye-romance-border:#151515;
+  --frye-comedy-bg: #ececea; --frye-comedy-fg: #151515; --frye-comedy-border: #3f3f3f;
+  --frye-tragedy-bg:#151515; --frye-tragedy-fg:#ffffff; --frye-tragedy-border:#000000;
+  --frye-irony-bg:  #8c8c8c; --frye-irony-fg:  #ffffff; --frye-irony-border:  #151515;
+
+  /* Booker Plot — single monochrome frame */
+  --booker-bg:#ececea; --booker-fg:#151515; --booker-border:#1a1a1a; --booker-accent:#111111;
+
+  /* Splash wash — grayscale, lighter (pure ink line on white) */
+  --splash-image-opacity: 0.28;                    /* @kind other */
+  --splash-image-filter:  grayscale(1) contrast(1.3);  /* @kind other */
+
+  /* Illustration — pure ink line on white */
+  --illustration-stroke:      #151515;
+  --illustration-stroke-soft: #8c8c8c;
+  --illustration-accent:      #151515;
+  --illustration-fill:        none;
+  --illustration-weight:      1.5px;
+  --illustration-weight-fine: 1px;
+
+  /* Type — same pairing; Ink keeps the literary serif + DM Sans contract.
+     Only the palette changes between themes, never the type system. */
+
+  /* Spacing — shared with Warm. Layout and rhythm do not change between
+     themes; only palette and component shape do. */
+
+  /* Line character — crisp thin ink lines */
+  --line-weight: 1px; --node-shadow: none;
+  --border-width: var(--line-weight); /* re-declared: :root alias would freeze */
+  --border-style: solid; /* @kind other */
+  --divider-style: 1px solid var(--border);
+
+  /* Component SHAPE — Ink diverges from Warm structurally, not just in color.
+     A pen-and-ink draft: sharp corners, a heavier single ink outline, no
+     shadow at all (line art is flat), and rectangular tag-style pills. */
+  --card-radius:       var(--radius-sm);   /* 4px — crisp, drafting-board corners */
+  --card-border-width: 1.5px;              /* heavier ink outline than Warm */
+  --card-shadow:       none;               /* flat — line art casts no shadow */
+  --btn-radius:        var(--radius-sm);   /* 4px */
+  --btn-border-width:  1.5px;
+  --btn-shadow:        none;               /* @kind other */
+  --pill-radius:       4px;                /* rectangular tag, not a lozenge */
+  --pill-border-width: 1px;
+  --badge-radius:      4px;
+  --control-radius:    var(--radius-sm);
+  /* var()-derived tokens resolve where they are declared, so :root's
+     aliases would freeze Warm values here — re-declare them in Ink. */
+  --input-radius:       var(--control-radius);
+  --input-border-width: 1.5px;
+  --input-bg:           var(--bg-primary);
+
+  /* Shadows neutralised to plain black — line art avoids warm shadow tint */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.08);
+  --shadow-md: 0 2px 8px rgba(0,0,0,0.10);
+  --shadow-lg: 0 4px 16px rgba(0,0,0,0.12);
+}

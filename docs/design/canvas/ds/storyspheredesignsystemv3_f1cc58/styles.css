@@ -1,0 +1,5 @@
+/* StorySphere — design system entry stylesheet.
+   Consumers link this one file; it pulls in the token + type layer.
+   (Individual specimens and the UI kit may still link colors_and_type.css
+   directly — both resolve to the same tokens.) */
+@import url('./colors_and_type.css');

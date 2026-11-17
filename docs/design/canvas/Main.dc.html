@@ -1,0 +1,306 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>書籍總覽 · 四簽名</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/storyspheredesignsystemv3_f1cc58/styles.css">
+<link rel="stylesheet" href="ds/storyspheredesignsystemv3_f1cc58/ui_kits/web_app/kit.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;600;700&amp;family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&amp;family=Noto+Serif+TC:wght@400;600;700&amp;family=Noto+Sans+TC:wght@400;500;700&amp;family=Fira+Code:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+:root{--fg-muted:#776c5b;--accent:#a0522f;--focus-ring-color:#a0522f}
+[data-theme="ink"]{--fg-muted:#737373}
+a{color:var(--accent)}a:hover{opacity:.9}
+a.ss-btn,a.ss-card-link{text-decoration:none}
+a.ss-card-link{color:inherit}
+a.ss-card-link:hover{background:var(--bg-secondary)}
+.ss-badge-neutral{background:var(--bg-secondary);color:var(--fg-secondary)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" style="min-height: 1400px; display: flex; background: var(--bg-primary); color: var(--fg-primary); font-family: var(--font-sans);">
+
+<nav class="ss-sidebar" aria-label="主導覽">
+  <a href="Library.dc.html" aria-label="書庫"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 6 4 14"></path><path d="M12 6v14"></path><path d="M8 8v12"></path><path d="M4 4v16"></path></svg></a>
+  <div class="ss-rail-divider"></div>
+  <div class="ss-rail-book">
+    <a href="Main.dc.html" class="active" aria-label="總覽" aria-current="page"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="14" rx="1"></rect><rect width="7" height="7" x="3" y="14" rx="1"></rect></svg></a>
+    <a href="Agent.dc.html" aria-label="Agent 工作區"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></a>
+    <a href="Notes.dc.html" aria-label="筆記"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h4"></path><path d="M2 10h4"></path><path d="M2 14h4"></path><path d="M2 18h4"></path><rect width="16" height="20" x="4" y="2" rx="2"></rect><path d="M16 2v20"></path></svg></a>
+    <a href="Evidence.dc.html" aria-label="證據瀏覽"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></a>
+  </div>
+  <div class="ss-rail-divider"></div>
+  <a href="Registry.dc.html" aria-label="方法目錄"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="16" y="16" width="6" height="6" rx="1"></rect><rect x="2" y="16" width="6" height="6" rx="1"></rect><rect x="9" y="2" width="6" height="6" rx="1"></rect><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"></path><path d="M12 12V8"></path></svg></a>
+  <div class="ss-sidebar-spacer"></div>
+  <a href="Jobs.dc.html" aria-label="工作中心"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg></a>
+  <a href="Settings.dc.html" aria-label="設定"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></a>
+</nav>
+
+<div class="ss-main">
+  <header class="ss-booknav">
+    <a class="ss-booknav-back" href="Library.dc.html"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>書庫</a>
+    <span class="ss-booknav-sep">|</span>
+    <span class="ss-booknav-title">四簽名</span>
+    <span class="ss-booknav-chev">›</span>
+    <span class="ss-booknav-view">總覽</span>
+    <span class="ss-badge ss-badge-info" style="margin-left: auto; align-self: center;">原型示意資料</span>
+  </header>
+
+  <main style="width: 100%; max-width: 1280px; box-sizing: border-box; padding: var(--space-7) var(--space-7) var(--space-8); display: flex; flex-direction: column; gap: var(--space-6);">
+
+    <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-5);">
+      <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+        <h1 style="margin: 0; font-family: var(--font-serif); font-size: var(--font-size-3xl); font-weight: 700; line-height: 1.2;">四簽名</h1>
+        <p style="margin: 0; font-size: var(--font-size-xs); color: var(--fg-muted);">柯南‧道爾 · 1890 · 繁中譯 · 12 章 · 入庫完成 11-15 16:58</p>
+      </div>
+      <div style="display: flex; flex-wrap: wrap; gap: var(--space-4);">
+        <a class="ss-btn ss-btn-md ss-btn-secondary" href="Agent.dc.html"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg><span>Agent 工作區</span></a>
+        <a class="ss-btn ss-btn-md ss-btn-secondary" href="Notes.dc.html"><span>筆記 3</span></a>
+        <a class="ss-btn ss-btn-md ss-btn-ghost" href="Evidence.dc.html"><span>證據瀏覽</span></a>
+      </div>
+    </div>
+
+    <section aria-labelledby="genre-h" style="background: var(--bg-primary); border: var(--card-border-width) var(--border-style) var(--border); border-radius: var(--card-radius); box-shadow: var(--card-shadow); padding: var(--space-6); display: flex; flex-wrap: wrap; gap: var(--space-7);">
+      <div style="flex: 1 1 280px; display: flex; flex-direction: column; gap: var(--space-4);">
+        <h2 id="genre-h" style="margin: 0; font-family: var(--font-sans); font-size: var(--font-size-2xs); font-weight: 600; letter-spacing: 0.06em; color: var(--fg-muted);">題材判定</h2>
+        <div style="display: flex; align-items: center; gap: var(--space-4);">
+          <span style="font-family: var(--font-serif); font-size: var(--font-size-2xl); font-weight: 700;">推理</span>
+          <span class="ss-badge ss-badge-success">主題材</span>
+        </div>
+        <p style="margin: 0; font-size: var(--font-size-xs); color: var(--fg-secondary); line-height: 1.6;">混入：驚悚 0.30（第 8–9 章的追捕段落）</p>
+        <p style="margin: 0; font-size: var(--font-size-xs); color: var(--fg-muted); line-height: 1.6;">依據：資訊控制訊號遍布全書，且書中有被隱藏的真相與揭曉；判定模型 gemini-2.5-flash · 11-15 16:41。</p>
+        <div><button type="button" class="ss-btn ss-btn-sm ss-btn-ghost">改主題材</button></div>
+      </div>
+      <div style="flex: 2 1 480px; display: flex; flex-direction: column; gap: var(--space-3);">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-4);">
+          <span style="font-size: var(--font-size-2xs); font-weight: 600; letter-spacing: 0.06em; color: var(--fg-muted);">七個機制的訊號密度</span>
+          <span style="font-size: var(--font-size-2xs); color: var(--fg-muted);">● 主機制　○ 輔助機制</span>
+        </div>
+        <sc-for list="{{mechanisms}}" as="m" hint-placeholder-count="7">
+          <div style="display: grid; grid-template-columns: 16px 88px minmax(0, 1fr) 40px; align-items: center; gap: var(--space-4);">
+            <span aria-hidden="true" style="font-size: var(--font-size-2xs); color: var(--fg-secondary); text-align: center;">{{m.marker}}</span>
+            <span style="font-size: var(--font-size-xs); color: var(--fg-secondary);">{{m.name}}</span>
+            <span style="height: 8px; background: var(--bg-secondary); border-radius: 2px; overflow: hidden; display: block;"><span style="display: block; height: 100%; width: {{m.width}}; background: {{m.fill}};"></span></span>
+            <span style="font-size: var(--font-size-2xs); color: var(--fg-muted); text-align: right; font-variant-numeric: tabular-nums;">{{m.pct}}</span>
+          </div>
+        </sc-for>
+        <p style="margin: var(--space-2) 0 0; font-size: var(--font-size-2xs); color: var(--fg-muted); line-height: 1.6;">密度＝有訊號的抽取單位 ÷ 全書單位數。訊號刻意標得寬，密度高不等於這個機制在書中份量重。</p>
+      </div>
+    </section>
+
+    <section aria-labelledby="cards-h" style="display: flex; flex-direction: column; gap: var(--space-5);">
+      <div style="display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: var(--space-4);">
+        <h2 id="cards-h" style="margin: 0; font-family: var(--font-serif); font-size: var(--font-size-lg); font-weight: 600;">自動分析</h2>
+        <span style="font-size: var(--font-size-2xs); color: var(--fg-muted); font-variant-numeric: tabular-nums;">10 張 · 6 完成 · 1 執行中 · 1 排隊 · 1 部分產出 · 1 依據已變動</span>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; gap: var(--space-4); padding: 0 var(--space-1);">
+        <span style="font-size: var(--font-size-2xs); color: var(--fg-muted); letter-spacing: 0.06em;">推理視角</span>
+        <span style="font-size: var(--font-size-2xs); color: var(--fg-muted); font-variant-numeric: tabular-nums;">4 · 已完成 2</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--space-5);">
+        <sc-for list="{{mysteryCards}}" as="c" hint-placeholder-count="4">
+          <a class="ss-card-link" href="{{c.href}}" style="background: var(--bg-primary); border: var(--card-border-width) var(--border-style) var(--border); border-radius: var(--card-radius); box-shadow: var(--card-shadow); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4); min-height: 196px; box-sizing: border-box;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: var(--space-4);">
+              <span style="font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-muted);">{{c.code}} · {{c.name}}</span>
+              <span class="{{c.badgeClass}}" style="align-items: center; gap: var(--space-2);">
+                <sc-if value="{{c.isDone}}" hint-placeholder-val="{{true}}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+                <sc-if value="{{c.isRunning}}" hint-placeholder-val="{{false}}"><span class="ss-loader"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.2-8.6"></path></svg></span></sc-if>
+                <sc-if value="{{c.isQueued}}" hint-placeholder-val="{{false}}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></sc-if>
+                <sc-if value="{{c.isWarn}}" hint-placeholder-val="{{false}}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></sc-if>
+                <span>{{c.stateLabel}}</span>
+              </span>
+            </div>
+            <span style="font-family: var(--font-serif); font-size: var(--font-size-base); font-weight: 600; line-height: 1.4;">{{c.question}}</span>
+            <sc-if value="{{c.hasNote}}" hint-placeholder-val="{{false}}">
+              <span style="font-size: var(--font-size-2xs); color: var(--fg-secondary); line-height: 1.5;">{{c.note}}</span>
+            </sc-if>
+            <div style="margin-top: auto; display: flex; flex-direction: column; gap: var(--space-2);">
+              <div aria-hidden="true" style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 2px;">
+                <sc-for list="{{c.strip}}" as="s" hint-placeholder-count="12">
+                  <span style="height: 8px; border-radius: 1px; background: {{s.bg}}; display: block;"></span>
+                </sc-for>
+              </div>
+              <div style="display: flex; justify-content: space-between; gap: var(--space-4); font-size: var(--font-size-2xs); color: var(--fg-muted); font-variant-numeric: tabular-nums;">
+                <span>{{c.level}} · {{c.count}}</span>
+                <span>{{c.meta}}</span>
+              </div>
+            </div>
+          </a>
+        </sc-for>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; gap: var(--space-4); padding: 0 var(--space-1); margin-top: var(--space-4);">
+        <span style="font-size: var(--font-size-2xs); color: var(--fg-muted); letter-spacing: 0.06em;">所有書都會跑</span>
+        <span style="font-size: var(--font-size-2xs); color: var(--fg-muted); font-variant-numeric: tabular-nums;">6 · 已完成 4</span>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: var(--space-5);">
+        <sc-for list="{{universalCards}}" as="c" hint-placeholder-count="6">
+          <a class="ss-card-link" href="{{c.href}}" style="background: var(--bg-primary); border: var(--card-border-width) var(--border-style) var(--border); border-radius: var(--card-radius); box-shadow: var(--card-shadow); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-4); min-height: 196px; box-sizing: border-box;">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: var(--space-4);">
+              <span style="font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-muted);">{{c.code}} · {{c.name}}</span>
+              <span class="{{c.badgeClass}}" style="align-items: center; gap: var(--space-2);">
+                <sc-if value="{{c.isDone}}" hint-placeholder-val="{{true}}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg></sc-if>
+                <sc-if value="{{c.isRunning}}" hint-placeholder-val="{{false}}"><span class="ss-loader"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" aria-hidden="true"><path d="M21 12a9 9 0 1 1-6.2-8.6"></path></svg></span></sc-if>
+                <sc-if value="{{c.isQueued}}" hint-placeholder-val="{{false}}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></sc-if>
+                <sc-if value="{{c.isWarn}}" hint-placeholder-val="{{false}}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3"></path><path d="M12 9v4"></path><path d="M12 17h.01"></path></svg></sc-if>
+                <span>{{c.stateLabel}}</span>
+              </span>
+            </div>
+            <span style="font-family: var(--font-serif); font-size: var(--font-size-base); font-weight: 600; line-height: 1.4;">{{c.question}}</span>
+            <sc-if value="{{c.hasNote}}" hint-placeholder-val="{{false}}">
+              <span style="font-size: var(--font-size-2xs); color: var(--fg-secondary); line-height: 1.5;">{{c.note}}</span>
+            </sc-if>
+            <div style="margin-top: auto; display: flex; flex-direction: column; gap: var(--space-2);">
+              <div aria-hidden="true" style="display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 2px;">
+                <sc-for list="{{c.strip}}" as="s" hint-placeholder-count="12">
+                  <span style="height: 8px; border-radius: 1px; background: {{s.bg}}; display: block;"></span>
+                </sc-for>
+              </div>
+              <div style="display: flex; justify-content: space-between; gap: var(--space-4); font-size: var(--font-size-2xs); color: var(--fg-muted); font-variant-numeric: tabular-nums;">
+                <span>{{c.level}} · {{c.count}}</span>
+                <span>{{c.meta}}</span>
+              </div>
+            </div>
+          </a>
+        </sc-for>
+      </div>
+      <p style="margin: 0; font-size: var(--font-size-2xs); color: var(--fg-muted); line-height: 1.6;">卡片底部的色條是證據在第 1–12 章的分布。結果卡只顯示第 2 層以上的證據；第 1 層在追溯時才出現。</p>
+    </section>
+
+    <div style="display: flex; flex-wrap: wrap; gap: var(--space-6);">
+      <section aria-labelledby="ask-h" style="flex: 3 1 520px; background: var(--bg-primary); border: var(--card-border-width) var(--border-style) var(--border); border-radius: var(--card-radius); box-shadow: var(--card-shadow); padding: var(--space-5) var(--space-6); display: flex; flex-direction: column; gap: var(--space-2);">
+        <div style="display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-4); padding-bottom: var(--space-3);">
+          <h2 id="ask-h" style="margin: 0; font-family: var(--font-serif); font-size: var(--font-size-lg); font-weight: 600;">也可以問</h2>
+          <span style="font-size: var(--font-size-2xs); color: var(--fg-muted);">以下都會呼叫 LLM，消耗 token</span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: var(--space-5); padding: var(--space-4) 0; border-top: var(--border-width) var(--border-style) var(--border);">
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-1);">
+            <span style="font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 600;">這是哪一型的謎題？</span>
+            <span style="font-size: var(--font-size-2xs); color: var(--fg-muted);">MY2 · 內建方法論 · 理論 — 會一併補跑上游 MY3 詭計分類</span>
+          </div>
+          <button type="button" class="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm">執行</button>
+        </div>
+        <div style="display: flex; align-items: center; gap: var(--space-5); padding: var(--space-4) 0; border-top: var(--border-width) var(--border-style) var(--border);">
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-1);">
+            <span style="font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 600;">主要角色屬於哪種原型？</span>
+            <span style="font-size: var(--font-size-2xs); color: var(--fg-muted);">CH1 · 角色原型判定 · 理論＋技法 — 跑提及次數前 8 名的角色</span>
+          </div>
+          <button type="button" class="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm">執行</button>
+        </div>
+        <div style="display: flex; align-items: center; gap: var(--space-5); padding: var(--space-4) 0; border-top: var(--border-width) var(--border-style) var(--border);">
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-1);">
+            <span style="font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 600;">角色怎麼說話？</span>
+            <span style="font-size: var(--font-size-2xs); color: var(--fg-muted);">CH3 · 角色語言聲音 · 理論 — 只跑對白 15 句以上的角色（4 人）</span>
+          </div>
+          <button type="button" class="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm">執行</button>
+        </div>
+        <div style="display: flex; align-items: center; gap: var(--space-5); padding: var(--space-4) 0; border-top: var(--border-width) var(--border-style) var(--border);">
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-1);">
+            <span style="font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 600;">主角的旅程對應英雄旅程的哪些階段？</span>
+            <span style="font-size: var(--font-size-2xs); color: var(--fg-muted);">NS1 · 英雄旅程 · 技法 — 結果是「最接近哪一型」，不是文本事實；推理題材不預設跑</span>
+          </div>
+          <button type="button" class="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm">執行</button>
+        </div>
+        <div style="display: flex; align-items: center; gap: var(--space-5); padding: var(--space-4) 0; border-top: var(--border-width) var(--border-style) var(--border);">
+          <div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: var(--space-1);">
+            <span style="font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 600;">事件發生之後改變了什麼？</span>
+            <span style="font-size: var(--font-size-2xs); color: var(--fg-muted);">EV3 · 事件影響 · 衍生 — 只跑因果出度 2 以上的事件</span>
+          </div>
+          <button type="button" class="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm">執行</button>
+        </div>
+        <p style="margin: var(--space-3) 0 0; font-size: var(--font-size-2xs); color: var(--fg-muted); line-height: 1.6;">清單裡沒有的問題，到 Agent 工作區問；大腦會組合現有方法來回答。</p>
+      </section>
+
+      <section aria-labelledby="sig-h" style="flex: 2 1 340px; background: var(--bg-secondary); border: var(--card-border-width) var(--border-style) var(--border); border-radius: var(--card-radius); padding: var(--space-5) var(--space-6); display: flex; flex-direction: column; gap: var(--space-2); align-self: flex-start;">
+        <h2 id="sig-h" style="margin: 0 0 var(--space-3); font-family: var(--font-serif); font-size: var(--font-size-lg); font-weight: 600;">也偵測到其他題材的訊號</h2>
+        <div style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4) 0; border-top: var(--border-width) var(--border-style) var(--border);">
+          <div style="display: flex; justify-content: space-between; gap: var(--space-4); align-items: center;">
+            <span style="font-size: var(--font-size-xs); font-weight: 600; color: var(--fg-secondary);">威脅與恐懼 · 18% · 第 6–10 章</span>
+            <span class="ss-badge ss-badge-neutral">尚未支援</span>
+          </div>
+          <span style="font-family: var(--font-serif); font-size: var(--font-size-sm);">威脅是什麼？怎麼一步步逼近？</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4) 0; border-top: var(--border-width) var(--border-style) var(--border);">
+          <div style="display: flex; justify-content: space-between; gap: var(--space-4); align-items: center;">
+            <span style="font-size: var(--font-size-xs); font-weight: 600; color: var(--fg-secondary);">關係演變 · 12% · 第 2–4 章</span>
+            <span class="ss-badge ss-badge-neutral">尚未支援</span>
+          </div>
+          <span style="font-family: var(--font-serif); font-size: var(--font-size-sm);">關係怎麼變？被什麼阻擋？</span>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: var(--space-2); padding: var(--space-4) 0; border-top: var(--border-width) var(--border-style) var(--border);">
+          <div style="display: flex; justify-content: space-between; gap: var(--space-4); align-items: center;">
+            <span style="font-size: var(--font-size-xs); font-weight: 600; color: var(--fg-secondary);">移動與越界 · 9% · 第 8–10 章</span>
+            <span class="ss-badge ss-badge-neutral">尚未支援</span>
+          </div>
+          <span style="font-family: var(--font-serif); font-size: var(--font-size-sm);">角色去了哪裡？跨過什麼邊界？</span>
+        </div>
+        <p style="margin: var(--space-2) 0 0; font-size: var(--font-size-2xs); color: var(--fg-muted); line-height: 1.6;">原型只實作資訊控制機制。這些訊號已在入庫時標好，之後支援時只需補跑深度抽取，不必重讀全文。</p>
+      </section>
+    </div>
+
+  </main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["warm","ink"],"default":"warm"},"$preview":{"width":1440,"height":1400}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const lv = ['var(--bg-secondary)', 'var(--symbol-density-low)', 'var(--symbol-density-mid)', 'var(--symbol-density-high)'];
+    const strip = (xs) => xs.map((n) => ({ bg: lv[n] }));
+    const states = {
+      done: { label: '完成', cls: 'ss-badge ss-badge-success' },
+      running: { label: '執行中', cls: 'ss-badge ss-badge-info' },
+      queued: { label: '排隊中', cls: 'ss-badge ss-badge-neutral' },
+      partial: { label: '部分產出', cls: 'ss-badge ss-badge-warning' },
+      stale: { label: '依據已變動', cls: 'ss-badge ss-badge-warning' }
+    };
+    const card = (c) => {
+      const s = states[c.state];
+      return {
+        ...c,
+        href: c.href || '#',
+        stateLabel: s.label,
+        badgeClass: s.cls,
+        isDone: c.state === 'done',
+        isRunning: c.state === 'running',
+        isQueued: c.state === 'queued',
+        isWarn: c.state === 'partial' || c.state === 'stale',
+        hasNote: !!c.note,
+        strip: strip(c.strip)
+      };
+    };
+    const mechanisms = [
+      { name: '資訊控制', pct: '62%', width: '62%', marker: '●', fill: 'var(--accent)' },
+      { name: '威脅與恐懼', pct: '18%', width: '18%', marker: '○', fill: 'var(--fg-muted)' },
+      { name: '關係演變', pct: '12%', width: '12%', marker: '○', fill: 'var(--fg-muted)' },
+      { name: '移動與越界', pct: '9%', width: '9%', marker: '', fill: 'var(--border)' },
+      { name: '語言與形式', pct: '4%', width: '4%', marker: '', fill: 'var(--border)' },
+      { name: '世界規則', pct: '3%', width: '3%', marker: '', fill: 'var(--border)' },
+      { name: '史實對照', pct: '2%', width: '2%', marker: '', fill: 'var(--border)' }
+    ];
+    const mysteryCards = [
+      { code: 'MY4', name: '公平性稽核', question: '線索公平嗎？', state: 'done', level: 'L2', count: '2 筆證據', meta: '待審 1', href: 'Detail.dc.html', strip: [0,1,0,0,2,3,2,2,1,1,0,1] },
+      { code: 'MY1', name: '雙故事拆解', question: '真相怎麼被藏起來？', state: 'done', level: 'L3', count: '1 筆證據', meta: '已確認', strip: [1,2,1,1,3,2,1,1,1,2,1,3] },
+      { code: 'MY5', name: '線索—嫌疑人矩陣', question: '讀者被誤導到誰身上？', state: 'running', level: 'L2', count: '—', meta: 'gemini-2.5-flash', strip: [0,0,0,0,0,0,0,0,0,0,0,0] },
+      { code: 'CH5', name: '角色認知狀態', question: '誰在什麼時候知道什麼？', state: 'stale', level: 'L2', count: '60 筆證據', meta: '待重跑', note: '第 6 章 1 筆事件被拒絕，引用它的 8 筆證據標為依據已變動。', strip: [1,1,1,2,2,3,2,2,1,2,1,3] }
+    ].map(card);
+    const universalCards = [
+      { code: 'EV1', name: '核心／衛星事件', question: '哪些事件撐起整個故事？', state: 'done', level: 'L3', count: '41 筆證據', meta: '上游 EV2 已完成', strip: [2,2,1,1,3,3,2,2,2,3,1,3] },
+      { code: 'CH2', name: '角色弧線', question: '主要角色怎麼變？', state: 'done', level: 'L2', count: '5 位角色', meta: '18 段弧線', strip: [2,1,1,1,2,2,2,1,1,1,1,2] },
+      { code: 'CH4', name: '角色關係與勢力網絡', question: '角色分成哪些陣營？', state: 'done', level: 'L2', count: '4 個派系', meta: '零成本計算', strip: [1,2,2,2,2,1,1,1,1,1,0,2] },
+      { code: 'NS2', name: '敘事時間', question: '故事怎麼打亂時間？', state: 'partial', level: 'L2', count: '書層級結論', meta: '無逐事件位移', note: '時間線索涵蓋率 38%，需 60% 才產出逐事件位移；目前只給「部分線性」這個書層級結論。', strip: [0,0,0,0,0,0,0,0,0,0,0,0] },
+      { code: 'TM2', name: '張力線', question: '故事在哪些價值之間拉扯？', state: 'done', level: 'L3', count: '3 條張力線', meta: '待審 3', strip: [1,2,1,1,2,2,1,1,2,3,2,2] },
+      { code: 'TM3', name: '主題綜合', question: '這本書在說什麼？', state: 'queued', level: 'L4', count: '—', meta: '等上游 SY1', note: '上游 SY1 象徵與母題追蹤執行中，完成後自動接著跑。', strip: [0,0,0,0,0,0,0,0,0,0,0,0] }
+    ].map(card);
+    return { theme: this.props.theme ?? 'warm', mechanisms, mysteryCards, universalCards };
+  }
+}
+</script>
+</body>
+</html>

@@ -839,3 +839,87 @@
 .ca-srcjump:hover:not(:disabled) { background: var(--bg-secondary); text-decoration-color: var(--accent); }
 .ca-srcjump:disabled { cursor: default; opacity: 0.7; }
 .ca-srcjump-spinner { margin-left: var(--space-2); vertical-align: middle; color: var(--fg-muted); }
+
+/* ── 原型畫布補充（T21）──────────────────────────────────────
+   抄自 Design 畫布的 kit.css（docs/design/canvas/ds/…/web_app/kit.css），只收 T21 用到的；
+   其他等用到再補。 */
+.ss-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+.ss-loader { display: inline-flex; animation: ss-spin 1s linear infinite; }
+@keyframes ss-spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .ss-loader { animation: none; } }
+
+/* ── StepIndicator (.ss-steps / .ss-step) ────────────────────
+   States: .done  .active  .pending
+   Structure:
+     .ss-steps > .ss-step.{state} >
+       .ss-step-rail > .ss-step-marker + .ss-step-line
+       .ss-step-body > .ss-step-title + .ss-step-desc
+   ──────────────────────────────────────────────────────────── */
+.ss-steps { display: flex; flex-direction: column; }
+
+.ss-step { display: flex; gap: var(--space-5); }
+
+.ss-step-rail {
+  display: flex; flex-direction: column; align-items: center;
+  flex-shrink: 0; width: 20px;
+}
+
+.ss-step-marker {
+  width: 20px; height: 20px; border-radius: 50%;
+  border: var(--line-weight) var(--border-style) var(--border);
+  background: var(--bg-primary);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-sans); font-size: 9px; font-weight: 700;
+  color: var(--fg-muted); flex-shrink: 0;
+  transition: background-color var(--transition-fast) ease, border-color var(--transition-fast) ease;
+}
+.ss-step.done   .ss-step-marker { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.ss-step.active .ss-step-marker { border-color: var(--accent); border-width: 2px; color: var(--accent); }
+
+.ss-step-line {
+  flex: 1; width: var(--line-weight); min-height: 12px;
+  background: var(--border); margin: var(--space-1) 0;
+}
+.ss-step:last-child .ss-step-line { display: none; }
+.ss-step.done .ss-step-line { background: var(--accent); }
+
+.ss-step-body { padding-bottom: var(--space-6); flex: 1; min-width: 0; }
+.ss-step-title {
+  font-family: var(--font-sans); font-size: var(--font-size-xs); font-weight: 600;
+  color: var(--fg-primary); line-height: 20px;
+}
+.ss-step.pending .ss-step-title { color: var(--fg-muted); font-weight: 400; }
+.ss-step-desc { font-family: var(--font-sans); font-size: var(--font-size-2xs); color: var(--fg-muted); margin-top: var(--space-1); }
+
+
+
+
+/* ── ProcessLog (.ss-log / .ss-log-entry) ────────────────────
+   Structure:
+     .ss-log > .ss-log-entry >
+       .ss-log-key (monospace) + .ss-log-val (sans)
+   ──────────────────────────────────────────────────────────── */
+.ss-log {
+  display: flex; flex-direction: column;
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--radius-md); overflow: hidden;
+}
+.ss-log-entry {
+  display: flex; gap: var(--space-4); align-items: baseline;
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-primary);
+  border-bottom: var(--line-weight) var(--border-style) var(--border);
+}
+.ss-log-entry:last-child { border-bottom: none; }
+.ss-log-entry:nth-child(even) { background: var(--bg-secondary); }
+.ss-log-key {
+  font-family: var(--font-mono); font-size: var(--font-size-2xs);
+  color: var(--fg-muted); min-width: 90px; flex-shrink: 0;
+}
+.ss-log-val {
+  font-family: var(--font-sans); font-size: var(--font-size-2xs);
+  color: var(--fg-primary); overflow-wrap: anywhere;
+}
+
+/* 中性徽章（畫布各頁 helmet 裡的補充樣式）：排隊中、已取消這類沒有好壞的狀態。 */
+.ss-badge-neutral { background: var(--bg-secondary); color: var(--fg-secondary); }

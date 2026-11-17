@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>工作中心</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/storyspheredesignsystemv3_f1cc58/styles.css">
+<link rel="stylesheet" href="ds/storyspheredesignsystemv3_f1cc58/ui_kits/web_app/kit.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;600;700&amp;family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&amp;family=Noto+Serif+TC:wght@400;600;700&amp;family=Noto+Sans+TC:wght@400;500;700&amp;family=Fira+Code:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+:root{--fg-muted:#776c5b;--accent:#a0522f;--focus-ring-color:#a0522f}
+[data-theme="ink"]{--fg-muted:#737373}
+a{color:var(--accent)}a:hover{opacity:.9}
+a.ss-btn,a.ss-card-link{text-decoration:none}
+a.ss-card-link{color:inherit}
+.ss-badge-neutral{background:var(--bg-secondary);color:var(--fg-secondary)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" style="min-height: 900px; display: flex; background: var(--bg-primary); color: var(--fg-primary); font-family: var(--font-sans);">
+
+<div class="ss-main">
+  
+  <aside aria-labelledby="jobs-h" style="flex: 1; display: flex; flex-direction: column; background: var(--bg-secondary); border-left: var(--card-border-width) var(--border-style) var(--border); box-shadow: var(--shadow-lg);">
+    <header style="display: flex; align-items: center; justify-content: space-between; padding: var(--space-5) var(--space-6); border-bottom: var(--border-width) var(--border-style) var(--border);">
+      <h2 id="jobs-h" style="margin: 0; font-family: var(--font-serif); font-size: var(--font-size-base); font-weight: 700;">工作中心</h2>
+      <button type="button" aria-label="關閉" style="background: none; border: none; cursor: pointer; color: var(--fg-muted); padding: var(--space-2);"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+    </header>
+    <div style="padding: var(--space-5) var(--space-6); display: flex; flex-direction: column; gap: var(--space-4); overflow: auto;">
+      <span style="font-size: var(--font-size-2xs); color: var(--fg-muted); letter-spacing: 0.06em;">進行中 · 5</span>
+
+      <article style="background: var(--bg-primary); border: var(--border-width) var(--border-style) var(--border); border-radius: var(--radius-md); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3);">
+        <div style="display: flex; justify-content: space-between; gap: var(--space-4); align-items: center;"><span style="font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 600;">入庫 · 綠野仙蹤</span><span class="ss-badge ss-badge-info">執行中</span></div>
+        <span style="font-size: var(--font-size-2xs); color: var(--fg-secondary);">S1 核心抽取＋訊號 · 62% · 失敗 1 個單位</span>
+        <div class="ss-progress"><div class="ss-progress-fill" style="width: 62%;"></div></div>
+        <div style="display: flex; gap: var(--space-3);"><a class="ss-btn ss-btn-sm ss-btn-ghost" href="Ingest.dc.html">查看</a><button type="button" class="ss-btn ss-btn-sm ss-btn-danger">終止</button></div>
+      </article>
+
+      <article style="background: var(--bg-primary); border: var(--border-width) var(--border-style) var(--border); border-radius: var(--radius-md); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3);">
+        <div style="display: flex; justify-content: space-between; gap: var(--space-4); align-items: center;"><span style="font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 600;">分析 · 四簽名 · MY5</span><span class="ss-badge ss-badge-info">執行中</span></div>
+        <span style="font-size: var(--font-size-2xs); color: var(--fg-secondary);">線索—嫌疑人矩陣 · 由結果卡自動觸發</span>
+      </article>
+
+      <article style="background: var(--bg-primary); border: var(--border-width) var(--border-style) var(--border); border-radius: var(--radius-md); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3);">
+        <div style="display: flex; justify-content: space-between; gap: var(--space-4); align-items: center;"><span style="font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 600;">分析 · 四簽名 · TM3</span><span class="ss-badge ss-badge-info">執行中</span></div>
+        <span style="font-size: var(--font-size-2xs); color: var(--fg-secondary);">主題綜合 · 正在補跑上游 SY1（2／10 個意象）</span>
+      </article>
+
+      <article style="background: var(--bg-primary); border: var(--border-width) var(--border-style) var(--border); border-radius: var(--radius-md); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3);">
+        <div style="display: flex; justify-content: space-between; gap: var(--space-4); align-items: center;"><span style="font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 600;">入庫 · 傲慢與偏見</span><span class="ss-badge ss-badge-warning">暫停：額度用完</span></div>
+        <span style="font-size: var(--font-size-2xs); color: var(--fg-secondary); line-height: 1.5;">S1 · 41／96 個單位完成。不算失敗，續跑時只跑沒完成的。</span>
+        <div><button type="button" class="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm">續跑</button></div>
+      </article>
+
+      <article style="background: var(--bg-primary); border: var(--border-width) var(--border-style) var(--border); border-radius: var(--radius-md); padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-3);">
+        <div style="display: flex; justify-content: space-between; gap: var(--space-4); align-items: center;"><span style="font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 600;">入庫 · 阿Q正傳</span><span class="ss-badge ss-badge-info">等待章節審閱</span></div>
+        <div><a class="ss-btn ss-btn-sm ss-btn-secondary" href="Ingest.dc.html">前往審閱</a></div>
+      </article>
+
+      <span style="font-size: var(--font-size-2xs); color: var(--fg-muted); letter-spacing: 0.06em; margin-top: var(--space-4);">最近完成</span>
+      <div style="display: flex; flex-direction: column; gap: var(--space-1);">
+        <div style="display: flex; justify-content: space-between; gap: var(--space-4); padding: var(--space-3) 0; border-top: var(--border-width) var(--border-style) var(--border); font-size: var(--font-size-xs);"><span>分析 · 四簽名 · TM2 張力線</span><span style="color: var(--fg-muted); font-variant-numeric: tabular-nums;">✓ 17:12</span></div>
+        <div style="display: flex; justify-content: space-between; gap: var(--space-4); padding: var(--space-3) 0; border-top: var(--border-width) var(--border-style) var(--border); font-size: var(--font-size-xs);"><span>分析 · 四簽名 · MY4 公平性稽核</span><span style="color: var(--fg-muted); font-variant-numeric: tabular-nums;">✓ 17:20</span></div>
+        <div style="display: flex; justify-content: space-between; gap: var(--space-4); padding: var(--space-3) 0; border-top: var(--border-width) var(--border-style) var(--border); font-size: var(--font-size-xs);"><span>入庫 · 四簽名</span><span style="color: var(--fg-muted); font-variant-numeric: tabular-nums;">✓ 16:58</span></div>
+        <div style="display: flex; justify-content: space-between; gap: var(--space-4); padding: var(--space-3) 0; border-top: var(--border-width) var(--border-style) var(--border); font-size: var(--font-size-xs);"><span>測試 · 初次啟動測試</span><span style="color: var(--fg-muted); font-variant-numeric: tabular-nums;">✓ 16:20</span></div>
+      </div>
+    </div>
+  </aside>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["warm","ink"],"default":"warm"},"$preview":{"width":400,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { theme: this.props.theme ?? 'warm' };
+  }
+}
+</script>
+</body>
+</html>

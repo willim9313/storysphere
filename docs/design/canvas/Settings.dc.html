@@ -1,0 +1,196 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>設定</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/storyspheredesignsystemv3_f1cc58/styles.css">
+<link rel="stylesheet" href="ds/storyspheredesignsystemv3_f1cc58/ui_kits/web_app/kit.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;600;700&amp;family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&amp;family=Noto+Serif+TC:wght@400;600;700&amp;family=Noto+Sans+TC:wght@400;500;700&amp;family=Fira+Code:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+:root{--fg-muted:#776c5b;--accent:#a0522f;--focus-ring-color:#a0522f}
+[data-theme="ink"]{--fg-muted:#737373}
+a{color:var(--accent)}a:hover{opacity:.9}
+a.ss-btn,a.ss-card-link{text-decoration:none}
+a.ss-card-link{color:inherit}
+.ss-badge-neutral{background:var(--bg-secondary);color:var(--fg-secondary)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" style="min-height: 1300px; display: flex; background: var(--bg-primary); color: var(--fg-primary); font-family: var(--font-sans);">
+<nav class="ss-sidebar" aria-label="主導覽">
+  <a href="Library.dc.html" aria-label="書庫"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 6 4 14"></path><path d="M12 6v14"></path><path d="M8 8v12"></path><path d="M4 4v16"></path></svg></a>
+  <div class="ss-rail-divider"></div>
+  <a href="Registry.dc.html" aria-label="方法目錄"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="16" y="16" width="6" height="6" rx="1"></rect><rect x="2" y="16" width="6" height="6" rx="1"></rect><rect x="9" y="2" width="6" height="6" rx="1"></rect><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"></path><path d="M12 12V8"></path></svg></a>
+  <div class="ss-sidebar-spacer"></div>
+  <a href="Jobs.dc.html" aria-label="工作中心"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg></a>
+  <a href="Settings.dc.html" class="active" aria-current="page" aria-label="設定"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></a>
+</nav>
+<div class="ss-main">
+  
+  <main style="width: 100%; max-width: 1280px; box-sizing: border-box; padding: var(--space-7) var(--space-7) var(--space-8); display: flex; flex-direction: column; gap: var(--space-6);">
+    <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-5);">
+      <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+        <h1 style="margin: 0; font-family: var(--font-serif); font-size: var(--font-size-3xl); font-weight: 700; line-height: 1.2;">設定</h1>
+        <p style="margin: 0; font-size: var(--font-size-xs); color: var(--fg-muted);">設定存在 var/settings.yaml；金鑰只記環境變數名，不存值。</p>
+      </div>
+      <span class="ss-badge ss-badge-info">原型示意資料</span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(520px, 1fr)); gap: var(--space-6); align-items: start;">
+
+      <div style="display: flex; flex-direction: column; gap: var(--space-6);">
+        <section aria-labelledby="prov-h" style="background: var(--bg-primary); border: var(--card-border-width) var(--border-style) var(--border); border-radius: var(--card-radius); box-shadow: var(--card-shadow); padding: var(--space-5) var(--space-6); display: flex; flex-direction: column; gap: var(--space-2);">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-4); padding-bottom: var(--space-3);">
+            <h2 id="prov-h" style="margin: 0; font-family: var(--font-serif); font-size: var(--font-size-lg); font-weight: 600;">模型來源</h2>
+            <button type="button" class="ss-btn ss-btn-sm ss-btn-ghost">新增來源</button>
+          </div>
+          <div style="display: grid; grid-template-columns: 110px minmax(0, 1fr) auto; gap: var(--space-4); align-items: center; padding: var(--space-4) 0; border-top: var(--border-width) var(--border-style) var(--border);">
+            <span style="font-family: var(--font-mono); font-size: var(--font-size-xs);">gemini</span>
+            <span style="font-size: var(--font-size-xs); color: var(--fg-secondary);">API key · <span style="font-family: var(--font-mono);">GEMINI_API_KEY</span></span>
+            <span class="ss-badge ss-badge-success">已設定</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 110px minmax(0, 1fr) auto; gap: var(--space-4); align-items: center; padding: var(--space-4) 0; border-top: var(--border-width) var(--border-style) var(--border);">
+            <span style="font-family: var(--font-mono); font-size: var(--font-size-xs);">openai</span>
+            <span style="font-size: var(--font-size-xs); color: var(--fg-secondary);">API key · <span style="font-family: var(--font-mono);">OPENAI_API_KEY</span></span>
+            <span class="ss-badge ss-badge-neutral">未設定</span>
+          </div>
+          <div style="display: grid; grid-template-columns: 110px minmax(0, 1fr) auto; gap: var(--space-4); align-items: center; padding: var(--space-4) 0; border-top: var(--border-width) var(--border-style) var(--border);">
+            <span style="font-family: var(--font-mono); font-size: var(--font-size-xs);">claude-sub</span>
+            <span style="font-size: var(--font-size-xs); color: var(--fg-secondary);">訂閱 · 經 Claude Agent SDK 登入</span>
+            <span class="ss-badge ss-badge-warning">有條款風險</span>
+          </div>
+          <p style="margin: 0 0 var(--space-3); padding: var(--space-4) var(--space-5); background: var(--color-warning-bg); border-radius: var(--radius-sm); font-size: var(--font-size-2xs); color: var(--fg-primary); line-height: 1.6;">訂閱登入以一般個人使用為前提；整本書批次抽取超出這個範圍，帳號可能被限制。訂閱有用量時間窗，入庫容易中途暫停。遇到時可把 task 切到 API key 或本地模型。</p>
+          <div style="display: grid; grid-template-columns: 110px minmax(0, 1fr) auto; gap: var(--space-4); align-items: center; padding: var(--space-4) 0; border-top: var(--border-width) var(--border-style) var(--border);">
+            <span style="font-family: var(--font-mono); font-size: var(--font-size-xs);">local-vllm</span>
+            <span style="font-size: var(--font-size-xs); color: var(--fg-secondary);">OpenAI 相容 · <span style="font-family: var(--font-mono);">http://localhost:8000/v1</span></span>
+            <span class="ss-badge ss-badge-error">連不上</span>
+          </div>
+        </section>
+
+        <section aria-labelledby="task-h" style="background: var(--bg-primary); border: var(--card-border-width) var(--border-style) var(--border); border-radius: var(--card-radius); box-shadow: var(--card-shadow); padding: var(--space-5) var(--space-6); display: flex; flex-direction: column; gap: var(--space-4);">
+          <h2 id="task-h" style="margin: 0; font-family: var(--font-serif); font-size: var(--font-size-lg); font-weight: 600;">任務路由</h2>
+          <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: var(--font-size-xs);">
+              <thead><tr>
+                <th scope="col" style="text-align: left; padding: var(--space-3) var(--space-4) var(--space-3) 0; font-size: var(--font-size-2xs); font-weight: 600; color: var(--fg-muted);">task</th>
+                <th scope="col" style="text-align: left; padding: var(--space-3) var(--space-4); font-size: var(--font-size-2xs); font-weight: 600; color: var(--fg-muted);">模型</th>
+                <th scope="col" style="text-align: left; padding: var(--space-3) var(--space-4); font-size: var(--font-size-2xs); font-weight: 600; color: var(--fg-muted);">備援</th>
+                <th scope="col" style="text-align: left; padding: var(--space-3) 0 var(--space-3) var(--space-4); font-size: var(--font-size-2xs); font-weight: 600; color: var(--fg-muted);">檢查</th>
+              </tr></thead>
+              <tbody>
+                <sc-for list="{{tasks}}" as="t" hint-placeholder-count="7">
+                  <tr style="border-top: var(--border-width) var(--border-style) var(--border);">
+                    <td style="padding: var(--space-4) var(--space-4) var(--space-4) 0; font-family: var(--font-mono);">{{t.task}}</td>
+                    <td style="padding: var(--space-4);">{{t.model}}</td>
+                    <td style="padding: var(--space-4); color: var(--fg-secondary);">{{t.fallback}}</td>
+                    <td style="padding: var(--space-4) 0 var(--space-4) var(--space-4);"><span class="{{t.cls}}">{{t.check}}</span></td>
+                  </tr>
+                </sc-for>
+              </tbody>
+            </table>
+          </div>
+          <p style="margin: 0; font-size: var(--font-size-2xs); color: var(--fg-muted); line-height: 1.6;">模型：flash＝gemini-2.5-flash、strong＝gemini-2.5-pro、local＝qwen3-32b。task 的需求（structured output、長上下文）和模型能力不符時直接擋下。</p>
+        </section>
+
+        <section aria-labelledby="test-h" style="background: var(--bg-primary); border: var(--card-border-width) var(--border-style) var(--border); border-radius: var(--card-radius); box-shadow: var(--card-shadow); padding: var(--space-5) var(--space-6); display: flex; flex-direction: column; gap: var(--space-4);">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-4);">
+            <h2 id="test-h" style="margin: 0; font-family: var(--font-serif); font-size: var(--font-size-lg); font-weight: 600;">初次啟動測試</h2>
+            <button type="button" class="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm">重新測試</button>
+          </div>
+          <table style="width: 100%; border-collapse: collapse; font-size: var(--font-size-xs);">
+            <thead><tr>
+              <th scope="col" style="text-align: left; padding: var(--space-3) var(--space-4) var(--space-3) 0; font-size: var(--font-size-2xs); font-weight: 600; color: var(--fg-muted);">模型</th>
+              <th scope="col" style="text-align: left; padding: var(--space-3) var(--space-4); font-size: var(--font-size-2xs); font-weight: 600; color: var(--fg-muted);">連線</th>
+              <th scope="col" style="text-align: left; padding: var(--space-3) var(--space-4); font-size: var(--font-size-2xs); font-weight: 600; color: var(--fg-muted);">結構化輸出</th>
+              <th scope="col" style="text-align: right; padding: var(--space-3) 0 var(--space-3) var(--space-4); font-size: var(--font-size-2xs); font-weight: 600; color: var(--fg-muted);">延遲</th>
+            </tr></thead>
+            <tbody>
+              <tr style="border-top: var(--border-width) var(--border-style) var(--border);"><td style="padding: var(--space-4) var(--space-4) var(--space-4) 0;">flash</td><td style="padding: var(--space-4);">✓ 通過</td><td style="padding: var(--space-4);">✓ 通過</td><td style="padding: var(--space-4) 0; text-align: right; font-variant-numeric: tabular-nums;">640 ms</td></tr>
+              <tr style="border-top: var(--border-width) var(--border-style) var(--border);"><td style="padding: var(--space-4) var(--space-4) var(--space-4) 0;">strong</td><td style="padding: var(--space-4);">✓ 通過</td><td style="padding: var(--space-4);">✓ 通過</td><td style="padding: var(--space-4) 0; text-align: right; font-variant-numeric: tabular-nums;">2,180 ms</td></tr>
+              <tr style="border-top: var(--border-width) var(--border-style) var(--border);"><td style="padding: var(--space-4) var(--space-4) var(--space-4) 0;">local</td><td style="padding: var(--space-4);">✕ 連不上</td><td style="padding: var(--space-4); color: var(--fg-muted);">未測</td><td style="padding: var(--space-4) 0; text-align: right; color: var(--fg-muted);">—</td></tr>
+            </tbody>
+          </table>
+          <p style="margin: 0; font-size: var(--font-size-2xs); color: var(--fg-secondary); line-height: 1.6;">受影響：signal_tagging 的備援 local 不可用。主模型可用，入庫不受影響。</p>
+        </section>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: var(--space-6);">
+        <section aria-labelledby="brain-h" style="background: var(--bg-primary); border: var(--card-border-width) var(--border-style) var(--border); border-radius: var(--card-radius); box-shadow: var(--card-shadow); padding: var(--space-5) var(--space-6); display: flex; flex-direction: column; gap: var(--space-4);">
+          <div style="display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-4);">
+            <h2 id="brain-h" style="margin: 0; font-family: var(--font-serif); font-size: var(--font-size-lg); font-weight: 600;">Agent 大腦</h2>
+            <button type="button" class="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm">測試大腦</button>
+          </div>
+          <p style="margin: 0; font-size: var(--font-size-2xs); color: var(--fg-muted); line-height: 1.6;">入庫和分析方法不經過大腦，用上面的任務路由。大腦只負責 Agent 工作區的提問。</p>
+          <label class="ss-option-card">
+            <input type="radio" name="brain" style="margin-top: var(--space-1);">
+            <span class="ss-option-card-body"><span class="ss-option-card-title" style="display: block;">無大腦</span><span class="ss-option-card-desc" style="display: block;">只看自動結果卡、從「也可以問」點分析；Agent 工作區停用。</span></span>
+          </label>
+          <label class="ss-option-card selected">
+            <input type="radio" name="brain" checked="" style="margin-top: var(--space-1);">
+            <span class="ss-option-card-body" style="display: flex; flex-direction: column; gap: var(--space-3);">
+              <span class="ss-option-card-title">deepagents（預設）</span>
+              <span class="ss-option-card-desc">內建、同一個程序；用你在上面設定的模型。</span>
+              <span style="display: flex; align-items: center; gap: var(--space-4);">
+                <span style="font-size: var(--font-size-2xs); color: var(--fg-muted);">大腦模型</span>
+                <select aria-label="deepagents 模型" style="font-family: var(--font-sans); font-size: var(--font-size-xs); padding: var(--space-2) var(--space-4); border: var(--input-border-width) solid var(--border); border-radius: var(--input-radius); background: var(--input-bg); color: var(--fg-primary);"><option>flash · gemini-2.5-flash</option><option>strong · gemini-2.5-pro</option></select>
+              </span>
+              <span style="font-size: var(--font-size-2xs); color: var(--fg-secondary);">✓ 建立 session　✓ 工具呼叫（list_genre_elements）</span>
+            </span>
+          </label>
+          <label class="ss-option-card">
+            <input type="radio" name="brain" style="margin-top: var(--space-1);">
+            <span class="ss-option-card-body" style="display: flex; flex-direction: column; gap: var(--space-3);">
+              <span class="ss-option-card-title">Claude Code（ACP）</span>
+              <span class="ss-option-card-desc">用你本機已登入的 Claude Code；StorySphere 不碰憑證。</span>
+              <span style="font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-secondary); background: var(--bg-secondary); padding: var(--space-2) var(--space-4); border-radius: var(--radius-sm);">npx -y @agentclientprotocol/claude-agent-acp</span>
+              <span style="font-size: var(--font-size-2xs); color: var(--fg-secondary);">✓ npx　✓ adapter 可啟動　✓ 已登入　✓ 工具呼叫</span>
+            </span>
+          </label>
+        </section>
+
+        <section aria-labelledby="look-h" style="background: var(--bg-primary); border: var(--card-border-width) var(--border-style) var(--border); border-radius: var(--card-radius); box-shadow: var(--card-shadow); padding: var(--space-5) var(--space-6); display: flex; flex-direction: column; gap: var(--space-4);">
+          <h2 id="look-h" style="margin: 0; font-family: var(--font-serif); font-size: var(--font-size-lg); font-weight: 600;">外觀</h2>
+          <div class="ss-theme-grid">
+            <button type="button" class="ss-theme-card active" data-theme-preview="warm" aria-pressed="true"><span class="ss-theme-swatch"><span class="bg-1"></span><span class="bg-2"></span><span class="bg-3"></span><span class="ac"></span></span><span class="ss-theme-name">Warm</span><span class="ss-theme-sub">暖象牙紙上的墨線</span></button>
+            <button type="button" class="ss-theme-card" data-theme-preview="ink" aria-pressed="false"><span class="ss-theme-swatch"><span class="bg-1"></span><span class="bg-2"></span><span class="bg-3"></span><span class="ac"></span></span><span class="ss-theme-name">Ink</span><span class="ss-theme-sub">白紙上的純黑鋼筆稿</span></button>
+          </div>
+        </section>
+
+        <section aria-labelledby="dev-h" style="background: var(--bg-primary); border: var(--card-border-width) var(--border-style) var(--border); border-radius: var(--card-radius); box-shadow: var(--card-shadow); padding: var(--space-5) var(--space-6); display: flex; align-items: flex-start; gap: var(--space-6);">
+          <div style="flex: 1; display: flex; flex-direction: column; gap: var(--space-2);">
+            <h2 id="dev-h" style="margin: 0; font-family: var(--font-serif); font-size: var(--font-size-lg); font-weight: 600;">開發者檢視</h2>
+            <p style="margin: 0; font-size: var(--font-size-xs); color: var(--fg-secondary); line-height: 1.6;">顯示第 1 層證據、入庫單位的原始輸出與 agent 的完整 trace。原型預設開啟，用來檢查抽取品質；正式版預設關閉。</p>
+          </div>
+          <label class="ss-toggle"><input type="checkbox" checked="" aria-label="開發者檢視"><span class="ss-toggle-track"></span></label>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["warm","ink"],"default":"warm"},"$preview":{"width":1440,"height":1300}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const ok = 'ss-badge ss-badge-success';
+    const warn = 'ss-badge ss-badge-warning';
+    const tasks = [
+      { task: 'core_extraction', model: 'strong', fallback: 'flash', check: '可用', cls: ok },
+      { task: 'signal_tagging', model: 'flash', fallback: 'local', check: '備援不可用', cls: warn },
+      { task: 'genre_detection', model: 'flash', fallback: '—', check: '可用', cls: ok },
+      { task: 'deep_extraction', model: 'strong', fallback: 'flash', check: '可用', cls: ok },
+      { task: 'consolidation', model: 'strong', fallback: '—', check: '可用', cls: ok },
+      { task: 'method_strong', model: 'strong', fallback: 'flash', check: '可用', cls: ok },
+      { task: 'method_light', model: 'flash', fallback: '—', check: '可用', cls: ok }
+    ];
+    return { theme: this.props.theme ?? 'warm', tasks };
+  }
+}
+</script>
+</body>
+</html>

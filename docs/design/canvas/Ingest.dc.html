@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>入庫進度 · 綠野仙蹤</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/storyspheredesignsystemv3_f1cc58/styles.css">
+<link rel="stylesheet" href="ds/storyspheredesignsystemv3_f1cc58/ui_kits/web_app/kit.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;600;700&amp;family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&amp;family=Noto+Serif+TC:wght@400;600;700&amp;family=Noto+Sans+TC:wght@400;500;700&amp;family=Fira+Code:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+:root{--fg-muted:#776c5b;--accent:#a0522f;--focus-ring-color:#a0522f}
+[data-theme="ink"]{--fg-muted:#737373}
+a{color:var(--accent)}a:hover{opacity:.9}
+a.ss-btn,a.ss-card-link{text-decoration:none}
+a.ss-card-link{color:inherit}
+.ss-badge-neutral{background:var(--bg-secondary);color:var(--fg-secondary)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" style="min-height: 1200px; display: flex; background: var(--bg-primary); color: var(--fg-primary); font-family: var(--font-sans);">
+<nav class="ss-sidebar" aria-label="主導覽">
+  <a href="Library.dc.html" aria-label="書庫"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 6 4 14"></path><path d="M12 6v14"></path><path d="M8 8v12"></path><path d="M4 4v16"></path></svg></a>
+  <div class="ss-rail-divider"></div>
+  <div class="ss-rail-book"><a href="Main.dc.html" class="active" aria-current="page" aria-label="總覽"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="14" rx="1"></rect><rect width="7" height="7" x="3" y="14" rx="1"></rect></svg></a><a href="Agent.dc.html" aria-label="Agent 工作區"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></a><a href="Notes.dc.html" aria-label="筆記"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h4"></path><path d="M2 10h4"></path><path d="M2 14h4"></path><path d="M2 18h4"></path><rect width="16" height="20" x="4" y="2" rx="2"></rect><path d="M16 2v20"></path></svg></a><a href="Evidence.dc.html" aria-label="證據瀏覽"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></a></div>
+  <div class="ss-rail-divider"></div>
+  <a href="Registry.dc.html" aria-label="方法目錄"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="16" y="16" width="6" height="6" rx="1"></rect><rect x="2" y="16" width="6" height="6" rx="1"></rect><rect x="9" y="2" width="6" height="6" rx="1"></rect><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"></path><path d="M12 12V8"></path></svg></a>
+  <div class="ss-sidebar-spacer"></div>
+  <a href="Jobs.dc.html" aria-label="工作中心"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg></a>
+  <a href="Settings.dc.html" aria-label="設定"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></a>
+</nav>
+<div class="ss-main">
+  <header class="ss-booknav">
+    <a class="ss-booknav-back" href="Library.dc.html"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>書庫</a>
+    <span class="ss-booknav-sep">|</span>
+    <a class="ss-booknav-title" href="Main.dc.html" style="text-decoration: none;">綠野仙蹤</a>
+    <span class="ss-booknav-chev">›</span>
+    <span class="ss-booknav-view">入庫進度</span>
+    <span class="ss-badge ss-badge-info" style="margin-left: auto; align-self: center;">原型示意資料</span>
+  </header>
+  <main style="width: 100%; max-width: 1280px; box-sizing: border-box; padding: var(--space-7) var(--space-7) var(--space-8); display: flex; flex-direction: column; gap: var(--space-6);">
+    <div style="display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--space-5);">
+      <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+        <h1 style="margin: 0; font-family: var(--font-serif); font-size: var(--font-size-3xl); font-weight: 700; line-height: 1.2;">入庫進度</h1>
+        <p style="margin: 0; font-size: var(--font-size-xs); color: var(--fg-muted); font-variant-numeric: tabular-nums;">綠野仙蹤 · 鮑姆 · 24 章 · job 7c1e02 · 已處理 06:42</p>
+      </div>
+      <button type="button" class="ss-btn ss-btn-md ss-btn-danger">終止處理</button>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: var(--space-6); align-items: flex-start;">
+      <section aria-labelledby="steps-h" style="flex: 1 1 280px; background: var(--bg-primary); border: var(--card-border-width) var(--border-style) var(--border); border-radius: var(--card-radius); box-shadow: var(--card-shadow); padding: var(--space-5) var(--space-6);">
+        <h2 id="steps-h" style="margin: 0 0 var(--space-5); font-family: var(--font-serif); font-size: var(--font-size-lg); font-weight: 600;">步驟</h2>
+        <div class="ss-steps">
+          <div class="ss-step done"><div class="ss-step-rail"><div class="ss-step-marker">✓</div><div class="ss-step-line"></div></div><div class="ss-step-body"><div class="ss-step-title">P1 文件處理</div><div class="ss-step-desc">切出 24 章、1,318 段 · 語言：繁體中文</div></div></div>
+          <div class="ss-step done"><div class="ss-step-rail"><div class="ss-step-marker">✓</div><div class="ss-step-line"></div></div><div class="ss-step-body"><div class="ss-step-title">章節審閱</div><div class="ss-step-desc">接受系統判斷 · 前言 1 章不入分析</div></div></div>
+          <div class="ss-step active"><div class="ss-step-rail"><div class="ss-step-marker">3</div><div class="ss-step-line"></div></div><div class="ss-step-body"><div class="ss-step-title">S1 核心抽取＋訊號標記</div><div class="ss-step-desc">全書只讀這一次 · 呼叫 A 18／29、呼叫 B 21／29</div></div></div>
+          <div class="ss-step pending"><div class="ss-step-rail"><div class="ss-step-marker">4</div><div class="ss-step-line"></div></div><div class="ss-step-body"><div class="ss-step-title">S2 整併</div><div class="ss-step-desc">角色合併、引文驗證、意象分群 · 不呼叫 LLM</div></div></div>
+          <div class="ss-step pending"><div class="ss-step-rail"><div class="ss-step-marker">5</div><div class="ss-step-line"></div></div><div class="ss-step-body"><div class="ss-step-title">S3 題材判定</div><div class="ss-step-desc">依訊號分布判定，可在總覽改</div></div></div>
+          <div class="ss-step pending"><div class="ss-step-rail"><div class="ss-step-marker">6</div><div class="ss-step-line"></div></div><div class="ss-step-body"><div class="ss-step-title">S4 深度抽取</div><div class="ss-step-desc">只讀有訊號的單位</div></div></div>
+          <div class="ss-step pending"><div class="ss-step-rail"><div class="ss-step-marker">7</div><div class="ss-step-line"></div></div><div class="ss-step-body"><div class="ss-step-title">S5 自動分析</div><div class="ss-step-desc">依題材跑預設結果卡</div></div></div>
+        </div>
+      </section>
+
+      <div style="flex: 3 1 560px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-6);">
+        <section aria-labelledby="units-h" style="background: var(--bg-primary); border: var(--card-border-width) var(--border-style) var(--border); border-radius: var(--card-radius); box-shadow: var(--card-shadow); padding: var(--space-5) var(--space-6); display: flex; flex-direction: column; gap: var(--space-5);">
+          <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: baseline; gap: var(--space-4);">
+            <h2 id="units-h" style="margin: 0; font-family: var(--font-serif); font-size: var(--font-size-lg); font-weight: 600;">S1 抽取單位</h2>
+            <span style="font-size: var(--font-size-2xs); color: var(--fg-secondary);">■ 完成　◐ 執行中　✕ 失敗　□ 等待</span>
+          </div>
+          <sc-for list="{{lanes}}" as="lane" hint-placeholder-count="2">
+            <div style="display: flex; flex-direction: column; gap: var(--space-3);">
+              <div style="display: flex; justify-content: space-between; gap: var(--space-4); font-size: var(--font-size-xs);">
+                <span style="color: var(--fg-secondary); font-weight: 600;">{{lane.label}}</span>
+                <span style="color: var(--fg-muted); font-variant-numeric: tabular-nums;">{{lane.stat}}</span>
+              </div>
+              <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(22px, 1fr)); gap: var(--space-2);">
+                <sc-for list="{{lane.cells}}" as="u" hint-placeholder-count="29">
+                  <span style="height: 22px; border-radius: 3px; display: flex; align-items: center; justify-content: center; font-size: var(--font-size-2xs); line-height: 1; border: var(--border-width) solid {{u.edge}}; background: {{u.bg}}; color: {{u.fg}};">{{u.g}}</span>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+          <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--color-error-bg); border-radius: var(--radius-md);">
+            <span style="font-size: var(--font-size-xs); color: var(--fg-primary); line-height: 1.5;">失敗 1 個：呼叫 A · 第 11 章 · 單位 2 — 重試 3 次後 JSON 仍無法解析。其餘單位照跑。</span>
+            <button type="button" class="ss-btn ss-btn-sm ss-btn-secondary ss-btn-llm">重跑失敗單位</button>
+          </div>
+          <p style="margin: 0; font-size: var(--font-size-2xs); color: var(--fg-muted); line-height: 1.6;">額度用完時工作會暫停而不是失敗；續跑時只跑沒完成的單位。伺服器重啟後不會自動續跑。</p>
+        </section>
+
+        <section aria-labelledby="log-h" style="display: flex; flex-direction: column; gap: var(--space-4);">
+          <h2 id="log-h" style="margin: 0; font-family: var(--font-serif); font-size: var(--font-size-lg); font-weight: 600;">即時事件</h2>
+          <div class="ss-log">
+            <div class="ss-log-entry"><span class="ss-log-key">06:41 s1a</span><span class="ss-log-val">第 12 章 · 單位 1 完成 · 角色：桃樂絲、錫樵夫、膽小獅 · 事件：渡過深溝</span></div>
+            <div class="ss-log-entry"><span class="ss-log-key">06:39 s1b</span><span class="ss-log-val">第 13 章 · 單位 2 完成 · 訊號：移動與越界（strong）、世界規則（weak）</span></div>
+            <div class="ss-log-entry"><span class="ss-log-key">06:36 s1a</span><span class="ss-log-val">第 11 章 · 單位 2 失敗 · JSON 解析失敗（第 3 次）</span></div>
+            <div class="ss-log-entry"><span class="ss-log-key">06:34 s1b</span><span class="ss-log-val">第 11 章 · 單位 1 完成 · 意象：黃磚路、翡翠城 · 聚焦：零聚焦</span></div>
+            <div class="ss-log-entry"><span class="ss-log-key">06:31 s1a</span><span class="ss-log-val">第 10 章 · 單位 3 完成 · 角色：守門人 · 事件：戴上綠色眼鏡</span></div>
+          </div>
+        </section>
+      </div>
+    </div>
+  </main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["warm","ink"],"default":"warm"},"$preview":{"width":1440,"height":1200}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const style = {
+      done: { g: '■', bg: 'var(--accent)', fg: 'var(--accent-fg)', edge: 'var(--accent)' },
+      running: { g: '◐', bg: 'var(--bg-primary)', fg: 'var(--accent)', edge: 'var(--accent)' },
+      failed: { g: '✕', bg: 'var(--color-error-bg)', fg: 'var(--color-error)', edge: 'var(--color-error)' },
+      pending: { g: '', bg: 'var(--bg-primary)', fg: 'var(--fg-muted)', edge: 'var(--border)' }
+    };
+    const lane = (label, done, running, failedAt, total) => {
+      const kinds = [];
+      for (let i = 0; i < done; i++) kinds.push('done');
+      if (failedAt >= 0) kinds.splice(failedAt, 0, 'failed');
+      for (let i = 0; i < running; i++) kinds.push('running');
+      while (kinds.length < total) kinds.push('pending');
+      const cells = kinds.map((s) => ({ ...style[s], g: s === 'done' ? '' : style[s].g }));
+      return { label, cells, stat: `${done} 完成 · ${running} 執行中 · ${failedAt >= 0 ? 1 : 0} 失敗 · 共 ${total}` };
+    };
+    return {
+      theme: this.props.theme ?? 'warm',
+      lanes: [
+        lane('呼叫 A · 敘事核心（core_extraction）', 18, 2, 9, 29),
+        lane('呼叫 B · 敘述與訊號（signal_tagging）', 21, 2, -1, 29)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

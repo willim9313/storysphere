@@ -1,0 +1,538 @@
+/* StorySphere UI kit — component styles, all token-driven */
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: var(--bg-primary);
+  color: var(--fg-primary);
+  font-family: var(--font-sans);
+  font-size: var(--font-size-sm);
+}
+
+/* ── App shell ────────────────────────────────────────────────
+   Rail carries ALL navigation. When a book is open its nine views
+   sit at the top against a tinted ground, system routes below a
+   divider. The top bar is a 28px breadcrumb, not a tab strip.
+   ──────────────────────────────────────────────────────────── */
+.ss-app { display: flex; height: 100vh; }
+.ss-sidebar {
+  width: 48px; flex-shrink: 0;
+  background: var(--bg-secondary);
+  border-right: var(--border-width) var(--border-style) var(--border);
+  display: flex; flex-direction: column; align-items: center;
+  padding: var(--space-5) 0; gap: var(--space-2);
+}
+.ss-sidebar a {
+  width: 36px; height: 36px;
+  display: flex; align-items: center; justify-content: center;
+  border-radius: var(--radius-md);
+  color: var(--fg-secondary); cursor: pointer;
+  transition: background-color var(--transition-fast) ease, color var(--transition-fast) ease;
+}
+.ss-sidebar a:hover { background: var(--bg-tertiary); }
+.ss-sidebar a.active { background: var(--bg-tertiary); color: var(--accent); }
+.ss-sidebar-spacer { flex: 1; }
+
+/* Book group inside the rail — tinted ground separates it from system routes */
+.ss-rail-book {
+  display: flex; flex-direction: column; align-items: center; gap: var(--space-2);
+  background: var(--bg-tertiary);
+  border-radius: var(--radius-md);
+  padding: var(--space-3) var(--space-2);
+}
+.ss-rail-divider {
+  width: 24px; height: var(--line-weight);
+  background: var(--border);
+  margin: var(--space-2) 0;
+}
+
+.ss-main { flex: 1; display: flex; flex-direction: column; min-width: 0; }
+
+/* Breadcrumb bar — back to library · book · current view */
+.ss-booknav {
+  height: 28px; flex-shrink: 0;
+  background: var(--bg-primary);
+  border-bottom: var(--border-width) var(--border-style) var(--border);
+  display: flex; align-items: center;
+  padding: 0 var(--space-6); gap: var(--space-4);
+}
+.ss-booknav-back {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  font-size: var(--font-size-xs); color: var(--fg-muted); cursor: pointer;
+  background: none; border: none; font-family: inherit; padding: 0;
+}
+.ss-booknav-back:hover { color: var(--accent); }
+.ss-booknav-sep { color: var(--border); }
+.ss-booknav-title {
+  font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 600;
+  color: var(--fg-primary); max-width: 200px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.ss-booknav-view { font-size: var(--font-size-xs); color: var(--fg-secondary); }
+.ss-booknav-chev { font-size: var(--font-size-2xs); color: var(--fg-muted); }
+
+/* Tabs — generic component; no longer used for book navigation */
+.ss-tabs { display: flex; gap: 2px; }
+.ss-tab {
+  background: none; border: none; cursor: pointer;
+  font-family: var(--font-sans); font-size: var(--font-size-xs); font-weight: 500;
+  padding: var(--space-3) var(--space-5); border-radius: var(--radius-md);
+  color: var(--fg-secondary);
+  transition: background-color var(--transition-fast) ease, color var(--transition-fast) ease;
+}
+.ss-tab:hover { background: var(--bg-secondary); }
+.ss-tab.active { background: var(--bg-tertiary); color: var(--accent); }
+
+/* Page — padding comes from the density grade; B is the kit default */
+.ss-page { flex: 1; padding: var(--space-7); overflow: auto; min-height: 0; display: flex; flex-direction: column; }
+.ss-page-head { margin-bottom: var(--space-6); }
+.ss-page-title { font-family: var(--font-serif); font-size: var(--font-size-3xl); margin: 0; font-weight: 700; }
+.ss-page-sub { font-family: var(--font-sans); font-size: var(--font-size-xs); color: var(--fg-muted); margin: var(--space-2) 0 0; }
+
+/* Library grid — grade C, drops to the full variant past one row */
+.ss-library-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-6);
+}
+.ss-bookcard {
+  background: var(--bg-primary);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
+  padding: var(--space-6);
+  display: flex; flex-direction: column; gap: var(--space-3);
+  box-shadow: var(--card-shadow, var(--shadow-sm));
+  cursor: pointer;
+  transition: background-color var(--transition-fast) ease;
+}
+.ss-bookcard:hover { background: var(--bg-secondary); }
+.ss-bookcard-cover {
+  height: 90px; border-radius: var(--radius-md);
+  background: var(--bg-secondary);
+  display: flex; align-items: center; justify-content: center;
+}
+.ss-bookcard-title {
+  font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 600;
+  color: var(--fg-primary); line-height: 1.3;
+}
+.ss-bookcard-author { font-size: var(--font-size-2xs); color: var(--fg-muted); }
+.ss-bookcard-meta {
+  display: flex; gap: var(--space-5);
+  font-size: var(--font-size-2xs); color: var(--fg-muted);
+  margin-top: auto;
+}
+.ss-bookcard-upload {
+  border-style: dashed; border-width: 2px;
+  align-items: center; justify-content: center;
+  color: var(--fg-muted); min-height: 200px;
+  font-size: var(--font-size-xs); gap: var(--space-3);
+}
+.ss-progress {
+  height: 3px; background: var(--bg-tertiary);
+  border-radius: 2px; overflow: hidden;
+}
+.ss-progress-fill { height: 100%; background: var(--accent); transition: width var(--transition-normal) ease; }
+
+/* Buttons */
+.ss-btn {
+  display: inline-flex; align-items: center; gap: var(--space-3);
+  border-radius: var(--btn-radius); cursor: pointer;
+  font-family: var(--font-sans); font-weight: 500;
+  border: var(--btn-border-width) solid transparent;
+  box-shadow: var(--btn-shadow);
+  transition: opacity var(--transition-fast) ease, background-color var(--transition-fast) ease;
+}
+.ss-btn-md { padding: var(--space-4) var(--space-6); font-size: var(--font-size-xs); }
+.ss-btn-sm { padding: var(--space-2) var(--space-5); font-size: var(--font-size-2xs); }
+.ss-btn-primary { background: var(--accent); color: var(--accent-fg); }
+.ss-btn-primary:hover { opacity: 0.9; }
+.ss-btn-secondary { background: var(--bg-primary); color: var(--fg-primary); border-color: var(--border); border-style: var(--border-style); }
+.ss-btn-secondary:hover { background: var(--bg-secondary); }
+.ss-btn-ghost { background: transparent; color: var(--fg-secondary); }
+.ss-btn-ghost:hover { color: var(--accent); }
+
+/* ── LLM action marker (.ss-btn-llm) ─────────────────────────
+   Any control that calls the LLM and spends tokens MUST carry a
+   Lucide `sparkles` glyph before its label. This is a composable
+   marker, not a variant — layer it onto whatever the button already
+   is:  .ss-btn.ss-btn-md.ss-btn-primary.ss-btn-llm
+   The glyph uses stroke:currentColor, so it inherits the variant's
+   colour and survives the Ink collapse without relying on hue —
+   the same redundant-encoding rule the status badges follow.
+   Pair it with the existing prose hint ("消耗 token"): the glyph
+   carries scanability, the text carries precision. Never the glyph
+   alone on a first-time-destructive or batch action.
+   ──────────────────────────────────────────────────────────── */
+/* Buttons: add .ss-btn-llm — the glyph is drawn by ::before, no markup.
+   Non-button carriers (a pill, a tab, a legend row): <span class="ss-llm-glyph"></span>, or mask the token directly:
+     background: currentColor;
+     mask: var(--ss-llm-glyph) no-repeat center / contain;
+   Same shape, same colour rule. Never draw a second sparkles by hand. */
+.ss-btn-llm::before {
+  content: ""; width: 14px; height: 14px; flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask: var(--ss-llm-glyph) no-repeat center / contain;
+  mask: var(--ss-llm-glyph) no-repeat center / contain;
+}
+/* Spacing comes from .ss-btn's gap (--space-3); no margin needed. */
+.ss-llm-glyph {
+  display: inline-block; width: 12px; height: 12px; flex-shrink: 0;
+  background-color: currentColor;
+  -webkit-mask: var(--ss-llm-glyph) no-repeat center / contain;
+  mask: var(--ss-llm-glyph) no-repeat center / contain;
+}
+/* Zero-cost siblings carry no glyph. The absence is the signal, so
+   never decorate a free action to "balance" a row. */
+
+/* Badges */
+.ss-badge {
+  display: inline-flex; align-self: flex-start;
+  font-size: var(--font-size-2xs); padding: var(--space-1) var(--space-4); border-radius: var(--badge-radius); font-weight: 500;
+  font-family: var(--font-sans);
+}
+.ss-badge-success { background: var(--color-success-bg); color: var(--color-success); }
+.ss-badge-info    { background: var(--color-info-bg);    color: var(--color-info); }
+.ss-badge-warning { background: var(--color-warning-bg); color: var(--color-warning); }
+.ss-badge-error   { background: var(--color-error-bg);   color: var(--color-error); }
+[data-theme="ink"] .ss-badge {
+  background: var(--bg-tertiary); color: var(--fg-primary); border: var(--border-width) var(--border-style) var(--fg-primary);
+}
+
+/* Entity pills */
+.ss-pill {
+  display: inline-flex; align-items: center; gap: var(--space-2);
+  font-family: var(--font-sans); font-size: var(--font-size-2xs);
+  padding: var(--space-1) var(--space-4); border-radius: var(--pill-radius);
+  border: var(--pill-border-width) solid; cursor: default;
+  margin: 0 var(--space-1); vertical-align: baseline;
+}
+.ss-pill-dot { width: 5px; height: 5px; border-radius: 50%; background: currentColor; opacity: 0.8; }
+.ss-pill-character { background: var(--entity-character-bg); border-color: var(--entity-character-border); color: var(--entity-character-fg); }
+.ss-pill-location  { background: var(--entity-location-bg);  border-color: var(--entity-location-border);  color: var(--entity-location-fg); }
+.ss-pill-organization { background: var(--entity-organization-bg); border-color: var(--entity-organization-border); color: var(--entity-organization-fg); }
+.ss-pill-object    { background: var(--entity-object-bg);    border-color: var(--entity-object-border);    color: var(--entity-object-fg); }
+.ss-pill-concept   { background: var(--entity-concept-bg);   border-color: var(--entity-concept-border);   color: var(--entity-concept-fg); }
+.ss-pill-event     { background: var(--entity-event-bg);     border-color: var(--entity-event-border);     color: var(--entity-event-fg); }
+.ss-pill-other     { background: var(--entity-other-bg);     border-color: var(--entity-other-border);     color: var(--entity-other-fg); }
+
+/* ── entity-mark — inline entity annotation in flowing prose ──
+   The reading-page pattern for marking an entity WITHOUT breaking the
+   text flow (unlike .ss-pill, which is a chip). Rests as a 1.5px
+   type-colored underline under the word; on hover the type's tinted bg
+   floats up behind it. Meaning-preserving, never a boxed chip in body copy.
+   Structure:  <span class="ss-emark ss-emark-<type>">text</span>
+   ──────────────────────────────────────────────────────────── */
+.ss-emark {
+  cursor: pointer; color: inherit; font: inherit;
+  border-radius: 2px; padding: 0 1px;
+  text-decoration: underline;
+  text-decoration-thickness: 1.5px;
+  text-underline-offset: 2px;
+  text-decoration-color: var(--emark-dot);
+  background-color: transparent;
+  transition: background-color var(--transition-fast) ease;
+}
+.ss-emark:hover { background-color: var(--emark-bg); }
+.ss-emark-character    { --emark-dot: var(--entity-character-dot);    --emark-bg: var(--entity-character-bg); }
+.ss-emark-location     { --emark-dot: var(--entity-location-dot);     --emark-bg: var(--entity-location-bg); }
+.ss-emark-organization { --emark-dot: var(--entity-organization-dot); --emark-bg: var(--entity-organization-bg); }
+.ss-emark-object       { --emark-dot: var(--entity-object-dot);       --emark-bg: var(--entity-object-bg); }
+.ss-emark-concept      { --emark-dot: var(--entity-concept-dot);      --emark-bg: var(--entity-concept-bg); }
+.ss-emark-event        { --emark-dot: var(--entity-event-dot);        --emark-bg: var(--entity-event-bg); }
+.ss-emark-other        { --emark-dot: var(--entity-other-dot);        --emark-bg: var(--entity-other-bg); }
+
+/* ── Graph legend (.ss-legend) — full 7-type taxonomy ─────────
+   The knowledge-graph legend covers ALL 7 entity types (character,
+   location, organization, object, concept, event, other), matching the
+   graph node palette. Never a 4-type subset — organization/object must
+   never fall through to the near-black 'other' fallback.
+   Structure:  .ss-legend > .ss-legend-item > .ss-legend-swatch + label
+   ──────────────────────────────────────────────────────────── */
+.ss-legend { display: flex; flex-wrap: wrap; gap: var(--space-4) var(--space-6); }
+.ss-legend-item {
+  display: inline-flex; align-items: center; gap: var(--space-3);
+  font-family: var(--font-sans); font-size: var(--font-size-2xs); color: var(--fg-secondary);
+}
+.ss-legend-swatch {
+  width: 12px; height: 12px; border-radius: 50%;
+  border: var(--line-weight) solid;
+}
+.ss-legend-character    { background: var(--graph-character-fill);    border-color: var(--graph-character-stroke); }
+.ss-legend-location     { background: var(--graph-location-fill);     border-color: var(--graph-location-stroke); }
+.ss-legend-organization { background: var(--graph-organization-fill); border-color: var(--graph-organization-stroke); }
+.ss-legend-object       { background: var(--graph-object-fill);       border-color: var(--graph-object-stroke); }
+.ss-legend-concept      { background: var(--graph-concept-fill);      border-color: var(--graph-concept-stroke); }
+.ss-legend-event        { background: var(--graph-event-fill);        border-color: var(--graph-event-stroke); }
+.ss-legend-other        { background: var(--graph-other-fill);        border-color: var(--graph-other-stroke); }
+
+/* Reading — grade A workbench; the column keeps its own measure */
+.ss-page-reading { flex-direction: row; gap: var(--space-5); padding: 0; }
+.ss-reader { flex: 1; padding: var(--space-8); max-width: 720px; margin: 0 auto; overflow: auto; }
+.ss-reader-head { margin-bottom: var(--space-8); }
+.ss-reader-eyebrow { font-family: var(--font-sans); font-size: var(--font-size-2xs); color: var(--fg-muted); letter-spacing: 0.05em; text-transform: uppercase; }
+.ss-reader-title { font-family: var(--font-serif); font-size: var(--font-size-3xl); margin: var(--space-3) 0 0; font-weight: 700; }
+.ss-chunk { font-family: var(--font-serif); font-size: var(--font-size-base); line-height: 1.85; color: var(--fg-primary); margin: 0 0 var(--space-6); text-wrap: pretty; }
+
+/* Panel */
+.ss-panel {
+  background: var(--bg-secondary);
+  border-left: var(--card-border-width) var(--border-style) var(--border);
+  display: flex; flex-direction: column;
+  flex-shrink: 0;
+}
+.ss-panel-head {
+  padding: var(--space-5);
+  border-bottom: var(--border-width) var(--border-style) var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.ss-panel-head h3 { margin: 0; font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 700; }
+.ss-panel-close { background: none; border: none; cursor: pointer; color: var(--fg-muted); padding: var(--space-2); }
+.ss-panel-body { padding: var(--space-5); overflow: auto; display: flex; flex-direction: column; gap: var(--space-4); }
+.ss-panel-row { display: flex; align-items: center; justify-content: space-between; gap: var(--space-4); }
+.ss-panel-meta { font-size: var(--font-size-2xs); color: var(--fg-muted); font-family: var(--font-sans); }
+.ss-panel-rule { border: 0; border-top: var(--border-width) var(--border-style) var(--border); margin: var(--space-4) 0; }
+
+/* Graph — grade A: overlays sit 12px off every edge */
+.ss-page-graph { padding: 0; flex-direction: row; }
+.ss-graph-toolbar {
+  position: absolute; top: 40px; left: 60px;
+  display: flex; gap: var(--space-4); align-items: center;
+  background: var(--bg-primary); padding: var(--space-4);
+  border: var(--border-width) var(--border-style) var(--border);
+  border-radius: var(--radius-md); z-index: 1;
+}
+.ss-graph-meta { font-size: var(--font-size-2xs); color: var(--fg-muted); margin-left: var(--space-4); }
+.ss-graph { flex: 1; background: var(--bg-secondary); }
+.ss-graph circle { transition: opacity var(--transition-fast) ease; }
+
+
+/* Loader */
+.ss-loader { display: inline-flex; animation: ss-spin 1s linear infinite; }
+@keyframes ss-spin { to { transform: rotate(360deg); } }
+
+/* ── Focus ring — keyboard a11y (B2) ─────────────────────────
+   One spec for the whole system, applied only for keyboard focus
+   (:focus-visible) so mouse clicks don't draw rings. Distinct from the
+   softer selected-state ring. Uses the focus-ring tokens so Ink swaps
+   the accent-sienna ring for near-black. */
+:where(a, button, input, select, textarea, [tabindex], .ss-btn, .ss-tab, .ss-option-card, .ss-theme-card):focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: var(--focus-ring-offset);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   NEW COMPONENTS — v2
+   StepIndicator · ProcessLog · StatRow · OptionCard+Toggle · btn-danger
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ── StepIndicator (.ss-steps / .ss-step) ────────────────────
+   States: .done  .active  .pending
+   Structure:
+     .ss-steps > .ss-step.{state} >
+       .ss-step-rail > .ss-step-marker + .ss-step-line
+       .ss-step-body > .ss-step-title + .ss-step-desc
+   ──────────────────────────────────────────────────────────── */
+.ss-steps { display: flex; flex-direction: column; }
+
+.ss-step { display: flex; gap: var(--space-5); }
+
+.ss-step-rail {
+  display: flex; flex-direction: column; align-items: center;
+  flex-shrink: 0; width: 20px;
+}
+
+.ss-step-marker {
+  width: 20px; height: 20px; border-radius: 50%;
+  border: var(--line-weight) var(--border-style) var(--border);
+  background: var(--bg-primary);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--font-sans); font-size: 9px; font-weight: 700;
+  color: var(--fg-muted); flex-shrink: 0;
+  transition: background-color var(--transition-fast) ease, border-color var(--transition-fast) ease;
+}
+.ss-step.done   .ss-step-marker { background: var(--accent); border-color: var(--accent); color: var(--accent-fg); }
+.ss-step.active .ss-step-marker { border-color: var(--accent); border-width: 2px; color: var(--accent); }
+
+.ss-step-line {
+  flex: 1; width: var(--line-weight); min-height: 12px;
+  background: var(--border); margin: var(--space-1) 0;
+}
+.ss-step:last-child .ss-step-line { display: none; }
+.ss-step.done .ss-step-line { background: var(--accent); }
+
+.ss-step-body { padding-bottom: var(--space-6); flex: 1; min-width: 0; }
+.ss-step-title {
+  font-family: var(--font-sans); font-size: var(--font-size-xs); font-weight: 600;
+  color: var(--fg-primary); line-height: 20px;
+}
+.ss-step.pending .ss-step-title { color: var(--fg-muted); font-weight: 400; }
+.ss-step-desc { font-family: var(--font-sans); font-size: var(--font-size-2xs); color: var(--fg-muted); margin-top: var(--space-1); }
+
+
+
+
+/* ── ProcessLog (.ss-log / .ss-log-entry) ────────────────────
+   Structure:
+     .ss-log > .ss-log-entry >
+       .ss-log-key (monospace) + .ss-log-val (sans)
+   ──────────────────────────────────────────────────────────── */
+.ss-log {
+  display: flex; flex-direction: column;
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--radius-md); overflow: hidden;
+}
+.ss-log-entry {
+  display: flex; gap: var(--space-4); align-items: baseline;
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-primary);
+  border-bottom: var(--line-weight) var(--border-style) var(--border);
+}
+.ss-log-entry:last-child { border-bottom: none; }
+.ss-log-entry:nth-child(even) { background: var(--bg-secondary); }
+.ss-log-key {
+  font-family: var(--font-mono); font-size: var(--font-size-2xs);
+  color: var(--fg-muted); min-width: 90px; flex-shrink: 0;
+}
+.ss-log-val {
+  font-family: var(--font-sans); font-size: var(--font-size-2xs);
+  color: var(--fg-primary); overflow-wrap: anywhere;
+}
+
+
+/* ── StatRow (.ss-stats-row / .ss-stat) ──────────────────────
+   Structure:
+     .ss-stats-row > .ss-stat >
+       .ss-stat-value + .ss-stat-label [+ .ss-stat-delta]
+   ──────────────────────────────────────────────────────────── */
+.ss-stats-row {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: var(--space-4);
+}
+.ss-stat {
+  display: flex; flex-direction: column; gap: var(--space-1);
+  padding: var(--space-4) var(--space-6);
+  background: var(--bg-secondary);
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: var(--radius-md);
+}
+.ss-stat-value {
+  font-family: var(--font-sans); font-size: var(--font-size-xl); font-weight: 700;
+  color: var(--fg-primary); line-height: 1.15;
+}
+.ss-stat-label {
+  font-family: var(--font-sans); font-size: 10px;
+  color: var(--fg-muted); text-transform: uppercase; letter-spacing: 0.05em;
+}
+.ss-stat-delta {
+  font-family: var(--font-sans); font-size: 10px; color: var(--color-success);
+}
+[data-theme="ink"] .ss-stat-delta { color: var(--fg-secondary); }
+
+
+/* ── OptionCard + Toggle (.ss-option-card / .ss-toggle) ──────
+   Structure:
+     .ss-option-card[.selected] >
+       .ss-option-card-body > .ss-option-card-title + .ss-option-card-desc
+       label.ss-toggle > input[type=checkbox] + span.ss-toggle-track
+   ──────────────────────────────────────────────────────────── */
+.ss-option-card {
+  display: flex; align-items: flex-start; gap: var(--space-6);
+  padding: var(--space-6);  background: var(--bg-primary);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius); cursor: pointer;
+  transition: background-color var(--transition-fast) ease, border-color var(--transition-fast) ease;
+}
+.ss-option-card:hover { background: var(--bg-secondary); }
+.ss-option-card.selected { border-color: var(--accent); border-width: 2px; background: var(--bg-secondary); }
+
+.ss-option-card-body { flex: 1; min-width: 0; }
+.ss-option-card-title {
+  font-family: var(--font-sans); font-size: var(--font-size-xs); font-weight: 600;
+  color: var(--fg-primary); line-height: 1.35;
+}
+.ss-option-card-desc {
+  font-family: var(--font-sans); font-size: var(--font-size-2xs);
+  color: var(--fg-muted); margin-top: var(--space-1);
+}
+
+.ss-toggle {
+  position: relative; flex-shrink: 0;
+  width: 32px; height: 18px; display: inline-block;
+}
+.ss-toggle input { opacity: 0; width: 0; height: 0; position: absolute; }
+.ss-toggle-track {
+  position: absolute; inset: 0;
+  background: var(--bg-tertiary);
+  border: var(--line-weight) var(--border-style) var(--border);
+  border-radius: 9px; cursor: pointer;
+  transition: background-color var(--transition-fast) ease, border-color var(--transition-fast) ease;
+}
+.ss-toggle-track::after {
+  content: '';
+  position: absolute; top: 2px; left: 2px;
+  width: 12px; height: 12px;
+  background: var(--bg-primary); border-radius: 50%;
+  transition: transform var(--transition-fast) ease;
+}
+.ss-toggle input:checked + .ss-toggle-track { background: var(--accent); border-color: var(--accent); }
+.ss-toggle input:checked + .ss-toggle-track::after { transform: translateX(14px); }
+
+
+/* ── ss-btn-danger (ghost-danger variant) ────────────────────
+   Usage: .ss-btn.ss-btn-md.ss-btn-danger
+   Default: --color-error border + text, --color-error-bg on hover
+   Ink theme: auto-converts to --fg-primary outline
+   ──────────────────────────────────────────────────────────── */
+.ss-btn-danger {
+  background: transparent;
+  color: var(--color-error);
+  border-color: var(--color-error); border-style: var(--border-style);
+}
+.ss-btn-danger:hover { background: var(--color-error-bg); }
+
+[data-theme="ink"] .ss-btn-danger {
+  color: var(--fg-primary); border-color: var(--fg-primary);
+}
+[data-theme="ink"] .ss-btn-danger:hover { background: var(--bg-tertiary); }
+
+/* Theme settings cards */
+.ss-theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--space-6); }
+.ss-theme-card {
+  background: var(--bg-primary);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
+  padding: var(--space-6);
+  display: flex; flex-direction: column; gap: var(--space-4);
+  cursor: pointer; text-align: left;
+  font-family: inherit;
+  transition: background-color var(--transition-fast) ease;
+}
+.ss-theme-card:hover { background: var(--bg-secondary); }
+.ss-theme-card.active { border-color: var(--accent); border-width: 2px; }
+.ss-theme-swatch { display: flex; height: 36px; border-radius: var(--radius-sm); overflow: hidden; }
+.ss-theme-swatch span { flex: 1; }
+.ss-theme-card[data-theme-preview="warm"] .bg-1 { background: #f8f3e7; }
+.ss-theme-card[data-theme-preview="warm"] .bg-2 { background: #f1e8d5; }
+.ss-theme-card[data-theme-preview="warm"] .bg-3 { background: #e9ddc6; }
+.ss-theme-card[data-theme-preview="warm"] .ac   { background: #b05a34; }
+.ss-theme-card[data-theme-preview="ink"] .bg-1 { background: #fff; border-right: 1px solid #1a1a1a; }
+.ss-theme-card[data-theme-preview="ink"] .bg-2 { background: #f6f6f4; }
+.ss-theme-card[data-theme-preview="ink"] .bg-3 { background: #ececea; }
+.ss-theme-card[data-theme-preview="ink"] .ac   { background: #151515; }
+.ss-theme-name { font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 700; }
+.ss-theme-sub  { font-size: var(--font-size-2xs); color: var(--fg-muted); }
+
+/* Theme switcher in app */
+.ss-theme-toggle {
+  position: absolute; top: var(--space-4); right: var(--space-5); z-index: 10;
+  display: flex; gap: var(--space-2);
+  background: var(--bg-primary);
+  border: var(--border-width) var(--border-style) var(--border);
+  border-radius: var(--radius-md);
+  padding: var(--space-1);
+}
+.ss-theme-toggle button {
+  background: none; border: none; cursor: pointer;
+  font-family: var(--font-sans); font-size: var(--font-size-2xs); padding: var(--space-2) var(--space-4);
+  border-radius: var(--radius-sm); color: var(--fg-secondary);
+}
+.ss-theme-toggle button.active { background: var(--bg-tertiary); color: var(--accent); }

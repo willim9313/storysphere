@@ -1,0 +1,162 @@
+{
+  "v": 3,
+  "createdOnFiles": {
+    "v": 1,
+    "at": "2026-11-15T10:28:00Z"
+  },
+  "title": "StorySphere v4 原型：書籍總覽與結果卡詳情",
+  "launch": {
+    "view": "canvas"
+  },
+  "pages": [],
+  "boards": {
+    "Library.dc.html": {
+      "x": 0,
+      "y": 0,
+      "w": 1440,
+      "h": 1000,
+      "title": "書庫",
+      "expand": "fill"
+    },
+    "Ingest.dc.html": {
+      "x": 1520,
+      "y": 0,
+      "w": 1440,
+      "h": 1200,
+      "title": "入庫進度",
+      "expand": "fill"
+    },
+    "Registry.dc.html": {
+      "x": 3040,
+      "y": 0,
+      "w": 1440,
+      "h": 1100,
+      "title": "方法目錄",
+      "expand": "fill"
+    },
+    "Settings.dc.html": {
+      "x": 4560,
+      "y": 0,
+      "w": 1440,
+      "h": 1300,
+      "title": "設定",
+      "expand": "fill"
+    },
+    "Jobs.dc.html": {
+      "x": 6080,
+      "y": 0,
+      "w": 400,
+      "h": 900,
+      "title": "工作中心（側欄抽屜）"
+    },
+    "Main.dc.html": {
+      "x": 0,
+      "y": 1643,
+      "w": 1440,
+      "h": 1400,
+      "title": "書籍總覽",
+      "expand": "fill"
+    },
+    "Detail.dc.html": {
+      "x": 1520,
+      "y": 1643,
+      "w": 1440,
+      "h": 1200,
+      "title": "結果卡詳情",
+      "expand": "fill"
+    },
+    "Agent.dc.html": {
+      "x": 3040,
+      "y": 1643,
+      "w": 1440,
+      "h": 1500,
+      "title": "Agent 工作區",
+      "expand": "fill"
+    },
+    "Notes.dc.html": {
+      "x": 4560,
+      "y": 1643,
+      "w": 1440,
+      "h": 1100,
+      "title": "筆記",
+      "expand": "fill"
+    },
+    "Evidence.dc.html": {
+      "x": 6080,
+      "y": 1643,
+      "w": 1440,
+      "h": 1100,
+      "title": "證據瀏覽",
+      "expand": "fill"
+    },
+    "OverviewInk.dc.html": {
+      "x": 0,
+      "y": 3486,
+      "w": 1440,
+      "h": 1400,
+      "title": "書籍總覽 · Ink",
+      "expand": "fill"
+    },
+    "DetailInk.dc.html": {
+      "x": 1520,
+      "y": 3486,
+      "w": 1440,
+      "h": 1200,
+      "title": "結果卡詳情 · Ink",
+      "expand": "fill"
+    }
+  },
+  "order": [
+    "Main.dc.html",
+    "Detail.dc.html",
+    "Library.dc.html",
+    "Ingest.dc.html",
+    "Registry.dc.html",
+    "Settings.dc.html",
+    "Jobs.dc.html",
+    "Agent.dc.html",
+    "Notes.dc.html",
+    "Evidence.dc.html",
+    "OverviewInk.dc.html",
+    "DetailInk.dc.html"
+  ],
+  "notes": {
+    "warm": {
+      "x": 0,
+      "y": -300,
+      "text": "App 層（Warm）",
+      "kind": "title1",
+      "maxW": 6480
+    },
+    "book": {
+      "x": 0,
+      "y": 1420,
+      "text": "書籍層（Warm）",
+      "kind": "title1",
+      "maxW": 7520
+    },
+    "ink": {
+      "x": 0,
+      "y": 3263,
+      "text": "Ink（先前的版本，暫不更新）",
+      "kind": "title1",
+      "maxW": 2960
+    },
+    "about": {
+      "x": 7600,
+      "y": 0,
+      "w": 360,
+      "fill": "orange",
+      "text": "原型示意：書名、章節與事件取自 benchmark 文本，數字、判定與引文是示意資料，不是實際跑出來的結果。\n\n對應規格：storysphere_v4/prototype_v0_草案/05_原型UI與大腦接法.md §3（9 個畫面＋工作中心）。\n\nPlay 模式下，左側導覽與總覽的「線索公平嗎？」卡可以點。"
+    }
+  },
+  "designSystems": [
+    {
+      "title": "StorySphere Design System v3",
+      "namespace": "storyspheredesignsystemv3_f1cc58",
+      "artifact": "https://claude.ai/artifact/6aeB4t2hxg4fF4UY358ED6",
+      "version": "1794732155-806e",
+      "copiedAt": "2026-11-15T10:28:00Z"
+    }
+  ]
+}

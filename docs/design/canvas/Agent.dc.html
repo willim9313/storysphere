@@ -1,0 +1,314 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<title>Agent 工作區 · 四簽名</title>
+<script src="./support.js"></script>
+<link rel="stylesheet" href="ds/storyspheredesignsystemv3_f1cc58/styles.css">
+<link rel="stylesheet" href="ds/storyspheredesignsystemv3_f1cc58/ui_kits/web_app/kit.css">
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Spectral:wght@400;600;700&amp;family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&amp;family=Noto+Serif+TC:wght@400;600;700&amp;family=Noto+Sans+TC:wght@400;500;700&amp;family=Fira+Code:wght@400;500&amp;display=swap">
+<style>
+body{margin:0}
+:root{--fg-muted:#776c5b;--accent:#a0522f;--focus-ring-color:#a0522f}
+[data-theme="ink"]{--fg-muted:#737373}
+a{color:var(--accent)}a:hover{opacity:.9}
+a.ss-btn,a.ss-card-link{text-decoration:none}
+a.ss-card-link{color:inherit}
+.ss-badge-neutral{background:var(--bg-secondary);color:var(--fg-secondary)}
+</style>
+</helmet>
+<div data-theme="{{theme}}" style="min-height: 1500px; display: flex; background: var(--bg-primary); color: var(--fg-primary); font-family: var(--font-sans);">
+<nav class="ss-sidebar" aria-label="主導覽">
+  <a href="Library.dc.html" aria-label="書庫"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m16 6 4 14"></path><path d="M12 6v14"></path><path d="M8 8v12"></path><path d="M4 4v16"></path></svg></a>
+  <div class="ss-rail-divider"></div>
+  <div class="ss-rail-book"><a href="Main.dc.html" aria-label="總覽"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="7" height="7" x="3" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="3" rx="1"></rect><rect width="7" height="7" x="14" y="14" rx="1"></rect><rect width="7" height="7" x="3" y="14" rx="1"></rect></svg></a><a href="Agent.dc.html" class="active" aria-current="page" aria-label="Agent 工作區"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg></a><a href="Notes.dc.html" aria-label="筆記"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 6h4"></path><path d="M2 10h4"></path><path d="M2 14h4"></path><path d="M2 18h4"></path><rect width="16" height="20" x="4" y="2" rx="2"></rect><path d="M16 2v20"></path></svg></a><a href="Evidence.dc.html" aria-label="證據瀏覽"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></a></div>
+  <div class="ss-rail-divider"></div>
+  <a href="Registry.dc.html" aria-label="方法目錄"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="16" y="16" width="6" height="6" rx="1"></rect><rect x="2" y="16" width="6" height="6" rx="1"></rect><rect x="9" y="2" width="6" height="6" rx="1"></rect><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"></path><path d="M12 12V8"></path></svg></a>
+  <div class="ss-sidebar-spacer"></div>
+  <a href="Jobs.dc.html" aria-label="工作中心"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M22 12h-4l-3 9L9 3l-3 9H2"></path></svg></a>
+  <a href="Settings.dc.html" aria-label="設定"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg></a>
+</nav>
+<div class="ss-main">
+  <header class="ss-booknav">
+    <a class="ss-booknav-back" href="Library.dc.html"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>書庫</a>
+    <span class="ss-booknav-sep">|</span>
+    <a class="ss-booknav-title" href="Main.dc.html" style="text-decoration: none;">四簽名</a>
+    <span class="ss-booknav-chev">›</span>
+    <span class="ss-booknav-view">Agent 工作區</span>
+    <span class="ss-badge ss-badge-info" style="margin-left: auto; align-self: center;">原型示意資料</span>
+  </header>
+  <main style="width: 100%; box-sizing: border-box; padding: var(--space-5) var(--space-6) var(--space-8); display: flex; flex-direction: column; gap: var(--space-5);">
+    <div style="display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--space-4); padding: var(--space-4) var(--space-5); background: var(--bg-secondary); border: var(--border-width) var(--border-style) var(--border); border-radius: var(--radius-md);">
+      <div style="display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4);">
+        <label for="brain" style="font-size: var(--font-size-2xs); color: var(--fg-muted);">大腦</label>
+        <select id="brain" style="font-family: var(--font-sans); font-size: var(--font-size-xs); padding: var(--space-3) var(--space-5); border: var(--input-border-width) solid var(--border); border-radius: var(--input-radius); background: var(--input-bg); color: var(--fg-primary);">
+          <option>deepagents · gemini-2.5-flash</option><option>Claude Code（ACP）</option>
+        </select>
+        <span style="font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-muted);">session 8c1e · 題材：推理</span>
+        <span class="ss-badge ss-badge-neutral">L0 · 只用 StorySphere 工具</span>
+      </div>
+      <div style="display: flex; gap: var(--space-3);">
+        <button type="button" class="ss-btn ss-btn-sm ss-btn-ghost">之前的對話</button>
+        <button type="button" class="ss-btn ss-btn-sm ss-btn-secondary">新對話</button>
+      </div>
+    </div>
+
+    <div style="display: flex; flex-wrap: wrap; gap: var(--space-6); align-items: flex-start;">
+
+      <section aria-label="對話" style="flex: 1 1 340px; max-width: 420px; min-width: 0; background: var(--bg-primary); border: var(--card-border-width) var(--border-style) var(--border); border-radius: var(--card-radius); box-shadow: var(--card-shadow); display: flex; flex-direction: column; min-height: 1340px;">
+        <div style="flex: 1; padding: var(--space-5); display: flex; flex-direction: column; gap: var(--space-5);">
+          <div style="align-self: flex-end; max-width: 88%; background: var(--bg-tertiary); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5); font-size: var(--font-size-sm); line-height: 1.6;">華生知道真相的時間，比讀者早還是晚？</div>
+          <div style="display: flex; flex-direction: column; gap: var(--space-2); font-size: var(--font-size-2xs); color: var(--fg-secondary);">
+            <span>› <span style="font-family: var(--font-mono);">list_methods</span> 找到 CH5、MY1</span>
+            <span>› <span style="font-family: var(--font-mono);">run_method</span> character.belief · 41 s</span>
+            <span>› <span style="font-family: var(--font-mono);">get_run</span> info.two_story</span>
+          </div>
+          <p style="margin: 0; font-family: var(--font-serif); font-size: var(--font-size-sm); line-height: 1.75;">我把 CH5 認知狀態和 MY1 雙故事拆解組合起來看。這本書是華生的第一人稱，讀者和華生同步知情；福爾摩斯比兩人早兩章推得同伴的來歷。</p>
+          <a href="#ra" style="align-self: flex-start; font-size: var(--font-size-2xs); text-decoration: none; display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border: var(--border-width) var(--border-style) var(--accent); border-radius: var(--radius-sm);">結果 A · 誰知道同伴的來歷？</a>
+
+          <div style="align-self: flex-end; max-width: 88%; background: var(--bg-tertiary); border-radius: var(--radius-lg); padding: var(--space-4) var(--space-5); font-size: var(--font-size-sm); line-height: 1.6;">那讀者被誤導到誰身上？</div>
+          <div style="display: flex; flex-direction: column; gap: var(--space-2); font-size: var(--font-size-2xs); color: var(--fg-secondary);">
+            <span>› <span style="font-family: var(--font-mono);">get_run</span> info.suspect_matrix · 已完成</span>
+            <span>› <span style="font-family: var(--font-mono);">get_events</span> 第 6–7 章 · 9 筆</span>
+          </div>
+          <p style="margin: 0; font-family: var(--font-serif); font-size: var(--font-size-sm); line-height: 1.75;">結果卡已經跑過，我直接取用，再補上第 6–7 章的事件。誤導集中在撒迪厄斯·肖爾托身上。</p>
+          <a href="#rb" style="align-self: flex-start; font-size: var(--font-size-2xs); text-decoration: none; display: inline-flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-4); border: var(--border-width) var(--border-style) var(--accent); border-radius: var(--radius-sm);">結果 B · 讀者被誤導到誰身上？</a>
+
+          <article aria-label="寫入確認" style="border: var(--border-width) var(--border-style) var(--border); border-radius: var(--radius-md); padding: var(--space-4) var(--space-5); display: flex; flex-direction: column; gap: var(--space-3); background: var(--color-warning-bg);">
+            <span style="font-size: var(--font-size-2xs); font-weight: 600; color: var(--fg-secondary);">大腦要寫入一筆詮釋 · add_interpretation</span>
+            <span style="font-family: var(--font-serif); font-size: var(--font-size-xs); line-height: 1.6;">「撒迪厄斯的嫌疑是作者刻意安排的紅鯡魚。」引用結果 B 的 2 筆證據</span>
+            <div style="display: flex; gap: var(--space-3);">
+              <button type="button" class="ss-btn ss-btn-sm ss-btn-secondary">允許</button>
+              <button type="button" class="ss-btn ss-btn-sm ss-btn-ghost">拒絕</button>
+            </div>
+          </article>
+        </div>
+        <div style="border-top: var(--border-width) var(--border-style) var(--border); padding: var(--space-4) var(--space-5); display: flex; flex-direction: column; gap: var(--space-3);">
+          <label for="ask" style="position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0);">輸入問題</label>
+          <textarea id="ask" rows="3" placeholder="繼續問，例如：斯莫爾的動機在哪一章第一次出現？" style="resize: none; font-family: var(--font-sans); font-size: var(--font-size-sm); padding: var(--space-4) var(--space-5); border: var(--input-border-width) solid var(--border); border-radius: var(--input-radius); background: var(--input-bg); color: var(--fg-primary);"></textarea>
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: var(--space-4);">
+            <span style="font-size: var(--font-size-2xs); color: var(--fg-muted);">回答會在右側產生新的結果</span>
+            <button type="button" class="ss-btn ss-btn-md ss-btn-primary ss-btn-llm">送出</button>
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="res-h" style="flex: 999 1 760px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-5);">
+        <div style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: var(--space-4);">
+          <div style="display: flex; flex-direction: column; gap: var(--space-1);">
+            <h2 id="res-h" style="margin: 0; font-family: var(--font-serif); font-size: var(--font-size-xl); font-weight: 700;">本次分析結果</h2>
+            <span style="font-size: var(--font-size-2xs); color: var(--fg-muted);">3 個結果 · 未儲存 2 · 已存成筆記 1</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: var(--space-4);">
+            <nav class="ss-tabs" aria-label="篩選結果">
+              <button type="button" class="ss-tab active" aria-pressed="true">全部 3</button>
+              <button type="button" class="ss-tab" aria-pressed="false">未儲存 2</button>
+              <button type="button" class="ss-tab" aria-pressed="false">已儲存 1</button>
+            </nav>
+          </div>
+        </div>
+        <p style="margin: 0; padding: var(--space-4) var(--space-5); background: var(--color-info-bg); border-radius: var(--radius-sm); font-size: var(--font-size-xs); color: var(--fg-secondary); line-height: 1.6;">未儲存的結果只是一次分析結果，下次重跑同一個分析就會被取代。存成筆記才會永久保留；另存方法論則是把這次的方法組合留下來，之後換本書也能重跑。</p>
+
+        <article id="ra" aria-labelledby="ra-h" style="background: var(--bg-primary); border: 2px var(--border-style) var(--accent); border-radius: var(--card-radius); box-shadow: var(--card-shadow); display: flex; flex-direction: column;">
+          <header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--space-4); padding: var(--space-5) var(--space-6); border-bottom: var(--border-width) var(--border-style) var(--border);">
+            <div style="display: flex; flex-direction: column; gap: var(--space-2); min-width: 0;">
+              <div style="display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center;">
+                <span style="font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-muted);">結果 A</span>
+                <span class="ss-badge ss-badge-warning">未儲存</span>
+                <span class="ss-badge ss-badge-neutral">L3</span>
+                <span class="ss-badge ss-badge-neutral">臨時組合：CH5 ＋ MY1</span>
+              </div>
+              <h3 id="ra-h" style="margin: 0; font-family: var(--font-serif); font-size: var(--font-size-xl); font-weight: 700;">誰知道同伴的來歷？</h3>
+              <span style="font-size: var(--font-size-2xs); color: var(--fg-muted);">問句：華生知道真相的時間，比讀者早還是晚？ · 18:52</span>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: var(--space-3);">
+              <button type="button" class="ss-btn ss-btn-sm ss-btn-primary">存成筆記</button>
+              <button type="button" class="ss-btn ss-btn-sm ss-btn-secondary">另存方法論</button>
+              <button type="button" class="ss-btn ss-btn-sm ss-btn-ghost">捨棄</button>
+            </div>
+          </header>
+          <div style="display: flex; flex-wrap: wrap; gap: var(--space-6); padding: var(--space-5) var(--space-6);">
+            <div style="flex: 3 1 420px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-3);">
+              <div style="display: flex; justify-content: space-between; gap: var(--space-4); align-items: baseline;">
+                <span style="font-size: var(--font-size-2xs); font-weight: 600; letter-spacing: 0.06em; color: var(--fg-muted);">角色 × 章節的知情狀態</span>
+                <span style="font-size: var(--font-size-2xs); color: var(--fg-secondary);">● 已知　○ 未知　✕ 錯誤認知</span>
+              </div>
+              <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: var(--font-size-xs); min-width: 440px;">
+                  <thead><tr>
+                    <th scope="col" style="text-align: left; padding: var(--space-3) var(--space-4) var(--space-3) 0; font-size: var(--font-size-2xs); font-weight: 500; color: var(--fg-muted);">角色</th>
+                    <sc-for list="{{chapters}}" as="ch" hint-placeholder-count="12"><th scope="col" style="padding: var(--space-3) 0; font-size: var(--font-size-2xs); font-weight: 500; color: var(--fg-muted); text-align: center;">{{ch}}</th></sc-for>
+                  </tr></thead>
+                  <tbody>
+                    <sc-for list="{{who}}" as="w" hint-placeholder-count="5">
+                      <tr style="border-top: var(--border-width) var(--border-style) var(--border); background: {{w.bg}};">
+                        <th scope="row" style="text-align: left; padding: var(--space-4) var(--space-4) var(--space-4) 0; font-family: var(--font-serif); font-weight: 600;">{{w.name}}</th>
+                        <sc-for list="{{w.cells}}" as="g" hint-placeholder-count="12"><td style="text-align: center; padding: var(--space-4) 0;">{{g}}</td></sc-for>
+                      </tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+              </div>
+              <span style="font-size: var(--font-size-2xs); color: var(--fg-muted);">底色列是讀者。讀者與華生同步，第 8 章起已知；福爾摩斯第 6 章就知道。</span>
+            </div>
+            <div style="flex: 2 1 300px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4);">
+              <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+                <label for="ra-c" style="font-size: var(--font-size-2xs); font-weight: 600; letter-spacing: 0.06em; color: var(--fg-muted);">結論（存成筆記前可改）</label>
+                <textarea id="ra-c" rows="5" style="resize: vertical; font-family: var(--font-serif); font-size: var(--font-size-sm); line-height: 1.7; padding: var(--space-4) var(--space-5); border: var(--input-border-width) solid var(--border); border-radius: var(--input-radius); background: var(--input-bg); color: var(--fg-primary);">福爾摩斯在第 6 章就推得同伴的來歷，華生和讀者到第 8 章才從他口中得知。第一人稱讓讀者只知道華生知道的，懸念因此延續到追捕段落。</textarea>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+                <span style="font-size: var(--font-size-2xs); font-weight: 600; letter-spacing: 0.06em; color: var(--fg-muted);">引用的證據 · 6</span>
+                <sc-for list="{{citedA}}" as="e" hint-placeholder-count="4">
+                  <div style="display: flex; gap: var(--space-3); align-items: baseline; padding: var(--space-2) 0; border-top: var(--border-width) var(--border-style) var(--border); font-size: var(--font-size-2xs);">
+                    <span style="font-family: var(--font-mono); color: var(--fg-secondary); flex-shrink: 0;">{{e.type}}</span>
+                    <span style="color: var(--fg-muted); flex-shrink: 0;">{{e.level}}</span>
+                    <span style="font-family: var(--font-serif); font-size: var(--font-size-xs); color: var(--fg-primary); min-width: 0;">{{e.summary}}</span>
+                  </div>
+                </sc-for>
+                <a href="Evidence.dc.html" style="font-size: var(--font-size-2xs); text-decoration: none;">展開全部證據與原文</a>
+              </div>
+            </div>
+          </div>
+          <footer style="display: flex; flex-wrap: wrap; gap: var(--space-4); align-items: center; padding: var(--space-4) var(--space-6); background: var(--bg-secondary); border-top: var(--border-width) var(--border-style) var(--border); border-radius: 0 0 var(--card-radius) var(--card-radius); font-size: var(--font-size-2xs); color: var(--fg-secondary);">
+            <span style="font-weight: 600;">怎麼得出的</span>
+            <span style="font-family: var(--font-mono);">run_method character.belief</span><span>→</span>
+            <span style="font-family: var(--font-mono);">get_run info.two_story</span><span>→</span>
+            <span style="font-family: var(--font-mono);">show_view knowledge_matrix</span>
+            <button type="button" class="ss-btn ss-btn-sm ss-btn-ghost ss-btn-llm" style="margin-left: auto;">重跑</button>
+          </footer>
+        </article>
+
+        <article id="rb" aria-labelledby="rb-h" style="background: var(--bg-primary); border: var(--card-border-width) var(--border-style) var(--border); border-radius: var(--card-radius); box-shadow: var(--card-shadow); display: flex; flex-direction: column;">
+          <header style="display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: var(--space-4); padding: var(--space-5) var(--space-6); border-bottom: var(--border-width) var(--border-style) var(--border);">
+            <div style="display: flex; flex-direction: column; gap: var(--space-2); min-width: 0;">
+              <div style="display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center;">
+                <span style="font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-muted);">結果 B</span>
+                <span class="ss-badge ss-badge-warning">未儲存</span>
+                <span class="ss-badge ss-badge-neutral">L3</span>
+                <span class="ss-badge ss-badge-neutral">取用結果卡 MY5 ＋ 事件補充</span>
+              </div>
+              <h3 id="rb-h" style="margin: 0; font-family: var(--font-serif); font-size: var(--font-size-xl); font-weight: 700;">讀者被誤導到誰身上？</h3>
+              <span style="font-size: var(--font-size-2xs); color: var(--fg-muted);">問句：那讀者被誤導到誰身上？ · 18:56</span>
+            </div>
+            <div style="display: flex; flex-wrap: wrap; gap: var(--space-3);">
+              <button type="button" class="ss-btn ss-btn-sm ss-btn-primary">存成筆記</button>
+              <button type="button" class="ss-btn ss-btn-sm ss-btn-secondary">另存方法論</button>
+              <button type="button" class="ss-btn ss-btn-sm ss-btn-ghost">捨棄</button>
+            </div>
+          </header>
+          <div style="display: flex; flex-wrap: wrap; gap: var(--space-6); padding: var(--space-5) var(--space-6);">
+            <div style="flex: 3 1 420px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-3);">
+              <div style="display: flex; justify-content: space-between; gap: var(--space-4); align-items: baseline;">
+                <span style="font-size: var(--font-size-2xs); font-weight: 600; letter-spacing: 0.06em; color: var(--fg-muted);">逐章嫌疑分數（第 5–12 章）</span>
+                <span style="font-size: var(--font-size-2xs); color: var(--fg-secondary);">數字＝被線索指向的累計次數　◇＝誤導線索</span>
+              </div>
+              <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: separate; border-spacing: 3px; font-size: var(--font-size-xs); min-width: 440px;">
+                  <thead><tr>
+                    <th scope="col" style="text-align: left; padding: var(--space-2) var(--space-4) var(--space-2) 0; font-size: var(--font-size-2xs); font-weight: 500; color: var(--fg-muted);">嫌疑人</th>
+                    <sc-for list="{{chB}}" as="ch" hint-placeholder-count="8"><th scope="col" style="font-size: var(--font-size-2xs); font-weight: 500; color: var(--fg-muted); text-align: center;">{{ch}}</th></sc-for>
+                  </tr></thead>
+                  <tbody>
+                    <sc-for list="{{suspects}}" as="s" hint-placeholder-count="4">
+                      <tr>
+                        <th scope="row" style="text-align: left; padding: var(--space-3) var(--space-4) var(--space-3) 0; font-family: var(--font-serif); font-weight: 600; white-space: nowrap;">{{s.name}}</th>
+                        <sc-for list="{{s.cells}}" as="c" hint-placeholder-count="8"><td style="text-align: center; padding: var(--space-3) 0; border-radius: 2px; background: {{c.bg}}; color: {{c.fg}}; font-variant-numeric: tabular-nums;">{{c.t}}</td></sc-for>
+                      </tr>
+                    </sc-for>
+                  </tbody>
+                </table>
+              </div>
+              <span style="font-size: var(--font-size-2xs); color: var(--fg-muted);">色階是絕對值，各列可以直接比較。</span>
+            </div>
+            <div style="flex: 2 1 300px; min-width: 0; display: flex; flex-direction: column; gap: var(--space-4);">
+              <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+                <label for="rb-c" style="font-size: var(--font-size-2xs); font-weight: 600; letter-spacing: 0.06em; color: var(--fg-muted);">結論（存成筆記前可改）</label>
+                <textarea id="rb-c" rows="5" style="resize: vertical; font-family: var(--font-serif); font-size: var(--font-size-sm); line-height: 1.7; padding: var(--space-4) var(--space-5); border: var(--input-border-width) solid var(--border); border-radius: var(--input-radius); background: var(--input-bg); color: var(--fg-primary);">第 6–7 章的線索把嫌疑集中在撒迪厄斯·肖爾托身上，警探當場逮捕他；第 8 章後指向斯莫爾的線索追上來，撒迪厄斯的嫌疑隨即消失。</textarea>
+              </div>
+              <div style="display: flex; flex-direction: column; gap: var(--space-2);">
+                <span style="font-size: var(--font-size-2xs); font-weight: 600; letter-spacing: 0.06em; color: var(--fg-muted);">引用的證據 · 5</span>
+                <sc-for list="{{citedB}}" as="e" hint-placeholder-count="3">
+                  <div style="display: flex; gap: var(--space-3); align-items: baseline; padding: var(--space-2) 0; border-top: var(--border-width) var(--border-style) var(--border); font-size: var(--font-size-2xs);">
+                    <span style="font-family: var(--font-mono); color: var(--fg-secondary); flex-shrink: 0;">{{e.type}}</span>
+                    <span style="color: var(--fg-muted); flex-shrink: 0;">{{e.level}}</span>
+                    <span style="font-family: var(--font-serif); font-size: var(--font-size-xs); color: var(--fg-primary); min-width: 0;">{{e.summary}}</span>
+                  </div>
+                </sc-for>
+                <a href="Evidence.dc.html" style="font-size: var(--font-size-2xs); text-decoration: none;">展開全部證據與原文</a>
+              </div>
+            </div>
+          </div>
+          <footer style="display: flex; flex-wrap: wrap; gap: var(--space-4); align-items: center; padding: var(--space-4) var(--space-6); background: var(--bg-secondary); border-top: var(--border-width) var(--border-style) var(--border); border-radius: 0 0 var(--card-radius) var(--card-radius); font-size: var(--font-size-2xs); color: var(--fg-secondary);">
+            <span style="font-weight: 600;">怎麼得出的</span>
+            <span style="font-family: var(--font-mono);">get_run info.suspect_matrix</span><span>→</span>
+            <span style="font-family: var(--font-mono);">get_events 第 6–7 章</span><span>→</span>
+            <span style="font-family: var(--font-mono);">show_view suspect_matrix</span>
+            <button type="button" class="ss-btn ss-btn-sm ss-btn-ghost ss-btn-llm" style="margin-left: auto;">重跑</button>
+          </footer>
+        </article>
+
+        <article aria-label="結果 C，已存成筆記" style="background: var(--bg-secondary); border: var(--card-border-width) var(--border-style) var(--border); border-radius: var(--card-radius); padding: var(--space-4) var(--space-6); display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4);">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg>
+          <span style="font-family: var(--font-mono); font-size: var(--font-size-2xs); color: var(--fg-muted);">結果 C</span>
+          <span style="font-family: var(--font-serif); font-size: var(--font-size-base); font-weight: 600;">線索公平嗎？</span>
+          <span class="ss-badge ss-badge-success">已存成筆記</span>
+          <span style="font-size: var(--font-size-2xs); color: var(--fg-muted);">取用結果卡 MY4 · 18:44</span>
+          <a href="Notes.dc.html" style="margin-left: auto; font-size: var(--font-size-2xs); text-decoration: none;">在筆記中開啟</a>
+        </article>
+      </section>
+    </div>
+  </main>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["warm","ink"],"default":"warm"},"$preview":{"width":1440,"height":1500}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const chapters = [1,2,3,4,5,6,7,8,9,10,11,12];
+    const row = (name, s, bg) => ({ name, bg: bg || 'transparent', cells: s.split('') });
+    const who = [
+      row('讀者', '○○○○○○○●●●●●', 'var(--bg-secondary)'),
+      row('福爾摩斯', '○○○○○●●●●●●●'),
+      row('華生', '○○○○○✕✕●●●●●'),
+      row('瑪麗·莫斯坦', '○○○○○○○○○○○●'),
+      row('阿瑟爾尼·瓊斯', '○○○○○✕✕✕✕✕●●')
+    ];
+    const lv = [
+      { bg: 'var(--tension-intensity-low-bg)', fg: 'var(--tension-intensity-low-fg)' },
+      { bg: 'var(--tension-intensity-mid-bg)', fg: 'var(--tension-intensity-mid-fg)' },
+      { bg: 'var(--tension-intensity-high-bg)', fg: 'var(--tension-intensity-high-fg)' }
+    ];
+    const cell = (t) => {
+      const n = parseInt(t, 10) || 0;
+      const k = n >= 3 ? 2 : n >= 1 ? 1 : 0;
+      return { t: t === '0' ? '' : t, bg: lv[k].bg, fg: lv[k].fg };
+    };
+    const sus = (name, xs) => ({ name, cells: xs.map(cell) });
+    const chB = [5,6,7,8,9,10,11,12];
+    const suspects = [
+      sus('撒迪厄斯·肖爾托', ['1', '3◇', '4◇', '2', '1', '0', '0', '0']),
+      sus('拉爾·拉奧', ['0', '1◇', '1', '0', '0', '0', '0', '0']),
+      sus('強納森·斯莫爾', ['1', '2', '3', '4', '4', '5', '5', '5']),
+      sus('通加', ['0', '1', '1', '3', '3', '4', '4', '4'])
+    ];
+    const citedA = [
+      { type: 'belief_state', level: 'L2', summary: '讀者 · 第 8 章：已知同伴的來歷' },
+      { type: 'belief_state', level: 'L2', summary: '華生 · 第 7 章：誤以為腳印屬於屋內的人' },
+      { type: 'belief_state', level: 'L2', summary: '華生 · 第 8 章：從福爾摩斯口中得知同伴的來歷' },
+      { type: 'two_story_map', level: 'L3', summary: '調查的故事在第 8 章接上犯罪的故事' }
+    ];
+    const citedB = [
+      { type: 'suspect_matrix', level: 'L2', summary: '第 6–7 章嫌疑集中在撒迪厄斯' },
+      { type: 'fairness_gap', level: 'L2', summary: '揭曉前讀者可見 7 條線索，誤導 1 條' },
+      { type: 'arc_segment', level: 'L2', summary: '撒迪厄斯：從委託人轉為被捕者再獲釋' }
+    ];
+    return { theme: this.props.theme ?? 'warm', chapters, who, chB, suspects, citedA, citedB };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,6 +1,6 @@
 # 進度與後續待辦
 
-最後更新：2026-11-17（T20 完成，未 commit）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
+最後更新：2026-11-17（T21 完成，未 commit）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
 
 ## 接手先看這裡（2026-11-16 使用者的決定）
 
@@ -41,7 +41,8 @@
 | T18 MY1、MY4、MY5 | 只做 MY4，排在 UI 之後；MY1、MY5 不做 | — |
 | **T19 REST 與 SSE** | **三批完成**（A `6e2d9c1`、B `02c0e83`、C 見 git log）；延後的端點見「T19 現況」 | — |
 | **T20 MCP server** | 完成；見「T20 現況」 | — |
-| T21 之後 | 未開始 | — |
+| **T21 外框、書庫、入庫進度、工作中心** | 完成；見「T21 現況」 | — |
+| T22 之後 | 未開始 | — |
 
 - 分支：本機 `main`，沒有遠端，沒推過。CI（`.github/workflows/gates.yml`）寫好但從沒跑過。
 - 閘門現況：六道全部 exit 0（pytest 沒設 `BENCHMARK_DIR` 時 1297 passed、2 skipped）。
@@ -81,7 +82,7 @@
 | 8 | **S4 三件事**：角色的推理屬性（mystery_role 等）怎麼寫入；`reveal.revealer_id` 要不要放寬成可空（現在 33 筆揭曉因此被丟）；`hidden_truth.reveal_id` 回填繞過 `write_evidence` 是否接受 | MY4 前 | 推理屬性先不做；揭曉者放寬成可空；回填接受 |
 | 9 | **使用者說之後再調的**：EV1 的 kernel 佔 72%；S2 有兩個角色沒合併（巴塞洛謬、肖爾托少校）；CH5 的錯誤認知品質 | 里程碑整本實跑前 | 有畫面可看之後再調 |
 | 3 | **7 個草擬的方法問句**（EV2、EV3、CH3、NS1、NS3、TM1、MY3；YAML 裡標了「草擬，規格未定」） | T19（「也可以問」清單上線）前 | 使用者過目後把註記拿掉 |
-| 4 | **Design 畫布「StorySphere v4 原型」不在任何資料夾裡**，M6 的完成標準要對照它 | T21 前 | 請使用者提供匯出檔或連結 |
+| 4 | ~~Design 畫布「StorySphere v4 原型」在哪~~ | — | **已提供（2026-11-17）**，快照存在 `docs/design/`：https://claude.ai/code/artifact/e5513b26-1509-4b8b-bf2c-840bd0415439 。12 個 artboard（App 層 5、書籍層 5、Ink 2）；Warm 為準，Ink 標「先前的版本，暫不更新」。畫布早於範圍調整：總覽畫 10 張卡、工作中心出現 MY5／TM3／TM2，實作照 5 張卡＋「尚未支援」 |
 | 5 | 要不要把 `docs/spec/` 的修改回寫到原稿 `prototype_v0_草案/` | 不急 | 驗收（T28）後一次回寫 |
 
 已決定、沒寫進規格的：Codex（ChatGPT 訂閱）先不接（設定檔可寫，選到時回報未支援）；段落維持約 1,200 字的 chunk，不改回原文段落。
@@ -108,6 +109,19 @@
 - **前端型別**：`frontend/src/api/generated.ts` 已產生（35 條路徑）。產生方式是從 app 匯出 `openapi.json` 再跑 `openapi-typescript`，結果與 `npm run gen:types` 相同，只是不必在 8000 埠開伺服器（開伺服器會在 `var/` 建出 `neo.db`）。`knip.jsonc` 把它列為忽略，T21 的 API client import 之後可以拿掉。
 - **T19 完成標準對照**（07）：「`npm run gen:types` 產出型別」達成；「SSE 斷線帶 `Last-Event-ID` 能補抓」達成；「04 每個端點都有 API 測試」**部分**——做了的端點都有，延後的沒有。
 - **延後的端點**（使用者 2026-11-16 確認）：N-02f／g／h（重跑失敗單位、從某步重跑、改主題材）、N-06*（筆記、詮釋）、N-07c／d／e（方法論）、N-08e–g 與 N-10*（大腦，T25）。N-04d 的 `rerunUpstream=true` 也還沒做（回 422）。
+
+### T21 現況（2026-11-17）
+
+- 規劃：`docs/plans/20261117-t21-shell-library-ingest.md`（使用者決定：kit 只補用到的 class；沒做的端點不放按鈕；章節審閱只改角色＋確認）。畫布快照在 `docs/design/`。
+- 前端：`api/`（`client.ts`、`queryKeys.ts`、`books.ts`、`ingest.ts`、`jobs.ts`）、`hooks/useEventStream.ts`（SSE，事件只觸發 invalidate）、`router.tsx`（05 §3 九條路由，未做的是 `NotBuiltPage`）、`components/layout/`（導覽列、麵包屑、頁首、工作中心抽屜）、`pages/LibraryPage.tsx`、`pages/IngestPage.tsx`、`components/ingest/`、`components/library/`、`components/jobs/`。書庫、工作中心是 subagent 做的。
+- 新依賴：`react-router-dom` 6、`@tanstack/react-query` 5、`lucide-react`（版本照舊 repo）。
+- `ss-kit.css` 末尾加了「原型畫布補充」：`ss-main`、`ss-loader`、`ss-steps`／`ss-step*`、`ss-log*`、`ss-badge-neutral`。
+- **主題切換暫時沒有入口**：原本在首頁的健康檢查畫面，T23 設定頁再放回去。
+- 已用瀏覽器（1440 寬）對 `methods.db` 副本看過：書庫、入庫進度（完成的書）、工作中心；另外上傳一本小測試書，看過等待審閱、改角色、終止、P1 失敗的卡片（沒送審閱，沒叫 LLM）。**入庫進行中的即時更新（SSE 單位格、事件串）沒在真的入庫下看過**，要等有入庫在跑時再驗。
+- 工作中心沒有全域串流，抽屜開著時每 2 秒輪詢 N-09a。
+- 題材中文名在 `components/library/labels.ts`，除了 mystery→推理 以外是 subagent 擬的，待使用者過目。
+- 缺的端點（沒放按鈕）：N-02f 重跑失敗單位、N-02h 改主題材、N-01d 刪書沒做進書庫（端點有，畫布沒畫）。
+- 本機預覽用 `.claude/launch.json`（指到 scratchpad 的 DB 副本，**不要 commit**）；這台的 preview 工具沒把伺服器帶起來，實際是在 Bash 背景跑 uvicorn 與 `npm run dev -- --host 127.0.0.1`。
 
 ### T20 現況（2026-11-17）
 
