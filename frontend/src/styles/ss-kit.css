@@ -676,22 +676,6 @@
 .ss-seg-item:hover { color: var(--fg-primary); }
 .ss-seg-item.active { background: var(--bg-primary); color: var(--fg-primary); font-weight: 600; }
 
-/* ── 底線分頁（components-tabs 卡；合併自 .ca-tab 與 .ea-detail-tab）──
-   xs；idle muted 500、hover secondary、active primary 600＋2px accent 底線。 */
-.ss-utabs {
-  display: flex; flex-wrap: wrap; gap: var(--space-1);
-  border-bottom: var(--line-weight) var(--border-style) var(--border);
-}
-.ss-utab {
-  display: inline-flex; align-items: center; white-space: nowrap;
-  padding: var(--space-3) var(--space-5);
-  background: none; border: none; cursor: pointer;
-  font-family: var(--font-sans); font-size: var(--font-size-xs); font-weight: 500;
-  color: var(--fg-muted);
-}
-.ss-utab:hover:not(.active) { color: var(--fg-secondary); }
-.ss-utab.active { color: var(--fg-primary); font-weight: 600; box-shadow: inset 0 -2px 0 var(--accent); }
-
 /* ── Book card（設計系統 components-library-cards；書庫）──── */
 .ss-bookcard {
   position: relative;
@@ -929,7 +913,7 @@
    規則：缺的照設計稿補；前端已有的同名 class 保留現有定義，不覆蓋。
    因此 .ss-toggle 沒搬（global.css 已有按鈕版），.ss-theme-* 在第 3 批跟色票 token 一起補。 */
 
-/* Tabs（膠囊樣式；取代 .ss-utabs 的地方在各頁的批次裡換） */
+/* Tabs（膠囊樣式；分頁一律用它） */
 .ss-tabs { display: flex; gap: 2px; }
 .ss-tab {
   background: none; border: none; cursor: pointer;
