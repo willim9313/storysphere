@@ -48,3 +48,23 @@ class TestViews:
         cards = {p["genre"]: [card["refId"] for card in p["cards"]] for p in catalog["perspectives"]}
         assert cards["mystery"] == ["info.fair_play_audit", "character.belief"]
         assert len(cards["universal"]) == 3
+
+
+class TestMethodologies:
+    def test_builtin_methodologies_are_listed_as_not_implemented(self, client):
+        items = {m["code"]: m for m in client.get(f"{P}/registry/methodologies").json()}
+        assert set(items) == {"MY2", "TM3"}
+        my2 = items["MY2"]
+        assert my2["id"] == "builtin.puzzle_type" and my2["owner"] == "contract"
+        assert my2["implemented"] is False
+        assert [s["method"] for s in my2["steps"][:3]] == [
+            "info.two_story", "info.trick_class", "info.fair_play_audit",
+        ]  # fmt: skip
+        assert my2["steps"][-1]["synthesis"]["produces"] == "puzzle_type"
+
+    def test_single_methodology(self, client):
+        body = client.get(f"{P}/registry/methodologies/builtin.theme_synthesis").json()
+        assert body["code"] == "TM3" and body["view"] == "theme_card"
+
+    def test_unknown_methodology_is_404(self, client):
+        assert client.get(f"{P}/registry/methodologies/nope").status_code == 404

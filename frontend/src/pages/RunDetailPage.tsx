@@ -6,6 +6,7 @@ import { useEvidence, useRunEvidence, type EvidenceItem } from '@/api/evidence';
 import { useMethods } from '@/api/registry';
 import { useCards, useRerun, useRun } from '@/api/runs';
 import { EvidenceCard, type SourceRef } from '@/components/detail/EvidenceCard';
+import { SaveNote } from '@/components/detail/SaveNote';
 import { SourcePanel } from '@/components/detail/SourcePanel';
 import { BookNav } from '@/components/layout/BookNav';
 import { PageMain } from '@/components/layout/PageMain';
@@ -43,7 +44,7 @@ function SelectedEvidence({ bookId, evidenceId, onOpenSource }: Readonly<{ bookI
   return <EvidenceCard bookId={bookId} item={item} selected onOpenSource={onOpenSource} />;
 }
 
-/** 畫面 4 結果卡詳情（畫布 `Detail.dc.html`，05 §3.2）。「存成筆記」等 N-06c，T23 再補。 */
+/** 畫面 4 結果卡詳情（畫布 `Detail.dc.html`，05 §3.2）。 */
 export function RunDetailPage() {
   const { bookId = '', runId = '' } = useParams();
   const { data: run, error } = useRun(bookId, runId);
@@ -128,12 +129,12 @@ export function RunDetailPage() {
                   <h2 id="ev-h" style={h2}>
                     證據
                   </h2>
-                  <nav className="ss-tabs" aria-label="篩選證據">
+                  <nav className="ss-utabs" aria-label="篩選證據">
                     {FILTERS.map((f) => (
                       <button
                         key={f.id}
                         type="button"
-                        className={`ss-tab${filter === f.id ? ' active' : ''}`}
+                        className={`ss-utab${filter === f.id ? ' active' : ''}`}
                         aria-pressed={filter === f.id}
                         onClick={() => setFilter(f.id)}
                       >
@@ -154,6 +155,9 @@ export function RunDetailPage() {
               {source && <SourcePanel bookId={bookId} source={source} onClose={() => setSource(null)} />}
             </div>
           </div>
+        )}
+        {run && !evidenceLoading && (
+          <SaveNote bookId={bookId} runId={runId} question={run.question ?? card?.question ?? ''} evidence={evidence} />
         )}
       </PageMain>
     </>

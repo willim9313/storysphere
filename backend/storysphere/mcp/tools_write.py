@@ -27,6 +27,7 @@ from storysphere.store.evidence_writer import (
     assert_no_system_fields,
     write_evidence,
 )
+from storysphere.store.notes import citation_problems
 from storysphere.store.tables import Evidence, Run
 
 SUMMARY_CHARS = 200
@@ -70,29 +71,7 @@ async def _require_traced(call: Call, ids: list[str]) -> None:
 
 async def _note_problems(call: Call, ids: list[str]) -> list[dict[str, Any]]:
     """Rule 2 (01 §5 note rules) as `check.problems`; empty＝can be saved."""
-    if not ids:
-        return [{"code": "no_citation", "message": "A note must cite at least one evidence."}]
-    rows = {
-        row.id: row
-        for row in await call.db.scalars(
-            select(Evidence).where(
-                Evidence.id.in_(ids), Evidence.book_id == call.session.book_id
-            )
-        )
-    }
-    problems: list[dict[str, Any]] = []
-    for evidence_id in ids:
-        row = rows.get(evidence_id)
-        if row is None:
-            problems.append({"code": "not_found", "evidenceId": evidence_id,
-                             "message": "Evidence not found in this book."})  # fmt: skip
-        elif row.level == 1:
-            problems.append({"code": "note_cites_level1", "evidenceId": evidence_id,
-                             "message": "Level-1 evidence cannot be cited."})  # fmt: skip
-        elif row.status == "rejected":
-            problems.append({"code": "note_cites_rejected", "evidenceId": evidence_id,
-                             "message": "Rejected evidence cannot be cited."})  # fmt: skip
-    return problems
+    return await citation_problems(call.db, call.session.book_id, ids)
 
 
 def _check(problems: list[dict[str, Any]]) -> dict[str, Any]:

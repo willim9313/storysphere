@@ -1,4 +1,4 @@
-"""N-07a、N-07b、N-07f、N-07g：registry 的唯讀端點。"""
+"""N-07a–d、N-07f、N-07g：registry 的唯讀端點（N-07e 另存方法論在 T27）。"""
 
 from __future__ import annotations
 
@@ -14,17 +14,20 @@ from storysphere.api.schemas.registry import (
     DagNode,
     ImplOut,
     MethodDetail,
+    MethodologyOut,
     MethodSummary,
     PerspectiveCard,
     PerspectiveOut,
     PreconditionOut,
     RequirementOut,
+    StepOut,
+    SynthesisOut,
     ViewCatalogOut,
     ViewTypeOut,
 )
 from storysphere.methods.engine import MethodEngine
 from storysphere.registry.checks import build_dag
-from storysphere.registry.models import MethodDecl
+from storysphere.registry.models import MethodDecl, MethodologyDecl
 
 router = APIRouter(prefix="/registry", tags=["registry"])
 
@@ -90,6 +93,47 @@ async def get_method(method_id: str, registry: RegistryDep, engine: MethodEngine
             if any(req.claim_type == decl.produces for req in other.requires)
         ),
     )
+
+
+def _methodology_out(decl: MethodologyDecl, engine: MethodEngine) -> MethodologyOut:
+    return MethodologyOut(
+        id=decl.id,
+        code=decl.code,
+        version=decl.version,
+        owner=decl.owner,
+        question=decl.question,
+        basis=decl.basis,
+        grade=decl.grade,
+        steps=[
+            StepOut(
+                method=step.method,
+                synthesis=SynthesisOut(**step.synthesis.model_dump()) if step.synthesis else None,
+            )
+            for step in decl.steps
+        ],
+        view=decl.view,
+        priority=decl.priority,
+        # 原型沒有方法論執行器（STATUS）：內建的都標尚未實作。
+        implemented=engine.is_implemented(decl.id),
+    )
+
+
+@router.get("/methodologies", response_model=list[MethodologyOut])
+async def list_methodologies(registry: RegistryDep, engine: MethodEngineDep) -> list[MethodologyOut]:
+    """N-07c 方法論清單（原型只有內建的；使用者方法論 N-07e 在 T27）。"""
+    decls = sorted(registry.methodologies.values(), key=lambda decl: decl.code or decl.id)
+    return [_methodology_out(decl, engine) for decl in decls]
+
+
+@router.get("/methodologies/{methodology_id}", response_model=MethodologyOut)
+async def get_methodology(
+    methodology_id: str, registry: RegistryDep, engine: MethodEngineDep
+) -> MethodologyOut:
+    """N-07d 單一方法論的宣告。"""
+    decl = registry.methodologies.get(methodology_id)
+    if decl is None:
+        raise not_found("Methodology", methodology_id)
+    return _methodology_out(decl, engine)
 
 
 @router.get("/dag", response_model=Dag)

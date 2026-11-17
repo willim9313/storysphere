@@ -61,6 +61,35 @@ class MethodDetail(MethodSummary):
     downstream_methods: list[str]  # 讀這個方法產出的方法
 
 
+class SynthesisOut(ApiModel):
+    produces: str
+    llm_task: str
+    prompt: str
+
+
+class StepOut(ApiModel):
+    """方法論的一步：`method`（方法或方法論 id）或最後的 `synthesis`。"""
+
+    method: str | None
+    synthesis: SynthesisOut | None
+
+
+class MethodologyOut(ApiModel):
+    """N-07c 的一列、N-07d 的回應（04 §4.7）。"""
+
+    id: str
+    code: str | None
+    version: int
+    owner: str
+    question: str
+    basis: str | None
+    grade: str
+    steps: list[StepOut]
+    view: str | None
+    priority: str | None
+    implemented: bool
+
+
 class DagNode(ApiModel):
     id: str
     kind: str  # claim_type／method／methodology

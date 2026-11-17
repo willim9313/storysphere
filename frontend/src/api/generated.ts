@@ -462,6 +462,92 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/books/{book_id}/notes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Notes
+         * @description N-06a 筆記列表，新到舊。
+         */
+        get: operations["list_notes_api_v2_books__book_id__notes_get"];
+        put?: never;
+        /**
+         * Create Note
+         * @description N-06c 從結果卡存成筆記（使用者按確認＝人工審核，01 §5）。
+         */
+        post: operations["create_note_api_v2_books__book_id__notes_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/books/{book_id}/notes/{note_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Note
+         * @description N-06b：結論、引用的證據（展開一層，superseded 照實標示）、引用此筆記的詮釋。
+         */
+        get: operations["get_note_api_v2_books__book_id__notes__note_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/books/{book_id}/notes/{note_id}/rerun": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Rerun Note
+         * @description N-06d 依筆記的 `methodologyTrace` 重跑；筆記本身不變。
+         *
+         *     原型只支援 `ui_run`：照主 run 的 refId、params、主體重跑（同 N-04d）。回應同 N-04a 的形狀。
+         */
+        post: operations["rerun_note_api_v2_books__book_id__notes__note_id__rerun_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/books/{book_id}/interpretations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Interpretation
+         * @description N-06e 使用者寫詮釋：引用至少一筆、全部 ≥ 2 層（原型決定）。
+         */
+        post: operations["create_interpretation_api_v2_books__book_id__interpretations_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/registry/methods": {
         parameters: {
             query?: never;
@@ -494,6 +580,46 @@ export interface paths {
          * @description N-07b 單一方法的完整宣告。
          */
         get: operations["get_method_api_v2_registry_methods__method_id__get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/registry/methodologies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Methodologies
+         * @description N-07c 方法論清單（原型只有內建的；使用者方法論 N-07e 在 T27）。
+         */
+        get: operations["list_methodologies_api_v2_registry_methodologies_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/registry/methodologies/{methodology_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Methodology
+         * @description N-07d 單一方法論的宣告。
+         */
+        get: operations["get_methodology_api_v2_registry_methodologies__methodology_id__get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -1221,6 +1347,10 @@ export interface components {
             /** Runid */
             runId: string | null;
         };
+        /** InterpretationCreated */
+        InterpretationCreated: {
+            interpretation: components["schemas"]["Evidence"];
+        };
         /** Job */
         Job: {
             /** Id */
@@ -1267,10 +1397,7 @@ export interface components {
         };
         /** LatestTest */
         LatestTest: {
-            /** Result */
-            result: {
-                [key: string]: unknown;
-            } | null;
+            result: components["schemas"]["LlmTestResult"] | null;
             /** Finishedat */
             finishedAt: string | null;
         };
@@ -1310,6 +1437,30 @@ export interface components {
         LlmTestIn: {
             /** Models */
             models?: string[] | null;
+        };
+        /** LlmTestResult */
+        LlmTestResult: {
+            /** Rows */
+            rows: components["schemas"]["LlmTestRow"][];
+            /** Nousablemodel */
+            noUsableModel: boolean;
+        };
+        /** LlmTestRow */
+        LlmTestRow: {
+            /** Model */
+            model: string;
+            /** Provider */
+            provider: string;
+            /** Connect */
+            connect: boolean;
+            /** Structuredoutput */
+            structuredOutput: boolean;
+            /** Latencyms */
+            latencyMs: number | null;
+            /** Error */
+            error: string | null;
+            /** Affectedtasks */
+            affectedTasks: string[];
         };
         /**
          * MethodDetail
@@ -1402,6 +1553,34 @@ export interface components {
             /** Implemented */
             implemented: boolean;
         };
+        /**
+         * MethodologyOut
+         * @description N-07c 的一列、N-07d 的回應（04 §4.7）。
+         */
+        MethodologyOut: {
+            /** Id */
+            id: string;
+            /** Code */
+            code: string | null;
+            /** Version */
+            version: number;
+            /** Owner */
+            owner: string;
+            /** Question */
+            question: string;
+            /** Basis */
+            basis: string | null;
+            /** Grade */
+            grade: string;
+            /** Steps */
+            steps: components["schemas"]["StepOut"][];
+            /** View */
+            view: string | null;
+            /** Priority */
+            priority: string | null;
+            /** Implemented */
+            implemented: boolean;
+        };
         /** MixedGenre */
         MixedGenre: {
             /** Genre */
@@ -1435,6 +1614,104 @@ export interface components {
             modelId: string;
             /** Caps */
             caps: string[];
+        };
+        /** NoteCreated */
+        NoteCreated: {
+            note: components["schemas"]["Evidence"];
+        };
+        /**
+         * NoteDetail
+         * @description N-06b：筆記本身＋引用的證據（展開一層）＋引用它的詮釋。
+         */
+        NoteDetail: {
+            /** Id */
+            id: string;
+            /** Bookid */
+            bookId: string;
+            /** Claimtype */
+            claimType: string;
+            /** Level */
+            level: number;
+            /** Summary */
+            summary: string;
+            /** Discoursechapter */
+            discourseChapter: number | null;
+            /** Discourseparagraphid */
+            discourseParagraphId: string | null;
+            /** Storyrank */
+            storyRank: number | null;
+            /** Knownby */
+            knownBy: {
+                [key: string]: unknown;
+            } | null;
+            /** Source */
+            source: string;
+            /** Confidence */
+            confidence: number;
+            /** Reviewstatus */
+            reviewStatus: string;
+            /** Status */
+            status: string;
+            /** Basischanged */
+            basisChanged: boolean;
+            /** Basischangedat */
+            basisChangedAt: string | null;
+            /** Runid */
+            runId: string | null;
+            /** Producedvia */
+            producedVia: string;
+            /** Agentbackend */
+            agentBackend: string | null;
+            /** Createdat */
+            createdAt: string;
+            /** Updatedat */
+            updatedAt: string;
+            /** Subjects */
+            subjects: components["schemas"]["SubjectOut"][];
+            /** Derivedfrom */
+            derivedFrom: components["schemas"]["UpstreamOut"][];
+            /** Quotes */
+            quotes: components["schemas"]["QuoteOut"][];
+            /** Genreext */
+            genreExt: components["schemas"]["GenreExtOut"][];
+            /** Content */
+            content: {
+                [key: string]: unknown;
+            };
+            /** Cited */
+            cited: components["schemas"]["EvidenceListItem"][];
+            /** Interpretations */
+            interpretations: components["schemas"]["EvidenceListItem"][];
+        };
+        /** NoteListItem */
+        NoteListItem: {
+            /** Id */
+            id: string;
+            /** Title */
+            title: string;
+            /** Question */
+            question: string | null;
+            /** Level */
+            level: number;
+            /** Basischanged */
+            basisChanged: boolean;
+            /** Producedvia */
+            producedVia: string;
+            /** Agentbackend */
+            agentBackend: string | null;
+            /** Citedcount */
+            citedCount: number;
+            /** Createdat */
+            createdAt: string;
+        };
+        /** NotePage */
+        NotePage: {
+            /** Items */
+            items: components["schemas"]["NoteListItem"][];
+            /** Nextcursor */
+            nextCursor: string | null;
+            /** Total */
+            total: number;
         };
         /** OtherSignal */
         OtherSignal: {
@@ -1863,12 +2140,30 @@ export interface components {
             /** Total */
             total: number;
         };
+        /**
+         * StepOut
+         * @description 方法論的一步：`method`（方法或方法論 id）或最後的 `synthesis`。
+         */
+        StepOut: {
+            /** Method */
+            method: string | null;
+            synthesis: components["schemas"]["SynthesisOut"] | null;
+        };
         /** SubjectOut */
         SubjectOut: {
             /** Subjectid */
             subjectId: string;
             /** Role */
             role: string;
+        };
+        /** SynthesisOut */
+        SynthesisOut: {
+            /** Produces */
+            produces: string;
+            /** Llmtask */
+            llmTask: string;
+            /** Prompt */
+            prompt: string;
         };
         /** TaskIn */
         TaskIn: {
@@ -2925,6 +3220,181 @@ export interface operations {
             };
         };
     };
+    list_notes_api_v2_books__book_id__notes_get: {
+        parameters: {
+            query?: {
+                basisChanged?: boolean | null;
+                producedVia?: string | null;
+                q?: string | null;
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotePage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_note_api_v2_books__book_id__notes_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteCreated"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_note_api_v2_books__book_id__notes__note_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    rerun_note_api_v2_books__book_id__notes__note_id__rerun_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                note_id: string;
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TriggerOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_interpretation_api_v2_books__book_id__interpretations_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": {
+                    [key: string]: unknown;
+                };
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InterpretationCreated"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     list_methods_api_v2_registry_methods_get: {
         parameters: {
             query?: {
@@ -2975,6 +3445,57 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MethodDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_methodologies_api_v2_registry_methodologies_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MethodologyOut"][];
+                };
+            };
+        };
+    };
+    get_methodology_api_v2_registry_methodologies__methodology_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                methodology_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MethodologyOut"];
                 };
             };
             /** @description Validation Error */

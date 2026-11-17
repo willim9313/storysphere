@@ -506,6 +506,8 @@ pending／running／awaiting_review／paused_quota／interrupted ─(N-09d)─�
 
 ### 4.6 筆記（畫面 4、5、6）
 
+原型範圍（T23，2026-11-17，使用者決定）：N-06c 只做 `origin=draft` 以外的 `origin=run`（`draft` 回 422，T25／T27 補）；N-06d 只支援 `methodologyTrace.kind=ui_run`，回應用 N-04a 的 `TriggerOut` 形狀（含 `jobId`、`status`）；`methodologyTrace` 在 REST 回應裡和其他內容欄位一樣轉 camelCase。筆記與詮釋的 `confidence` 記 1.0（使用者已確認）。引用不在本書或一筆都沒有時回 `422 validation_error`。
+
 ### N-06a GET /books/:bookId/notes
 
 | 項目 | 內容 |
@@ -578,6 +580,8 @@ Registry 從 YAML 載入、唯讀（使用者方法論除外），回應把 YAML
 | 用途 | 單一方法的完整宣告（03 §1 的全部 key，含 `impl.prompt`、`impl.config`） |
 | Response | 宣告內容，加 `usedByMethodologies[]`、`downstreamMethods[]` *（推得自 DAG）* |
 | 對應 | `registry/methods/*.yaml` |
+
+原型（T23）：N-07c／d 只回內建方法論（`registry/methodologies/*.yaml`），每筆加 `implemented`（原型沒有方法論執行器，都是 `false`）；N-07e 在 T27。
 
 ### N-07c GET /registry/methodologies
 

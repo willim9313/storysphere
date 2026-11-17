@@ -5,6 +5,10 @@ import { LibraryPage } from '@/pages/LibraryPage';
 import { IngestPage } from '@/pages/IngestPage';
 import { OverviewPage } from '@/pages/OverviewPage';
 import { RunDetailPage } from '@/pages/RunDetailPage';
+import { NotesPage } from '@/pages/NotesPage';
+import { EvidencePage } from '@/pages/EvidencePage';
+import { RegistryPage } from '@/pages/RegistryPage';
+import { SettingsPage } from '@/pages/SettingsPage';
 
 // 05 §3 的九個畫面；工作中心是抽屜，不是路由。
 export const router = createBrowserRouter([
@@ -16,10 +20,10 @@ export const router = createBrowserRouter([
       { path: '/books/:bookId/ingest', element: <IngestPage /> },
       { path: '/books/:bookId/runs/:runId', element: <RunDetailPage /> },
       { path: '/books/:bookId/agent', element: <NotBuiltPage title="Agent 工作區" inBook /> },
-      { path: '/books/:bookId/notes', element: <NotBuiltPage title="筆記" inBook /> },
-      { path: '/books/:bookId/evidence', element: <NotBuiltPage title="證據瀏覽" inBook /> },
-      { path: '/registry', element: <NotBuiltPage title="方法目錄" /> },
-      { path: '/settings', element: <NotBuiltPage title="設定" /> },
+      { path: '/books/:bookId/notes', element: <NotesPage /> },
+      { path: '/books/:bookId/evidence', element: <EvidencePage /> },
+      { path: '/registry', element: <RegistryPage /> },
+      { path: '/settings', element: <SettingsPage /> },
       { path: '*', element: <NotBuiltPage title="找不到這個頁面" /> },
     ],
   },

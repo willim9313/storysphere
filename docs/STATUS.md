@@ -1,6 +1,6 @@
 # 進度與後續待辦
 
-最後更新：2026-11-17（T22 完成，未 commit）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
+最後更新：2026-11-17（T23 完成，未 commit）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
 
 ## 接手先看這裡（2026-11-16 使用者的決定）
 
@@ -43,7 +43,8 @@
 | **T20 MCP server** | 完成；見「T20 現況」 | — |
 | **T21 外框、書庫、入庫進度、工作中心** | 完成；見「T21 現況」 | — |
 | **T22 總覽、結果卡詳情、view** | 完成；見「T22 現況」 | — |
-| T23 之後 | 未開始 | — |
+| **T23 證據瀏覽、筆記、方法目錄、設定** | 完成；見「T23 現況」 | — |
+| T24 之後 | 未開始（T24 的 3 種 view 已在 T22 做掉） | — |
 
 - 分支：本機 `main`，沒有遠端，沒推過。CI（`.github/workflows/gates.yml`）寫好但從沒跑過。
 - 閘門現況：六道全部 exit 0（pytest 沒設 `BENCHMARK_DIR` 時 1297 passed、2 skipped）。
@@ -110,6 +111,15 @@
 - **前端型別**：`frontend/src/api/generated.ts` 已產生（35 條路徑）。產生方式是從 app 匯出 `openapi.json` 再跑 `openapi-typescript`，結果與 `npm run gen:types` 相同，只是不必在 8000 埠開伺服器（開伺服器會在 `var/` 建出 `neo.db`）。`knip.jsonc` 把它列為忽略，T21 的 API client import 之後可以拿掉。
 - **T19 完成標準對照**（07）：「`npm run gen:types` 產出型別」達成；「SSE 斷線帶 `Last-Event-ID` 能補抓」達成；「04 每個端點都有 API 測試」**部分**——做了的端點都有，延後的沒有。
 - **延後的端點**（使用者 2026-11-16 確認）：N-02f／g／h（重跑失敗單位、從某步重跑、改主題材）、N-06*（筆記、詮釋）、N-07c／d／e（方法論）、N-08e–g 與 N-10*（大腦，T25）。N-04d 的 `rerunUpstream=true` 也還沒做（回 422）。
+
+### T23 現況（2026-11-17）
+
+- 規劃：`docs/plans/20261117-t23-evidence-notes-registry-settings.md`。使用者決定：筆記做結果卡來源的全套（N-06a、b、c `origin=run`、d 只支援 `ui_run`、e）；方法論只做唯讀（N-07c／d）；設定頁不放大腦區塊。
+- 後端：`api/routes/notes.py`、`api/schemas/notes.py`、`store/notes.py`（引用規則，MCP 的草稿檢查也改用它）；N-07c／d 在 `api/routes/registry.py`；`scope_of` 搬到 `api/queries/trigger.py`；N-08d 的 `result` 改成有型別的 `LlmTestResult`。04 已同步（N-06 原型範圍、N-07c／d）。測試 `tests/api/test_notes.py`（12）、`test_registry.py` 加 3。
+- 前端：`pages/NotesPage.tsx`、`components/detail/SaveNote.tsx`（結果卡詳情的「存成筆記」）、`api/notes.ts`、`hooks/useDevView.ts`（開發者檢視，存 localStorage，預設開）。證據瀏覽、方法目錄（含證據 DAG 圖）、設定是 subagent 做的。新依賴 `react-markdown`。
+- 已用瀏覽器看過：存一篇測試筆記（CH4）→ 跳到筆記頁、markdown、引用、產生它的分析；加詮釋；設定頁；切 Ink 後詳情頁正常（已切回 Warm）；證據瀏覽列表；方法目錄的方法表與 DAG。**沒按過「重跑筆記」「初次啟動測試」「儲存設定」**（會叫 LLM 或寫 `var/settings.yaml`）。
+- 主題切換現在在設定頁。
+- demo 後端不要用 `--reload`：SSE 連線開著時重載會卡住、佔著 8000 埠。
 
 ### T22 現況（2026-11-17）
 

@@ -20,7 +20,7 @@ from storysphere.api.deps import (
 from storysphere.api.errors import not_found, validation_error
 from storysphere.api.queries.evidence import to_evidence
 from storysphere.api.queries.runs import INGEST_REF_PREFIX, is_superseded, latest_done, run_fields
-from storysphere.api.queries.trigger import trigger_method
+from storysphere.api.queries.trigger import scope_of, trigger_method
 from storysphere.api.schemas.common import next_cursor
 from storysphere.api.schemas.evidence import Evidence
 from storysphere.api.schemas.runs import (
@@ -253,14 +253,6 @@ async def trigger_run(
     ))  # fmt: skip
 
 
-def _scope_of(run: RunRow) -> list[str] | None:
-    """Subject ids in a run's scope key (`subject:<id>|chapter:<n>`); None＝全書。"""
-    subjects = [
-        part.split(":", 1)[1] for part in run.scope_key.split("|") if part.startswith("subject:")
-    ]
-    return subjects or None
-
-
 @router.post("/books/{book_id}/runs/{run_id}/rerun", response_model=TriggerOut, status_code=202)
 async def rerun(
     book: BookDep,
@@ -280,5 +272,5 @@ async def rerun(
         raise validation_error("rerunUpstream: not supported in the prototype yet.")
     return _out(*await trigger_method(
         session, engine, jobs, book.id, run.ref_id,
-        params=dict(run.params_json or {}), scope=_scope_of(run), force=True, dry_run=False,
+        params=dict(run.params_json or {}), scope=scope_of(run), force=True, dry_run=False,
     ))  # fmt: skip

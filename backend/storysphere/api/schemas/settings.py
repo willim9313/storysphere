@@ -10,6 +10,7 @@ from typing import Any
 from pydantic import ConfigDict
 
 from storysphere.api.schemas.common import ApiModel, UtcDatetime
+from storysphere.llm.startup_test import LlmTestResult
 
 
 class ProviderOut(ApiModel):
@@ -88,7 +89,8 @@ class LlmTestIn(_In):
 
 
 class LatestTest(ApiModel):
-    result: dict[str, Any] | None
+    # 大腦測試（T25）的形狀不同，到時再改成 union。
+    result: LlmTestResult | None
     finished_at: UtcDatetime | None
 
 

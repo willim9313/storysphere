@@ -23,6 +23,7 @@ from storysphere.api.routes import (
     evidence,
     ingest,
     jobs,
+    notes,
     overview,
     registry,
     runs,
@@ -122,7 +123,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(title="StorySphere v4 prototype", version="0.1.0", lifespan=lifespan)
 install_error_handlers(app)
 app.include_router(router)
-for _group in (books, ingest, overview, evidence, runs, registry, settings, jobs, events):
+for _group in (books, ingest, overview, evidence, runs, notes, registry, settings, jobs, events):
     app.include_router(_group.router, prefix=API_PREFIX)
 # 不在 /api/v2 下，UI 不呼叫（04 §1）。
 # 用 Route 而不是 Mount：Mount 會把 `/mcp` 307 轉到 `/mcp/`，不是每個 MCP client 都會跟。

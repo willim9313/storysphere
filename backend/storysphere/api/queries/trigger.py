@@ -121,3 +121,11 @@ async def trigger_method(
     body.job_id = result.job_id
     body.status = "attached" if result.attached else "queued"
     return (200 if result.attached else 202), body
+
+
+def scope_of(run: RunRow) -> list[str] | None:
+    """Subject ids in a run's scope key (`subject:<id>|chapter:<n>`); None＝全書。"""
+    subjects = [
+        part.split(":", 1)[1] for part in run.scope_key.split("|") if part.startswith("subject:")
+    ]
+    return subjects or None

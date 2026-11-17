@@ -9,3 +9,4 @@
 | 2026-11-17 | [20261117-t20-mcp-server.md](20261117-t20-mcp-server.md) | T20：MCP server 的 session 識別、確認流程、事件去處、分三批 |
 | 2026-11-17 | [20261117-t21-shell-library-ingest.md](20261117-t21-shell-library-ingest.md) | T21：外框、書庫、入庫進度、工作中心的範圍與分批 |
 | 2026-11-17 | [20261117-t22-overview-detail-views.md](20261117-t22-overview-detail-views.md) | T22：總覽、結果卡詳情，view 範圍改成有資料的先做 |
+| 2026-11-17 | [20261117-t23-evidence-notes-registry-settings.md](20261117-t23-evidence-notes-registry-settings.md) | T23：筆記端點範圍、方法論唯讀、設定頁不含大腦 |
