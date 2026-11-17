@@ -1,9 +1,9 @@
 import { useState, type CSSProperties } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router-dom';
-import Markdown from 'react-markdown';
 import { ApiError } from '@/api/client';
 import { useAddInterpretation, useNote, useNotes, useRerunNote } from '@/api/notes';
 import { BookNav } from '@/components/layout/BookNav';
+import { Prose } from '@/components/Prose';
 import { PageHeader, PageMain } from '@/components/layout/PageMain';
 import { claimTypeLabel } from '@/components/views/labels';
 
@@ -80,9 +80,7 @@ function NoteView({ bookId, noteId }: Readonly<{ bookId: string; noteId: string 
       {rerun.data && <p style={small}>已排入重跑（{rerun.data.status}）；新結果會出現在結果卡，這篇筆記不變。</p>}
       {rerun.error && <p role="alert" style={{ ...small, color: 'var(--color-error)' }}>{errorText(rerun.error)}</p>}
 
-      <div style={{ fontFamily: 'var(--font-serif)', fontSize: 'var(--font-size-base)', lineHeight: 1.8 }}>
-        <Markdown>{content.conclusion}</Markdown>
-      </div>
+      <Prose className="ss-prose-lg">{content.conclusion}</Prose>
 
       <section aria-labelledby="cite-h" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
         <h3 id="cite-h" style={h3}>

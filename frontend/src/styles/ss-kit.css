@@ -984,3 +984,22 @@
 /* 整張卡是連結時（設計稿各頁 helmet 的補充樣式） */
 a.ss-card-link { color: inherit; text-decoration: none; }
 a.ss-card-link:hover { background: var(--bg-secondary); }
+
+/* ── Prose（第 2 批）：大腦回覆、草稿結論、筆記內文的 markdown。
+   設計稿的內文是 serif、行高 1.75；標題用 sans 小標，表格細線。 */
+.ss-prose { font-family: var(--font-serif); font-size: var(--font-size-sm); line-height: 1.75; color: var(--fg-primary); overflow-wrap: anywhere; }
+.ss-prose > :first-child { margin-top: 0; }
+.ss-prose > :last-child { margin-bottom: 0; }
+.ss-prose p, .ss-prose ul, .ss-prose ol, .ss-prose table, .ss-prose blockquote { margin: 0 0 var(--space-4); }
+.ss-prose ul, .ss-prose ol { padding-left: var(--space-6); }
+.ss-prose li + li { margin-top: var(--space-1); }
+.ss-prose h1, .ss-prose h2, .ss-prose h3, .ss-prose h4 {
+  font-family: var(--font-sans); font-size: var(--font-size-xs); font-weight: 600;
+  letter-spacing: 0.06em; color: var(--fg-secondary); margin: var(--space-5) 0 var(--space-2);
+}
+.ss-prose code { font-family: var(--font-mono); font-size: 0.85em; color: var(--fg-secondary); }
+.ss-prose blockquote { padding-left: var(--space-4); border-left: var(--line-weight) var(--border-style) var(--border); color: var(--fg-secondary); }
+.ss-prose table { display: block; overflow-x: auto; border-collapse: collapse; font-size: var(--font-size-xs); line-height: 1.6; }
+.ss-prose th, .ss-prose td { padding: var(--space-2) var(--space-3); border-top: var(--border-width) var(--border-style) var(--border); text-align: left; vertical-align: top; }
+.ss-prose th { font-family: var(--font-sans); font-size: var(--font-size-2xs); font-weight: 600; color: var(--fg-muted); }
+.ss-prose-lg { font-size: var(--font-size-base); line-height: 1.8; }

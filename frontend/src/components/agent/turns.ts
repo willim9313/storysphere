@@ -118,15 +118,32 @@ export function strayIds(conclusion: string, cited: readonly string[]): string[]
   return [...new Set(found)].filter((id) => !citedSet.has(id.toLowerCase()));
 }
 
-/** 一行人看的工具呼叫摘要（完整參數在開發者檢視）。 */
-export function callSummary(call: TraceItem): string {
+/** 工具呼叫最主要的參數（方法、run、view、查詢字…）；沒有就 null。 */
+export function callKey(call: TraceItem): string | null {
   const args = call.args as Record<string, unknown>;
   const key =
     args.method_id ?? args.run_id ?? args.view_type ?? args.query ?? args.entity_id ?? args.name ?? args.title ?? null;
-  const parts = [call.tool, key === null || typeof key === 'object' ? null : String(key)];
+  return key === null || typeof key === 'object' ? null : String(key);
+}
+
+/** 工具呼叫一行摘要裡、工具名稱後面的部分（完整參數在開發者檢視）。 */
+export function callDetail(call: TraceItem): string {
+  const parts = [callKey(call)];
   if (call.status === 'ok' && call.resultEvidenceIds.length > 0) parts.push(`${call.resultEvidenceIds.length} 筆`);
   if (call.durationMs !== null && call.durationMs >= 1000) parts.push(`${Math.round(call.durationMs / 1000)} s`);
   return parts.filter(Boolean).join(' · ');
+}
+
+/** 結果的標題：草稿標題（已存的優先），沒有草稿就用問句。 */
+export function resultTitle(turn: Turn): string {
+  const draft = turn.drafts.find((d) => d.state === 'confirmed') ?? turn.drafts.find((d) => d.state === 'open') ?? turn.drafts[0];
+  return draft?.title ?? turn.question;
+}
+
+/** 這一輪第一次工具呼叫的時間（HH:MM）；沒有呼叫就空字串。 */
+export function turnTime(turn: Turn): string {
+  const first = turn.calls[0]?.startedAt;
+  return first ? new Date(first).toLocaleTimeString('zh-TW', { hour: '2-digit', minute: '2-digit', hour12: false }) : '';
 }
 
 export const CALL_STATUS: Record<string, string> = {

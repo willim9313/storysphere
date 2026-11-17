@@ -48,7 +48,7 @@
 | **T25 Gateway＋deepagents** | 完成；Gemini 實測兩題都過（加了 `character-analysis` skill 之後）；見「T25 現況」 | — |
 | **T26 Claude Code（ACP）** | 完成；實測兩題與擋工具都過；見「T26 現況」 | — |
 | **T27 Agent 工作區畫面** | 完成；見「T27 現況」 | `4d18949` |
-| **UI 對齊設計稿**（T28 前插入） | 進行中：第 0 批（比對）、第 1 批（kit）完成；見「UI 對齊現況」 | `fcb2e1f` |
+| **UI 對齊設計稿**（T28 前插入） | 進行中：第 0 批（比對）、第 1 批（kit）、第 2 批（Agent 工作區）完成；見「UI 對齊現況」 | `fcb2e1f` |
 | T28 驗收 | 未開始；先要整本實跑（含 MY4 15 次呼叫）與 T18 人工檢查 | — |
 
 - 分支：本機 `main`，沒有遠端，沒推過。CI（`.github/workflows/gates.yml`）寫好但從沒跑過。
@@ -107,6 +107,7 @@
   - 修：K1（tabs）、A1–A7（第 2 批）、S1–S2（第 3 批）、N1 agent 筆記的 trace 沒顯示（bug）、N2 markdown 標題與表格、D1–D6 詳情頁、E1–E2 證據瀏覽、L1 書庫副標（第 4 批）。
   - 不修：N3／R2 另存方法論（N-07e 只做 `fromSession`）、D7 審核「修改」（T22 決定）、E3 層級篩選樣式、R1 YAML 原文、O1 章節色條、O2 書名是檔名（資料）、X1 示意資料徽章。
 - 第 1 批：`ss-kit.css` 補 `ss-tabs`／`ss-tab`、`ss-panel*`、`ss-option-card*`、`a.ss-card-link`。`.ss-toggle` 沒搬（`global.css` 已有按鈕版，同名保留）；`.ss-theme-*` 第 3 批和色票 token 一起補。05 §2 已同步。
+- 第 2 批：Agent 工作區照設計稿重做（`ChatPane`、`ResultCard`、`AgentPage`）；新依賴 `remark-gfm`，共用 `components/Prose.tsx`＋`.ss-prose`（筆記頁也換上，N2 已修）。截圖在 `var/ui_compare/batch2/`。05 §3.3 補了原型決定。**沒驗到的**：開著的 session（加框、寫入確認卡、存成筆記與捨棄按鈕的新位置）——要真的問大腦才有，先用已關閉的 session 看版面。
 
 ### T19 現況（2026-11-17）
 
