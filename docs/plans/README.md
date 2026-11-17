@@ -15,3 +15,4 @@
 | 2026-11-17 | [20261117-t27-agent-workspace.md](20261117-t27-agent-workspace.md) | T27：N-06c draft、N-07e 照規格只取 run_method（大腦多半不重跑，按鈕常停用）、畫面 5 從 REST 重建 |
 | 2026-11-17 | [20261117-my4-fair-play-audit.md](20261117-my4-fair-play-audit.md) | T18 MY4：一個真相一筆 run、數字由演算法算、只瞞角色的真相跳過、fairness_matrix 一起做 |
 | 2026-11-17 | [20261117-ui-align-canvas.md](20261117-ui-align-canvas.md) | T28 前插入：UI 對齊設計稿，缺的 kit class 照設計稿補、同名保留，對話欄只留旁白，分五批、每批附並排截圖 |
+| 2026-11-17 | [20261117-agent-chat-ux.md](20261117-agent-chat-ux.md) | Agent 對話介面改成主流 chat：左側對話清單（N-10b 加 firstQuestion）、內部捲動、工具收合；設計稿同批更新 |

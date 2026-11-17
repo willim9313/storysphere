@@ -51,6 +51,7 @@ class SessionListItem(ApiModel):
     status: str
     created_at: UtcDatetime
     open_draft_count: int
+    first_question: str | None  # 第一則使用者訊息；對話清單用它當標題，還沒問過是 null
 
 
 class MessageIn(ApiModel):

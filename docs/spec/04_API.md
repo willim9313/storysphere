@@ -782,7 +782,7 @@ Registry 從 YAML 載入、唯讀（使用者方法論除外），回應把 YAML
 | 項目 | 內容 |
 | --- | --- |
 | 用途 | 這本書的 session 列表（回到之前的對話） |
-| Response | `[{sessionId, backend, model, status, createdAt, openDraftCount}]` |
+| Response | `[{sessionId, backend, model, status, createdAt, openDraftCount, firstQuestion}]`；`firstQuestion`＝第一則使用者訊息（對話清單的標題，還沒問過是 `null`；2026-11-17 加，見 `docs/plans/20261117-agent-chat-ux.md`） |
 | 對應 | `agent_sessions` |
 
 ### N-10c GET /agent/sessions/:sessionId

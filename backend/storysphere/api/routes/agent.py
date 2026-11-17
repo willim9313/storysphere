@@ -88,9 +88,14 @@ async def list_sessions(book: BookDep, session: SessionDep) -> list[SessionListI
             status=row.status,
             created_at=row.created_at,
             open_draft_count=sum(1 for d in row.drafts_json if d.get("state") == "open"),
+            first_question=_first_question(row.messages_json),
         )
         for row in rows
     ]
+
+
+def _first_question(messages: list[dict]) -> str | None:
+    return next((m.get("text") for m in messages if m.get("role") == "user"), None)
 
 
 @router.get("/agent/sessions/{session_id}")

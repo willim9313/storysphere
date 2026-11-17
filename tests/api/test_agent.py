@@ -88,6 +88,15 @@ class TestOpen:
         listed = api.get(f"/api/v2/books/{BOOK}/agent/sessions").json()
         assert [s["sessionId"] for s in listed] == [data["sessionId"]]
         assert listed[0]["openDraftCount"] == 0
+        assert listed[0]["firstQuestion"] is None
+
+    def test_list_sessions_first_question(self, api):
+        sid = open_session(api)["sessionId"]
+        for text in ["華生知道真相嗎？", "那讀者呢？"]:
+            api.post(f"/api/v2/agent/sessions/{sid}/messages", json={"text": text})
+            wait_ready(api, sid)
+        listed = api.get(f"/api/v2/books/{BOOK}/agent/sessions").json()
+        assert listed[0]["firstQuestion"] == "華生知道真相嗎？"
 
 
 class TestTurns:

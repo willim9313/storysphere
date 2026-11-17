@@ -2571,6 +2571,8 @@ export interface components {
             createdAt: string;
             /** Opendraftcount */
             openDraftCount: number;
+            /** Firstquestion */
+            firstQuestion: string | null;
         };
         /** SessionOut */
         SessionOut: {
