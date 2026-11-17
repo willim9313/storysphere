@@ -1003,3 +1003,30 @@ a.ss-card-link:hover { background: var(--bg-secondary); }
 .ss-prose th, .ss-prose td { padding: var(--space-2) var(--space-3); border-top: var(--border-width) var(--border-style) var(--border); text-align: left; vertical-align: top; }
 .ss-prose th { font-family: var(--font-sans); font-size: var(--font-size-2xs); font-weight: 600; color: var(--fg-muted); }
 .ss-prose-lg { font-size: var(--font-size-base); line-height: 1.8; }
+
+/* ── 主題卡（第 3 批，照設計稿 kit.css；色票改走 tokens.css 的 --theme-preview-*） */
+.ss-theme-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: var(--space-6); }
+.ss-theme-card {
+  background: var(--bg-primary); color: var(--fg-primary);
+  border: var(--card-border-width) var(--border-style) var(--border);
+  border-radius: var(--card-radius);
+  padding: var(--space-6);
+  display: flex; flex-direction: column; gap: var(--space-4);
+  cursor: pointer; text-align: left;
+  font-family: inherit;
+  transition: background-color var(--transition-fast) ease;
+}
+.ss-theme-card:hover { background: var(--bg-secondary); }
+.ss-theme-card.active { border-color: var(--accent); border-width: 2px; }
+.ss-theme-swatch { display: flex; height: 36px; border-radius: var(--radius-sm); overflow: hidden; }
+.ss-theme-swatch span { flex: 1; }
+.ss-theme-card[data-theme-preview="warm"] .bg-1 { background: var(--theme-preview-warm-1); }
+.ss-theme-card[data-theme-preview="warm"] .bg-2 { background: var(--theme-preview-warm-2); }
+.ss-theme-card[data-theme-preview="warm"] .bg-3 { background: var(--theme-preview-warm-3); }
+.ss-theme-card[data-theme-preview="warm"] .ac   { background: var(--theme-preview-warm-ac); }
+.ss-theme-card[data-theme-preview="ink"] .bg-1 { background: var(--theme-preview-ink-1); border-right: 1px solid var(--theme-preview-ink-line); }
+.ss-theme-card[data-theme-preview="ink"] .bg-2 { background: var(--theme-preview-ink-2); }
+.ss-theme-card[data-theme-preview="ink"] .bg-3 { background: var(--theme-preview-ink-3); }
+.ss-theme-card[data-theme-preview="ink"] .ac   { background: var(--theme-preview-ink-ac); }
+.ss-theme-name { font-family: var(--font-serif); font-size: var(--font-size-sm); font-weight: 700; }
+.ss-theme-sub  { font-size: var(--font-size-2xs); color: var(--fg-muted); }

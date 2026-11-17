@@ -76,3 +76,26 @@ export function useTestJob(jobId: string | null) {
 // N-08d 的 `result`（startup_test.LlmTestResult）。型別取自 generated.ts。
 export type LlmTestRow = Schemas['LlmTestRow'];
 export type LlmTestResult = Schemas['LlmTestResult'];
+
+export type BrainTestResult = Schemas['BrainTestResult'];
+
+/** N-08f 更新大腦設定；`deepagents.model` 就是任務路由的 `brain`，所以也重抓 N-08a。 */
+export function useSaveBrainSettings() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Schemas['BrainSettingsIn']) =>
+      apiFetch<Schemas['BrainSettingsOut']>('/settings/brain', { method: 'PUT', body: JSON.stringify(body) }),
+    onSuccess: () => {
+      void client.invalidateQueries({ queryKey: ['settings', 'brain'] });
+      void client.invalidateQueries({ queryKey: settingsKeys.llm });
+    },
+  });
+}
+
+/** N-08g 大腦測試（建 `brain_test` job；會呼叫 LLM 或 Claude Code）。進度用 `useTestJob` 輪詢。 */
+export function useStartBrainTest() {
+  return useMutation({
+    mutationFn: (body: Schemas['BrainTestIn']) =>
+      apiFetch<Schemas['JobAccepted']>('/settings/brain/test', { method: 'POST', body: JSON.stringify(body) }),
+  });
+}

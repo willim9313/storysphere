@@ -13,6 +13,19 @@
    WARM — 預設主題（暖象牙紙上的墨線）
    ============================================================ */
 :root {
+  /* 主題預覽色票（設定頁的主題卡）：兩套主題的紙色三層＋強調色。
+     刻意放在 :root、Ink 不覆寫——在哪個主題下看，兩張卡都要畫出自己的顏色。
+     值與下面 Warm 的 --bg-*／--accent、Ink 的同名 token 一致，改主題色時一起改。 */
+  --theme-preview-warm-1:  #f8f3e7;
+  --theme-preview-warm-2:  #f1e8d5;
+  --theme-preview-warm-3:  #e9ddc6;
+  --theme-preview-warm-ac: #a0522f;
+  --theme-preview-ink-1:   #ffffff;
+  --theme-preview-ink-2:   #f6f6f4;
+  --theme-preview-ink-3:   #ececea;
+  --theme-preview-ink-ac:  #111111;
+  --theme-preview-ink-line: #1a1a1a;
+
   /* Surfaces — 暖象牙紙，三層 */
   --bg-primary:   #f8f3e7;
   --bg-secondary: #f1e8d5;

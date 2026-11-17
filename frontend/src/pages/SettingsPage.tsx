@@ -7,6 +7,7 @@ import {
   type LlmSettings,
 } from '@/api/settings';
 import { PageHeader, PageMain } from '@/components/layout/PageMain';
+import { BrainSection } from '@/components/settings/BrainSection';
 import { LlmTestSection } from '@/components/settings/LlmTestSection';
 import { AppearanceSection, DevViewSection } from '@/components/settings/PreferenceSections';
 import { ProvidersSection } from '@/components/settings/ProvidersSection';
@@ -17,7 +18,7 @@ function errorText(error: unknown): string {
   return error instanceof ApiError ? error.detail : String(error);
 }
 
-/** 設定頁（05 §6）：LLM 三層設定、初次啟動測試、外觀、開發者檢視。Agent 大腦屬 T25，這裡不做。 */
+/** 設定頁（05 §6、畫布 Settings.dc.html）：LLM 三層設定、初次啟動測試、Agent 大腦、外觀、開發者檢視。 */
 export function SettingsPage() {
   const settings = useLlmSettings();
   const latest = useLatestLlmTest();
@@ -95,6 +96,7 @@ export function SettingsPage() {
           />
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', minWidth: 0 }}>
+          <BrainSection llm={settings.data} llmDirty={dirty} latest={latest.data?.brainTest?.result ?? null} />
           <AppearanceSection />
           <DevViewSection />
         </div>

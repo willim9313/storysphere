@@ -12,36 +12,28 @@ export function AppearanceSection() {
   const { theme, setTheme } = useTheme();
   return (
     <SettingsSection id="settings-look" title="外觀">
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 'var(--space-4)' }}>
-        {THEMES.map((t) => {
-          const active = theme === t.id;
-          return (
-            <button
-              key={t.id}
-              type="button"
-              aria-pressed={active}
-              onClick={() => setTheme(t.id)}
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'flex-start',
-                gap: 'var(--space-2)',
-                padding: 'var(--space-4)',
-                textAlign: 'left',
-                cursor: 'pointer',
-                background: 'var(--bg-primary)',
-                color: 'var(--fg-primary)',
-                border: `var(--card-border-width) var(--border-style) ${active ? 'var(--accent)' : 'var(--border)'}`,
-                outline: active ? 'var(--card-border-width) solid var(--accent)' : 'none',
-                borderRadius: 'var(--card-radius)',
-                fontFamily: 'var(--font-sans)',
-              }}
-            >
-              <span style={{ fontSize: 'var(--font-size-sm)', fontWeight: 600 }}>{t.name}</span>
-              <span style={{ fontSize: 'var(--font-size-2xs)', color: 'var(--fg-muted)' }}>{t.sub}</span>
-            </button>
-          );
-        })}
+      <div className="ss-theme-grid">
+        {THEMES.map((t) => (
+          <button
+            key={t.id}
+            type="button"
+            aria-pressed={theme === t.id}
+            className={`ss-theme-card${theme === t.id ? ' active' : ''}`}
+            data-theme-preview={t.id}
+            onClick={() => setTheme(t.id)}
+          >
+            <span className="ss-theme-swatch" aria-hidden="true">
+              <span className="bg-1" />
+              <span className="bg-2" />
+              <span className="bg-3" />
+              <span className="ac" />
+            </span>
+            <span style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-1)' }}>
+              <span className="ss-theme-name">{t.name}</span>
+              <span className="ss-theme-sub">{t.sub}</span>
+            </span>
+          </button>
+        ))}
       </div>
     </SettingsSection>
   );
