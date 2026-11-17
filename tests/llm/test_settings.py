@@ -40,10 +40,10 @@ def write(tmp_path: Path, data: dict) -> Path:
 
 
 class TestDefaultFile:
-    def test_default_file_covers_all_seven_tasks(self):
+    def test_default_file_covers_all_eight_tasks(self):
         settings = load_settings(DEFAULT_SETTINGS_PATH)
 
-        assert len(KNOWN_TASKS) == 7
+        assert len(KNOWN_TASKS) == 8  # 7 個 pipeline task＋brain（T25）
         assert set(settings.tasks) == set(KNOWN_TASKS)
         assert list(settings.providers) == ["gemini"]
         assert settings.models["flash"].id == "google_genai:gemini-2.5-flash"

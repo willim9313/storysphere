@@ -47,6 +47,8 @@ class SessionContext:
     turn_id: str | None = None
     # 觸發本輪的使用者訊息；`create_note` 草稿的 `question`。
     question: str | None = None
+    # 大腦會並行呼叫工具：取下一個 trace seq＋寫入要串起來，否則 seq 會重複（T25 實測發現）。
+    trace_lock: asyncio.Lock = field(default_factory=asyncio.Lock, repr=False, compare=False)
 
 
 class SessionRegistry:
@@ -206,7 +208,7 @@ async def run_tool(
     except McpToolError as err:
         return _tool_error(err)
     args = {key: value for key, value in args.items() if value is not None}
-    async with env.session_factory() as db:
+    async with sctx.trace_lock, env.session_factory() as db:
         trace = await start_call(
             db, session_id=sctx.session_id, turn_id=sctx.turn_id, tool=tool, args=args
         )

@@ -6,6 +6,7 @@ from pathlib import Path
 import pytest
 from fastapi.testclient import TestClient
 from storysphere.api.main import (
+    AGENT_DIR_ENV,
     CHECKPOINT_ENV,
     DB_ENV,
     UPLOAD_DIR_ENV,
@@ -29,6 +30,7 @@ def client(monkeypatch: pytest.MonkeyPatch, db_file: Path) -> Iterator[TestClien
     monkeypatch.setenv(DB_ENV, str(db_file))
     monkeypatch.setenv(CHECKPOINT_ENV, str(db_file.parent / "ckpt.db"))
     monkeypatch.setenv(UPLOAD_DIR_ENV, str(db_file.parent / "uploads"))
+    monkeypatch.setenv(AGENT_DIR_ENV, str(db_file.parent / "agent_sessions"))
     # 監看迴圈另外測（tests/api/test_watcher.py）；這裡關掉，免得它在背景改 progress／last_seq。
     monkeypatch.setenv(WATCH_INTERVAL_ENV, "0")
     with TestClient(app) as test_client:

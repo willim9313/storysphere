@@ -18,6 +18,7 @@ from starlette.routing import Route
 from storysphere.api.errors import install_error_handlers
 from storysphere.api.events import EventBus
 from storysphere.api.routes import (
+    agent,
     books,
     events,
     evidence,
@@ -31,6 +32,8 @@ from storysphere.api.routes import (
 )
 from storysphere.api.tasks import JobTasks
 from storysphere.api.watcher import JobWatcher
+from storysphere.gateway.deepagents_backend import DeepAgentsBackend
+from storysphere.gateway.service import Gateway, close_stale_sessions
 from storysphere.ingest.service import CHECKPOINT_PATH, mark_interrupted_jobs, open_checkpointer
 from storysphere.llm.settings import check_capabilities, load_settings
 from storysphere.mcp.runtime import ToolEnv
@@ -52,6 +55,11 @@ DEFAULT_UPLOAD_DIR = _VAR / "uploads"
 # 監看資料庫、產生 SSE 事件的間隔（秒）；0＝不監看（API 測試用）。
 WATCH_INTERVAL_ENV = "STORYSPHERE_WATCH_INTERVAL"
 DEFAULT_WATCH_INTERVAL = 0.5
+# Agent session 的工作目錄（skills 複製到這裡）；大腦連回來的 MCP 位址（05 §5）。
+AGENT_DIR_ENV = "STORYSPHERE_AGENT_DIR"
+DEFAULT_AGENT_DIR = _VAR / "agent_sessions"
+MCP_URL_ENV = "STORYSPHERE_MCP_URL"
+DEFAULT_MCP_URL = "http://127.0.0.1:8000/mcp"
 
 router = APIRouter(prefix=API_PREFIX)
 
@@ -81,6 +89,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         session_factory = make_session_factory(engine)
         # 上次沒跑完的 job 改成 interrupted；不自動續跑（02 §7）。
         await mark_interrupted_jobs(session_factory)
+        await close_stale_sessions(session_factory)
         method_engine = default_method_engine(session_factory)
         checkpointer = await stack.enter_async_context(
             open_checkpointer(_env_path(CHECKPOINT_ENV, CHECKPOINT_PATH))
@@ -106,6 +115,15 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
         app.state.mcp_app = mcp_asgi_app(mcp_server, mcp_env)  # 要先建 app 才有 session manager
         await stack.enter_async_context(mcp_server.session_manager.run())
         app.state.mcp_env = mcp_env
+        gateway = Gateway(
+            session_factory,
+            mcp_env,
+            {"deepagents": DeepAgentsBackend()},
+            workspace_root=_env_path(AGENT_DIR_ENV, DEFAULT_AGENT_DIR),
+            mcp_url=os.environ.get(MCP_URL_ENV) or DEFAULT_MCP_URL,
+        )
+        stack.push_async_callback(gateway.shutdown)
+        app.state.gateway = gateway
 
         interval = float(os.environ.get(WATCH_INTERVAL_ENV, DEFAULT_WATCH_INTERVAL))
         watcher = JobWatcher(session_factory, bus, method_engine.registry, interval=interval)
@@ -123,7 +141,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 app = FastAPI(title="StorySphere v4 prototype", version="0.1.0", lifespan=lifespan)
 install_error_handlers(app)
 app.include_router(router)
-for _group in (books, ingest, overview, evidence, runs, notes, registry, settings, jobs, events):
+for _group in (agent, books, ingest, overview, evidence, runs, notes, registry, settings, jobs, events):
     app.include_router(_group.router, prefix=API_PREFIX)
 # 不在 /api/v2 下，UI 不呼叫（04 §1）。
 # 用 Route 而不是 Mount：Mount 會把 `/mcp` 307 轉到 `/mcp/`，不是每個 MCP client 都會跟。

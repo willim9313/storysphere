@@ -111,6 +111,25 @@ def llm_for(
     return first.with_fallbacks(rest) if rest else first
 
 
+def chat_model_for(
+    task: str, *, settings: LlmSettings | None = None, model_name: str | None = None
+) -> BaseChatModel:
+    """單一個 chat model（不包 fallback 鏈）：給要 `bind_tools` 的大腦（deepagents）用。
+
+    ``model_name`` 是 `models` 的 key，覆蓋 task 的設定（N-10a 的 `model`）；否則取第一個可用的。
+    """
+    if settings is None:
+        settings = load_settings()
+    if model_name is not None:
+        if model_name not in settings.models or not _model_usable(settings, model_name):
+            raise LlmUnconfigured(task)
+        return build_model(settings, model_name)
+    names = usable_models(settings, task)
+    if not names:
+        raise LlmUnconfigured(task)
+    return build_model(settings, names[0])
+
+
 def primary_model_id(settings: LlmSettings, task: str) -> str:
     """第一個可用模型的 `id`；呼叫端寫進 `runs.model`。"""
     names = usable_models(settings, task)

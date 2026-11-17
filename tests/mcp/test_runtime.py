@@ -92,3 +92,19 @@ class TestTracedEvidence:
 
 def test_method_jobs_is_shared(agent):
     assert isinstance(agent.env.method_jobs, MethodJobs)
+
+
+class TestTraceSeq:
+    async def test_parallel_calls_get_distinct_seqs(self, agent):
+        """大腦一次送出多個工具呼叫時，seq 不能重複（callId＝seq）。"""
+        import asyncio
+
+        from mcp import Client
+        from storysphere.mcp.server import build_mcp_server
+
+        async with Client(build_mcp_server(agent.env)) as mcp_client:
+            await asyncio.gather(
+                *(mcp_client.call_tool("list_genre_elements", {}) for _ in range(5))
+            )
+        seqs = [t.seq for t in await agent.traces()]
+        assert sorted(seqs) == [1, 2, 3, 4, 5]

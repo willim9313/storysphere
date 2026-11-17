@@ -21,6 +21,210 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/agent/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Open Session
+         * @description N-10a 開 session；claude-code 啟動失敗仍回 201，`status=error`，原因走 SSE。
+         */
+        post: operations["open_session_api_v2_agent_sessions_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/books/{book_id}/agent/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Sessions
+         * @description N-10b 這本書的 session，新到舊。
+         */
+        get: operations["list_sessions_api_v2_books__book_id__agent_sessions_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/agent/sessions/{session_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Session
+         * @description N-10c 設定、狀態、對話旁白。
+         */
+        get: operations["get_session_api_v2_agent_sessions__session_id__get"];
+        put?: never;
+        post?: never;
+        /**
+         * Close Session
+         * @description N-10h 關閉；session 與 trace 保留。
+         */
+        delete: operations["close_session_api_v2_agent_sessions__session_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/agent/sessions/{session_id}/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Send Message
+         * @description N-10d 送訊息；回覆走 N-10e。
+         */
+        post: operations["send_message_api_v2_agent_sessions__session_id__messages_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/agent/sessions/{session_id}/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Session Events
+         * @description N-10e AgentEvent 的 SSE（§5.1）；補抓規則同 §3.4。
+         */
+        get: operations["session_events_api_v2_agent_sessions__session_id__events_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/agent/sessions/{session_id}/approvals/{request_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Resolve Approval
+         * @description N-10f 回應 `approval_request`。
+         */
+        post: operations["resolve_approval_api_v2_agent_sessions__session_id__approvals__request_id__post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/agent/sessions/{session_id}/cancel": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Cancel Turn
+         * @description N-10g 中止這一輪（不關 session、不取消已送出的 job）。
+         */
+        post: operations["cancel_turn_api_v2_agent_sessions__session_id__cancel_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/agent/sessions/{session_id}/trace": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Trace
+         * @description N-10i 工具呼叫紀錄，依 seq。
+         */
+        get: operations["get_trace_api_v2_agent_sessions__session_id__trace_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/agent/sessions/{session_id}/drafts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Drafts
+         * @description N-10j 本 session 的筆記草稿。
+         */
+        get: operations["list_drafts_api_v2_agent_sessions__session_id__drafts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/agent/sessions/{session_id}/drafts/{draft_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Discard Draft
+         * @description N-10k 草稿卡的「捨棄」。
+         */
+        delete: operations["discard_draft_api_v2_agent_sessions__session_id__drafts__draft_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/books": {
         parameters: {
             query?: never;
@@ -734,6 +938,50 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v2/settings/brain": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get Brain Settings
+         * @description N-08e 大腦設定；deepagents 的模型就是 `tasks.brain.model`。
+         */
+        get: operations["get_brain_settings_api_v2_settings_brain_get"];
+        /**
+         * Put Brain Settings
+         * @description N-08f 更新大腦設定，寫進 `var/settings.yaml`；沒有任何登入欄位（05 §5.2）。
+         */
+        put: operations["put_brain_settings_api_v2_settings_brain_put"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v2/settings/brain/test": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Test Brain
+         * @description N-08g 大腦測試（建 `brain_test` job）：開暫時 session，請大腦呼叫一次 `list_genre_elements`。
+         */
+        post: operations["test_brain_api_v2_settings_brain_test_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/v2/jobs": {
         parameters: {
             query?: never;
@@ -858,6 +1106,11 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /** ApprovalIn */
+        ApprovalIn: {
+            /** Allow */
+            allow: boolean;
+        };
         /**
          * Askable
          * @description N-03c。
@@ -962,6 +1215,53 @@ export interface components {
             /** Genreoverride */
             genreOverride: string | null;
         };
+        /** BrainCheck */
+        BrainCheck: {
+            /** Check */
+            check: string;
+            /** Ok */
+            ok: boolean;
+            /** Detail */
+            detail: string;
+        };
+        /** BrainSettingsIn */
+        BrainSettingsIn: {
+            /**
+             * Defaultbackend
+             * @enum {string}
+             */
+            defaultBackend: "none" | "deepagents" | "claude-code";
+            deepagents: components["schemas"]["DeepAgentsBrain"];
+            claudeCode: components["schemas"]["ClaudeCodeBrainIn"];
+        };
+        /** BrainSettingsOut */
+        BrainSettingsOut: {
+            /**
+             * Defaultbackend
+             * @enum {string}
+             */
+            defaultBackend: "none" | "deepagents" | "claude-code";
+            deepagents: components["schemas"]["DeepAgentsBrain"];
+            claudeCode: components["schemas"]["ClaudeCodeBrainOut"];
+        };
+        /** BrainTestIn */
+        BrainTestIn: {
+            /**
+             * Backend
+             * @enum {string}
+             */
+            backend: "deepagents" | "claude-code";
+        };
+        /**
+         * BrainTestResult
+         * @description N-08g 的 `result`。
+         */
+        BrainTestResult: {
+            /** Backend */
+            backend: string;
+            /** Checks */
+            checks: components["schemas"]["BrainCheck"][];
+        };
         /**
          * Card
          * @description 結果卡（04 §2.4）。
@@ -1010,6 +1310,18 @@ export interface components {
             /** Firstparagraphid */
             firstParagraphId: string | null;
         };
+        /** ClaudeCodeBrainIn */
+        ClaudeCodeBrainIn: {
+            /** Launchcommand */
+            launchCommand: string;
+        };
+        /** ClaudeCodeBrainOut */
+        ClaudeCodeBrainOut: {
+            /** Launchcommand */
+            launchCommand: string;
+            /** Available */
+            available: boolean | null;
+        };
         /** Dag */
         Dag: {
             /** Nodes */
@@ -1038,6 +1350,11 @@ export interface components {
             mechanism: string | null;
             /** Level */
             level?: number | null;
+        };
+        /** DeepAgentsBrain */
+        DeepAgentsBrain: {
+            /** Model */
+            model: string | null;
         };
         /** Evidence */
         Evidence: {
@@ -1395,6 +1712,12 @@ export interface components {
             /** Jobid */
             jobId: string;
         };
+        /** LatestBrainTest */
+        LatestBrainTest: {
+            result: components["schemas"]["BrainTestResult"] | null;
+            /** Finishedat */
+            finishedAt: string | null;
+        };
         /** LatestTest */
         LatestTest: {
             result: components["schemas"]["LlmTestResult"] | null;
@@ -1403,11 +1726,11 @@ export interface components {
         };
         /**
          * LatestTests
-         * @description N-08d：沒測過的是 null。大腦測試（brain_test）在 T25 之後才有。
+         * @description N-08d：沒測過的是 null。
          */
         LatestTests: {
             llmTest: components["schemas"]["LatestTest"] | null;
-            brainTest: components["schemas"]["LatestTest"] | null;
+            brainTest: components["schemas"]["LatestBrainTest"] | null;
         };
         /**
          * LlmSettingsIn
@@ -1461,6 +1784,22 @@ export interface components {
             error: string | null;
             /** Affectedtasks */
             affectedTasks: string[];
+        };
+        /** Message */
+        Message: {
+            /** Turnid */
+            turnId: string;
+            /** Role */
+            role: string;
+            /** Text */
+            text: string;
+            /** Createdat */
+            createdAt: string;
+        };
+        /** MessageIn */
+        MessageIn: {
+            /** Text */
+            text: string;
         };
         /**
          * MethodDetail
@@ -1682,6 +2021,39 @@ export interface components {
             cited: components["schemas"]["EvidenceListItem"][];
             /** Interpretations */
             interpretations: components["schemas"]["EvidenceListItem"][];
+        };
+        /**
+         * NoteDraft
+         * @description §2.5；`agent_sessions.drafts_json` 的一筆。
+         */
+        NoteDraft: {
+            /** Draftid */
+            draftId: string;
+            /** Sessionid */
+            sessionId: string;
+            /** Title */
+            title: string;
+            /** Conclusion */
+            conclusion: string;
+            /** Citedevidenceids */
+            citedEvidenceIds: string[];
+            /** Question */
+            question: string | null;
+            /**
+             * State
+             * @enum {string}
+             */
+            state: "open" | "confirmed" | "discarded";
+            /** Check */
+            check: {
+                [key: string]: unknown;
+            };
+            /** Noteid */
+            noteId: string | null;
+            /** Createdat */
+            createdAt: string;
+            /** Updatedat */
+            updatedAt: string;
         };
         /** NoteListItem */
         NoteListItem: {
@@ -2140,6 +2512,81 @@ export interface components {
             /** Total */
             total: number;
         };
+        /** SessionDetail */
+        SessionDetail: {
+            /** Sessionid */
+            sessionId: string;
+            /** Backend */
+            backend: string;
+            /** Bookid */
+            bookId: string;
+            /** Genre */
+            genre: string | null;
+            /** Model */
+            model: string | null;
+            /** Skills */
+            skills: string[];
+            /** Allowedtools */
+            allowedTools: string[];
+            /** Permissionlevel */
+            permissionLevel: string;
+            /** Status */
+            status: string;
+            /** Messages */
+            messages: components["schemas"]["Message"][];
+            /** Lastseq */
+            lastSeq: number;
+        };
+        /** SessionIn */
+        SessionIn: {
+            /**
+             * Backend
+             * @enum {string}
+             */
+            backend: "deepagents" | "claude-code";
+            /** Bookid */
+            bookId: string;
+            /** Genre */
+            genre?: string | null;
+            /** Model */
+            model?: string | null;
+        };
+        /** SessionListItem */
+        SessionListItem: {
+            /** Sessionid */
+            sessionId: string;
+            /** Backend */
+            backend: string;
+            /** Model */
+            model: string | null;
+            /** Status */
+            status: string;
+            /** Createdat */
+            createdAt: string;
+            /** Opendraftcount */
+            openDraftCount: number;
+        };
+        /** SessionOut */
+        SessionOut: {
+            /** Sessionid */
+            sessionId: string;
+            /** Backend */
+            backend: string;
+            /** Bookid */
+            bookId: string;
+            /** Genre */
+            genre: string | null;
+            /** Model */
+            model: string | null;
+            /** Skills */
+            skills: string[];
+            /** Allowedtools */
+            allowedTools: string[];
+            /** Permissionlevel */
+            permissionLevel: string;
+            /** Status */
+            status: string;
+        };
         /**
          * StepOut
          * @description 方法論的一步：`method`（方法或方法論 id）或最後的 `synthesis`。
@@ -2216,6 +2663,35 @@ export interface components {
             /** To */
             to: string;
         };
+        /** TraceItem */
+        TraceItem: {
+            /** Seq */
+            seq: number;
+            /** Turnid */
+            turnId: string | null;
+            /** Tool */
+            tool: string;
+            /** Args */
+            args: {
+                [key: string]: unknown;
+            };
+            /** Status */
+            status: string;
+            /** Resultevidenceids */
+            resultEvidenceIds: string[];
+            /** Resultrunids */
+            resultRunIds: string[];
+            /** Jobid */
+            jobId: string | null;
+            /** Approvalrequestid */
+            approvalRequestId: string | null;
+            /** Errorcode */
+            errorCode: string | null;
+            /** Startedat */
+            startedAt: string;
+            /** Durationms */
+            durationMs: number | null;
+        };
         /** TraceNode */
         TraceNode: {
             /** Id */
@@ -2240,6 +2716,15 @@ export interface components {
             refId?: string | null;
             /** Code */
             code?: string | null;
+        };
+        /** TracePage */
+        TracePage: {
+            /** Items */
+            items: components["schemas"]["TraceItem"][];
+            /** Nextcursor */
+            nextCursor: string | null;
+            /** Total */
+            total: number;
         };
         /**
          * TriggerIn
@@ -2284,6 +2769,11 @@ export interface components {
              * @default []
              */
             notImplemented: string[];
+        };
+        /** TurnOut */
+        TurnOut: {
+            /** Turnid */
+            turnId: string;
         };
         /** UnitCounts */
         UnitCounts: {
@@ -2447,6 +2937,358 @@ export interface operations {
                     "application/json": {
                         [key: string]: string;
                     };
+                };
+            };
+        };
+    };
+    open_session_api_v2_agent_sessions_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SessionIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_sessions_api_v2_books__book_id__agent_sessions_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                book_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionListItem"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_session_api_v2_agent_sessions__session_id__get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionDetail"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    close_session_api_v2_agent_sessions__session_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    send_message_api_v2_agent_sessions__session_id__messages_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MessageIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TurnOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    session_events_api_v2_agent_sessions__session_id__events_get: {
+        parameters: {
+            query?: {
+                after?: number | null;
+            };
+            header?: {
+                "last-event-id"?: string | null;
+            };
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": unknown;
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    resolve_approval_api_v2_agent_sessions__session_id__approvals__request_id__post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+                request_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ApprovalIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    cancel_turn_api_v2_agent_sessions__session_id__cancel_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    get_trace_api_v2_agent_sessions__session_id__trace_get: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TracePage"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_drafts_api_v2_agent_sessions__session_id__drafts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NoteDraft"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    discard_draft_api_v2_agent_sessions__session_id__drafts__draft_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                session_id: string;
+                draft_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };
@@ -3651,6 +4493,92 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["LatestTests"];
+                };
+            };
+        };
+    };
+    get_brain_settings_api_v2_settings_brain_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrainSettingsOut"];
+                };
+            };
+        };
+    };
+    put_brain_settings_api_v2_settings_brain_put: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BrainSettingsIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BrainSettingsOut"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    test_brain_api_v2_settings_brain_test_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BrainTestIn"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JobAccepted"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
                 };
             };
         };

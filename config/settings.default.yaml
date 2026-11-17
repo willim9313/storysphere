@@ -19,3 +19,5 @@ tasks:
   consolidation: { model: flash, requires: [structured_output] }
   method_strong: { model: flash, requires: [structured_output] }
   method_light: { model: flash, requires: [structured_output] }
+  # deepagents 大腦（05 §5.1）；要能呼叫工具。
+  brain: { model: flash }

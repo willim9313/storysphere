@@ -672,7 +672,7 @@ Registry 從 YAML 載入、唯讀（使用者方法論除外），回應把 YAML
 | --- | --- |
 | 用途 | 大腦設定 |
 | Response | `{defaultBackend: none／deepagents／claude-code, deepagents: {model}, claudeCode: {launchCommand, available}}` |
-| 說明 | `launchCommand` 預設 `npx -y @agentclientprotocol/claude-agent-acp`（05 §5.2）；`available` 是上次測試結果 |
+| 說明 | `launchCommand` 預設 `npx -y @agentclientprotocol/claude-agent-acp`（05 §5.2）；`available` 是上次 claude-code 大腦測試是否全部通過，沒測過是 `null`。原型決定（T25）：`deepagents.model` 就是 N-08a 的 `tasks.brain.model`（`models` 的 key）；其餘存在設定檔的 `brain:` 區塊（`default_backend`、`claude_code.launch_command`） |
 | 對應 | 設定檔 |
 
 ### N-08f PUT /settings/brain
@@ -691,7 +691,7 @@ Registry 從 YAML 載入、唯讀（使用者方法論除外），回應把 YAML
 | 用途 | 「大腦」那一列的測試（05 §6） |
 | Request | `{backend: deepagents／claude-code}` |
 | Response 202 | `{jobId}`（`kind=brain_test`）；`result.checks[{check, ok, detail}]`，`check` 值：deepagents＝`session`、`tool_call`；claude-code＝`npx`、`adapter`、`login`、`session`、`tool_call` |
-| 說明 | `tool_call`＝開一個暫時 session，請大腦呼叫一次 `list_genre_elements`，以 `trace_calls` 有這筆為準 |
+| 說明 | `tool_call`＝開一個暫時 session，請大腦呼叫一次 `list_genre_elements`，以 `trace_calls` 有這筆為準。原型決定（T25）：session 用書庫裡最早上傳的書，沒有書時只回一項 `session` 不通過；測完關掉 session；`result` 另帶 `backend`。claude-code 的 `npx`／`adapter`／`login` 三項在 T26 |
 | 對應 | Agent Gateway、`agent_sessions`、`trace_calls` |
 
 ### 4.9 工作中心（側欄抽屜）
@@ -751,6 +751,17 @@ Registry 從 YAML 載入、唯讀（使用者方法論除外），回應把 YAML
 ### 4.10 Agent Gateway（畫面 5）
 
 對應架構文件的 `AgentBackend` Protocol：`start_session` → N-10a、`send` → N-10d、`events` → N-10e、`resolve_approval` → N-10f、`cancel` → N-10g。「無大腦」＝不開 session，畫面 5 停用。
+
+原型決定（T25，2026-11-17，見 `docs/plans/20261117-t25-gateway-deepagents.md`）：
+
+- **Gateway 的位置**：`gateway/service.py`（組裝、輪次、確認、關閉）；後端只負責「跑一輪」（`gateway/base.AgentBackend`：`start`、`send`、`close`）。`text_delta` 由後端串流、`done`／`error` 由 Gateway 發，其餘 AgentEvent 由 MCP server 發。
+- **SSE 的訊框**：`id`＝串流的 `seq`、`event`＝`type`，`data`＝`{sessionId, turnId, ts, data}`（§5.1 信封的其餘欄位）。
+- **skills**：放 repo 根目錄 `skills/<name>/SKILL.md`；開 session 時複製到 `var/agent_sessions/<sessionId>/skills/`（環境變數 `STORYSPHERE_AGENT_DIR` 可改）。`event-analysis`、`character-analysis` 一律給；`mystery-fair-play` 只給 `genre=mystery`（05 §5.3）。
+- **`allowedTools`**：L0＝§5.2 的 14 個 MCP 工具。
+- **大腦連回 MCP 的位址**：環境變數 `STORYSPHERE_MCP_URL`，預設 `http://127.0.0.1:8000/mcp`。
+- **N-10a**：`backend` 沒有對應後端（T25 只有 deepagents）→ 422；`model` 是 N-08a `models` 的 key。
+- **伺服器重啟**：上次沒關的 session 一律標 `closed`（大腦已不在，token 跟著作廢）。deepagents 的對話記憶只在記憶體。
+- **N-10f**：`requestId` 不屬於這個 session → 404；已回應 → 409。
 
 ### N-10a POST /agent/sessions
 

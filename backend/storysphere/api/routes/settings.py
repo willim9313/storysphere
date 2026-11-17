@@ -15,6 +15,12 @@ from storysphere.api.deps import JobTasksDep, SessionDep
 from storysphere.api.errors import validation_error
 from storysphere.api.schemas.jobs import JobAccepted
 from storysphere.api.schemas.settings import (
+    BrainSettingsIn,
+    BrainSettingsOut,
+    BrainTestIn,
+    ClaudeCodeBrainOut,
+    DeepAgentsBrain,
+    LatestBrainTest,
     LatestTest,
     LatestTests,
     LlmSettingsIn,
@@ -24,7 +30,9 @@ from storysphere.api.schemas.settings import (
     ProviderOut,
     TaskOut,
 )
+from storysphere.gateway.brain_test import run_brain_test
 from storysphere.llm.settings import (
+    DEFAULT_SETTINGS_PATH,
     KNOWN_TASKS,
     SUBSCRIPTION_RISK_NOTICE,
     LlmSettings,
@@ -177,8 +185,8 @@ async def test_llm(
     return JobAccepted(job_id=job.id)
 
 
-async def _latest(session, kind: str) -> LatestTest | None:
-    job = (
+async def _latest_job(session, kind: str) -> Job | None:
+    return (
         await session.scalars(
             select(Job)
             .where(Job.kind == kind, Job.status == "done")
@@ -186,13 +194,122 @@ async def _latest(session, kind: str) -> LatestTest | None:
             .limit(1)
         )
     ).first()
-    return LatestTest(result=job.result_json, finished_at=job.finished_at) if job else None
 
 
 @router.get("/llm/test/latest", response_model=LatestTests)
 async def latest_tests(session: SessionDep) -> LatestTests:
     """N-08d 設定頁載入時顯示上次的測試表。"""
+    llm = await _latest_job(session, LLM_TEST_KIND)
+    brain = await _latest_job(session, BRAIN_TEST_KIND)
     return LatestTests(
-        llm_test=await _latest(session, LLM_TEST_KIND),
-        brain_test=await _latest(session, BRAIN_TEST_KIND),
+        llm_test=LatestTest(result=llm.result_json, finished_at=llm.finished_at) if llm else None,
+        brain_test=(
+            LatestBrainTest(result=brain.result_json, finished_at=brain.finished_at)
+            if brain
+            else None
+        ),
     )
+
+
+# ---- N-08e–g 大腦（05 §5、§6）----
+
+BRAIN_TASK = "brain"
+DEFAULT_LAUNCH_COMMAND = "npx -y @agentclientprotocol/claude-agent-acp"
+
+
+def _raw_brain() -> dict[str, Any]:
+    """設定檔的 `brain:` 區塊（`LlmSettings` 不管它）；檔案不存在時讀預設檔。"""
+    target = settings_path()
+    if not target.exists():
+        target = DEFAULT_SETTINGS_PATH
+    loaded = yaml.safe_load(target.read_text(encoding="utf-8")) or {}
+    brain = loaded.get("brain") if isinstance(loaded, dict) else None
+    return brain if isinstance(brain, dict) else {}
+
+
+async def _claude_code_available(session) -> bool | None:
+    jobs = await session.scalars(
+        select(Job)
+        .where(Job.kind == BRAIN_TEST_KIND, Job.status == "done")
+        .order_by(Job.finished_at.desc())
+    )
+    for job in jobs:
+        result = job.result_json or {}
+        if result.get("backend") == "claude-code":
+            return all(check.get("ok") for check in result.get("checks", []))
+    return None
+
+
+@router.get("/brain", response_model=BrainSettingsOut)
+async def get_brain_settings(session: SessionDep) -> BrainSettingsOut:
+    """N-08e 大腦設定；deepagents 的模型就是 `tasks.brain.model`。"""
+    brain = _raw_brain()
+    task = load_settings().tasks.get(BRAIN_TASK)
+    return BrainSettingsOut(
+        default_backend=brain.get("default_backend", "none"),
+        deepagents=DeepAgentsBrain(model=task.model if task else None),
+        claude_code=ClaudeCodeBrainOut(
+            launch_command=(brain.get("claude_code") or {}).get(
+                "launch_command", DEFAULT_LAUNCH_COMMAND
+            ),
+            available=await _claude_code_available(session),
+        ),
+    )
+
+
+@router.put("/brain", response_model=BrainSettingsOut)
+async def put_brain_settings(body: BrainSettingsIn, session: SessionDep) -> BrainSettingsOut:
+    """N-08f 更新大腦設定，寫進 `var/settings.yaml`；沒有任何登入欄位（05 §5.2）。"""
+    settings = load_settings()
+    model = body.deepagents.model
+    if model is not None and model not in settings.models:
+        raise validation_error(f"deepagents.model: unknown model {model!r}")
+    if not body.claude_code.launch_command.strip():
+        raise validation_error("claudeCode.launchCommand: must not be empty")
+    data: dict[str, Any] = {
+        "brain": {
+            "default_backend": body.default_backend,
+            "claude_code": {"launch_command": body.claude_code.launch_command},
+        }
+    }
+    if model is not None:
+        # 整份三層設定一起寫：`var/settings.yaml` 原本不存在時，只寫 tasks 會丟掉 providers／models。
+        dumped = settings.model_dump(mode="json", exclude_none=True)
+        current = dumped["tasks"].get(BRAIN_TASK, {})
+        dumped["tasks"][BRAIN_TASK] = {**current, "model": model}
+        data |= dumped
+    _write_yaml(data)
+    return await get_brain_settings(session)
+
+
+async def _run_brain_test(request: Request, job_id: str, backend: str) -> None:
+    session_factory = request.app.state.session_factory
+    async with session_factory() as session, session.begin():
+        job = await session.get(Job, job_id)
+        job.status, job.started_at = "running", datetime.now(UTC)
+    try:
+        result = await run_brain_test(request.app.state.gateway, backend)
+    except Exception as exc:
+        logger.exception("Brain test job %s failed", job_id)
+        async with session_factory() as session, session.begin():
+            job = await session.get(Job, job_id)
+            job.status, job.error, job.error_kind = "error", str(exc), "internal"
+            job.finished_at = datetime.now(UTC)
+        return
+    async with session_factory() as session, session.begin():
+        job = await session.get(Job, job_id)
+        job.result_json = result
+        job.status, job.progress, job.finished_at = "done", 100, datetime.now(UTC)
+
+
+@router.post("/brain/test", status_code=202, response_model=JobAccepted)
+async def test_brain(
+    body: BrainTestIn, session: SessionDep, tasks: JobTasksDep, request: Request
+) -> JobAccepted:
+    """N-08g 大腦測試（建 `brain_test` job）：開暫時 session，請大腦呼叫一次 `list_genre_elements`。"""
+    job = Job(kind=BRAIN_TEST_KIND, title="大腦測試", status="pending",
+              params_json={"backend": body.backend})  # fmt: skip
+    session.add(job)
+    await session.commit()
+    tasks.spawn(job.id, _run_brain_test(request, job.id, body.backend))
+    return JobAccepted(job_id=job.id)

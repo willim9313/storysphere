@@ -5,7 +5,7 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Literal
 
 from pydantic import ConfigDict
 
@@ -89,13 +89,61 @@ class LlmTestIn(_In):
 
 
 class LatestTest(ApiModel):
-    # 大腦測試（T25）的形狀不同，到時再改成 union。
     result: LlmTestResult | None
     finished_at: UtcDatetime | None
 
 
+class BrainCheck(ApiModel):
+    check: str
+    ok: bool
+    detail: str
+
+
+class BrainTestResult(ApiModel):
+    """N-08g 的 `result`。"""
+
+    backend: str
+    checks: list[BrainCheck]
+
+
+class LatestBrainTest(ApiModel):
+    result: BrainTestResult | None
+    finished_at: UtcDatetime | None
+
+
 class LatestTests(ApiModel):
-    """N-08d：沒測過的是 null。大腦測試（brain_test）在 T25 之後才有。"""
+    """N-08d：沒測過的是 null。"""
 
     llm_test: LatestTest | None
-    brain_test: LatestTest | None
+    brain_test: LatestBrainTest | None
+
+
+BrainBackend = Literal["none", "deepagents", "claude-code"]
+
+
+class DeepAgentsBrain(_In):
+    model: str | None  # `models` 的 key＝`tasks.brain.model`
+
+
+class ClaudeCodeBrainIn(_In):
+    launch_command: str
+
+
+class ClaudeCodeBrainOut(ClaudeCodeBrainIn):
+    available: bool | None  # 上次 claude-code 大腦測試全部通過；沒測過是 null
+
+
+class BrainSettingsIn(_In):
+    default_backend: BrainBackend
+    deepagents: DeepAgentsBrain
+    claude_code: ClaudeCodeBrainIn
+
+
+class BrainSettingsOut(ApiModel):
+    default_backend: BrainBackend
+    deepagents: DeepAgentsBrain
+    claude_code: ClaudeCodeBrainOut
+
+
+class BrainTestIn(_In):
+    backend: Literal["deepagents", "claude-code"]

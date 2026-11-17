@@ -27,8 +27,8 @@ INGEST_TASKS: tuple[str, ...] = (
     "deep_extraction",
     "consolidation",
 )
-# 加上 03 方法用到的 llm_task。
-KNOWN_TASKS: tuple[str, ...] = INGEST_TASKS + get_args(LlmTask)
+# 加上 03 方法用到的 llm_task，與 deepagents 大腦（05 §5.1）。
+KNOWN_TASKS: tuple[str, ...] = INGEST_TASKS + get_args(LlmTask) + ("brain",)
 
 # 環境變數「名稱」的樣子；貼進 key 值（含小寫、連字號）會被擋下。
 _ENV_NAME = re.compile(r"^[A-Z_][A-Z0-9_]*$")

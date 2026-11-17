@@ -10,3 +10,4 @@
 | 2026-11-17 | [20261117-t21-shell-library-ingest.md](20261117-t21-shell-library-ingest.md) | T21：外框、書庫、入庫進度、工作中心的範圍與分批 |
 | 2026-11-17 | [20261117-t22-overview-detail-views.md](20261117-t22-overview-detail-views.md) | T22：總覽、結果卡詳情，view 範圍改成有資料的先做 |
 | 2026-11-17 | [20261117-t23-evidence-notes-registry-settings.md](20261117-t23-evidence-notes-registry-settings.md) | T23：筆記端點範圍、方法論唯讀、設定頁不含大腦 |
+| 2026-11-17 | [20261117-t25-gateway-deepagents.md](20261117-t25-gateway-deepagents.md) | T25：自寫 MCP 轉接（langchain-mcp-adapters 與 mcp 2 衝突）、完成標準換題、分兩批 |

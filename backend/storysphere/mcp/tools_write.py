@@ -78,7 +78,7 @@ def _check(problems: list[dict[str, Any]]) -> dict[str, Any]:
     return {"ok": not problems, "problems": problems}
 
 
-def _draft_event(draft: dict[str, Any]) -> dict[str, Any]:
+def draft_event(draft: dict[str, Any]) -> dict[str, Any]:
     """NoteDraft（04 §2.5）的 API 形狀（camelCase）。"""
     return {
         "draftId": draft["draft_id"],
@@ -133,7 +133,7 @@ def register(server: MCPServer, env: ToolEnv) -> None:
             row = await _session_row(call)
             row.drafts_json = [*row.drafts_json, draft]
             await call.db.commit()
-            env.emit(call.session, "note_draft", {"op": "created", "draft": _draft_event(draft)})
+            env.emit(call.session, "note_draft", {"op": "created", "draft": draft_event(draft)})
             return ToolResult(
                 {"draft_id": draft["draft_id"], "check": draft["check"]},
                 summary="筆記草稿已建立" if draft["check"]["ok"] else "筆記草稿有問題",
@@ -173,7 +173,7 @@ def register(server: MCPServer, env: ToolEnv) -> None:
             draft["updated_at"] = _now()
             row.drafts_json = drafts
             await call.db.commit()
-            env.emit(call.session, "note_draft", {"op": "updated", "draft": _draft_event(draft)})
+            env.emit(call.session, "note_draft", {"op": "updated", "draft": draft_event(draft)})
             return ToolResult(
                 {"draft_id": draft_id, "cited_evidence_ids": ids, "check": draft["check"]},
                 summary=f"草稿引用 {len(ids)} 筆",

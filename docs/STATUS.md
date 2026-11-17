@@ -1,6 +1,6 @@
 # 進度與後續待辦
 
-最後更新：2026-11-17（T23 完成，未 commit）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
+最後更新：2026-11-17（T25 程式完成、Gemini 實測待同意，未 commit）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
 
 ## 接手先看這裡（2026-11-16 使用者的決定）
 
@@ -44,7 +44,9 @@
 | **T21 外框、書庫、入庫進度、工作中心** | 完成；見「T21 現況」 | — |
 | **T22 總覽、結果卡詳情、view** | 完成；見「T22 現況」 | — |
 | **T23 證據瀏覽、筆記、方法目錄、設定** | 完成；見「T23 現況」 | — |
-| T24 之後 | 未開始（T24 的 3 種 view 已在 T22 做掉） | — |
+| T24 | 3 種 view 已在 T22 做掉；其餘等方法 | — |
+| **T25 Gateway＋deepagents** | 完成；Gemini 實測兩題都過（加了 `character-analysis` skill 之後）；見「T25 現況」 | — |
+| T26 之後 | 未開始 | — |
 
 - 分支：本機 `main`，沒有遠端，沒推過。CI（`.github/workflows/gates.yml`）寫好但從沒跑過。
 - 閘門現況：六道全部 exit 0（pytest 沒設 `BENCHMARK_DIR` 時 1297 passed、2 skipped）。
@@ -111,6 +113,24 @@
 - **前端型別**：`frontend/src/api/generated.ts` 已產生（35 條路徑）。產生方式是從 app 匯出 `openapi.json` 再跑 `openapi-typescript`，結果與 `npm run gen:types` 相同，只是不必在 8000 埠開伺服器（開伺服器會在 `var/` 建出 `neo.db`）。`knip.jsonc` 把它列為忽略，T21 的 API client import 之後可以拿掉。
 - **T19 完成標準對照**（07）：「`npm run gen:types` 產出型別」達成；「SSE 斷線帶 `Last-Event-ID` 能補抓」達成；「04 每個端點都有 API 測試」**部分**——做了的端點都有，延後的沒有。
 - **延後的端點**（使用者 2026-11-16 確認）：N-02f／g／h（重跑失敗單位、從某步重跑、改主題材）、N-06*（筆記、詮釋）、N-07c／d／e（方法論）、N-08e–g 與 N-10*（大腦，T25）。N-04d 的 `rerunUpstream=true` 也還沒做（回 422）。
+
+### T25 現況（2026-11-17）
+
+- 規劃：`docs/plans/20261117-t25-gateway-deepagents.md`。skills 現在是三份（`skills/character-analysis` 是實測後加的）。使用者決定：MCP 轉接自己寫（`langchain-mcp-adapters` 要 `mcp<2`）；完成標準換題（「線索公平嗎？」等 MY4）；A 批 Gateway＋deepagents＋N-10a–k＋兩份 skill、B 批 N-08e–g，兩批都做完了。
+- 程式：`gateway/base.py`（`AgentBackend`、`SessionConfig`、system prompt）、`gateway/mcp_tools.py`（HTTP＋token 連 `/mcp`，包成 `StructuredTool`）、`gateway/deepagents_backend.py`（每個 session 一個常駐 task 持有 MCP 連線——anyio 的 context 要同一個 task 進出；`HideTools` middleware 藏起 `execute`／`write_file`／`edit_file`／`task`）、`gateway/service.py`（組裝、輪次、確認、關閉、啟動時關掉殘留 session）、`gateway/brain_test.py`、`api/routes/agent.py`、`api/schemas/agent.py`；`api/routes/settings.py` 加 N-08e–g。`skills/event-analysis`、`skills/mystery-fair-play`。
+- LLM：新 task `brain`（預設檔 `brain: { model: flash }`）；`llm/router.chat_model_for` 回單一模型（deepagents 要 `bind_tools`）。
+- `mcp/tools_write._draft_event` 改名 `draft_event`（Gateway 共用）。
+- 新依賴：`deepagents`（帶進 `langchain-anthropic`、`anthropic`、`wcmatch` 等）。新環境變數：`STORYSPHERE_AGENT_DIR`（預設 `var/agent_sessions`）、`STORYSPHERE_MCP_URL`（預設 `http://127.0.0.1:8000/mcp`；伺服器不在 8000 埠時要設）。
+- 測試：`tests/gateway/test_gateway.py`（假 chat model＋in-process MCP，deepagents 真的經 MCP 呼叫工具、trace 有記、隱藏工具看不到）、`tests/api/test_agent.py`（13）、`tests/api/test_brain_settings.py`（9）。另用 uvicorn＋`methods.db` 副本手動驗過 HTTP 轉接：帶 token 拿到 14 個工具、錯誤原樣傳回、錯 token 401。
+- **Gemini 實測（2026-11-17，使用者同意）**：資料在 `var/benchmark_runs/sign_of_four/t25_brain/`（`neo.db` 是 `methods.db` 的副本，`q1.txt`、`q1b.txt` 是兩次的 trace 與回覆，`drive.py` 是驅動腳本）。第一題「福爾摩斯和華生的關係怎麼變？」問了兩次：都沒有 `run_method`（不重跑 ✓），回答都帶證據 id；但兩次都只找到事件方法（`list_methods` 用關鍵字查），**沒拿 CH2／CH4 的現成結果**，而是讀第 1 層事件拼出答案。第二次在 system prompt 加「先不帶 query 列全部方法」，大腦沒照做，還逐筆 `get_evidence` 讀了 20 筆（約 76 秒、20 多次呼叫）。第二題（組合方法＋筆記草稿）沒跑。
+- **加 `character-analysis` skill 後重測（使用者決定，05 §5.3 改成三份）**：先確認過 deepagents 確實把 skill 的名稱與描述放進 system prompt；先前答不好是因為沒有角色類的 skill。上一輪加的「先不帶 query 列全部方法」提示已撤掉。
+  - 第一題（`q1c.txt`）：`get_entity`×2 → `search_evidence(claim_types=["arc_segment"])`×2，依章節分期回答、每段帶 id；不重跑，約 20 秒。CH2 是每個角色一筆 run，所以走 `search_evidence` 而不是 `get_run`（skill 這樣教）。
+  - 第二題（`q2.txt`）「華生對莫斯坦小姐的感情變化和案件關鍵事件的關聯？整理成筆記」：組合 CH2 的 `arc_segment` 與 EV1 的 `event_role`（`get_run(method_id="event.kernel_satellite")`），`create_note` 產生草稿，`check.ok=true`、引用 12 筆；約 36 秒。
+  - **已知問題**：結論的 markdown 裡有一個大腦抄錯的 id（少一碼），不在 `cited_evidence_ids` 裡，所以不影響證據鏈；存成筆記時文字裡會留著。之後可在 `create_note` 檢查內文 id 都屬於引用清單（放進 `check.problems`）。
+- **實測發現的 bug（已修）**：大腦並行呼叫工具時 `trace_calls.seq` 會重複（`start_call` 取 max+1 的 race）。`SessionContext.trace_lock` 把取號與寫入串起來；`tests/mcp/test_runtime.py::TestTraceSeq` 修之前會失敗。
+- **沒驗的**：N-08g 實際按下去（會叫 LLM）；`show_view` 這兩題大腦都沒用（畫面在 T27 再看）。
+- 留給後面：確認草稿存成筆記（N-06c `origin=draft`）在 T27；claude-code 後端與 `npx`／`adapter`／`login` 三項檢查在 T26；skill 裡筆記不能引用第 1 層，沒有 MY4 時推理題的草稿會帶 `note_cites_level1` 問題。
+- `list_methods(query=…)` 只比對 `question` 的子字串，大腦用口語查常常查不到（例「關係」查不到 CH4）；大腦通常會不帶 query 先列全部，實測時再看要不要改。
 
 ### T23 現況（2026-11-17）
 
