@@ -1,6 +1,6 @@
 # 進度與後續待辦
 
-最後更新：2026-11-17（T26 完成，未 commit）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
+最後更新：2026-11-17（T27 完成，commit `4d18949`）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
 
 ## 接手先看這裡（2026-11-16 使用者的決定）
 
@@ -47,10 +47,11 @@
 | T24 | 3 種 view 已在 T22 做掉；其餘等方法 | — |
 | **T25 Gateway＋deepagents** | 完成；Gemini 實測兩題都過（加了 `character-analysis` skill 之後）；見「T25 現況」 | — |
 | **T26 Claude Code（ACP）** | 完成；實測兩題與擋工具都過；見「T26 現況」 | — |
-| T27 之後 | 未開始 | — |
+| **T27 Agent 工作區畫面** | 完成；見「T27 現況」 | `4d18949` |
+| T28 驗收 | 未開始（MY4 也還沒做，排在 UI 之後） | — |
 
 - 分支：本機 `main`，沒有遠端，沒推過。CI（`.github/workflows/gates.yml`）寫好但從沒跑過。
-- 閘門現況：六道全部 exit 0（pytest 沒設 `BENCHMARK_DIR` 時 1297 passed、2 skipped）。
+- 閘門現況：六道全部 exit 0（pytest 沒設 `BENCHMARK_DIR` 時 1434 passed、2 skipped）。
 - 這台有 `.env`（`GEMINI_API_KEY`，被 gitignore）。程式不會自己讀 `.env`，要 `uv run --env-file .env`。
 - 相關目錄：
   - 本專案：`~/Desktop/storysphere_v4_app`
@@ -114,6 +115,25 @@
 - **前端型別**：`frontend/src/api/generated.ts` 已產生（35 條路徑）。產生方式是從 app 匯出 `openapi.json` 再跑 `openapi-typescript`，結果與 `npm run gen:types` 相同，只是不必在 8000 埠開伺服器（開伺服器會在 `var/` 建出 `neo.db`）。`knip.jsonc` 把它列為忽略，T21 的 API client import 之後可以拿掉。
 - **T19 完成標準對照**（07）：「`npm run gen:types` 產出型別」達成；「SSE 斷線帶 `Last-Event-ID` 能補抓」達成；「04 每個端點都有 API 測試」**部分**——做了的端點都有，延後的沒有。
 - **延後的端點**（使用者 2026-11-16 確認）：N-02f／g／h（重跑失敗單位、從某步重跑、改主題材）、N-06*（筆記、詮釋）、N-07c／d／e（方法論）、N-08e–g 與 N-10*（大腦，T25）。N-04d 的 `rerunUpstream=true` 也還沒做（回 422）。
+
+### T27 現況（2026-11-17）
+
+- 規劃：`docs/plans/20261117-t27-agent-workspace.md`。**使用者決定：另存方法論（N-07e）照規格只取該輪的 `run_method`**（理由：不偏離規格，免得之後回頭重做時留下說不出理由的決策）。實測的大腦都取用現成結果（`get_run`、`search_evidence`）、不呼叫 `run_method`，所以按鈕多半停用並寫明原因；要不要改成「從引用的證據回推用到的方法」，T28 後再議（04 N-07e 已註記）。
+- 後端：
+  - N-06c `origin=draft`（`api/routes/notes.py`）：`source=agent`、`producedVia=agent`、`agentBackend` 取 session、未改＝`approved`／改過＝`modified`、`methodologyRunId=null`；`methodologyTrace` 由 `store/agent.mcp_methodology_trace` 組（該次 `create_note` 之前的 `ok` 呼叫，`contributing`＝回傳證據被引用或回傳的 run 產出被引用證據）。存完草稿標 `confirmed`、記 `note_id`，經 `Gateway.notify_draft` 發 `note_draft op=confirmed`。
+  - `create_note` 草稿多記 `turn_id`、`call_seq`（後者不對外）；`NoteDraft` 加 `turnId`。T27 之前的草稿沒有這兩個欄位：trace 改用 `created_at` 切，前端用 `question` 對回那一輪。
+  - N-07e（`api/routes/registry.py`、新表 `store/methodologies.py`）：只做 `fromSession`，`steps`／`fromNoteId` 回 422；沒有 `run_method` 回 `422 no_steps`；id 是 `user.<8 位 hex>`。N-07c／d 合併列出使用者方法論（`implemented=false`，步驟多 `input`）。
+  - 規格已同步：01 §2（`methodologies` 欄位）、04 §2.5、N-06c、N-07c–e、05 §3.3（原型決定）。
+- 前端：`pages/AgentPage.tsx`、`components/agent/`（`ChatPane`、`ResultCard`、`turns.ts` 依 `turnId` 分組）、`api/agent.ts`；`useEventStream` 多一個參數指定事件型別（`AGENT_EVENT_TYPES`）。**畫面狀態從 REST 重建**（N-10c、N-10i 的 `show_view` 參數、N-10j），SSE 只即時接 `text_delta`，其餘事件收到就重抓。已關閉的 session 唯讀。
+- **實測**（資料在 `var/benchmark_runs/sign_of_four/t27/`，`neo.db` 是 `t25_brain/neo.db` 的副本，`.claude/launch.json` 的 `backend-t27` 用它）：
+  - 打開 T26 的舊 session：對話、工具呼叫、結果（`character_arc` view＋草稿）都能重建。
+  - Claude Code 一題（使用者訂閱，約 40 秒）：「華生和莫斯坦小姐的關係怎麼變？用 view 呈現，並整理成筆記草稿。」結果 A 即時出現，存成筆記成功（第 3 層、`approved`、引用 7 筆、trace 15 次呼叫）；另存方法論停用（沒有 `run_method`）。
+- **沒驗的**：前端的「捨棄」「修改後再存」、寫入確認卡沒實際按過（後端有測試）；另存方法論成功的路徑只有測試（大腦要真的 `run_method` 才會有，會叫 Gemini 跑方法）；Gemini 大腦這次沒跑。
+- 注意到、沒處理的：
+  - 結論裡的 markdown 表格顯示成純文字（沒裝 `remark-gfm`；筆記頁一樣）。
+  - 方法論 trace 裡 `list_methods` 常被標 `contributing`（它回傳的 run 產出了被引用的證據），合乎 04 §5.6，只是有點雜。
+  - 已知問題延續：大腦結論裡抄錯的 id 現在在結果卡上警示（不擋儲存）；Claude Code 回覆不附 id 不影響卡片（引用來自草稿）；推理題沒有 MY4 時草稿帶 `note_cites_level1`，卡上可移除第 1 層引用再存。
+  - `NotBuiltPage` 的 `inBook` 參數已沒有頁面在用，沒刪。
 
 ### T26 現況（2026-11-17）
 
@@ -338,7 +358,7 @@
 - 待驗證：`settingSources: []` 下 `.claude/skills/` 還會不會被載入；對話中切換權限模式能否擋下；`auth/status_update` 通知要接掉。
 - 新依賴：`agent-client-protocol`（spike 用 1.0.0）。spike 腳本在 `scripts/acp_spike/`。
 
-**T27 Agent 工作區畫面**
+**T27 Agent 工作區畫面**：完成，見「T27 現況」。
 
 ### M8
 
