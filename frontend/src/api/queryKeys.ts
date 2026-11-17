@@ -4,4 +4,6 @@ export const queryKeys = {
   book: (bookId: string) => ['books', bookId] as const,
   ingest: (bookId: string) => ['books', bookId, 'ingest'] as const,
   jobs: ['jobs'] as const,
+  // 書籍層的資料都掛在 ['books', id, …] 底下：SSE 收到 resync 時整本 invalidate。
+  bookData: (bookId: string, ...rest: unknown[]) => ['books', bookId, ...rest] as const,
 };

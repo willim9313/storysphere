@@ -1,6 +1,6 @@
 # 進度與後續待辦
 
-最後更新：2026-11-17（T21 完成，未 commit）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
+最後更新：2026-11-17（T22 完成，未 commit）。這份是給「開新對話接手」用的：新 session 先讀 `CLAUDE.md`、本檔，再讀要做的那張任務在 `docs/spec/07_任務清單.md` 的段落與它「依據」欄列的規格。
 
 ## 接手先看這裡（2026-11-16 使用者的決定）
 
@@ -42,7 +42,8 @@
 | **T19 REST 與 SSE** | **三批完成**（A `6e2d9c1`、B `02c0e83`、C 見 git log）；延後的端點見「T19 現況」 | — |
 | **T20 MCP server** | 完成；見「T20 現況」 | — |
 | **T21 外框、書庫、入庫進度、工作中心** | 完成；見「T21 現況」 | — |
-| T22 之後 | 未開始 | — |
+| **T22 總覽、結果卡詳情、view** | 完成；見「T22 現況」 | — |
+| T23 之後 | 未開始 | — |
 
 - 分支：本機 `main`，沒有遠端，沒推過。CI（`.github/workflows/gates.yml`）寫好但從沒跑過。
 - 閘門現況：六道全部 exit 0（pytest 沒設 `BENCHMARK_DIR` 時 1297 passed、2 skipped）。
@@ -109,6 +110,16 @@
 - **前端型別**：`frontend/src/api/generated.ts` 已產生（35 條路徑）。產生方式是從 app 匯出 `openapi.json` 再跑 `openapi-typescript`，結果與 `npm run gen:types` 相同，只是不必在 8000 埠開伺服器（開伺服器會在 `var/` 建出 `neo.db`）。`knip.jsonc` 把它列為忽略，T21 的 API client import 之後可以拿掉。
 - **T19 完成標準對照**（07）：「`npm run gen:types` 產出型別」達成；「SSE 斷線帶 `Last-Event-ID` 能補抓」達成；「04 每個端點都有 API 測試」**部分**——做了的端點都有，延後的沒有。
 - **延後的端點**（使用者 2026-11-16 確認）：N-02f／g／h（重跑失敗單位、從某步重跑、改主題材）、N-06*（筆記、詮釋）、N-07c／d／e（方法論）、N-08e–g 與 N-10*（大腦，T25）。N-04d 的 `rerunUpstream=true` 也還沒做（回 422）。
+
+### T22 現況（2026-11-17）
+
+- 規劃：`docs/plans/20261117-t22-overview-detail-views.md`。使用者決定：view 改成「有資料的先做」（`knowledge_matrix`、`evidence_list`，並從 T24 拉進 `causal_graph`、`character_arc`、`network`；規格補在 05 §4.1）；`fairness_matrix` 等 MY4；`timeline_dual`、`suspect_matrix` 拿掉；「存成筆記」等 N-06c（T23）；審核只做確認＋拒絕。
+- 前端：`pages/OverviewPage.tsx`（題材卡、結果卡依視角分組、也可以問、其他題材訊號）、`pages/RunDetailPage.tsx`（標頭、run 資訊、重跑、view、證據列表＋篩選、確認／拒絕、追溯、原文側板）、`components/detail/`、`components/views/`（`ViewRenderer` 依 viewType 分派，沒專屬 view 的退回 `evidence_list`）、`api/evidence.ts`、`api/runs.ts`、`api/registry.ts`。view 由 subagent 做（矩陣與弧線一個、兩張圖一個），因果圖的版面我改成每章一直欄。
+- 新依賴：`cytoscape`、`cytoscape-fcose`。`knip.jsonc` 忽略 `*.d.ts`。
+- view 依「方法產出的證據類型」取整本的 current 證據，不只結果卡那一個 run（CH2、CH5 每個角色一筆 run）。詳情頁右欄的證據列表仍是該 run 的產出；在 view 點到別的角色的證據時，另外放在右欄最上面。
+- 已用瀏覽器（1440 寬、四簽名副本）看過：總覽、CH5／CH2／EV1／CH4 四張卡的詳情與 view、追溯、原文側板（高亮對上）、只看核心事件、點節點。**沒按過「執行」「重跑」（會叫 LLM），也沒按過確認／拒絕**（會改 DB 副本，之後要測時再按）。Ink 主題沒看（目前沒有切換入口）。
+- 結果卡底部的「章節分布色條」（畫布有）沒做：Card 沒有這個資料，要每張卡另外查證據。
+- 拒絕的理由用瀏覽器的 `window.prompt`，之後可換成表單。
 
 ### T21 現況（2026-11-17）
 

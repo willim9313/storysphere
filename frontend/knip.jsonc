@@ -3,6 +3,8 @@
   // export 層級（有 export 但只在檔內使用）刻意不擋：本身有在用、雜訊多，修正只是拿掉 export 關鍵字。
   // CSS class 不在 knip 偵測範圍，仍需人工清點。
   "$schema": "https://unpkg.com/knip@5/schema-jsonc.json",
+  // 型別宣告檔（如 cytoscape-fcose 的 declare module）由 TypeScript 讀，不會被 import。
+  "ignore": ["src/**/*.d.ts"],
   "rules": {
     "exports": "off",
     "types": "off",
