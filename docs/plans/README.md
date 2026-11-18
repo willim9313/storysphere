@@ -16,3 +16,5 @@
 | 2026-11-17 | [20261117-my4-fair-play-audit.md](20261117-my4-fair-play-audit.md) | T18 MY4：一個真相一筆 run、數字由演算法算、只瞞角色的真相跳過、fairness_matrix 一起做 |
 | 2026-11-17 | [20261117-ui-align-canvas.md](20261117-ui-align-canvas.md) | T28 前插入：UI 對齊設計稿，缺的 kit class 照設計稿補、同名保留，對話欄只留旁白，分五批、每批附並排截圖 |
 | 2026-11-17 | [20261117-agent-chat-ux.md](20261117-agent-chat-ux.md) | Agent 對話介面改成主流 chat：左側對話清單（N-10b 加 firstQuestion）、內部捲動、工具收合；設計稿同批更新 |
+| 2026-11-18 | [20261118-prototype-acceptance.md](20261118-prototype-acceptance.md) | T28 驗收：條件 1 部分通過（單位格不能點）、條件 2 通過、條件 3 不通過（agent 筆記重跑沒做）；09 不通過集中在 S2 角色合併與 S4 揭曉連結 |
+| 2026-11-18 | [20261118-prototype-retrospective.md](20261118-prototype-retrospective.md) | 原型回顧：整理 11/15–11/18 對話中發現的設計、入庫品質、方法、大腦、成本、工程、UI、流程問題，給 v4 正式版重新設計用 |
