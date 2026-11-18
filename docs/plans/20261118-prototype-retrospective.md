@@ -224,6 +224,14 @@ S1 抽出 411–431 個事件，連續的小動作各自算一個。下游受到
   - 最後的做法：session 目錄放系統暫存目錄，skill 經 `plugins` 帶過去。（T26）
 - **CLI 內建的 skill（code-review 等）關不掉**：它們沒有工具可用，做不了事，但仍會出現在大腦的清單裡。（T26）
 - **模型沒有指定**：實際用的是登入帳號的預設模型（目前是 Opus 5.5），`agent_sessions.model` 是空的，使用者自己設定的模型也不會生效。慢的原因是 Opus 本身較慢、每段新對話都要用 npx 啟動 adapter，再加上每輪多次工具呼叫。（11/18）
+- **大腦用的是使用者本人的登入**：子程式只拿到一小份環境變數白名單，`GEMINI_API_KEY` 不會傳過去；但白名單包含 `HOME`，它要靠這個讀登入狀態，所以技術上碰得到 `~/.claude`。（11/18 安全檢查）
+- **adapter 沒有固定版本**：啟動命令是 `npx -y @agentclientprotocol/claude-agent-acp`，每次可能抓到 npm 上最新的版本，而它是帶著使用者的 Claude 登入在跑，有供應鏈風險。（11/18 安全檢查）
+- **REST 可以改啟動命令**：設定頁的端點能改大腦的啟動命令（`launch_command`），後端之後會直接執行它，而 REST API 沒有任何驗證。現在只靠 uvicorn 只聽 127.0.0.1、沒開 CORS 擋住；MCP 那邊有 Bearer token 和 Host 檢查，REST 沒有。（11/18 安全檢查）
+- **v4 要決定**：
+  - REST 要不要加驗證或 Host 檢查。
+  - 啟動命令要不要只能在設定檔裡改，不開放給 API。
+  - adapter 要固定版本。
+  - 大腦要不要用獨立的帳號或 API key，不要用使用者本人的訂閱登入。
 
 ### 整合的技術債
 
@@ -282,6 +290,11 @@ S1 抽出 411–431 個事件，連續的小動作各自算一個。下游受到
   - `docs/spec/` 和原稿 `prototype_v0_草案/` 不同步（待決 #5）。
   - 筆記的引用規則一度在 REST 和 MCP 各寫一份。
 - **刪書**：上傳的原始檔不會刪；`evidence.book_id` 沒有外鍵。
+- **金鑰處理（11/18 檢查，沒有問題）**：
+  - `.env` 被忽略，從沒進過 git 歷史，金鑰值在 repo、`var/`、對話紀錄裡都搜不到。
+  - 設定檔只存環境變數名；MCP token 只存 sha256，session 結束後就失效。
+  - repo 裡會留下身分的只有 GitHub 帳號名和三個 claude.ai 設計畫布連結。
+  - REST 沒有驗證的風險見第四節。
 - **依賴**：
   - `sentence-transformers` 會帶進 torch。
   - Codex 訂閱只有私有、自標 experimental 的類別，所以沒接。
